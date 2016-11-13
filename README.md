@@ -6,13 +6,14 @@ The ElectroData Division of Burroughs went on to create a number of successful s
 
 The main goal of this project is creation of a web browser-based emulator for the 220.
 
-A second goal is reconstruction of the BALGOL Algol-58 compiler written for the 220 by a team from Burroughs that included Joel Erdwinn, Jack Merner, Donald Knuth, Dave Dahm, and Clark Oliphint.
+A second goal is reconstruction of the Burroughs Algebraic Compiler (BALGOL), an Algol-58 compiler written for the 220 by a team from Burroughs that included Joel Erdwinn, Jack Merner, Donald Knuth, Dave Dahm, and Clark Oliphint.
 
 The contents of this project are licensed under the [MIT License](http://www.opensource.org/licenses/mit-license.php).
 
 | Related Sites | URL |
 | ------------- | ----- |
 | Emulator hosting site | http://www.phkimpel.us/ElectroData/220/ |
+| Burroughs 205/220 blog | http://datatron.blogspot.com |
 | Datatron 205 site | http://www.phkimpel.us/ElectroData/205/ |
 | Documents at bitsavers | http://bitsavers.org/pdf/burroughs/electrodata/220/ |
 

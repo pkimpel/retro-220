@@ -8,8 +8,8 @@ format, with carriage-return/line-feed delimiters.
 
 
 BALGOL-Main.baca
-    Assembly listing of the BALGOL compiler mainline module, transcribed
-    by Paul Kimpel from
+    Assembly listing of the BALGOL compiler main-line module,
+    transcribed by Paul Kimpel from
     http://archive.computerhistory.org/resources/text/Knuth_Don_X4100/
     PDF_index/k-1-pdf/k-1-u2196-balgol220compiler.pdf.
 
