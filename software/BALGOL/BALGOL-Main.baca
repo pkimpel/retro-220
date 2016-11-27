@@ -56,7 +56,7 @@
 
                                            TAPE STORING ROUTINE.
     63 0     0060   STORE MRW 4 T
-    64 0     0061   *B    LDB   *+1        REWRITES COPILER FROM CORE
+    64 0     0061   *B    LDB   *+1        REWRITES COMPILER FROM CORE
     65 0     0062         CLA   998         IN THE FORM REQUIRED BY LOADING ROUTINE.
     66 0     0063   *A    ADD - 0
     67 0     0064         DBB   *-1,1
@@ -992,287 +992,904 @@
  09 97 0     0976   *T    STP   WEMX
  09 98 0     0977         BUN   WEM,E-
  09 99 0     0978         CNST  30111130000   IMPROPER FUNCTION ARGUMENT
- 10 00 0     0979   *G    BFR   H+,11,5
- 10 01 0     0980         BUN   T-
- 10 02 0     0981   *F    DLB   L,64,00
- 10 03 0     0982         CAD - 0
- 10 04 0     0983         CFR   DCLMD,64      IF IN TYPE DECLARATION,
- 10 05 0     0984         BCE   E-             SKIP TO NEXT MATCHING RIGHT PARENTHESIS
- 10 06 0     0985         BFA   J+,11,0
- 10 07 0     0986         BFA   K+,11,9
- 10 08 0     0987   *I    STP   FRMEX         IF SYMBOL WAS CLASSIFIED BEFORE AND
- 10 09 0     0988         BUN   FRME           IS NOT A LABEL, SEND IT TO THE EXECUTOR.
- 10 10 0     0989         DLB   L,64,00
- 10 11 0     0990         LDR - 0             THEN LOOK SEE WHAT KIND IT IS
- 10 12 0     0991         BFR   R19P,11,1     IF VARIABLE INSERT DOT
- 10 13 0     0992         BFR   M+,11,4       IF LIBRARY ROUTINE, INSERT FUNC CALL OP
- 10 14 0     0993         BFR   H+,11,5       IF ARRAY, SEE BELOW
- 10 15 0     0994         BFR   SCN1,11,9     IF LABEL, EXIT
- 10 16 0     0995         BFR   SCN1,11,7     IF RESERVED WORD, EXIT
- 10 17 0     0996         BFR   M+,12,88      IF EXT PROCEDURE,INSERT FUNC CALL OP
- 10 18 0     0997   *P    CFR   LEVEL,02      IS IT THE NAME OF THE PRESENT
- 10 19 0     0998         BCE   E-             PROCEDURE BEING DECLARED
- 10 20 0     0999   *M    CAD   CWCLN
- 10 21 0     1000         BUN   SCN5
- 10 22 0     1001   *H    LDB - 0             IF AN ARRAY, MOVE THE MULTIPLIERS TO
- 10 23 0     1002         SLT   0             THE DIMENSION STACK
- 10 24 0     1003         ADD   XZERO+1
- 10 25 0     1004         BSA   *+2,1
- 10 26 0     1005         LDB - 0             (IF NOT PARAMETRIC,SKIP OVER THE
- 10 27 0     1006         IBB   Q+,9999        TOTAL-LENGTH ENTRY)
- 10 28 0     1007   *R    CAD - 1             (IF ITS ONLY 1-DIMENSIONAL, WE
- 10 29 0     1008         STA   TEMP           LEAVE THE DIMENSION STACK ALONE)
- 10 30 0     1009         STP   INSX,DIMS
- 10 31 0     1010         BUN   INS
- 10 32 0     1011         LDB   TEMP
- 10 33 0     1012         DBB   R-,1
- 10 34 0     1013   *Q    CAD   CWNDX         SEND INDEX OP TO EXECUTOR
- 10 35 0     1014         BUN   SCN5
- 10 36 0     1015   *J    CFR   ARAMD,64      IF WE HAVE A NEW SYMBOL, AND WE ARENT
- 10 37 0     1016         DLB   L,64,00       PROCESSING AN ARRAY DECLARATION,
- 10 38 0     1017         BCE   S+             ITS A VARIABLE
- 10 39 0     1018         IFL - 011,1
- 10 40 0     1019         BUN   I-
- 10 41 0     1020   *S    IFL - 0,11,5        IN ARRAY DECLARATION, MARK THE PRESENT
- 10 42 0     1021         STP   FRMEX          SYMBOL AS AN ARRAY AND SEND IT AND AN
- 10 43 0     1022         BUN   FRME           ARRAY-DECLARATION OPERATOR TOEXECUTOR
- 10 44 0     1023         CAD   CWARD
- 10 45 0     1024         BUN   SCN5
- 10 46 0     1025   *K    SLT   0             IF IT IS A LABEL, THE MODE MUST
- 10 47 0     1026         BSA   N+,9          BE A DECLARATION OF SOME KIND
- 10 48 0     1027         BSA   N+,8
- 10 49 0     1028         STP   WEMX
- 10 50 0     1029         BUN   WEM,I-        ELSE, MISPLACED LABEL
- 10 51 0     1030         CNST  31517000000
- 10 52 0     1031   *N    STA - 0
- 10 53 0     1032         CFR   FRMMD,64
- 10 54 0     1033         BCU   *+2
- 10 55 0     1034         DFL   M+,62,29      I-O DECLARATION
- 10 56 0     1035         DLB   LOCN,64,00
- 10 57 0     1036         STB   IOPUS,04      STORE 1ST LOCATION IN IOPUS
- 10 58 0     1037         STP   TRTGX
- 10 59 0     1038         BUN   TRTG2         SEND A LABEL OPERATOR TO THE EXECUTOR
- 10 60 0     1039         IFL   ALEPH,62,6
- 10 61 0     1040         CAD   CWLAB
- 10 62 0     1041   *M    BUN   SCN5          IN FORMAT DECLARATION SEND THE
- 10 63 0     1042         IFL   M-,62,29       LABEL ITSELF TO EXECUTOR INSTEAD
- 10 64 0     1043         STP   FRMEX
- 10 65 0     1044         BUN   FRME
- 10 66 0     1045   SC7   BUN   SC7
+010 00 0     0979   *G    BFR   H+,11,5
+010 01 0     0980         BUN   T-
+010 02 0     0981   *F    DLB   L,64,00
+010 03 0     0982         CAD - 0
+010 04 0     0983         CFR   DCLMD,64      IF IN TYPE DECLARATION,
+010 05 0     0984         BCE   E-             SKIP TO NEXT MATCHING RIGHT PARENTHESIS
+010 06 0     0985         BFA   J+,11,0
+010 07 0     0986         BFA   K+,11,9
+010 08 0     0987   *I    STP   FRMEX         IF SYMBOL WAS CLASSIFIED BEFORE AND
+010 09 0     0988         BUN   FRME           IS NOT A LABEL, SEND IT TO THE EXECUTOR.
+010 10 0     0989         DLB   L,64,00
+010 11 0     0990         LDR - 0             THEN LOOK SEE WHAT KIND IT IS
+010 12 0     0991         BFR   R19P,11,1     IF VARIABLE INSERT DOT
+010 13 0     0992         BFR   M+,11,4       IF LIBRARY ROUTINE, INSERT FUNC CALL OP
+010 14 0     0993         BFR   H+,11,5       IF ARRAY, SEE BELOW
+010 15 0     0994         BFR   SCN1,11,9     IF LABEL, EXIT
+010 16 0     0995         BFR   SCN1,11,7     IF RESERVED WORD, EXIT
+010 17 0     0996         BFR   M+,12,88      IF EXT PROCEDURE,INSERT FUNC CALL OP
+010 18 0     0997   *P    CFR   LEVEL,02      IS IT THE NAME OF THE PRESENT
+010 19 0     0998         BCE   E-             PROCEDURE BEING DECLARED
+010 20 0     0999   *M    CAD   CWCLN
+010 21 0     1000         BUN   SCN5
+010 22 0     1001   *H    LDB - 0             IF AN ARRAY, MOVE THE MULTIPLIERS TO
+010 23 0     1002         SLT   0             THE DIMENSION STACK
+010 24 0     1003         ADD   XZERO+1
+010 25 0     1004         BSA   *+2,1
+010 26 0     1005         LDB - 0             (IF NOT PARAMETRIC,SKIP OVER THE
+010 27 0     1006         IBB   Q+,9999        TOTAL-LENGTH ENTRY)
+010 28 0     1007   *R    CAD - 1             (IF ITS ONLY 1-DIMENSIONAL, WE
+010 29 0     1008         STA   TEMP           LEAVE THE DIMENSION STACK ALONE)
+010 30 0     1009         STP   INSX,DIMS
+010 31 0     1010         BUN   INS
+010 32 0     1011         LDB   TEMP
+010 33 0     1012         DBB   R-,1
+010 34 0     1013   *Q    CAD   CWNDX         SEND INDEX OP TO EXECUTOR
+010 35 0     1014         BUN   SCN5
+010 36 0     1015   *J    CFR   ARAMD,64      IF WE HAVE A NEW SYMBOL, AND WE ARENT
+010 37 0     1016         DLB   L,64,00       PROCESSING AN ARRAY DECLARATION,
+010 38 0     1017         BCE   S+             ITS A VARIABLE
+010 39 0     1018         IFL - 011,1
+010 40 0     1019         BUN   I-
+010 41 0     1020   *S    IFL - 0,11,5        IN ARRAY DECLARATION, MARK THE PRESENT
+010 42 0     1021         STP   FRMEX          SYMBOL AS AN ARRAY AND SEND IT AND AN
+010 43 0     1022         BUN   FRME           ARRAY-DECLARATION OPERATOR TOEXECUTOR
+010 44 0     1023         CAD   CWARD
+010 45 0     1024         BUN   SCN5
+010 46 0     1025   *K    SLT   0             IF IT IS A LABEL, THE MODE MUST
+010 47 0     1026         BSA   N+,9          BE A DECLARATION OF SOME KIND
+010 48 0     1027         BSA   N+,8
+010 49 0     1028         STP   WEMX
+010 50 0     1029         BUN   WEM,I-        ELSE, MISPLACED LABEL
+010 51 0     1030         CNST  31517000000
+010 52 0     1031   *N    STA - 0
+010 53 0     1032         CFR   FRMMD,64
+010 54 0     1033         BCU   *+2
+010 55 0     1034         DFL   M+,62,29      I-O DECLARATION
+010 56 0     1035         DLB   LOCN,64,00
+010 57 0     1036         STB   IOPUS,04      STORE 1ST LOCATION IN IOPUS
+010 58 0     1037         STP   TRTGX
+010 59 0     1038         BUN   TRTG2         SEND A LABEL OPERATOR TO THE EXECUTOR
+010 60 0     1039         IFL   ALEPH,62,6
+010 61 0     1040         CAD   CWLAB
+010 62 0     1041   *M    BUN   SCN5          IN FORMAT DECLARATION SEND THE
+010 63 0     1042         IFL   M-,62,29       LABEL ITSELF TO EXECUTOR INSTEAD
+010 64 0     1043         STP   FRMEX
+010 65 0     1044         BUN   FRME
+010 66 0     1045   SC7   BUN   SC7
 
 
- 10 69 0     1046   R3K   LDR   SYMBL         AP
- 10 70 0     1047         CFR   STOGN+1,00    IN THE STATEMENT STOP +E,  + IS REDUNDANT
- 10 71 0     1048         BCE   SCN11
- 10 72 0     1049   R3    BUN   A+            A) A$ A, A*
- 10 73 0     1050         IFL   *-1,62,29
- 10 74 0     1051         CAD   RR2           IF WE ARE WORKING ON A PREFIX,
- 10 75 0     1052         SLS   2
- 10 76 0     1053         STA   TEMP3,12      CALCULATE SL-FIELD FOR COMPARISON
- 10 77 0     1054         CAD   K
- 10 78 0     1055         SLA   8
- 10 79 0     1056         STA   TEMP3,21
- 10 80 0     1057         SLA   1
- 10 81 0     1058         STA   TEMP3,11
- 10 82 0     1059         DFL   TEMP3,22,22
- 10 83 0     1060         CAD   SSC           PUT PREFIX CODE INTO PR3-STACK
- 10 84 0     1061         SLA   4
- 10 85 0     1062         STA   TEMP3,64
- 10 86 0     1063         LDB   SSC
- 10 87 0     1064         CAD   SYMBL
- 10 88 0     1065         STA - 0
- 10 89 0     1066         IFL   SSC,00,1
- 10 90 0     1067         LDR   *+1
- 10 91 0     1068         LDB   PR3
- 10 92 0     1069   *C    STR   TEMP2
- 10 93 0     1070         STB   TEMPI
- 10 94 0     1071         IBB   B+,9999
- 10 95 0     1072         LDR - 1
- 10 96 0     1073         STR   TEMP
- 10 97 0     1074         DLB   TEMP,64,0
- 10 98 0     1075         CFA - 0
- 10 99 0     1076         BCH   D+
- 11 00 0     1077   *B    LDB   TEMP2
- 11 01 0     1078         CAD   TEMP3
- 11 02 0     1079         STP   INSX
- 11 03 0     1080         BUN   INS1
- 11 04 0     1081         BUN   SCN1
- 11 05 0     1082   *D    LDR   TEMP1
- 11 06 0     1083         LDB   TEMP
- 11 07 0     1084         BUN   C-
- 11 08 0     1085   *A    STP   CLASX         FINISH PROCESSING IDENTIFIER OR
- 11 09 0     1086         BUN   CLASS          NUMERIC LABEL
- 11 10 0     1087         BUN   SCN1
- 11 11 0     1088   SW5   DEFN  R3
+010 69 0     1046   R3K   LDR   SYMBL         AP
+010 70 0     1047         CFR   STOGN+1,00    IN THE STATEMENT STOP +E,  + IS REDUNDANT
+010 71 0     1048         BCE   SCN11
+010 72 0     1049   R3    BUN   A+            A) A$ A, A*
+010 73 0     1050         IFL   *-1,62,29
+010 74 0     1051         CAD   RR2           IF WE ARE WORKING ON A PREFIX,
+010 75 0     1052         SLS   2
+010 76 0     1053         STA   TEMP3,12      CALCULATE SL-FIELD FOR COMPARISON
+010 77 0     1054         CAD   K
+010 78 0     1055         SLA   8
+010 79 0     1056         STA   TEMP3,21
+010 80 0     1057         SLA   1
+010 81 0     1058         STA   TEMP3,11
+010 82 0     1059         DFL   TEMP3,22,22
+010 83 0     1060         CAD   SSC           PUT PREFIX CODE INTO PR3-STACK
+010 84 0     1061         SLA   4
+010 85 0     1062         STA   TEMP3,64
+010 86 0     1063         LDB   SSC
+010 87 0     1064         CAD   SYMBL
+010 88 0     1065         STA - 0
+010 89 0     1066         IFL   SSC,00,1
+010 90 0     1067         LDR   *+1
+010 91 0     1068         LDB   PR3
+010 92 0     1069   *C    STR   TEMP2
+010 93 0     1070         STB   TEMPI
+010 94 0     1071         IBB   B+,9999
+010 95 0     1072         LDR - 1
+010 96 0     1073         STR   TEMP
+010 97 0     1074         DLB   TEMP,64,0
+010 98 0     1075         CFA - 0
+010 99 0     1076         BCH   D+
+011 00 0     1077   *B    LDB   TEMP2
+011 01 0     1078         CAD   TEMP3
+011 02 0     1079         STP   INSX
+011 03 0     1080         BUN   INS1
+011 04 0     1081         BUN   SCN1
+011 05 0     1082   *D    LDR   TEMP1
+011 06 0     1083         LDB   TEMP
+011 07 0     1084         BUN   C-
+011 08 0     1085   *A    STP   CLASX         FINISH PROCESSING IDENTIFIER OR
+011 09 0     1086         BUN   CLASS          NUMERIC LABEL
+011 10 0     1087         BUN   SCN1
+011 11 0     1088   SW5   DEFN  R3
 
 
- 11 14 0     1088   R4    STP   WINDX         NA
- 11 15 0     1089         BUN   WIND1,SCN8    FINISH UP CONSTANT
- 11 16 0     1090         IFL   SW6,00,1      SET UP IMPLIED MULTIPLICATION
- 11 17 0     1091         BUN   R13
+011 14 0     1088   R4    STP   WINDX         NA
+011 15 0     1089         BUN   WIND1,SCN8    FINISH UP CONSTANT
+011 16 0     1090         IFL   SW6,00,1      SET UP IMPLIED MULTIPLICATION
+011 17 0     1091         BUN   R13
 
 
- 11 20 0     1092   R5    DFL   D,22,1        NN
- 11 21 0     1093         CAD   SYMBL
- 11 22 0     1094         SLS   1
- 11 23 0     1095         STA   SYMBL         BUILD CONSTANT
- 11 24 0     1096         LDR   S2
- 11 25 0     1097         STR   SYMBL,01
- 11 26 0     1098         BUN   SCN1
+011 20 0     1092   R5    DFL   D,22,1        NN
+011 21 0     1093         CAD   SYMBL
+011 22 0     1094         SLS   1
+011 23 0     1095         STA   SYMBL         BUILD CONSTANT
+011 24 0     1096         LDR   S2
+011 25 0     1097         STR   SYMBL,01
+011 26 0     1098         BUN   SCN1
 
 
- 11 29 0     1099   R6    STP   WINDX         N) N$ N, NP
- 11 30 0     1100         BUN   WINDI,R3
- 11 31 0     1101         BUN   SCN1          FINISH WORKING ON CONSTANT
- 11 32 0     1102   NTAG  CNST  20000000010
+011 29 0     1099   R6    STP   WINDX         N) N$ N, NP
+011 30 0     1100         BUN   WINDI,R3
+011 31 0     1101         BUN   SCN1          FINISH WORKING ON CONSTANT
+011 32 0     1102   NTAG  CNST  20000000010
 
 
- 11 35 0     1103   R7P   IFL   SW6,00,1      )A           IMPLIED MULTIPLICATION
- 11 36 0     1104   R7    STP   OPRTX,R13     (A .A $A ,A -A *A PA
- 11 37 0     1105         BUN   OPRT          SEND OPERATOR TO EXECUTOR,GO TO R13
+011 35 0     1103   R7P   IFL   SW6,00,1      )A           IMPLIED MULTIPLICATION
+011 36 0     1104   R7    STP   OPRTX,R13     (A .A $A ,A -A *A PA
+011 37 0     1105         BUN   OPRT          SEND OPERATOR TO EXECUTOR,GO TO R13
 
 
- 11 40 0     1106   R8    STP   OPRTX,SCN1    MANY E.G. )) (-
- 11 41 0     1107         BUN   OPRT          SEND LEFTHAND OP TO EXECUTOR
+011 40 0     1106   R8    STP   OPRTX,SCN1    MANY E.G. )) (-
+011 41 0     1107         BUN   OPRT          SEND LEFTHAND OP TO EXECUTOR
 
 
- 11 44 0     1108   R9    LDR   S2            (P .P $P ,P *P PP
- 11 45 0     1109         BFR   SCN2,02,10
- 11 46 0     1110         CLL   SW2           THE RIGHTHAND SYMBOL MUST BE A
- 11 47 0     1111         STP   WEMX           REDUNDANT PLUS SIGN
- 11 48 0     1112         BUN   WEM,SCN7
- 11 49 0     1113         CNST  31518200000   MISPLACED ARITHMETIC OPERATION
+011 44 0     1108   R9    LDR   S2            (P .P $P ,P *P PP
+011 45 0     1109         BFR   SCN2,02,10
+011 46 0     1110         CLL   SW2           THE RIGHTHAND SYMBOL MUST BE A
+011 47 0     1111         STP   WEMX           REDUNDANT PLUS SIGN
+011 48 0     1112         BUN   WEM,SCN7
+011 49 0     1113         CNST  31518200000   MISPLACED ARITHMETIC OPERATION
 
 
- 11 52 0     1114   R10   CAD   RPAR          )(
- 11 53 0     1115         STP   SCAN
- 11 54 0     1116         BUN   EXCTR         ) TO EXECUTOR
- 11 55 0     1117         BUN   R19P
+011 52 0     1114   R10   CAD   RPAR          )(
+011 53 0     1115         STP   SCAN
+011 54 0     1116         BUN   EXCTR         ) TO EXECUTOR
+011 55 0     1117         BUN   R19P
 
 
- 11 58 0     1118   R11   STP   ALPLX         A-
- 11 59 0     1119         BUN   ALPLU         LEFTHAND SYMBOL MUST BE A SIMPLE VARIABLE
- 11 60 0     1120         BFA   D+,11,0
- 11 61 0     1121         BFA   C+,11,1
- 11 62 0     1122         BFA   R2P,11,7
- 11 63 0     1123         CLL   TAG
- 11 64 0     1124         STP   WEMX
- 11 65 0     1125         BUN   WEM,C+
- 11 66 0     1126         CNST  30122240000   IMPROPER VARIABLE SYMBOL
- 11 67 0     1127   *D    IFL - 0,11,1
- 11 68 0     1128   *C    STP   FRMEX
- 11 69 0     1129         BUN   FRME
- 11 70 0     1130   R11P  CAD   PLUS          INSERT PLUS SIGN SO EXECUTOR
- 11 71 0     1131         BUN   SCN5          ALWAYS THINKS MINUS IS UNARY OPERATOR
-
-
-
- 11 75 0     1132   R12   STP   OPRTX,R11P    )-
- 11 76 0     1133         BUN   OPRT          ) TO EXECUTOR, INSERT A + SIGN
+011 58 0     1118   R11   STP   ALPLX         A-
+011 59 0     1119         BUN   ALPLU         LEFTHAND SYMBOL MUST BE A SIMPLE VARIABLE
+011 60 0     1120         BFA   D+,11,0
+011 61 0     1121         BFA   C+,11,1
+011 62 0     1122         BFA   R2P,11,7
+011 63 0     1123         CLL   TAG
+011 64 0     1124         STP   WEMX
+011 65 0     1125         BUN   WEM,C+
+011 66 0     1126         CNST  30122240000   IMPROPER VARIABLE SYMBOL
+011 67 0     1127   *D    IFL - 0,11,1
+011 68 0     1128   *C    STP   FRMEX
+011 69 0     1129         BUN   FRME
+011 70 0     1130   R11P  CAD   PLUS          INSERT PLUS SIGN SO EXECUTOR
+011 71 0     1131         BUN   SCN5          ALWAYS THINKS MINUS IS UNARY OPERATOR
 
 
 
- 11 80 0     1134   R13   CLL   K             BLANK K
- 11 81 0     1135         STB   SW1,62
- 11 82 0     1136         IFL   SW1,61,01     PREPARE TO BUILD AN IDENTIFIER
- 11 83 0     1137         LDB   SBL
- 11 84 0     1138         CLL   SYMBL
- 11 85 0     1139         RTF   SYMBL,9
- 11 86 0     1140         BUN   R1
-
-
- 11 89 0     1141   R15   STP   PASSX         SKIP OVER BLANKS
- 11 90 0     1142         BUN   PASS
- 11 91 0     1143         BUN   SCN3
-
-
- 11 94 0     1144   R17   STP   PASSX         A.
- 11 95 0     1145         BUN   PASS          GET NEXT NONBLANK CHARACTER
- 11 96 0     1146         BFA   R17Q,02,03
- 11 97 0     1147         STP   CLASX         IF NOT A COLON CLASSIFY
- 11 98 0     1148         BUN   CLASS          LEFT IDENTIFIER
- 11 99 0     1149   R17P  LDR   S2            MOVE WINDOW TO THE RIGHT
- 12 00 0     1150         STR   S1             AND CONTINUE SCANNING
- 12 01 0     1151         LDR   K2
- 12 02 0     1152         STR   K1
- 12 03 0     1153         BUN   SCN3
- 12 04 0     1154   R17R  LDR   NTAG
- 12 05 0     1155         STR   K             MARK NUMBER AS LABEL
- 12 06 0     1156   R17Q  STP   PASSX         GET NEXT NONBLANK CHARACTER
- 12 07 0     1157         BUN   PASS
- 12 08 0     1158         BFA   C+,02,03
- 12 09 0     1159         IFL   TAG,00,1      COLON IS DETECTED
- 12 10 0     1160         STP   ALPLX
- 12 11 0     1161         BUN   ALPLU         LOOK UP IDENTIFIER
- 12 12 0     1162         STP   TRTGX
- 12 13 0     1163         BUN   TRTG          PROCESS LABEL
- 12 14 0     1164         BUN   SCN6          RETURN
- 12 15 0     1165   *C    LDB   K
- 12 16 0     1166         DBB   R17Q,12       THREE DOTS DETECTED
- 12 17 0     1167         CLL   S2            TREAT AS COLON IF IDENTIFIER IS
- 12 18 0     1168         IFL   S2,00,90      OVER FIVE CHARACTERS. SET RIGHT
- 12 19 0     1169         CLL   K2            CHARACTER AS SPECIAL CODE 90 FOR PREFIXES
- 12 20 0     1170         DFL   R3,62,29      SET PREFIX SWITCH
- 12 21 0     1171         BUN   R1            PROCESS AS IDENTIFIER
-
-
- 12 24 0     1172   R18   STP   WINDX         N-
- 12 25 0     1173         BUN   WINDU         PROCESS CONSTANT
- 12 26 0     1174         BUN   R11P          AND INSERT + SIGN
-
-
- 12 29 0     1175   R19   STP   WINDX         N(
- 12 30 0     1176         BUN   FIND1,R2      PROCESS CONSTANT
- 12 31 0     1177   R19P  CAD   DOT           IF NOT A LABEL, INSERT IMPLIED MULT
- 12 32 0     1178         BUN   SCN5
-
-
- 12 35 0     1179   R20   STP   PASSX         N.
- 12 36 0     1180         BUN   PASS
- 12 37 0     1181         LDR   CHAR          IF THE NEXT CHARATER IS A DOT,WE HAVE
- 12 38 0     1182         BFR   R17R,02,03     A STATEMENT LABEL.
- 12 39 0     1183         BFR   C+,91,08      OTHERWISE IF ITS NOT NUMBERIC
- 12 40 0     1184   *A    STP   WINDX          WE FINISH MAKING UP THE CONSTANT
- 12 41 0     1185         BUN   WINDU          AND CONTINUE
- 12 42 0     1186         BUN   R17P
- 12 43 0     1187   *C    CAA   SW2           OTHERWISE WE HAVE A FLOATING CONSTANT
- 12 44 0     1188         ADA   SW3
- 12 45 0     1189         BZA   E+
- 12 46 0     1190   *D    STP   WEMX          ERROR CONDITIONS ARE N.N.N OR N**N.N
- 12 47 0     1191         BUN   WEM,A-
- 12 48 0     1192         CNST  31526280000   MISPLACED DECIMAL POINT
- 12 49 0     1193   *E    CLL   D
- 12 50 0     1194         IFL   D,22,58       RECORD DECIMAL POINT AND CONTINUE
- 12 51 0     1195         IFL   SW3,00,1       SCANNING AND BUILDING CONSTANT
- 12 52 0     1196         STR   S2
- 12 53 0     1197         LDR   XONE+1
- 12 54 0     1198         STR   K2
- 12 55 0     1199         BUN   R5
-
-
- 12 58 0     1200   R21   CAD   RPAR          )N
- 12 59 0     1201         STP   SCAN
- 12 60 0     1202         BUN   EXCTR         ) TO EXECUTOR
- 12 61 0     1203         CAD   DOT
- 12 62 0     1204         STP   SCAN          . TO EXECUTOR
- 12 63 0     1205         BUN   EXCTR
- 12 64 0     1206         BUN   R24
+011 75 0     1132   R12   STP   OPRTX,R11P    )-
+011 76 0     1133         BUN   OPRT          ) TO EXECUTOR, INSERT A + SIGN
 
 
 
- 12 68 0     1207   R22   STP   PASSX         N*
- 12 69 0     1208         BUN   PASS
- 12 70 0     1209         BFA   B+,02,14      CHECK FOR SECOND ASTERISK
- 12 71 0     1210         BUN   A-            IF NOT * MEANS EXPONENTIATE
- 12 72 0     1211   *B    LDB   SW3           START SCALE FACTOR
- 12 73 0     1212         DBB   G+,1
- 12 74 0     1213         CLL   D             IF MANTISSA HAD NO DECIMAL POINT
- 12 75 0     1214         IFL   D,22,58        MANUFACTURE ONE
- 12 76 0     1215         IFL   SW3,00,01
- 12 77 0     1216   *G    STP   WNDSX         PROCESS MANTISSA
- 12 78 0     1217         BUN   WINDS
- 12 79 0     1218   *B    LDR   SYMBL
- 12 80 0     1219         STR   FP
- 12 81 0     1220         IFL   SW2,00,1
- 12 82 0     1221         STP   PASSX
- 12 83 0     1222         BUN   PASS          EXAMINE NEXT NONBLANK CHARACTER
+011 80 0     1134   R13   CLL   K             BLANK K
+011 81 0     1135         STB   SW1,62
+011 82 0     1136         IFL   SW1,61,01     PREPARE TO BUILD AN IDENTIFIER
+011 83 0     1137         LDB   SBL
+011 84 0     1138         CLL   SYMBL
+011 85 0     1139         RTF   SYMBL,9
+011 86 0     1140         BUN   R1
+
+
+011 89 0     1141   R15   STP   PASSX         SKIP OVER BLANKS
+011 90 0     1142         BUN   PASS
+011 91 0     1143         BUN   SCN3
+
+
+011 94 0     1144   R17   STP   PASSX         A.
+011 95 0     1145         BUN   PASS          GET NEXT NONBLANK CHARACTER
+011 96 0     1146         BFA   R17Q,02,03
+011 97 0     1147         STP   CLASX         IF NOT A COLON CLASSIFY
+011 98 0     1148         BUN   CLASS          LEFT IDENTIFIER
+011 99 0     1149   R17P  LDR   S2            MOVE WINDOW TO THE RIGHT
+012 00 0     1150         STR   S1             AND CONTINUE SCANNING
+012 01 0     1151         LDR   K2
+012 02 0     1152         STR   K1
+012 03 0     1153         BUN   SCN3
+012 04 0     1154   R17R  LDR   NTAG
+012 05 0     1155         STR   K             MARK NUMBER AS LABEL
+012 06 0     1156   R17Q  STP   PASSX         GET NEXT NONBLANK CHARACTER
+012 07 0     1157         BUN   PASS
+012 08 0     1158         BFA   C+,02,03
+012 09 0     1159         IFL   TAG,00,1      COLON IS DETECTED
+012 10 0     1160         STP   ALPLX
+012 11 0     1161         BUN   ALPLU         LOOK UP IDENTIFIER
+012 12 0     1162         STP   TRTGX
+012 13 0     1163         BUN   TRTG          PROCESS LABEL
+012 14 0     1164         BUN   SCN6          RETURN
+012 15 0     1165   *C    LDB   K
+012 16 0     1166         DBB   R17Q,12       THREE DOTS DETECTED
+012 17 0     1167         CLL   S2            TREAT AS COLON IF IDENTIFIER IS
+012 18 0     1168         IFL   S2,00,90      OVER FIVE CHARACTERS. SET RIGHT
+012 19 0     1169         CLL   K2            CHARACTER AS SPECIAL CODE 90 FOR PREFIXES
+012 20 0     1170         DFL   R3,62,29      SET PREFIX SWITCH
+012 21 0     1171         BUN   R1            PROCESS AS IDENTIFIER
+
+
+012 24 0     1172   R18   STP   WINDX         N-
+012 25 0     1173         BUN   WINDU         PROCESS CONSTANT
+012 26 0     1174         BUN   R11P          AND INSERT + SIGN
+
+
+012 29 0     1175   R19   STP   WINDX         N(
+012 30 0     1176         BUN   FIND1,R2      PROCESS CONSTANT
+012 31 0     1177   R19P  CAD   DOT           IF NOT A LABEL, INSERT IMPLIED MULT
+012 32 0     1178         BUN   SCN5
+
+
+012 35 0     1179   R20   STP   PASSX         N.
+012 36 0     1180         BUN   PASS
+012 37 0     1181         LDR   CHAR          IF THE NEXT CHARATER IS A DOT,WE HAVE
+012 38 0     1182         BFR   R17R,02,03     A STATEMENT LABEL.
+012 39 0     1183         BFR   C+,91,08      OTHERWISE IF ITS NOT NUMBERIC
+012 40 0     1184   *A    STP   WINDX          WE FINISH MAKING UP THE CONSTANT
+012 41 0     1185         BUN   WINDU          AND CONTINUE
+012 42 0     1186         BUN   R17P
+012 43 0     1187   *C    CAA   SW2           OTHERWISE WE HAVE A FLOATING CONSTANT
+012 44 0     1188         ADA   SW3
+012 45 0     1189         BZA   E+
+012 46 0     1190   *D    STP   WEMX          ERROR CONDITIONS ARE N.N.N OR N**N.N
+012 47 0     1191         BUN   WEM,A-
+012 48 0     1192         CNST  31526280000   MISPLACED DECIMAL POINT
+012 49 0     1193   *E    CLL   D
+012 50 0     1194         IFL   D,22,58       RECORD DECIMAL POINT AND CONTINUE
+012 51 0     1195         IFL   SW3,00,1       SCANNING AND BUILDING CONSTANT
+012 52 0     1196         STR   S2
+012 53 0     1197         LDR   XONE+1
+012 54 0     1198         STR   K2
+012 55 0     1199         BUN   R5
+
+
+012 58 0     1200   R21   CAD   RPAR          )N
+012 59 0     1201         STP   SCAN
+012 60 0     1202         BUN   EXCTR         ) TO EXECUTOR
+012 61 0     1203         CAD   DOT
+012 62 0     1204         STP   SCAN          . TO EXECUTOR
+012 63 0     1205         BUN   EXCTR
+012 64 0     1206         BUN   R24
+
+
+
+012 68 0     1207   R22   STP   PASSX         N*
+012 69 0     1208         BUN   PASS
+012 70 0     1209         BFA   B+,02,14      CHECK FOR SECOND ASTERISK
+012 71 0     1210         BUN   A-            IF NOT * MEANS EXPONENTIATE
+012 72 0     1211   *B    LDB   SW3           START SCALE FACTOR
+012 73 0     1212         DBB   G+,1
+012 74 0     1213         CLL   D             IF MANTISSA HAD NO DECIMAL POINT
+012 75 0     1214         IFL   D,22,58        MANUFACTURE ONE
+012 76 0     1215         IFL   SW3,00,01
+012 77 0     1216   *G    STP   WNDSX         PROCESS MANTISSA
+012 78 0     1217         BUN   WINDS
+012 79 0     1218   *B    LDR   SYMBL
+012 80 0     1219         STR   FP
+012 81 0     1220         IFL   SW2,00,1
+012 82 0     1221         STP   PASSX
+012 83 0     1222         BUN   PASS          EXAMINE NEXT NONBLANK CHARACTER
+012 84 0     1223         BFA   D+,02,20
+012 85 0     1224         BFA   D+,02,34      WE MUST HAVE **N **-N OR **+N
+012 86 0     1225         BFA   E+,02,10
+012 87 0     1226   *C    BFA   F+,91,08
+012 88 0     1227         STP   WEMX
+012 89 0     1228         BUN   WEM,A-
+012 90 0     1229         CNST  30129300000   IMPROPER SCALE FACTOR
+012 91 0     1230   *D    IFL   SW4,61,1      RECORD SIGN
+012 92 0     1231   *E    STP   PASSX
+012 93 0     1232         BUN   PASS
+012 94 0     1233         BUN   C-
+012 95 0     1234   *F    STA   S2            PREPARE TO PROCESS SCALE FACTOR
+012 96 0     1235         DFL   K2,02,6
+012 97 0     1236         BUN   R24P          R3 IS LOCATED BY OPRT
+
+
+013 00 0     1237   R24   CLL   SW2           BLANK N
+013 01 0     1238         STB   SW4,61
+013 02 0     1239         CAD   S2
+013 03 0     1240   R24P  CLL   SYMBL         PREPARE TO BUILD A CONSTANT
+013 04 0     1241         CLL   D
+013 05 0     1242         CLL   SW3
+013 06 0     1243         STA   SYMBL,01
+013 07 0     1244         BUN   SCN1
+013 08 0
+
+013 10 0     1245   R25   STP   OPRTX,SCN10   (, ,, ,) ()
+013 11 0     1246         BUN   OPRT          INSERT THE EMPTY OPERATOR
+
+
+013 14 0     1247   R26   STP   OPRTX,*+2     ($ $$
+013 15 0     1247         BUN   OPRT
+013 16 0     1248         LDB   FUNS
+013 17 0     1249         IFL - 0,12,10       INCREASE THE SEMICOLON COUNT
+013 18 0     1250         CAD - 0
+013 19 0     1251         IFL   OMCRM,00,I
+013 20 0     1252         BSA   SCNI,2
+013 21 0     1253         IFL   TAG,00,1
+013 22 0     1254         BUN   SCN1
+
+
+013 25 0     1256   R27   DEFN  SCN1          $)
+
+
+013 28 0     1256   TRTG2 DFL   ALEPH,62,6    TRTG2 -- SUPPRESS MONITORING
+013 29 0     1257   TRTG  CLL   TAG
+013 30 0     1258         DLB   L,64,0        DEFINE A LABEL
+013 31 0     1259         CAD - 0
+013 32 0     1260         BFA   D+,64,0       IT HAD BETTER BE UNDEFINED
+013 33 0     1261         BFA   COMNT,12,67   OR THE WORD COMMENT
+013 34 0     1262         STP   WEMX
+013 35 0     1263         BUN   WEM,TRTGX     DUPLICATE LABEL
+013 36 0     1264         CNST  30617000000
+013 37 0     1265   *E    BPA   T+
+013 38 0     1266         LDR   DUMPR         PUT OUT CODE FOR DUMP ROUTINE
+013 39 0     1267         STR   V3            IF THIS LABEL WAS SPECIFIED ON TRACE CARD
+013 40 0     1268         LDR   MEMRY+1
+013 41 0     1269         STR   EXPLN
+013 42 0     1270         STP   CONVX
+013 43 0     1271         BUN   CONV3
+013 44 0     1272         BUN   TRTG1
+013 45 0     1273   *T    DLB   L,64,0
+013 46 0     1274         LDR - 0
+013 47 0     1275         STP   FXUPX
+013 48 0     1276         BUN   FXUP+1
+013 49 0     1277         BUN   TRTG1
+013 50 0     1278   *D    CAD   LOCN          THE NEW DEFINITION IS LOCN
+013 51 0     1279         STA - 0,64
+013 52 0     1280   NU    BUN   TRTG1
+013 53 0     1281         STP   ASMBX         IF THIS IS A SUBROUTINE LABEL,
+013 54 0     1282         BUN   ASMBL,NOPZ     INSERT A NOP INSTRUCTION
+013 55 0     1283         IFL   NU,62,29
+013 56 0     1284   TRTG1 DLB   L,64,0        FIX ALL FORWARD REFERENCES TO THIS LABEL
+013 57 0     1285         STP   REMX
+013 58 0     1286         BUN   REM1,E-
+013 59 0     1287         LDR   LOCNP         IF THIS IS A SEGMENT NUMBER,
+013 60 0     1288   ZUTA  F424  0001,01,LOCN   RESTORE LOCN
+013 61 0     1289   *B    CAD   CHI           IF MONITOR STATEMENT HASNT APPEARED,EXIT
+013 62 0     1290   ALEPH BZA   TRTGX
+013 63 0     1291         DLB   V8,64,0
+013 64 0     1292         STP   LIBRX         BRING IN THE LABEL PROCESSOR ROUTINE
+013 65 0     1293         BUN   LIBRF
+013 66 0     1294         LDB   L,64,0
+013 67 0     1295         STB   MNTR,04
+013 68 0     1296         CAD   L             IF THIS IS A NUMERIC LABEL
+013 69 0     1297         BSA   *+2,0         ATTACH A MINUS SIGN TO IT
+013 70 0     1298         IFL - 1,12,10        AS A SIGNAL TO THE LABEL PROCESSOR
+013 71 0     1299         STP   CONVX
+013 72 0     1300         BUN   CONV
+013 73 0     1301   MNTR  CAA   *             IF LABEL IS REQUESTED FOR MONITORING,
+013 74 0     1302   MU    NOP   TRTGX
+013 75 0     1303         BSA   *+3,2
+013 76 0     1304         BSA   *+2,6         PREPARE TO MONITOR ALL ASSIGNMENT
+013 77 0     1305   TRTGX BUN   *             STATEMENTS IN ITS SCOPE
+013 78 0     1306         STP   CMPLX
+013 79 0     1307         BUN   WMG,CRM       COMPILE CIRCL-M (THIS WILL COME UP
+013 80 0     1308         IFL   MU,62,29      WHEN THE SCOPE OF THELABEL IS ENDED)
+013 81 0     1309         BUN   TRTGX
+
+
+013 84 0     1310   PASS  STP   INPTX         GET NEXT NONBLANK CHARACTER FROM CARD
+013 85 0     1311         BUN   INPT
+013 86 0     1312         BZA   INPT
+013 87 0     1313   PASSX BUN   *
+
+
+013 90 0     1314   WIND1 LDB   TAG           FINISH PROCESSING CONSTANT.
+013 91 0     1315         DBB   E+,1          IF TAG IS ON, IT IS A NUMERIC LABEL
+013 92 0     1316   WINDU STP   WNDSX
+013 93 0     1317         BUN   WINDS         OTHERWISE MAKE A CONSTANT OUT OF IT
+013 94 0     1318         STP   NMBRX
+013 95 0     1319         BUN   NMBR
+
+
+013 98 0     1320   FRME  DLB   L,64,00       SEND CODED SYMBOL TO EXECUTOR
+013 99 0     1321         CAD - 0
+014 00 0     1322         BFA   A+,11,7
+014 01 0     1323         STA   L,22
+014 02 0     1324         BFA   C+,11,6
+014 03 0     1325   *D    CAD   L             IF IT ISNT A RESERVED WORD,
+014 04 0     1326         EXT   BOF2          MARK IT AS AN OPERAND
+014 05 0     1327   *B    STP   SCAN
+014 06 0     1328         BUN   EXCTR
+014 07 0     1329   FRMEX BUN   *
+014 08 0     1330   *A    SLA   4             RESERVED WORD - SLA4 FOR PROPER CODE
+014 09 0     1331         BUN   B-
+014 10 0     1332   *C    IFL   L,11,2        FUNCTION CODE IS 6 IN SCANNER.
+014 11 0     1333         BUN   D-
+014 12 0     1334   *E    LDR   NTAG
+014 13 0     1335         STR   K
+014 14 0     1336         LDB   WINDX
+014 15 0     1337         DLB - 9999,44,0
+014 16 0     1338         BUN - 0
+
+
+014 19 0     1339   WINDS CLL   RR0           PUT CONSTANT INTO FINAL FORM
+014 20 0     1340         CAD   SW3
+014 21 0     1341         BZA   E+
+014 22 0     1342         CAD   SYMBL         IF DECIMAL POINT WAS SENSED,
+014 23 0     1343   *G    BFA   F+,23,0       TRUNCATE CONSTANT TO EIGHT SIGNIFICANT
+014 24 0     1344         IFL   D,22,01                           DIGITS
+014 25 0     1345         SRS   1
+014 26 0     1346         BUN   G-
+014 27 0     1347   *F    SRT   10
+014 28 0     1348         CAD   D
+014 29 0     1349         STR   D,08          ATTACH EXPONENT
+014 30 0     1350         FAD   D
+014 31 0     1351         STA   SYMBL         NORMALIZE
+014 32 0     1352   WNDSX BUN   *
+014 33 0     1353   *E    CAD   SW2
+014 34 0     1354         BZA   D+
+014 35 0     1355   SW4   CAA   SYMBL         IF SCALE FACTOR TO BE ADDED,
+014 36 0     1356         BFA   B+,88,0       MAKE SURE IT IS IN THE PROPER RANGE
+014 37 0     1357   *A    STP   WEMX
+014 38 0     1358         BUN   WEM,C+
+014 39 0     1359         CNST  33436373800   CONSTANT OUT OF RANGE
+014 40 0     1360   *B    SLA   8
+014 41 0     1361         ADA   FP
+014 42 0     1362         BOF   A-
+014 43 0     1363         BPA   WNDSX-1
+014 44 0     1364   SVAR  DEFN  *
+014 45 0     1364   *C    CLA                 IF UNDERFLOW OR TOO BIG USE ZERO
+014 46 0     1365         BUN   WNDSX-1
+014 47 0     1366   *D    IFL   RR0,22,1      SET TYPE OF FIXED POINT CONSTANT
+014 48 0     1367         BUN   WNDSX
+014 49 0     1368   WINDX DEFN  FRMEX
+
+
+014 52 0     1368   INSRT ADD   LL0           PUT A NEW SYMBOL INTO MEMORY
+014 53 0     1369         EXT   NN
+014 54 0     1370         ADD   SCT
+014 55 0     1371         STA   L,04
+014 56 0     1372         LDR   SSC
+014 57 0     1373         SLT   4
+014 58 0     1374         STR   L,64
+014 59 0     1375         CAD   D2D3
+014 60 0     1376         STA   L,23
+014 61 0     1377         SRA   2
+014 62 0     1378         STA   B+,43
+014 63 0     1379         BFA   D+,42,00
+014 64 0     1380   *E    LDB   L             IF IT DOESNT FIT INTO THE SCRAMBLE
+014 65 0     1381         LDR - 0             TABLE, PUT IT INTO ASSOCIATIVE MEMORY
+014 66 0     1382         CAD   L
+014 67 0     1383         BFR   C+,00,0
+014 68 0     1384         STP   INSX
+014 69 0     1385         BUN   INS1
+014 70 0     1386   *C    STA - 0,67
+014 71 0     1387   *A    LDB   SSC
+014 72 0     1388         IFL   *+1,43,19
+014 73 0     1389   *B    RTF   RR0,0         MOVE NAME INTO SSC AREA
+014 74 0     1390         STB   SSC
+014 75 0     1391         LDR   SSC
+014 76 0     1392         CFR   MAMAX,04      CHECK IF MEMORY EXCEEDED
+014 77 0     1393         BCH   FULL
+014 78 0     1394         DLB   L,64,0
+014 79 0     1395         CLL - 0
+014 80 0     1396   INSRX BUN   *
+014 81 0     1397   *D    IFL   B-,21,1       50-CHARACTER IDENTIFIER WORRIES
+014 82 0     1398         BUN   E-
+
+
+014 85 0     1399   ALPLU CAD   K             LOOKUP IDENTIFIER OR NUMERIC LABEL
+014 86 0     1400         SLA   8
+014 87 0     1401         STA   D2D3,23       CONTROL ROUTINE
+014 88 0     1402   D2D3  CAA   SYMBL
+014 89 0     1403         SRT   10            SCRAMBLE FIRST PART OF SYMBOL
+014 90 0     1404         DIV   NN            BY TAKING ITS REMAINDER MOD 99
+014 91 0     1405         STR   LL0
+014 92 0     1406         LDR   PARSW
+014 93 0     1407         CAD   FNSW
+014 94 0     1408         BZR   E+
+014 95 0     1409         LDR   DICT+3
+014 96 0     1410         BZA   B+
+014 97 0     1411         STP   SRCHX         COLLECTING FUNCTION PARAMETERS
+014 98 0     1412         BUN   SRCH1         USE TYPE AS SPECIFIED IN TYPE DECLRATNS
+014 99 0     1413         BUN   X+
+015 00 0     1414         BFR   B+,21,0
+015 01 0     1415         BFR   B+,21,1
+015 02 0     1416         LDR   RR3
+015 03 0     1417   *B    STR   RR2,21        COLLECTING PROCEDURE PARAMETERS
+015 04 0     1418         CAD   KC            MARK TYPE AS UNSPECIFIED
+015 05 0     1419         STP   INSRX
+015 06 0     1420         BUN   INSRT         PUT PARAMETER INTO TABLE AT KC LEVEL
+015 07 0     1421         LDR   RR2
+015 08 0     1422         STR - 0,21
+015 09 0     1423         LDR   TAG
+015 10 0     1424         BZR   ALPX1
+015 11 0     1425         BUN   Y+
+015 12 0     1426   *E    BZA   D+            PROCESSING A FUNCTION DECLARATION
+015 13 0     1427         CAD   KC            IS THE IDENTIFIER A PARAMETER
+015 14 0     1428         STP   SRCHX
+015 15 0     1429         BUN   SRCH
+015 16 0     1430         BUN   D+            IF NOT TREAT AS NORMAL
+015 17 0     1431   *J    LDR   SW6
+015 18 0     1432         BZR   ALPX1
+015 19 0     1433         LDR   L             INSERT IMPLIED MULTIPLICATION
+015 20 0     1434         STR   LP            IF REQUIRED
+015 21 0     1435         CAD   DOT
+015 22 0     1436         STP   SCAN
+015 23 0     1437         BUN   EXCTR
+015 24 0     1438         LDR   LP
+015 25 0     1439         STR   L
+015 26 0     1440         CLL   SW6
+015 27 0     1441   ALPX1 LDB   MODE          ON EXIT, PUT MODE IN R REGISTER
+015 28 0     1442         LDR - 0                      SYMBL CODE IN A REGISTER
+015 29 0     1443         DLB   L,64,0
+015 30 0     1444         BFR   W+,12,70
+015 31 0     1445         CAD - 0
+015 32 0     1446   ALPLX BUN   *
+015 33 0     1447   *D    STP   SRCHX         NORMAL CASE
+015 34 0     1448         BUN   SRCH1         SEARCH FOR THIS IDENTIFIER
+015 35 0     1449         BUN   F+
+015 36 0     1450   THI   NOP   FRME          IF PROCESSING MONITOR LIST,EXIT TO FRME
+015 37 0     1451         BFR   J-,22,74      IF ITS AN INTRINSIC FUNCTION GO TO J-
+015 38 0     1452         BFR   ALPX1-1,11,7  IF ANOTHER RESERVED WORD,EXIT
+015 39 0     1453         BFR   G+,11,9       IS IT A LABEL
+015 40 0     1454   *L    BFR   H+,22,83      IS IT A PROCEDURE NAME
+015 41 0     1455         BFR   Z+,21,3       IS ITS TYPE UNSPECIFIED
+015 42 0     1456         STP   LIBRX         IF IT IS A NEW LIBRARY PROCEDURE,
+015 43 0     1457         BFR   LIBRF,11,3    ADD IT TO THE LIBRARY
+015 44 0     1458         BUN   J-            OTHERWISE CHEK IMPLIED MULTIPLICATION
+015 45 0     1459   *F    CAD   LEVEL
+015 46 0     1460   PEH   BZA   M+              SYMBOL NOT FOUND
+015 47 0     1461   L9    CLA   9             INSIDE PROCEDURE
+015 48 0     1462         STP   SRCHX
+015 49 0     1463         BUN   SRCH
+015 50 0     1464         BUN   K+            MAYBE ITS A RESERVED WORD
+015 51 0     1465         BFR   J-,22,74
+015 52 0     1466         BFR   ALPX1-1,11,7
+015 53 0     1467         BFR   J-,11,4       OR A PROCEDURE, LIBRARY FUNCTION NAME
+015 54 0     1468         BFR   L-,11,3
+015 55 0     1469         BFR   L-,11,8
+015 56 0     1470   *K    CAD   LEVEL         IF WE HAVE A BONA FIDE NEW SYMBOL,
+015 57 0     1471   *M    STP   INSRX         ADD IT TO THE TABLE
+015 58 0     1472         BUN   INSRT
+015 59 0     1473   *Z    LDR   TAG
+015 60 0     1474         BZR   H+
+015 61 0     1475   *Y    DFL - 0,11,1        MAKE IT A LABEL, IF IT APPEARS IN
+015 62 0     1476         BUN   ALPX1-1       THAT CONTEXT
+015 63 0     1477   *X    CAD   KC
+015 64 0     1478         BUN   M-
+015 65 0     1479   *G    CLL   SW6
+015 66 0     1480   *M    LDB   MODE          OTHERWISE IF IN TYPE DECLARATION MODE
+015 67 0     1481         LDR - 0              SET ITS TYPE
+015 68 0     1482         CFR   DCLMD,64
+015 69 0     1483         BCU   N+
+015 70 0     1484         CAD   RR2
+015 71 0     1485         DLB   L,64,0
+015 72 0     1486         STA - 0,21
+015 73 0     1487         BUN   ALPX1
+015 74 0     1488   *N    CAD   SYMBL         GIVEN A NEW SYMBOL, LETS ASSIGN
+015 75 0     1489         LDB   PR3            A TYPE FOR IT
+015 76 0     1490   *A2   IBB   F+,9999       LOOK IN PREFIX STACK FOR
+015 77 0     1491         LDR - 1             FIRST PREFIX WHICH APPLIES
+015 78 0     1492         STR   TEMP
+015 79 0     1493         DLB   TEMP,64,0
+015 80 0     1494         STR   *+1,22
+015 81 0     1495         CFA - 0,22
+015 82 0     1496         LDB   TEMP
+015 83 0     1497         BCU   A2-
+015 84 0     1498         CAD   TEMP
+015 85 0     1499         SRS   2
+015 86 0     1500   *P    DLB   L,64,0
+015 87 0     1501         STA - 0,21
+015 88 0     1502         BUN   J-            IF NONE FITS, SET OTHERWISE TYPE
+015 89 0     1503   *F    CAD   RR3
+015 90 0     1504         BUN   P-
+015 91 0     1505   *W    CAD 8 *
+015 92 0     1506         STB   JCROY,04
+015 93 0     1507         CLL   TAG           LABEL ON A TRACE CARD SENSED
+015 94 0     1508         STP   INSX
+015 95 0     1509         BUN   INS1          PUT CODE REFERENCE ON ITS FIXUP STACK
+015 96 0     1510         STP   CMPLX
+015 97 0     1511         BUN   WMG,CROY
+015 98 0     1512         IFL   CHI,00,1
+015 99 0     1513         BUN   SCN1
+
+
+016 02 0     1514   NMBR  CAD   SYMBL         SEE IF CONSTANT HAS APPEARED BEFORE.
+016 03 0     1515         LDR   RR0           EITHER SEARCH FLOATING POINT ONES
+016 04 0     1516   RHO   NOP   C+             OR INTEGER ONES
+016 05 0     1517         DLB   V6,64,00
+016 06 0     1518         BFR   *+2,21,1
+016 07 0     1519         DLB   V7,64,00
+016 08 0     1520   *A    CFA - 1
+016 09 0     1521         BCE   B+
+016 10 0     1522         STB   E+,04
+016 11 0     1523         LDB - 0
+016 12 0     1524         IBB   D+,9999
+016 13 0     1525         IBB   A-,1
+016 14 0     1526   *D    LDB   SSC
+016 15 0     1527   *E    STB   *,04          ENTER NEW CONSTANT IN TABLE
+016 16 0     1528         RTF   RR0,2
+016 17 0     1529         STB   SSC
+016 18 0     1530         IFL - 9998,11,2
+016 19 0     1531         IBB   *+1,9998
+016 20 0     1532   *B    STB   L             CONSTANT IN TABLE
+016 21 0     1533         CAD   L
+016 22 0     1534         SLA   4
+016 23 0     1535         STA   L,64
+016 24 0     1536         DLB   L,64,0
+016 25 0     1537   NMBRX BUN   *
+016 26 0     1538   *C    CFR   V2,21         IN ARRAY FILL
+016 27 0     1539         BCH   FLTCM         CHANGE TO PROPER TYPE, IF NECESSARY
+016 28 0     1540         BCL   FIXCM
+016 29 0     1541         DFL   RHO,62,29
+016 30 0     1542         STA   V1
+016 31 0     1543         STP   TSTOX         REVERSE ITS SIGN IF NECESSARY
+016 32 0     1544         BUN   TSTOP
+016 33 0     1545         LDR   V1
+016 34 0     1546         CAD   ABASE
+016 35 0     1547         IFL   ABASE,00,1
+016 36 0     1548         STP   WRITX         COMPILE IT
+016 37 0     1549         BUN   WRIT3
+016 38 0     1550         BUN   WINDX
+
+
+
+
+016 43 0     1551   CLASS STP   ALPLX         PROCESS AND CLASSIFY SYMBOL
+016 44 0     1552         BUN   ALPLU
+016 45 0     1553         BFA   FRME,11,7
+016 46 0     1554         CFR   DCLMD,64
+016 47 0     1555         BCE   SCN1          EXIT IF IN A TYPE DECLARATION
+016 48 0     1556         LDB   TAG
+016 49 0     1557         BFA   B+,11,0       OTHERWISE IT MUST BE A
+016 50 0     1558         BFA   C+,11,1       LABEL OR SIMPLE VARIABLE
+016 51 0     1559         BFA   D+,11,9
+016 52 0     1560         DBB   P+,1
+016 53 0     1561   *Q    STP   WEMX
+016 54 0     1562         BUN   WEM,FRME
+016 55 0     1563         CNST  30122240000   IMPROPER VARIABLE SYMBOL
+016 56 0     1564   *C    IBB   FRME,9999
+016 57 0     1565   *P    STP   WEMX
+016 58 0     1566         BUN   WEM,A+
+016 59 0     1567         CNST  30117240000   IMPROPER LABEL SYMBOL
+016 60 0     1568   *D    DBB   A+,1
+016 61 0     1569         BUN   Q-
+016 62 0     1570   *B    CFR   FUNMD,64      MAKE UNASSIGNED SYMBOL
+016 63 0     1571         BCU   X+            INTO EITHER A SIMPLE VARIABLE
+016 64 0     1572         LDB   FUNS
+016 65 0     1573         CAD - 0             OR, IF IN LABEL PART OF A PROCEDURE
+016 66 0     1574         BSA   Y+,3          CALL, INTO A LABEL
+016 67 0     1575   *X    DLB   L,64,0
+016 68 0     1576         IFL - 0,11,1
+016 69 0     1577   *A    CLL   TAG
+016 70 0     1578         BUN   FRME          EXIT TO FRME ROUTINE IN ANY EVENT
+016 71 0     1579   *Y    DLB   L,64,0
+016 72 0     1580         IFL - 0,11,9
+016 73 0     1581         BUN   FRME
+016 74 0     1582   CLASX DEFN  FRMEX
+
+
+016 77 0     1582   THETA DEFN  *
+016 78 0     1582   INPT  NOP   INP3          GET NEXT CHARACTER, FROM FV-STACK
+016 79 0     1583   INP1  DLB   SCNCT,94,00       OR FROM CARD, NORMALLY FROM CARD
+016 80 0     1584         CAD - IMAGE         BRING IN ALPHA WORD
+016 81 0     1585         LDB   SCNCT
+016 82 0     1586         SLA - 0             ISOLATE NEXT DIGIT PAIR
+016 83 0     1587   CCCNT DBB   D+,144        CHECK FOR END OF CARD
+016 84 0     1588   ZETA  BFA   E+,00,00
+016 85 0     1589         SRA   8
+016 86 0     1590         IFL   SCNCT,05,02
+016 87 0     1591   *F    STA   CHAR,02
+016 88 0     1592   BETA  BUN   INPTX
+016 89 0     1593         SLA   4             IF PROCESSING FOR STATEMENT
+016 90 0     1594         STP   INSX,RV       WE PUT CHARACTERS INTO RV-STACK
+016 91 0     1595         BUN   INS
+016 92 0     1596         BFA   *+3,62,33
+016 93 0     1597         CAD   CHAR
+016 94 0     1598   INPTX BUN   *
+016 95 0     1599   *B    CAD   FV            IF BETA ON AND WE HAVE JUST PUT IN
+016 96 0     1600         LDB   RV            AN EQUAL SIGN,
+016 97 0     1601         STB   FV,04         RV STACK HAS CHARACTERS IN BACKWARDS$
+016 98 0     1602         LDR - 0             TRANSFER THEM TO FV-STACK IN RIGHT ORDER
+016 99 0     1603         STA - 0,04
+017 00 0     1604         STR   RV,04         UNTIL RV-STACK IS EMPTY
+017 01 0     1605         BFR   *+2,04,00
+017 02 0     1606         BUN   B-
+017 03 0     1607   *C    IFL   BETA,62,29
+017 04 0     1608         CAD   CHAR
+017 05 0     1609         BUN   INPTX
+017 06 0     1610   *D    BCS   *+3,4
+017 07 0     1611         STP 4 9898,1642
+017 08 0     1612         BUN 4 9898,IMAGE
+017 09 0     1613         STP 4 9999
+017 10 0     1614         BUN 4 9999,IMAGE
+017 11 0     1615         CLL   SCNCT
+017 12 0     1616         STB   LCCT,62
+017 13 0     1617         IFL   SCCT,62,1
+017 14 0     1618   CCBEG IFL   SCNCT,00,02   START IN COLUMN 2
+017 15 0     1619         BUN   INP1
+017 16 0     1620   *E    IFL   SCNCT,05,10   HIGH SPEED IGNORING OF SUCCESSIVE
+017 17 0     1621         STA   SCNCT,01
+017 18 0     1622         BUN   F-            BLANK COLUMNS UNLESS ZETA SWITCH IS ON
+017 19 0     1623   INP3  LDB   STFOL
+017 20 0     1624         CAD - 0             PULL CHARACTERS OUT OF FV (FOR-VARIABLE)
+017 21 0     1625         SRA   4              STACK
+017 22 0     1626         STA   CHAR,02
+017 23 0     1627         IBB   RUNXX,9999
+017 24 0     1628         LDR - 1
+017 25 0     1629         STR   STFOL,04
+017 26 0     1630         BUN   INPTX
+
+
+017 29 0     1631         CNST  20002000000
+017 30 0     1632   IMAGE HLT   0
+017 31 0     1633         CNST  0,0
+017 32 0     1635         CNST  $BAC-220 STANDARD VERSION$
+017 33 0     1640         CNST  $  2/1/62$
+017 34 0     1642         CNST  0,0,0,0,0
+017 35 0     1647         LOCN  IMAGE+16
+
+
+017 38 0     1648   SRCH1 CAD   LEVEL
+017 39 0     1649   SRCH  ADD   LL0
+017 40 0     1650         EXT   NN            LOOK FOR SYMBOL IN TABLE
+017 41 0     1651         ADD   SCT
+017 42 0     1652         STA   L
+017 43 0     1653   *B    LDB   L
+017 44 0     1654         IBB   SRCHX,9999
+017 45 0     1655   *C    CAD - 1
+017 46 0     1656         STA   L             FIRST COMPARE LENGTHS
+017 47 0     1657         CFA   D2D3,23       (AND WHETHER OR NOT A NUMERIC LABEL)
+017 48 0     1658         BCU   B-
+017 49 0     1659         SRA   4
+017 50 0     1660         STA   TEMP
+017 51 0     1661         IFL   TEMP,63,9
+017 52 0     1662         STA   A+,04
+017 53 0     1663         IFL   A+,04,1
+017 54 0     1664         DLB   TEMP,54,1
+017 55 0     1665         BRP   A+
+017 56 0     1666         LDB   L9
+017 57 0     1667   *A    CAD - *             IF LENGTHS AGREE, COMPARE THE REST
+017 58 0     1668         CFA - SYMBL,00
+017 59 0     1669         BCU   B-
+017 60 0     1670         DBB   A-,1
+017 61 0     1671         IFL   SRCHX,04,1    EXIT TO ONE BIGGER LOCATION
+017 62 0     1672         DLB   L,64,0        IF SYMBOL IS FOUND
+017 63 0     1673         LDR - 0
+017 64 0     1674   SRCHX BUN   *
+
+
+017 67 0     1675   R23   STP   OPRTX,R24     (N .N $N ,N *N -N PN
+
+
+017 70 0     1676   OPRT  LDB   OPRTX
+017 71 0     1677         DLB - 9998,44,0
+017 72 0     1678         STB   SCAN,04
+017 73 0     1679         LDB   S1            SEND S1 OPERATOR TO EXECUTOR
+017 74 0     1680         CAD - OPTAB
+017 75 0     1681         BUN   EXCTR
+017 76 0     1682   OPRTX DEFN  SCAN
+
+
+
+
+
+
+017 82 0     1682   WEM   CLL   MSG           WRITE ERROR MESSAGE
+017 83 0     1683         LDB   C+
+017 84 0     1684         IFL   MSG,12,20
+017 85 0     1685         RTF   MSG,6
+017 86 0     1686         CLL   TEMP
+017 87 0     1687   WEMX  CAD   *
+017 88 0     1688   *E    CLR   0000
+017 89 0     1689         SRT   8
+017 90 0     1690         BFA   F+,00,0
+017 91 0     1691         STA   E-,04
+017 92 0     1692         STR   TEMP3
+017 93 0     1693   *H    IFL   E-,04,1
+017 94 0     1694         LDB   E-
+017 95 0     1695         LDR - DICT-2        GET DICTIONARY ENTRY
+017 96 0     1696   *C    CLA   MSG+1
+017 97 0     1697         LBC   TEMP
+017 98 0     1698         SLT   2             TRANSFER CHARACTERS
+017 99 0     1699         BFA   B+,00,00      ONE AT A TIME INTO
+018 00 0     1700         SLA - 8             BUFFER AREA
+018 01 0     1701         DLB   TEMP,94,00
+018 02 0     1702         LSA   0
+018 03 0     1703         ADD - MSG
+018 04 0     1704         STA - MSG,00
+018 05 0     1705         IFL   TEMP,05,02
+018 06 0     1706         BUN   C-
+018 07 0     1707   *B    BSA   H-,3
+018 08 0     1708         IFL   TEMP,05,02    PUT SPACE BETWEEN WORDS
+018 09 0     1709         CAD   TEMP3
+018 10 0     1710         BUN   E-
+018 11 0     1711   *F    BCS   *+2,4
+018 12 0     1712         BUN   *+3
+018 13 0     1713         STP 4 9898,1642
+018 14 0     1714         BUN 4 9898,IMAGE
+018 15 0     1715         STP 4 9898,0706
+018 16 0     1716         BUN 4 9898,MSG
+018 17 0     1717         LDB   WEMX          RETURN TO PROGRAM,
+018 18 0     1718         DLB - 9999,44,0     ATTEMPT TO CONTINUE ON
+018 19 0     1719         CAD   V4            PUT V4 (CODE FOR CONSTANT 1)
+018 20 0     1720         BUN - 0             IN A REGISTER ON EXIT
+
+
+
+018 24 0     1721   NEWT  CAD   TEMPS         RECORD CURRENT SET OF TEMPORARY
+018 25 0     1722         SAL   4             STORAGE CELLS IN SAVET STACK
+018 26 0     1723         CLL   TEMPS         AND MARK THE TEMPS STACK EMPTY
+018 27 0     1724         BUN   INS
+
+
+018 30 0     1725   INS2  CAD   LOCN
+018 31 0     1726   INS   LDB   INSX          INSERT RA(67) INTO ASSOCIATIVE MEMORY
+018 32 0     1727         DLB - 9998,44,0      LOCATION PRECEDING (RB)
+018 33 0     1728   INS1  STB   A+,04
+018 34 0     1729         LDR   AVAIL         MORMALLY THIS MEANS ON TOP OF THE
+018 35 0     1730         BFR   B+,04,00      STACK NAMED BY THE B REGISTER OR
+018 36 0     1731   *C    LDR - 0             BY THE 44-FIELD OF THE STP
+018 37 0     1732         LDB   AVAIL
+018 38 0     1733         STA - 0,67
+018 39 0     1734         CAD - 0
+018 40 0     1735         STR - 0,04
+018 41 0     1736   *A    STB   *,04
+018 42 0     1737         STA   AVAIL,04
+018 43 0     1738   INSX  BUN   *
+018 44 0     1739   NEWTX DEFN  INSX
+018 45 0     1739   *B    LDR   MAMAX         IF AVAIL STACK IS EMPTY, TRY TO
+018 46 0     1740         CFR   SSC,04        INCREASE THE SIZE OF
+018 47 0     1741         STR   AVAIL,04      ASSOCIATIVE MEMORY
+018 48 0     1742         STR   D+,04
+018 49 0     1743         DFL   MAMAX,00,1
+018 50 0     1744   *D    CLL   *
+018 51 0     1745         BCH   C-            IF NO ROOM IS LEFT, GIVE UP
+018 52 0     1746   FULL  STP   WEMX
+018 53 0     1747         BUN   WEM,EX0
+018 54 0     1748         CNST  33941430000   COMPILER CAPACITY EXCEEDED
+
+
+018 57 0     1749   REM2  CLL   SER
+018 58 0     1750   REM   LDB   REMX          REMOVE INFORMATION FROM
+018 59 0     1751         DLB - 9998,44,0      ASSOCIATIVE MEMORY LOCATION FOLLOWING
+018 60 0     1752   REM1  STB   A+,04         (RB) ... NORMALLY THIS MEANS PULL OFF
+018 61 0     1753         LDB - 0              TOP OF STACK NAMED BY THE B REGISTER
+018 62 0     1754         CAD - 0             OR NAMED IN A 44-FIELD OF STP INSTRUCTION
+018 63 0     1755   REMX  IBB   *,9999
+018 64 0     1756         DBB   *+1,9999      IF THE STACK IS EMPTY, EXIT
+018 65 0     1757         LDR   AVAIL         OTHERWISE MARK LOCATION AVAILABLE
+018 66 0     1758         STB   AVAIL,04       FOR FUTURE USE
+018 67 0     1759         STR - 0,04
+018 68 0     1760   *A    STA   *,04          EXIT WITH THE REMOVED QUANTITY IN
+018 69 0     1761         LDB   REMX          REGISTER A, TO THE LOCATION SPECIFIED
+018 70 0     1762         DLB - 9999,44,0     IN THE 44-FIELD OF THE BUN INSTRUCTION
+018 71 0     1763         BUN - 0
+
+018 73 0     1764   ASSN1 CAD   VARB          ASSIGN A PLACE FOR A VARIABLE,
+018 74 0     1765         SLA   4             OR CONSTANT, OR TEMP STORAGE,
+018 75 0     1766         STA - 0,64          IF ITS NOT IN MEMORY ALREADY
+018 76 0     1767         DFL   VARB,04,1
+018 77 0     1768   ASSN  CAD - 0
+018 78 0     1769         BFA   ASSN1,64,0
+018 79 0     1770   ASSNX BUN   *
+
+018 81 0     1771   CONV  CAD - 0             PUT OUT MONITOR CODING
+018 82 0     1772         LDR   DICT+16
+018 83 0     1773         STR   EXPLN
+018 84 0     1774         LDR   V8
+018 85 0     1775         STB   STPV3,44      FOR A LABEL,TO THE LABEL PROCESSOR
+018 86 0     1776         BFA   F+,11,9
+018 87 0     1777         LDR   MONGN+1
+018 88 0     1778         STR   EXPLN
+018 89 0     1779         LDR   MNTRE         OTHERWISE TO THE MONITOR ROUTINE
+018 90 0     1780         STA   STPV3,22      PUT TYPE IN THE STP INSTRUCTION
+018 91 0     1781         BFA   F+,11,1
+018 92 0     1782         BFA   F+,11,8       MONITOR FUNCTION NAMES
+018 93 0     1783         LDB   VIMAG           (ARRAY NAME IS IN VIMAG)
+018 94 0     1784   *F    STR   V3
+018 95 0     1785         CAD - 1
+018 96 0     1786         STA   SYMBL
+018 97 0     1787         STB   RR0,21        MAKE UP A CONSTANT WITH THE
+018 98 0     1788         STP   NMBRX         LEADING ALPHABETIC CHARACTERS
+018 99 0     1789         BUN   NMBR          (OR NUMERIC LABEL QUANTITY)
