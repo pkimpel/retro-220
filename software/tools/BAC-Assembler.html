@@ -1,0 +1,557 @@
+<!DOCTYPE html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<title>BAC-220 Assembler</title>
+<!--
+/***********************************************************************
+* 220/software/tools BAC-Assembler.html
+************************************************************************
+* Copyright (c) 2016, Paul Kimpel.
+* Licensed under the MIT License, see
+*       http://www.opensource.org/licenses/mit-license.php
+************************************************************************
+* Assembler for the Burroughs 220 Algebraic Compiler (BALGOL)
+*
+* ...
+*
+************************************************************************
+* 2016-12-09  P.Kimpel
+*   Original version, cloned from retro-b5500 B5500CardReaderPrototype.html.
+***********************************************************************/
+-->
+<meta name="Author" content="Paul Kimpel">
+<meta http-equiv="Content-Script-Type" content="text/javascript">
+<meta http-equiv="Content-Style-Type" content="text/css">
+
+<style>
+BODY {
+    position:           relative;
+    margin:             1ex}
+
+BUTTON.greenButton {
+    background-color:   #060;
+    color:              white;
+    font-family:        Arial Rounded, Arial, Helvetica, sans-serif;
+    font-size:          9pt;
+    font-weight:        bold;
+    width:              60px;
+    height:             40px;
+    border:             1px solid #DDD;
+    border-radius:      4px}
+
+BUTTON.whiteButton {
+    background-color:   #999;
+    color:              black;
+    font-family:        Arial Rounded, Arial, Helvetica, sans-serif;
+    font-size:          9pt;
+    font-weight:        bold;
+    width:              60px;
+    height:             40px;
+    border:             1px solid #DDD;
+    border-radius:      4px}
+
+BUTTON.redButton {
+    background-color:   #900;
+    color:              white;
+    font-family:        Arial Rounded, Arial, Helvetica, sans-serif;
+    font-size:          9pt;
+    font-weight:        bold;
+    width:              60px;
+    height:             40px;
+    border:             1px solid #DDD;
+    border-radius:      4px}
+
+BUTTON.greenLit {
+    background-color:   green}
+
+BUTTON.whiteLit {
+    background-color:   white}
+
+BUTTON.redLit {
+    background-color:   #F00}
+
+DIV.heading {
+    margin-top:         12px;
+    margin-bottom:      6px;
+    font-weight:        bold}
+
+#CardReaderPanel {
+    position:           relative;
+    color:              white;
+    background-color:   #666;
+    width:              600px;
+    height:             150px;
+    border:             1px solid black;
+    border-radius:      8px;
+    padding:            0;
+    vertical-align:     top}
+
+#CRNotReadyLight {
+    position:           absolute;
+    top:                8px;
+    left:               8px}
+
+#CREOFBtn {
+    position:           absolute;
+    top:                8px;
+    left:               76px}
+
+#CRStopBtn {
+    position:           absolute;
+    top:                8px;
+    left:               144px}
+
+#CRStartBtn {
+    position:           absolute;
+    top:                8px;
+    left:               212px;}
+
+#CRFileSelector {
+    position:           absolute;
+    top:                56px;
+    left:               8px;
+    width:              580px;
+    border:             1px solid white}
+
+#CRProgressBar {
+    position:           absolute;
+    top:                84px;
+    left:               8px;
+    width:              580px;
+    border:             1px solid white}
+
+#CROutHopperFrame {
+    position:           absolute;
+    top:                106px;
+    left:               8px;
+    width:              580px;
+    height:             3em;
+    margin-top:         1px;
+    border:             1px solid white;
+    color:              black;
+    background-color:   white;
+    font-family:        DejaVu Sans Mono, Consolas, Courier, monospace;
+    font-size:          9pt;
+    font-weight:        normal}
+
+#TextPanel {
+    position:           relative;
+    height:             250px;
+    width:              820px;
+    overflow:           scroll;
+    padding:            4px;
+    border:             1px solid black;
+    color:              black;
+    background-color:   white;
+    font-family:        DejaVu Sans Mono, Consolas, Courier, monospace;
+    font-size:          8pt;
+    font-weight:        normal}
+</style>
+</head>
+
+<body>
+<div class=heading>
+    Burroughs 220 BALGOL Assembler
+</div>
+
+<div id=CardReaderPanel>
+    <button id=CRNotReadyLight  class="whiteButton whiteLit">NOT READY</button>
+    <button id=CRStartBtn       class="greenButton">START</button>
+    <button id=CREOFBtn         class="redButton">EOF</button>
+    <button id=CRStopBtn        class="redButton">STOP</button>
+
+    <input id=CRFileSelector type=file size=90>
+
+    <meter id=CRProgressBar min=0 max=100 value=0 title="Click to clear input hopper"></meter>
+
+    <iframe id=CROutHopperFrame scrolling=auto></iframe>
+</div>
+
+<div class=heading>
+    Pass 1 Output
+</div>
+
+<pre id=TextPanel>
+</pre>
+
+
+<script>
+"use strict";
+
+window.addEventListener("load", function() {
+
+    // Card reader properties
+    var buffer = "";
+    var bufferLength = 0;
+    var bufferOffset = 0;
+    var cardsPerMinute = 2000;
+    var eofArmed = 0;
+    var eolRex = /([^\n\r\f]*)((:?\r[\n\f]?)|\n|\f)?/g;
+    var lastReaderStamp = 0;
+    var millisPerCard = 60000/cardsPerMinute;
+    var outHopper;
+    var outHopperFrame = $$("CROutHopperFrame");
+    var panel = $$("TextPanel");
+    var readerState = 0;
+
+    // Card reader ready state
+    var readerNotReady = 0;
+    var readerReady = 1;
+
+    // Opcode table
+    var opTab = {};
+    var operandRex = /^(\S+)/;
+
+    /**************************************/
+    function $$(id) {
+        return document.getElementById(id);
+    }
+
+    /**************************************/
+    function padLeft(s, len, fill) {
+        /* Pads the string "s" on the left to length "len" with the filler character
+        "fill". If fill is empty or missing, space is used. If the initial string is
+        longer than "len", it is truncated on the left to that length */
+        var pad = (fill || " ").charAt(0);
+        var result = s;
+        var rLen = s.length;
+
+        if (rLen > len) {
+            result = result.substring(rLen-len);
+        } else while (rLen < len) {
+            result = pad + result;
+            ++rLen;
+        }
+
+        return result;
+    }
+
+    /**************************************/
+    function padRight(s, len, fill) {
+        /* Pads the string "s" on the right to length "len" with the filler character
+        "fill". If fill is empty or missing, space is used. If the initial string is
+        longer than "len", it is truncated on the right to that length */
+        var pad = (fill || " ").charAt(0);
+        var result = s;
+        var rLen = s.length;
+
+        if (rLen > len) {
+            result = result.substring(0, len);
+        } else while (rLen < len) {
+            result = result + pad;
+            ++rLen;
+        }
+
+        return result;
+    }
+
+    /**************************************/
+    function appendLine(text) {
+        /* Appends "text"+NL as a new text node to the panel DOM element */
+        var e = document.createTextNode(text + "\n");
+
+        panel.appendChild(e);
+        panel.scrollTop += 30
+    }
+
+    /**************************************/
+    function clearPanel() {
+        /* Clears the text panel */
+        var kid;
+
+        while (kid = panel.firstChild) {
+            panel.removeChild(kid);
+        }
+    }
+
+    /**************************************/
+    function setReaderReady(ready) {
+        /* Controls the ready-state of the card reader */
+
+        $$("CRFileSelector").disabled = ready;
+        if (ready) {
+            readerState = readerReady;
+            $$("CRStartBtn").classList.add("greenLit");
+            $$("CRNotReadyLight").classList.remove("whiteLit");
+        } else {
+            readerState = readerNotReady;
+            $$("CRStartBtn").classList.remove("greenLit");
+            $$("CRNotReadyLight").classList.add("whiteLit");
+        }
+    }
+
+    /**************************************/
+    function armEOF(armed) {
+        /* Controls the arming/disarming of the EOF signal when starting with
+        an empty input hopper */
+
+        if (armed) {
+            eofArmed = 1;
+            $$("CREOFBtn").classList.add("redLit");
+        } else {
+            eofArmed = 0;
+            $$("CREOFBtn").classList.remove("redLit");
+        }
+    }
+
+    /**************************************/
+    function readACard(successor) {
+        /* Reads one card image from the buffer, pads or trims the image as
+        necessary to 80 columns, and calls the "successor" function with it.
+        If the reader is not ready, nothing happens */
+        var bx = bufferOffset;
+        var card;
+        var cardLength;
+        var line;
+        var match;
+        var stamp = performance.now();
+        var delta = millisPerCard - stamp + lastReaderStamp;
+
+        lastReaderStamp = stamp;
+
+        if (readerState != readerReady) {
+            ; // just exit
+        } else if (bx >= bufferLength) {
+            setReaderReady(false);
+            $$("CRProgressBar").value = 0;
+        } else {
+            eolRex.lastIndex = bx;
+            match = eolRex.exec(buffer);
+            if (!match) {
+                card = "";
+            } else {
+                bx += match[0].length;
+                card = match[1];
+            }
+
+            cardLength = card.length;
+            if (cardLength > 80) {
+                line = card = card.substring(0, 80);
+            } else {
+                line = card;
+                while (card.length <= 70) {
+                    card += "          ";
+                }
+                while (card.length < 80) {
+                    card += " ";
+                }
+            }
+
+            bufferOffset = bx;
+            $$("CRProgressBar").value = bufferLength-bx;
+            while (outHopper.childNodes.length > 1) {
+                outHopper.removeChild(outHopper.firstChild);
+            }
+            outHopper.appendChild(document.createTextNode("\n"));
+            outHopper.appendChild(document.createTextNode(line));
+
+            if (delta < 2) {
+                successor(card);
+            } else {
+                setTimeout(successor, delta, card);
+            }
+        }
+    }
+
+    /**************************************/
+    function CRStartBtn_onclick(ev) {
+        /* Handle the click event for the START button */
+
+        if (readerState != readerReady) {
+            if (bufferOffset >= bufferLength) {
+                //alert("Empty hopper.");
+                if (eofArmed) {
+                    appendLine("\\\\\\\\\\  [EOF]  /////");
+                    armEOF(false);
+                }
+            } else {
+                setReaderReady(true);
+                setTimeout(startReader, 500);    // delay until the reader can come up to speed...
+            }
+        }
+    }
+
+    /**************************************/
+    function CRStopBtn_onclick(ev) {
+        /* Handle the click event for the STOP button */
+
+        $$("CRFileSelector").value = null;      // reset the control so the same file can be reloaded
+        if (readerState == readerNotReady) {
+            armEOF(false);
+        } else if (readerState == readerReady) {
+            setReaderReady(false);
+        }
+    }
+
+    /**************************************/
+    function CREOFBtn_onclick(ev) {
+        /* Handle the click event for the EOF button */
+
+        armEOF(!eofArmed);
+    }
+
+    /**************************************/
+    function CRProgressBar_onclick(ev) {
+        /* Handle the click event for the "input hopper" progress bar */
+
+        if (bufferOffset < bufferLength && readerState == readerNotReady) {
+            if (confirm("Do you want to clear the reader input hopper?")) {
+                buffer = "";
+                bufferLength = 0;
+                bufferOffset = 0;
+                $$("CRProgressBar").value = 0;
+            }
+        }
+    }
+
+    /**************************************/
+    function fileLoader_onLoad(ev) {
+        /* Handle the onload event for a Text FileReader */
+
+        if (bufferOffset < bufferLength) {
+            buffer = buffer.substring(bufferOffset);
+        } else {
+            clearPanel();
+            buffer = "";
+        }
+
+        buffer += ev.target.result;
+        bufferOffset = 0;
+        bufferLength = buffer.length;
+        $$("CRProgressBar").value = buffer.length;
+        $$("CRProgressBar").max = buffer.length;
+    }
+
+    /**************************************/
+    function fileSelector_onChange(ev) {
+        /* Handle the <input type=file> onchange event when a file is selected */
+        var f = ev.target.files[0];
+        var reader = new FileReader();
+
+        /********************
+        alert("File selected: " + f.name +
+                "\nModified " + f.lastModifiedDate +
+                "\nType=" + f.type + ", Size=" + f.size + " octets");
+        ********************/
+
+        reader.onload = fileLoader_onLoad;
+        reader.readAsText(f);
+    }
+
+    /**************************************/
+    function checkBrowser() {
+        /* Checks whether this browser can support the necessary stuff */
+        var missing = "";
+
+        if (!window.File) {missing += ", File"}
+        if (!window.FileReader) {missing += ", FileReader"}
+        if (!window.FileList) {missing += ", FileList"}
+        if (!window.DOMTokenList) {missing += ", DOMTokenList"}
+        if (!window.ArrayBuffer) {missing += ", ArrayBuffer"}
+        if (!window.DataView) {missing += ", DataView"}
+        if (!(window.performance && "now" in performance)) {missing += ", performance.now"}
+
+        if (missing.length == 0) {
+            return false;
+        } else {
+            alert("No can do... your browser does not support the following features:\n" + missing.substring(2));
+            return true;
+        }
+    }
+
+    /**************************************/
+    function startReader() {
+        /* Reads a deck of cards and displays them until the reader goes empty */
+
+        readACard(processCard);
+    }
+
+    /**************************************/
+    function processCard(card) {
+        /* Callback function for the card reader. Processes the card image */
+        var count = 0;
+        var entry;
+        var match;
+        var opCode;
+        var operand;
+        var x;
+
+        // Accumulate statistics
+        // appendLine(card);
+        opCode = card.substring(26, 30).trim();
+
+        if (opCode.length > 0) {
+            operandRex.lastIndex = 0;
+            match = operandRex.exec(card.substring(32));
+            if (match) {
+                operand = match[1];
+                count = 1;
+                if (operand.charAt(0) != "$") {
+                    x = -1;
+                    do {
+                        x = operand.indexOf(",", x+1);
+                        if (x >= 0) {
+                            ++count;
+                        }
+                    } while (x >= 0);
+                }
+            }
+
+            if (opCode in opTab) {
+                entry = opTab[opCode];
+            } else {
+                opTab[opCode] = entry = [0];
+            }
+
+            while (entry.length <= count) {
+                entry.push(0);
+            }
+
+            ++entry[count];
+        }
+
+        if (bufferOffset < bufferLength && opCode != "FINI") {
+            readACard(processCard);
+        } else {
+            // Report statistics
+            setReaderReady(false);
+            appendLine("");
+            appendLine("___________________________");
+            appendLine("");
+            for (opCode in opTab) {
+                entry = opTab[opCode];
+                operand = padRight(opCode, 5);
+                for (x=0; x<entry.length; ++x) {
+                    operand += padLeft(entry[x].toString(), 5);
+                }
+
+                appendLine(operand);
+            }
+        }
+    }
+
+    /* Start of window.onload() */
+    if (checkBrowser()) {
+        return;
+    }
+
+    armEOF(false);
+    setReaderReady(false);
+
+    $$("CRFileSelector").addEventListener("change", fileSelector_onChange, false);
+    $$("CRStartBtn").addEventListener("click", CRStartBtn_onclick, false);
+    $$("CRStopBtn").addEventListener("click", CRStopBtn_onclick, false);
+    $$("CREOFBtn").addEventListener("click", CREOFBtn_onclick, false);
+    $$("CRProgressBar").addEventListener("click", CRProgressBar_onclick, false);
+
+    outHopperFrame.contentDocument.head.innerHTML += "<style>" +
+            "BODY {background-color: #F0DCB0; margin: 0; padding: 0} " +
+            "PRE {margin: 0; font-size: 9pt; font-family: DejaVu Sans Mono, Consolas, Courier, monospace}" +
+            "</style>";
+    outHopper = document.createElement("pre");
+    outHopperFrame.contentDocument.body.appendChild(outHopper);
+}, false);
+</script>
+
+</body>
+</html>
