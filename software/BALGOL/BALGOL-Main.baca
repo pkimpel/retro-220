@@ -3386,6 +3386,711 @@
 033 90 0     3123         STP   ASMBX         DOUBLE-INDEXING IF V1 IS AN ARRAY
 033 91 0     3124         BUN   ASMBY
 033 92 0     3125         STB   V1,11
-033 93 0     3126   *T    CAD   DOT           MLTIPLY V2.V2
+033 93 0     3126   *T    CAD   DOT           MULTIPLY V2.V2
 033 94 0     3127         STA   OPRTN
 033 95 0     3128         BUN   GENAG
+033 96 0     3129   NUTBL CNST  $FX*FX$
+033 97 0     3130         CNST  $FX*FL$
+033 98 0     3131         CNST  $FL*FX$
+033 99 0     3132         CNST  $FL*FL$
+
+
+034 02 0     3133   GABSF STP   TSTOX         ABSOLUTE VALUE.
+034 03 0     3134         BUN   TSTOP          LOOK SEE IF ITS  -ABS
+034 04 0     3135         LDB   *+3
+034 05 0     3136         LDR   V1
+034 06 0     3137         BFR   *+2,11,0        V1 IN MEMORY, ABS   CAA V1
+034 07 0     3138         DBB   LSA0,LSA0-CAAV1 V1 IN MEMORY,-ABS   CSA V1
+034 08 0     3139         BCU   *+2             V1 IN ACCUM,  ABS   LSA 0
+034 09 0     3140         DBB   0,9999          V1 IN ACCUM, -ABS   LSA 1
+034 10 0     3141         STP   ASMBX
+034 11 0     3142         BUN   ASMBZ
+034 12 0     3143         BUN   GENXK
+
+
+
+
+034 17 0     3144   GHYPH LDB   OPRND         MINUS OPERATOR
+034 18 0     3145   EX43  CNST  10013110000   SIMPLY REVERSE SIGN DIGIT OF
+034 19 0     3146         STA - 0             NEXT ITEM IN OPERAND STACK
+034 20 0     3147         BUN   GENRX
+
+
+034 23 0     3148   GBNOT LDR   V1            BOOLEAN NOT.
+034 24 0     3149         CAD   G7
+034 25 0     3150         BFR   GEN4,22,01
+034 26 0     3151         STP   ACCX          IF V1 NOT IN A-REGISTER.
+034 27 0     3152         BUN   ACC4           STORE A-REGISTER IF NECESSARY
+034 28 0     3153         CAD   V1
+034 29 0     3154         BSA   E+,1          CHECK THAT V1 IS BOOLEAN
+034 30 0     3155         BFA   E+,21,0
+034 31 0     3156   *F    CAD   G11           CAD =1=, SUB V1.
+034 32 0     3157   GEN4  STP   INTRX
+034 33 0     3158         BUN   INTRP
+034 34 0     3159         BUN   GENXK         IF V1 IS IN THE ACCUMULATOR,
+034 35 0     3160   *E    STP   WEMX          SUB=1=, LSA 0
+034 36 0     3161         BUN   WEM,F-
+034 37 0     3162         CNST  30159610000   IMPROPER BOOLEAN OPERAND
+
+
+034 40 0     3163   GIF   LDR   BZAFR         IF AND UNTIL
+034 41 0     3164   GIF1  STR   T+
+034 42 0     3165         CAD   V1
+034 43 0     3166         BFA   E+,21,0       CHECK V1 BOOLEAN
+034 44 0     3167         BSA   E+,1
+034 45 0     3168   *A    STP   CADX          BRING IT INTO A REGISTER
+034 46 0     3169         BUN   CAD1
+034 47 0     3170         STP   ASMBX         ASSEMBLE  BFA FORWARD,01,0 (IF)
+034 48 0     3171         BUN   ASMBL,T+            OR  BFA FORWARD,01,1 (UNTIL)
+034 49 0     3172         BUN   GREL1         MAKE COMPOUND STATEMENT
+034 50 0     3173   *E    STP   WEMX
+034 51 0     3174         BUN   WEM,A-
+034 52 0     3175         CNST  30159610000   IMPROPER BOOLEAN OPERAND
+034 53 0     3176   *T    HLT   0
+
+
+034 56 0     3177   GPCS  STP   ACCX          PCS GENERATOR
+034 57 0     3178         BUN   ACC4          FREE A REGISTER
+034 58 0     3179         STP   FIXEX         BRING V1 FIXED POINT INTO A
+034 59 0     3180         BUN   FIXER         UNLESS ITS A CONSTANT
+034 60 0     3181         BFA   A+,11,2       THEN GENERATE SLA 0009
+034 61 0     3182         CAD   +6034037172                 STA *+2,11
+034 62 0     3183         BUN   GEN4                        CAD  +1
+034 63 0     3184   *A    DLB   V1,64,00                    BCS *+2,0
+034 64 0     3185         CAD - 1                           CLA
+034 65 0     3186         SLA   9             OR IF IT WAS A CONSTANT GENERATE
+034 66 0     3187         STA   BCSL2,11      MERELY THE LAST THREE OF THESE
+034 67 0     3188         CAD   +0371720000
+034 68 0     3189   *B    BUN   GEN4
+
+
+034 71 0     3190   GSIGN STP   TSTOX         SIGN(V1)
+034 72 0     3191         BUN   TSTOP
+034 73 0     3192         STP   CADX          BRING V1 INTO A-REGISTER
+034 74 0     3193         BUN   CAD1
+034 75 0     3194         SRT   10           GENERATE   BZA *+4
+034 76 0     3195         CAD   +4959045600             SRT 0
+034 77 0     3196         BFR   B+,21,0                 CAD =1.0= OR =1=
+034 78 0     3197         CAD   +4959035600             SLT 0
+034 79 0     3198   GEN5  DEFN  *
+034 80 0     3198   *B    STP   INTRX
+034 81 0     3199         BUN   INTRP
+034 82 0     3200         BUN   GENXV
+
+
+034 85 0     3201   GFRWF STP   FXUPX         FIX UP FORWARD REFERENCE
+034 86 0     3202         BUN   FXUP
+034 87 0     3203         BUN   GENRX
+
+
+034 90 0     3204   GBWRF DLB   OPRTN,64,00   BUN TO BACKWARD REFERENCE
+034 91 0     3205         STB   BUNI,04
+034 92 0     3206         CAD   BUNI
+034 93 0     3207         BUN   GENXY
+
+034 95 0     3208   GCRA  STP   REMX,OPRND    OBTAIN V1.
+034 96 0     3209         BUN   REM,*+2
+034 97 0     3210         BUN   GENRX
+034 98 0     3211         STA   V1
+034 99 0     3212         CLL   SER           BRANCH TO GCRJ(INPUT) OR GCRK(OUTPUT)
+035 00 0     3213         DLB   STSV,64,0
+035 01 0     3214         BUN - 0
+
+035 03 0     3215   GCRB  DLB   DELTA,22,0    = OPERATOR
+035 04 0     3216         DBB   GREL2,1       OR DID HE MEAN EQL
+035 05 0     3217         DLB   V2,64,0
+035 06 0     3218         LDR - 0
+035 07 0     3219         STR   TS001,34
+035 08 0     3220         CAD   V2
+035 09 0     3221         BSA   Z+,1
+035 10 0     3222         STR   V2
+035 11 0     3223         STA   V2,00
+035 12 0     3224         LDB   OP
+035 13 0     3225         CAD - 0
+035 14 0     3226         CFA   CRB,64        CHECK FOR MULTIPLE ASSIGNMENT
+035 15 0     3227         BCE   A+            OR A FOR STATEMENT, WHERE WE
+035 16 0     3228         LDB   MODE          CANT DO  STR  INSTEAD OF  STA
+035 17 0     3229         CAD - 0
+035 18 0     3230         CFA   FORMD,64
+035 19 0     3231         BCU   *+3
+035 20 0     3232         IFL   OMEGA,00,1
+035 21 0     3233   *A    CLL   XI
+035 22 0     3234         CAD   V2            LEFTHAND OPERAND CANNOT BE
+035 23 0     3235         BFA   Z+,11,9       A LABEL, ACCUMULATOR SYMBOL
+035 24 0     3236         BFA   *+3,11,1      CONSTANT, TEMP STORAGE
+035 25 0     3237         CFA   *+1,11         OR A LIBRARY PROCEDURE
+035 26 0     3238         F424  5001,34,Z+
+035 27 0     3239         CAD   V1
+035 28 0     3240         BFA   S+,21,3       (CLL IN MULTIPLE ASSIGNMENT)
+035 29 0     3241         BFA   A+,11,2       IS RHS A CONSTANT.
+035 30 0     3242   *V    STP   CADX          IF NOT, GET RHS INTO ACCUMULATOR
+035 31 0     3243         BUN   CAD1
+035 32 0     3244         LDR   V2
+035 33 0     3245         CFR   V1,21
+035 34 0     3246         STR   V1,21         DO THE TYPES AGREE
+035 35 0     3247         BCE   C+            IF NOT, LINK EITHER TO
+035 36 0     3248         BFR   Y+,21,0       FIX OR FLOAT ROUTINE
+035 37 0     3249         DLB   FIXGN,64,0
+035 38 0     3250         BUN   X+
+035 39 0     3251   *Y    DLB   TABSC+82,64,0
+035 40 0     3252   *X    STP   LINKX
+035 41 0     3253         BUN   LINK1
+035 42 0     3254   *C    CAA   V2
+035 43 0     3255         BFA   Y+,11,8
+035 44 0     3256         CAA   G13
+035 45 0     3257   *K    STP   INTRX         ASSEMBLE STA V2   UNLESS FUNCTION OR
+035 46 0     3258         BUN   INTRP         OR PROCEDURE NAME
+035 47 0     3259         CAA   TS001
+035 48 0     3260   *Y    LDR   MU
+035 49 0     3261         BFR   W+,62,01      IF WE ARE IN SCOPE OF A LABEL REQUESTED
+035 50 0     3262   *M    DLB   V2,64,0       FOR MONITORING, OR THE VARIABLE
+035 51 0     3263         STP   CONVX         ASSIGNED IS SO REQUESTED,
+035 52 0     3264         BUN   CONV+1        ASSEMBLE LINK TO MONITOR SUBROUTINE
+035 53 0     3265         BUN   E+
+035 54 0     3266   *W    BSA   M-,2
+035 55 0     3267         BSA   M-,6
+035 56 0     3268   *E    CLL   OMEGA
+035 57 0     3269         BUN   GENXV
+035 58 0     3270   *A    CFA   V7,64         IF WE ARE SETTING SOMETHING TO A
+035 59 0     3271         BCE   S+            NONZERO CONSTANT,
+035 60 0     3272         CFA   V6,64
+035 61 0     3273         BCE   S+
+035 62 0     3274   *D    CFA   V2,21         MATCH THE TYPES
+035 63 0     3275         BCE   V-
+035 64 0     3276         BFA   U+,21,0
+035 65 0     3277         STP   FLTCX
+035 66 0     3278         BUN   FLTCN
+035 67 0     3279         BUN   T+
+035 68 0     3280   *U    STP   FIXCX
+035 69 0     3281         BUN   FIXCN
+035 70 0     3282   *T    STA   V1,00
+035 71 0     3283         BUN   A-
+035 72 0     3284   *S    CAD   COMP+7        SOMETHING = 0
+035 73 0     3285         LDB   OMEGA
+035 74 0     3286         LDR   V2            SEVERAL CASES TO CONSIDER
+035 75 0     3287         STB   V1,23
+035 76 0     3288         IFL   V1,21,3
+035 77 0     3289         DBB   K=,1          CLA,CLL V2  IN FOR STATEMENT
+035 78 0     3290         SLA   6
+035 79 0     3291         BFR   K-,11,8       CLA IN PROCEDURE OR FUNCTION CASE
+035 80 0     3292         SLA   6
+035 81 0     3293         BUN   K-            CLL V2 OTHERWISE
+035 82 0     3294   *Z    STB   V1,21
+035 83 0     3295         STP   WEMX
+035 84 0     3296         BUN   WEM,E-
+035 85 0     3297         CNST  30167320000   IMPROPER ASSIGNMENT STATEMENT
+
+
+
+
+035 90 0     3298   GCRC  STP   PRTRX
+035 91 0     3299         BUN   PMTR          ASSEMBLE THE PARAMETER-OBTAINING INSTRUC-
+035 92 0     3300         LDB   OPRND                             TION
+035 93 0     3301         CAD - 0
+035 94 0     3302         CFA   DEX,67        DOES REGISTER B CONTAIN THE FIRST
+035 95 0     3303         BCE   A+            PARAMETER LOCATION
+035 96 0     3304         STA   DEX
+035 97 0     3305         STA   V2            IF NOT, ASSEMBLE A DLB V2,44,0
+035 98 0     3306         STP   ASMBX
+035 99 0     3307         BUN   ASMBL,DLBV2
+036 00 0     3308   *A    LDB   FUNS
+036 01 0     3309         CAD - 0
+036 02 0     3310         BSA   *+2,3         TURN TAG ON IF WE HAVE PASSED THE
+036 03 0     3311         BUN   *+2            2ND SEMICOLON
+036 04 0     3312         IFL   TAG,00,1
+036 05 0     3313         SRA   8
+036 06 0     3314         LSA   0
+036 07 0     3315         SUA   GTAB0         WHAT PARAMETER NUMBER IS THIS
+036 08 0     3316         STA   STAAB,04      (FIRST 0000,THEN 9999, THEN 9998,ETC.)
+036 09 0     3317         IFL - 0,22,1
+036 10 0     3318         CAD   STAAB
+036 11 0     3319         BUN   GENXY
+
+
+036 14 0     3320   GCRD  STP   TSTOX         MOD OPERATION  MOD(V2,V1)
+036 15 0     3321         BUN   TSTOP
+036 16 0     3322         CSU   V2            IF  -MOD  CHANGE SIGN OF V2.
+036 17 0     3323         BCU   *+2
+036 18 0     3324         STA   V2
+036 19 0     3325         EXT   V1
+036 20 0     3326         BFA   E+,21,0       CHECK THAT V1,V2 BOTH INTEGER
+036 21 0     3327   *F    LDR   V1
+036 22 0     3328         CFR   V10,66        IF V1 IS THE CONSTANT 2 OR -2 WE HAVE
+036 23 0     3329         BCE   Z+            A SPECIAL CASE
+036 24 0     3330   *F    STP   ACCX
+036 25 0     3331         BFR   ACC1,11,0     PUT V1 IN MEMORY
+036 26 0     3332   *C    STP   CADX
+036 27 0     3333         BUN   CAD2          BRING V2 INTO ACCUMULATOR
+036 28 0     3334         CAD   V1
+036 29 0     3335         CFA   *+1,11
+036 30 0     3336         F424  2001,35,Y+
+036 31 0     3337         DLB   V1,64,0
+036 32 0     3338         CSA - 1             CHECK IF V1 IS A CONSTANT,POWER OF TEN
+036 33 0     3339         CLL   SYMBL
+036 34 0     3340         BZA   E+
+036 35 0     3341         SRT   1
+036 36 0     3342         ADL   SYMBL
+036 37 0     3343         BFR   *-2,11,0
+036 38 0     3344         SLT   1
+036 39 0     3345         CFA   XONE+1,00
+036 40 0     3346   *Y    CAD   +5822570000
+036 41 0     3347         BCU   GEN4          IF NOT,GENERATE SRT10,DIV V1, SLT 30
+036 42 0     3348         CLL   RR0
+036 43 0     3349         STP   FLTCX         OTHERWISE GENERATE EXTRACT
+036 44 0     3350         BUN   FLTC1         WITH THE CONSTANT -1 OR -11 OR -111,ETC.
+036 45 0     3351         STA   V1,64
+036 46 0     3352         CAD   *+1
+036 47 0     3353         BUN   GEN4,2800
+036 48 0     3354   *E    STP   WEMX
+036 49 0     3355         BUN   WEM,GENXX
+036 50 0     3356         CNST  30113376911   IMPROPER ARGUMENT OF MOD FUNCTION
+036 51 0     3357   *Z    STP   ACCX
+036 52 0     3358         BUN   ACC3          IF IT IS MOD 2, GENERATE
+036 53 0     3359         CAD   G99           CSU =1=  EXT V2
+036 54 0     3360         BUN   GEN4
+
+
+036 57 0     3361   GCRE  LDB   LAMDA         EITHER IF FINISHING.
+036 58 0     3362         CLL   LAMDA         IF OTHERWISE APPEARED, DO NOTHING
+036 59 0     3363         DBB   GENRX,1       IF NO OTHERWISE APPEARED,
+036 60 0     3364         CAD   NOPZ          PUT OUT A NOP INSTRUCTION
+036 61 0     3365         BUN   GENXY
+
+
+036 64 0     3366   GCRF  CLL   IOTA          FINISH DECLARAING SOME ARRAY
+036 65 0     3367         DLB   V1,64,0       V1 IS FIRST DIMENSION,V2 IS ARRAY NAME
+036 66 0     3368         CSU - 1
+036 67 0     3369         MUL   ARRI
+036 68 0     3370         SLT   10
+036 69 0     3371   *B    LDR   MULS
+036 70 0     3372         ADL   VARB          RESERVE SPACE FOR THIS ARRAY
+036 71 0     3373         STA   TEMP
+036 72 0     3374   *A    CAD   VARB
+036 73 0     3375         ADD   XONE+1
+036 74 0     3376         STA   ABASE,04      PUT BEGINNING LOCATION IN ABASE
+036 75 0     3377         SUB   ARRL
+036 76 0     3378         ADA   GTAB0         COMPUTE BASE ADDRESS (MOD 10000)
+036 77 0     3379         SLA   4
+036 78 0     3380         DLB   V2,64,0
+036 79 0     3381         STA - 0,64          MOVE LIST OF MULTIPLIERS
+036 80 0     3382         STR - 0,04          TO THIS ARRAY NAME
+036 81 0     3383         CAA   TEMP
+036 82 0     3384         SLA   4             PUT TOTAL LENGTH OF ARRAY ON TOP
+036 83 0     3385         CLL   MULS          OF MULTIPLIER LIST
+036 84 0     3386         BUN   LNGTH
+
+
+036 87 0     3387   GCRG  DLB   V1,64,0       MIDDLE OF ARRAY DECLARATION
+036 88 0     3388         CAD - 1
+036 89 0     3389         MUL   ARRL          IF GIVEN  ARRAY  A(I,J,K,L)
+036 90 0     3390         STR   ARRL
+036 91 0     3391         IFL   ARRL,00,1     ARRL IS SET TO ((J+1)K+1)L+1
+036 92 0     3392         CAD - 1
+036 93 0     3393         MUL   ARRI
+036 94 0     3394         STR   ARRI
+036 95 0     3395         CAD   V1            ARRI IS SET TO JKL
+036 96 0     3396         LDB   B-
+036 97 0     3397   LNGTH LDR   V1            ALL DIMENSIONS MUST BE
+036 98 0     3398         BFR   A+,22,21      FIXED POINT CONSTANTS
+036 99 0     3399         STP   WEMX
+037 00 0     3400         BUN   WEM,GENRX
+037 01 0     3401         CNST  30163640000   IMPROPER ARRAY DECLARATION
+037 02 0     3402   *A    STP   INSX
+037 03 0     3403         BUN   INS1          J,K,L GO TO MULTIPLIER STACK
+037 04 0     3404         BUN   GENRX
+
+
+037 07 0     3405   GCRH  STP   XSTX          MAKE V1 INTEGRAL,IN MEMORY
+037 08 0     3406         BUN   XST
+037 09 0     3407         CAD   LBCV1         GENERATE LBC V1
+037 10 0     3408         BUN   GENX
+
+
+037 13 0     3409   GCRI  CAA   G3            GENERATE LSA 9,BUN IOPUS
+037 14 0     3410         DFL   UPSLN,62,29
+037 15 0     3411         BUN   A+
+
+
+037 18 0     3412   GCRJ  CAD   V1
+037 19 0     3413         BFA   E+,11,0
+037 20 0     3414         BFA   E+,11,2       CHECK FOR VALID INPUT EXPRESSION
+037 21 0     3415         BSA   E+,1
+037 22 0     3416         CAA   COMMX
+037 23 0     3417         BUN   A+
+
+
+037 26 0     3418   GCRK  STP   CADX          BRING EXPRESSION INTO A-REGISTER
+037 27 0     3419         BUN   CAD1
+037 28 0     3420   *B    CAD   G10
+037 29 0     3421   *A    LDR   IOPUS         GENERATE LDB *  IBB IOPUS,2
+037 30 0     3422         CLL   DEX
+037 31 0     3423         STR   BUNI,04
+037 32 0     3424         STR   IBBI,04
+037 33 0     3425         LDR   V1
+037 34 0     3426         STR   LDBL0,21
+037 35 0     3427         STP   INTRX
+037 36 0     3428         BUN   INTRP
+037 37 0     3429         BUN   GENRX
+037 38 0     3430   *E    STP   WEMX
+037 39 0     3431         BUN   WEM,B-        IMPROPER INPUT DECLARATION
+037 40 0     3432         CNST  30170640000
+
+
+037 43 0     3433   GCRM  DFL   MU,62,29      END OF SCOPE OF MONITORED LABEL
+037 44 0     3434         BUN   GENRX
+
+
+037 47 0     3435   GCRN  STP   FIXEX         MAKE SURE V1 IS INTEGER
+037 48 0     3436         BUN   FIXER         EITHER A CONSTANT OR IN A REGISTER
+037 49 0     3437         BFA   A+,11,2
+037 50 0     3438         CAA   G8            IF NOT A CONSTANT, ADD *+1 NOP V2
+037 51 0     3439         BUN   GEN5
+037 52 0     3440   *A    STB   V1,11         IF A CONSTANT, ADD OR SUBTRACT ITS
+037 53 0     3441         DLB   V1,64,0       VALUE FROM THE ASSIGNMENT OF V2,MOD 10000
+037 54 0     3442         LDR - 1
+037 55 0     3443         STR   0
+037 56 0     3444         SLT   14
+037 57 0     3445         EXT   EX42          (-11110000)
+037 58 0     3446         DLB   V2,64,00
+037 59 0     3447         ADA - 0
+037 60 0     3448         STA - 0,64
+037 61 0     3449         STP   ACCX
+037 62 0     3450         BUN   ACC4
+037 63 0     3451         CAA   G9            CAD *+1, NOP V2
+037 64 0     3452   *B    BUN   GEN5
+
+
+037 67 0     3453   GCRO  STP   PMTRX         LAST PARAMETER TO FUNCTION IS V1
+037 68 0     3454         BUN   PMTR
+037 69 0     3455         CLL   DEX
+037 70 0     3456         STP   REMX,FUNS
+037 71 0     3457         BUN   REM,*+2
+037 72 0     3458   G9    F424  0553,0,*
+037 73 0     3459         STA   BUNV2,22
+037 74 0     3460         DLB   V2,64,0       CHECK THAT PROPER
+037 75 0     3461         LDR - 1               NUMBER OF ARGUMENTS
+037 76 0     3462         STR   EXPLN           HAS APPEARED
+037 77 0     3463         LDR - 0
+037 78 0     3464         BFR   B+,12,88
+037 79 0     3465         SLT   6
+037 80 0     3466         BFA   A+,51,4
+037 81 0     3467         CFR   BUNV2,22
+037 82 0     3468         BCE   B+
+037 83 0     3469         BFR   B+,22,0
+037 84 0     3470         STP   WEMX
+037 85 0     3471         BUN   WEM,*+2
+037 86 0     3472         CNST  30113370800   IMPROPER ARGUMENT OF PROCEDURE
+037 87 0     3473   *B    CAD   G4            GENERATE STP V2, BUN V2
+037 88 0     3474         STP   INTRX
+037 89 0     3475         BUN   INTRP
+037 90 0     3476         STB   V2,11
+037 91 0     3477         CLL   TAG
+037 92 0     3478         BUN   GENX2
+037 93 0     3479   *A    SLT   2
+037 94 0     3480         BFR   B-,21,3
+037 95 0     3481         CFR   V1,21         IF ARGUMENT TO LIBRARY FUNCTION
+037 96 0     3482         BCE   B-            IS WRONG TYPE, CONVERT IT.
+037 97 0     3483         DLB   TABSC+82,64,0
+037 98 0     3484         BFR   *+2,21,0
+037 99 0     3485         DLB   FIXGN,64,0
+038 00 0     3486         STP   LINKX
+038 01 0     3487         BUN   LINK1
+038 02 0     3488         BUN   B-
+
+
+038 05 0     3489   *E    BFA   GCRP,11,0
+038 06 0     3490         STP   WEMX
+038 07 0     3491         BUN   WEM,GCRP
+038 08 0     3492         CNST  34661000000
+038 09 0     3493   GCRP  STP   REMX,OPRND    END OF PROCEDURE OR FUNCTION DECLARATION
+038 10 0     3494         BUN   REM,E-        CHECK FOR EXTRA OPERANDS
+038 11 0     3495   *A    STP   REMX,FUNS
+038 12 0     3496         BUN   REM2,*+2      PULL NAME OF THIS OFF FUN-STACK
+038 13 0     3497   G10   F424  6273,0,*
+038 14 0     3498         LDR   FNSW
+038 15 0     3499         BZR   A+
+038 16 0     3500         SRA   4
+038 17 0     3501         STA   LDBI,4        RETURN FROM FUNCTION
+038 18 0     3502         STP   VSUBX
+038 19 0     3503         BUN   VSUB1
+038 20 0     3504   *D    CLL   FNSW          BRING BACK OLD TEMP STORAGE CELLS
+038 21 0     3505         BUN   OLDT          AND EXIT
+038 22 0     3506   *A    STP   REMX,PR3      FORGET ALL PREFIXES DEFINED IN THIS
+038 23 0     3507         BUN   REM,A-        PROCEDURE
+038 24 0     3508         LDR   RR1
+038 25 0     3509         STR   RR3           BRING IN OTHERWISE TYPE OF MAIN PROGRAM
+038 26 0     3510         LDR   PR1
+038 27 0     3511         STR   PR3           BRING IN PREFIXES OF MAIN PROGRAM
+038 28 0     3512         LDR   CHI3
+038 29 0     3513         STR   CHI           BRING IN MONITOR STATUS OF MAIN PROGRAM
+038 30 0     3514         LDR   PAREF
+038 31 0     3515         BFR   H+,04,00
+038 32 0     3516   *C    CAD   PLOC          IF PARAMETERS OF OUTPUT TYPE HAVE
+038 33 0     3517         STP   FXUPX         OCCURRED, FIX UP THE INSTRUCTION
+038 34 0     3518         BUN   FXUP          TO BUN TO THIS PART OF THE PROCEDURE
+038 35 0     3519         CAD   FRSTP
+038 36 0     3520         SLA   4
+038 37 0     3521         STA   IRSTP
+038 38 0     3522   *E    LDB   PAREF
+038 39 0     3523         IBB   F+,9999
+038 40 0     3524         CAD - 1
+038 41 0     3525         IBB   *+1,1         REMOVE LIST OF REFERENCES TO THIS
+038 42 0     3526         STA   SETUP,04      PARAMETER, MAKE IT THE SETUP STACK
+038 43 0     3527         SRA   4
+038 44 0     3528         LDR   AVAIL
+038 45 0     3529         STB   AVAIL
+038 46 0     3530         STR - 0
+038 47 0     3531         STA   PAREF,04
+038 48 0     3532         BSA   G+,1          (THE FIRST PARAMETER MAY ALREADY BE
+038 49 0     3533         EXT   CUL2          IN REGISTER A)
+038 50 0     3534         SUB   IRSTP         CAD PARAMETER
+038 51 0     3535         STA   VEE,64
+038 52 0     3536         STP   ASMBX
+038 53 0     3537         BUN   ASMBL,X+
+038 54 0     3538   *G    STP   REMX,SETUP    GENERATE ALL  STA ----,04
+038 55 0     3539         BUN   REM,*+2       FROM THIS PARAMETER
+038 56 0     3540         BUN   E-
+038 57 0     3541         SRA   4
+038 58 0     3542         STA   STAI,04
+038 59 0     3543         STP   ASMBX
+038 60 0     3544         BUN   ASMBL,STAI
+038 61 0     3545         BUN   G-
+038 62 0     3546   *F    CAD   PLOC          ASSEMBLE TO BUN TO THE
+038 63 0     3547         SRA   4             BEGINNING OF THE PROCEDURE
+038 64 0     3548         STA   BUNI,04
+038 65 0     3549         IFL   BUNI,04,01
+038 66 0     3550         STP   ASMBX
+038 67 0     3551         BUN   ASMBL,BUNI
+038 68 0     3552   *H    CLL   LEVEL         EXIT,WE ARE THROUGH WITH THE PROCEDURE
+038 69 0     3553         BUN   D-
+038 70 0     3554   VEE   F2448 11,0,0
+038 71 0     3555   *W    F244  11,VEE,0
+038 72 0     3556   *X    F424  0,10,W--V
+
+
+038 75 0     3557   GCRQ  IFL   PRFSW,62,25   PROCESS LAST PARAMETER.  MARK IT
+038 76 0     3558         STP   YSUBX         AS IN ACCUMULATOR IF ITS A CALL BY NAME
+038 77 0     3559         BUN   YSUB1
+038 78 0     3560         DFL   PRFSW,62,25   WE HAVE JUST FINISHED COLLECTING
+038 79 0     3561         CLL   TAG           FUNCTION OR PROCEDURE PARAMETERS
+038 80 0     3562         STA   V3
+038 81 0     3563         IFL   V3,11,3
+038 82 0     3564         STP   ASMBX         STORE LAST PARAMETER
+038 83 0     3565         BUN   ASMBL,STAT3
+038 84 0     3566   *C    CLL   PARSW
+038 85 0     3567         LDB   FNSW
+038 86 0     3568         DBB   GENRX,1       EXIT IF A FUNCTION DECLARATION
+038 87 0     3569         LDR   PAREF
+038 88 0     3570         BFR   D+,04,00      IF CALL BY NAME PARAMETERS HAVE
+038 89 0     3571         CAD   LOCN          APPEARED, ASEMBLE BUN INSTRUCTION
+038 90 0     3572         STA   PLOC          WHICH WILL GO TO THE INITIALIZATION PART
+038 91 0     3573         STP   AXMBX
+038 92 0     3574         BUN   ASMBL,BUNZ
+038 93 0     3575   *D    IFL   DELTA,04,4
+038 94 0     3576         BUN   GENRX
+
+
+038 97 0     3577   GCRR  STP   XSTX          V1 IS LAST ARRAY SUBSCRIPT
+038 98 0     3578         BUN   XST           MAKE SURE IT IS FIXED POINT AND
+038 99 0     3579         DLB   V1,64,0       NOT IN REGISTER A
+039 00 0     3580         LDR - 1             NOW COMES VERY TRICKY CODING.
+039 01 0     3581         DLB   V2,64,00      IF THE SUBSCRIPT IS A CONSTANT,
+039 02 0     3582         CAD   V1            SIMPLY CALCULATE THE ADDRESS
+039 03 0     3583         BFA   GENDX,22,21
+039 04 0     3584         IFL - 0,11,1        OTHERWISE SET INCREMENT WORD TO A 6
+039 05 0     3585         STP   INSX          AND SET UP A LINK TO V1
+039 06 0     3586         BUN   INS1          NOW INC WD/64=BASE ADDR. /04=AAAA
+039 07 0     3587         BUN   GENX2         AAAA/67=V1    /04=ARRAY INFORMATION
+
+
+039 10 0     3588   GCRS  STP   REMX,FUNS     FINISH SUBROUTINE DECLARATION.  REMOVE
+039 11 0     3589         BUN   REM,OLDT      LOCATION FROM FUNS, REMOVE TEMP STORAGES.
+039 12 0     3590   G11   F424  0313,0,*
+
+
+039 15 0     3591   GCRT  CAD   BUNV1         GENERATE BUN V1
+039 16 0     3592         BUN   GENXY
+
+
+039 19 0     3593   GCRU  LDR   BNZAF
+039 20 0     3594         BUN   GIF1          UNTIL SIMILAR TO IF
+
+
+039 23 0     3595   GCRV  LDR   LOCN          END OF SEGMENT
+039 24 0     3596         CFR   LCMAX,64
+039 25 0     3597         BCL   *+2
+039 26 0     3598         STR   LCMAX,64      SET LCMAX TO GREATEST LOCN
+039 27 0     3599         STP   REMX,FUNS     USED IN SEGMENTS
+039 28 0     3600         BUN   REM,*+2
+039 29 0     3601   G12   F424  8990,0,*
+039 30 0     3602         STA   LOCN,64       RESET LOCN TO BEGINNING OF SEGMENT
+039 31 0     3603         LSA   8
+039 32 0     3604         SRA   4             OUTPUT CONTROL WORD FOR LOADER
+039 33 0     3605         BUN   GFWRF
+
+
+
+039 37 0     3606   GCRW  IFL   LAMDA,00,1    RECORD THAT OTHERWISE HAS OCCURRED
+039 38 0     3607         BUN   GENRX
+
+
+039 41 0     3608   GCRX  DEFN  GENXY-1
+
+
+039 44 0     3608   GCRY  CAD   V1            MAKE SURE A SUBSCRIPT IS FIXED POINT
+039 45 0     3609         STP   FIXES
+039 46 0     3610         BFA   FIXER,21,0
+039 47 0     3611   `     BUN   GENXV
+
+
+039 50 0     3612   GCRZ  STP   CADX          STOP
+039 51 0     3613         BUN   CAD1          THERE WILL BE AN ACCUMULATOR
+039 52 0     3614   *A    CAD   HLTZ          SYMBOL PRESENT, IF THE STATEMENT
+039 53 0     3615         BUN   GENXY         WAS SIMPLY STOP$
+
+
+
+039 57 0     3616   GCROY DLB   *+2,44,0      TRACE
+039 58 0     3617         STP   LIBRX
+039 59 0     3618         BUN   LIBRF,DMPER
+039 60 0     3619         IFL   TAG,00,1
+039 61 0     3620         STP   REMX,OPRND
+039 62 0     3621         BUN   REM,*+2
+039 63 0     3622         BUN   GENRX         IF LABEL ONLY,EXIT
+039 64 0     3623         STA   TEMP          IF LABEL(N), PUT N ON STACK
+039 65 0     3624         DLB   TEMP,64,0
+039 66 0     3625         CAD - 1
+039 67 0     3626         SLA   6
+039 68 0     3627   JCROY LDB   *
+039 69 0     3628         STA - 0,44
+039 70 0     3629         BUN   GENRX
+039 71 0
+039 72 0
+039 73 0     3630   OBTN1 STP   REMX,OPRND
+039 74 0     3631         BUN   REM,*+2       GET   TOP OF OPERAND STACK
+039 75 0     3632         BUN   E+             AND PLACE IT IN V1
+039 76 0     3633         STA   V1
+039 77 0     3634         BUN   A+
+039 78 0
+039 79 0
+039 80 0     3635   OBTN2 STP   REMX,OPRND    GET TOP OF OPERAND STACK AND PLACE IT IN
+039 81 0     3636         BUN   REM,C+        V2
+039 82 0     3637   *E    STP   WEMX
+039 83 0     3638         BUN   WEM,GENRX
+039 84 0     3639         CNST  37161000000   MISSING OPERAND
+039 85 0     3640   *C    STA   V2
+039 86 0     3641   *A    BFA   B+,11,0       IF AN ACCUMULATOR SYMBOL WAS
+039 87 0     3642         BUN   OBTNX         REMOVED, SET SER TO ZERO
+039 88 0     3643   *B    CLL   SER
+039 89 0     3644   OBTNX BUN   *
+039 90 0
+039 91 0
+039 92 0     3645   PMTR  LDR   KAPPA         SELECTIVELY BRING PARAMETER INTO A REG.
+039 93 0     3646         BZR   A+            HAVE EMPTY SUBSCRIPTS APPEARED
+039 94 0     3647         CLL   KAPPA
+039 95 0     3648   *B    STP   CADX
+039 96 0     3649         BUN   CAD1          IF SO, ASSEMBLE CAD V1 AND EXIT
+039 97 0     3650         BUN   PMTRX
+039 98 0     3651   *A    LDB   FUNS
+039 99 0     3652         CAD - 0             IF BEFORE THE FIRST SEMICOLON,
+040 00 0     3653         BSA   B-,1          ASSEMBLE CAD V1 AND EXIT
+040 01 0     3654         STP   ACCX
+040 02 0     3655         BUN   ACC4
+040 03 0     3656         CAD   V1            OTHERWISE WE HAVE A CALL BY NAME
+040 04 0     3657         BFA   PMTRX,11,0    FREE THE A-REGISTER
+040 05 0     3658         BSA   C+,0
+040 06 0     3659   *E    STP   WEMX
+040 07 0     3660         BUN   WEM,*+2
+040 08 0     3661         CNST  30111130000   IMPROPER FUNCTION ARGUMENT
+040 09 0     3662         STA   V1
+040 10 0     3663   *C    CAA   G5
+040 11 0     3664         STP   INTRX         ASSEMBLE  CAD *+1, NOP V1
+040 12 0     3665         BUN   INTRP
+040 13 0     3666   PMTRX BUN   *
+
+
+040 16 0     3667   ACC   DEFN  *-1
+040 17 0     3667   ACC1  BUN   C+            ACC1.. PLACE V1 IN TEMP STORAGE
+040 18 0     3668   ACC2  STP   GETMX         ACC2.. PLACE V2 IN TEMP STORAGE
+040 19 0     3669         BUN   GETMP
+040 20 0     3670         STA   V2,64
+040 21 0     3671         IFL   V2,11,3
+040 22 0     3672         CAD   STAT2
+040 23 0     3673         BUN   ASMBY
+040 24 0     3674   *C    STP   GETMX
+040 25 0     3675         BUN   GETMP
+040 26 0     3676         STA   V1,64
+040 27 0     3677         IFL   V1,11,3
+040 28 0     3678         CAD   STAT1
+040 29 0     3679         BUN   ASYBY
+040 30 0     3680   ACCX  DEFN  ASMBX
+040 31 0     3680   ACC3  LDR   V1            ACC3.. FREE THE A REGISTER
+040 32 0     3681         BFR   C-,11,0       IF V1 IS IN A, DO ACC1
+040 33 0     3682         LDR   V2
+040 34 0     3683         BFR   ACC2,11,0     IF V2 IS IN A, DO ACC2
+040 35 0     3684   ACC4  LDB   SER           ELSE DO ACC4
+040 36 0     3685         IBB   ACCX,9999     ACC4.. IF THE A-REGISTER IS IN USE
+040 37 0     3686         STP   GETMX         WITH OTHER OPERANDS BESIDES THE CURRENT
+040 38 0     3687         BUN   GETMP         ONE(S), STORE IT INTO TEMP
+040 39 0     3688         LDB   SER
+040 40 0     3689         STA - 0,64          AND MODIFY THE STACK ACCORDINGLY
+040 41 0     3690         IFL - 0,11,3
+040 42 0     3691         LDR - 0
+040 43 0     3692         STR   V3
+040 44 0     3693         CAD   STAT3
+040 45 0     3694         CLL   SER
+040 46 0     3695         BUN   ASMBY
+
+
+040 49 0     3696   CAD2  LDB   XTWO+1        CAD V2
+040 50 0     3697         BUN   CAD
+040 51 0     3698   CAD1  LDB   XONE+1        CAD V1
+040 52 0     3699   CAD   CAD - V
+040 53 0     3700         STB   ZHE,04        BRING V(RB) INTO A REGISTER
+040 54 0     3701         BFA   CADX,11,0
+040 55 0     3702         STP   ACCX          IF ITS NOT THERE ALREADY, FREE
+040 56 0     3703         BUN   ACC4          THE ACCUMULATOR
+040 57 0     3704         LDB   ZHE
+040 58 0     3705         CAD - V             COMPILE CAD OR CSU  V1 OR V2
+040 59 0     3706         BSA   B+,1
+040 60 0     3707         CAD - CADV1-1
+040 61 0     3708   *D    STP   ASMBX
+040 62 0     3709         BUN   ASMBY
+040 63 0     3710   *C    LDB   ZHE
+040 64 0     3711         STB - V,12
+040 65 0     3712         CAD - V
+040 66 0     3713   CADX  BSA   *,0
+040 67 0     3714         STP   ACCX          TO REVERSE SIGN OF A-REGISTER, STORE
+040 68 0     3715         BUN - ACC           IT THEN COMPILE CSU INSTRUCTION
+040 69 0     3716         LDB   ZHE
+040 70 0     3717   *B    CAD - CSUV1-1
+040 71 0     3718         BUN   D-
+
+
+040 74 0     3719   XST   CAD   V1
+040 75 0     3720         STP   FIXEX         FIX V1 IF IT IS AN INTEGER
+040 76 0     3721         BFA   FIXER,21,0
+040 77 0     3722         STP   ACCX
+040 78 0     3723         BFA   ACC1,11,0     STORE V1 IF IT IS IN REGISTER A
+040 79 0     3724   XSTX  BUN   *
+
+
+040 82 0     3725   FIXER CAD   V1
+040 83 0     3726         BFA   A+,11,2
+040 84 0     3727         STP   CADX
+040 85 0     3728         BUN   CAD1          CHANGE V1 TO INTEGER FORM
+040 86 0     3729         BFA   FIXES,21,1
+040 87 0     3730         DLB   FIXGN,64,00
+040 88 0     3731         STP   LINKX         LINK TO FIX ROUTINE
+040 89 0     3732         BUN   LINK1
+040 90 0     3733         IFL   V1,21,1
+040 91 0     3734         CAD   V1
+040 92 0     3735   FIXEX BUN   *
+040 93 0     3736   *A    BFA   FIXES,21,1    IF V1 IS A CONSTANT,
+040 94 0     3737         STP   FIXCX         CHANGE IT WITH FIXCN
+040 95 0     3738         BUN   FIXCN
+040 96 0     3739         STA   V1,00
+040 97 0     3740         BUN   FIXEX-1
+
+
+041 00 0     3741
