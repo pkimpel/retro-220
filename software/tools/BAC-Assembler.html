@@ -24,8 +24,12 @@
 <meta http-equiv="Content-Style-Type" content="text/css">
 
 <style>
+HTML {
+    height:             100%}
+
 BODY {
     position:           relative;
+    height:             100%;
     margin:             1ex}
 
 BUTTON.greenButton {
@@ -135,9 +139,11 @@ DIV.heading {
     font-weight:        normal}
 
 #TextPanel {
-    position:           relative;
-    height:             250px;
-    width:              820px;
+    position:           absolute;
+    top:                180px;
+    left:               0;
+    bottom:             8px;
+    width:              640px;
     overflow:           scroll;
     padding:            4px;
     border:             1px solid black;
@@ -167,12 +173,9 @@ DIV.heading {
     <iframe id=CROutHopperFrame scrolling=auto></iframe>
 </div>
 
-<div class=heading>
-    Pass 1 Output
+<div id=TextDiv>
+    <pre id=TextPanel></pre>
 </div>
-
-<pre id=TextPanel>
-</pre>
 
 
 <script>
@@ -184,7 +187,8 @@ window.addEventListener("load", function() {
     var buffer = "";
     var bufferLength = 0;
     var bufferOffset = 0;
-    var cardsPerMinute = 2000;
+    var cardHandler = startAssembly;
+    var cardsPerMinute = 8000;
     var eofArmed = 0;
     var eolRex = /([^\n\r\f]*)((:?\r[\n\f]?)|\n|\f)?/g;
     var lastReaderStamp = 0;
@@ -194,13 +198,216 @@ window.addEventListener("load", function() {
     var panel = $$("TextPanel");
     var readerState = 0;
 
+    // Input field 0-relative column locations
+    var labelIndex = 4;
+    var opCodeIndex = labelIndex + 6;
+    var operandIndex = labelIndex + 12;
+
     // Card reader ready state
     var readerNotReady = 0;
     var readerReady = 1;
 
-    // Opcode table
-    var opTab = {};
-    var operandRex = /^(\S+)/;
+    // Card data structure
+    var cardData = {
+        offset:         0,
+        length:         0,
+        serial:         0,
+        text:           ""}
+
+    var asciiFilter = [ // translate ASCII to 220 internal character codes
+        // 0   1   2   3   4   5   6   7   8   9   A   B   C   D   E   F
+           0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  //  0-0F
+           0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  // 10-1F
+           0,  0,  0, 33, 13, 24, 10,  0, 24,  4, 14,  0, 23, 20,  3, 21,  // 20-2F
+          80, 81, 82, 83, 84, 85, 86, 87, 88, 89,  0,  0,  0,  0,  0,  0,  // 30-3F
+          34, 41, 42, 43, 44, 45, 46, 47, 48, 49, 51, 52, 53, 54, 55, 56,  // 40-4F
+          57, 58, 59, 62, 63, 64, 65, 66, 67, 68, 69,  0,  0,  0,  0,  0,  // 50-5F
+           0, 41, 42, 43, 44, 45, 46, 47, 48, 49, 51, 52, 53, 54, 55, 56,  // 60-6F
+          57, 58, 59, 62, 63, 64, 65, 66, 67, 68, 69,  0,  0,  0,  0,  0]; // 70-7F
+
+    // Output control
+    var printLine = printPass1;
+
+    /***************************************
+    * Opcode table:
+    *    Each 220 assembler op code is defined by an array with a variable number
+    *    of elements. The first element is the operation code, including any variant
+    *    digit in (41) and is always required. The variant digit may be overlayed by
+    *    other fields in the instruction. If this value is negative, it indicates a
+    *    pseudo-operator or other special handling.
+    *
+    *    The remainder of the array consists of number pairs, one for each comma-
+    *    delimited operand field that may be present. The first number is a code
+    *    indicating the type of field, the second is the default value for that
+    *    field if it is not specified (or is empty) in the operand area of the
+    *    instruction. If the default value is negative, that operand is not optional
+    *    and must be specified.
+    *
+    *    Type codes:
+    *        1 = address field, inserted in (04)
+    *        2 = secondary value inserted in (33)
+    *        3 = secondary value inserted in (44)
+    *        4 = unit or count digit inserted in (01)
+    *        5 = variant digit inserted in (41)
+    *        6 = sL field designator inserted in (22); if specified, insert 1 in (31)
+    *        7 = sL field designator inserted in (22); (31) is undisturbed
+    *        8 = count or value inserted in (32)
+    *        9 = count or value inserted in (42)
+    *       10 = count or value inserted in (21)
+    *       11 = resolved address only
+    ***************************************/
+
+    // Pseudo-instruction codes
+    var pseudoDEFN = -1;
+    var pseudoLOCN = -2;
+    var pseudoCNST = -3;
+    var pseudoF244 = -4;
+    var pseudoF424 = -5;
+    var pseudoFBGR = -6;
+    var pseudoFINI = -9;
+
+    var opTab = {
+        "CAD":  [0x010,  1, -1,  2,  0],
+        "CAA":  [0x110,  1, -1,  2,  0],
+        "ADD":  [0x012,  1, -1,  2,  0],
+        "ADA":  [0x112,  1, -1,  2,  0],
+        "ADL":  [0x010,  1, -1,  3,  0],
+        "CSU":  [0x011,  1, -1,  2,  0],
+        "CSA":  [0x111,  1, -1,  2,  0],
+        "SUB":  [0x013,  1, -1,  2,  0],
+        "SUA":  [0x113,  1, -1,  2,  0],
+        "MUL":  [0x014,  1, -1,  3,  0],
+        "DIV":  [0x015,  1, -1,  3,  0],
+        "RND":  [0x016,  1,  0,  3,  0],
+        "FAD":  [0x022,  1, -1,  2,  0,  4, -1],
+        "FAA":  [0x122,  1, -1,  2,  0,  4, -1],
+        "FSU":  [0x023,  1, -1,  2,  0,  4, -1],
+        "FSA":  [0x123,  1, -1,  2,  0,  4, -1],
+        "FMU":  [0x024,  1, -1,  3,  0],
+        "FDV":  [0x025,  1, -1,  3,  0],
+        "SRA":  [0x048,  1, -1,  2,  0],
+        "SRT":  [0x148,  1, -1,  2,  0],
+        "SRS":  [0x248,  1, -1,  2,  0],
+        "SLA":  [0x049,  1, -1,  2,  0],
+        "SLT":  [0x149,  1, -1,  2,  0],
+        "SLS":  [0x249,  1, -1,  2,  0],
+        "LDR":  [0x041,  1, -1,  3,  0],
+        "LDB":  [0x042,  1, -1,  2,  0],
+        "LBC":  [0x142,  1, -1,  2,  0],
+        "LSA":  [0x043,  1,  0,  5, -1,  2,  0],
+        "STA":  [0x040,  1, -1,  6,  0],
+        "STR":  [0x140,  1, -1,  6,  0],
+        "STB":  [0x240,  1, -1,  6,  0],
+        "STP":  [0x044,  1, -1,  3,  0],
+        "RTF":  [0x029,  1, -1,  8, -1],
+        "CLA":  [0x145,  1,  0,  2,  0],
+        "CLR":  [0x245,  1,  0,  2,  0],
+        "CAR":  [0x345,  1,  0,  2,  0],
+        "CLB":  [0x445,  1,  0,  2,  0],
+        "CAB":  [0x545,  1,  0,  2,  0],
+        "CRB":  [0x645,  1,  0,  2,  0],
+        "CLT":  [0x745,  1,  0,  2,  0],
+        "CLL":  [0x046,  1, -1,  3,  0],
+        "EXT":  [0x017,  1, -1,  3,  0],
+        "CFA":  [0x018,  1, -1,  6,  0],
+        "CFR":  [0x118,  1, -1,  2,  0],
+        "BUN":  [0x030,  1, -1,  3,  0],
+        "BOF":  [0x031,  1, -1,  3,  0],
+        "BRP":  [0x032,  1, -1,  3,  0],
+        "BSA":  [0x033,  1, -1,  5, -1,  2,  0],
+        "BPA":  [0x033,  1, -1,  5,  0,  2,  0],
+        "BMA":  [0x033,  1, -1,  5,  1,  2,  0],
+        "BCH":  [0x034,  1, -1,  2,  0],
+        "BCL":  [0x134,  1, -1,  2,  0],
+        "BCE":  [0x035,  1, -1,  2,  0],
+        "BCU":  [0x135,  1, -1,  2,  0],
+        "BFA":  [0x036,  1, -1,  7, -1,  9, -1],
+        "BZA":  [0x036,  1, -1,  7,  0,  9,  0],
+        "BFR":  [0x037,  1, -1,  7, -1,  9, -1],
+        "BZR":  [0x037,  1, -1,  7,  0,  9,  0],
+        "BCS":  [0x038,  1, -1,  4,  0],
+        "SOR":  [0x039,  1,  0,  2,  0],
+        "SOH":  [0x139,  1,  0,  2,  0],
+        "IOM":  [0x239,  1, -1,  2,  0],
+        "HLT":  [0x000,  1,  0,  3,  0],
+        "NOP":  [0x001,  1,  0,  3,  0],
+        "IBB":  [0x020,  1, -1,  3, -1],
+        "DBB":  [0x021,  1, -1,  3, -1],
+        "IFL":  [0x026,  1, -1,  7, -1,  9, -1],
+        "DFL":  [0x027,  1, -1,  7, -1,  9, -1],
+        "DLB":  [0x028,  1, -1,  7, -1,  9, -1],
+        "MTS":  [0x050,  1, -1,  4, -1,  8, -1],
+        "MFS":  [0x4000050,
+                         1, -1,  4, -1,  8, -1],
+        "MTC":  [0x051,  1, -1,  4, -1,  8, -1,  5, -1],
+        "MFC":  [0x4000051,
+                         1, -1,  4, -1,  8, -1,  5, -1],
+        "MRD":  [0x052,  1, -1,  4, -1, 10, -1,  5,  0],
+        "MNC":  [0x052,  1, -1,  4, -1,  8, -1,  5,  1],
+        "MRR":  [0x053,  1, -1,  4, -1, 10, -1,  5,  0],
+        "MIW":  [0x054,  1, -1,  4, -1, 10, -1,  9, -1],
+        "MIR":  [0x055,  1, -1,  4, -1, 10, -1,  9,  0],
+        "MOW":  [0x056,  1, -1,  4, -1, 10, -1,  9, -1],
+        "MIR":  [0x057,  1, -1,  4, -1, 10, -1,  9,  0],
+        "MPF":  [0x058,  4, -1, 10, -1,  1,  0],
+        "MPB":  [0x158,  4, -1, 10, -1,  1,  0],
+        "MPE":  [0x258,  4, -1,  1,  0],
+        "MLS":  [0x450,  4, -1,  8, -1,  1,  0],
+        "MRW":  [0x850,  4, -1,  8, -1,  1,  0],
+        "MDA":  [0x950,  4, -1,  8, -1,  1,  0],
+        "MIB":  [0x059,  1, -1,  4, -1,  8,  0],
+        "MIE":  [0x159,  1, -1,  4, -1,  8,  0],
+        "PRD":  [0x003,  1, -1,  4, -1,  8, -1,  5,  0],
+        "PRB":  [0x004,  1, -1,  4, -1,  5,  0,  8,  0],
+        "PRI":  [0x005,  1, -1,  4, -1,  8, -1,  5,  0],
+        "PWR":  [0x006,  1, -1,  4, -1,  8, -1],
+        "PWI":  [0x007,  1, -1,  4, -1],
+        "CRD":  [0x060,  1, -1,  4, -1,  5,  0],
+        "CWR":  [0x061,  1, -1,  4, -1,  5, -1,  8,  0],
+        "CRF":  [0x062,  1, -1,  4, -1,  5, -1,  8,  0],
+        "CWF":  [0x063,  1, -1,  4, -1,  5, -1,  8,  0],
+        "CRI":  [0x064,  1, -1,  4, -1],
+        "CWI":  [0x065,  1, -1,  4, -1],
+        "KAD":  [0x008,  1,  0,  3,  0],
+        "SPO":  [0x009,  1, -1,  8, -1],
+
+        // Pseudo-ops
+        "DEFN": [pseudoDEFN,                    // define symbol
+                        11, -1],
+        "LOCN": [pseudoLOCN,                    // set location counter
+                        11, -1],
+        "CNST": [pseudoCNST],                   // assemble list of constant values
+        "F244": [pseudoF244,                    // assemble word from 22-64-04 fields
+                         1,  0,  1,  0,  1,  0],
+        "F424": [pseudoF424,                    // assemble word from 44-62-04 fields
+                         1,  0,  1,  0,  1,  0],
+        "FBGR": [pseudoFBGR],                   // assemble Cardatron format band
+        "FINI": [pseudoFINI,                    // finish assembly, output constant pool
+                         1,  0]
+    };
+
+    // Tank entry types
+    var tankFini = 0;
+    var tankError = 1;
+    var tankComment = 2;
+    var tankInstruction = 3;
+    var tankPseudo = 4;
+
+
+    // Assembly storage
+    var errorCount = 0;                 // assembler error count
+    var location = 0;                   // current instruction address
+    var tank = [];                      // assembled line structures {serial, type, location, word, offset, length}
+
+    // Symbol table: holds the address value for each label
+    var symTab = {};
+
+    // Point-label table: holds the current sequence number for each point label
+    var pointTab = {};
+
+    // Pool constant table: holds address of the constant word
+    var poolTab = {};
+
 
     /**************************************/
     function $$(id) {
@@ -213,14 +420,16 @@ window.addEventListener("load", function() {
         "fill". If fill is empty or missing, space is used. If the initial string is
         longer than "len", it is truncated on the left to that length */
         var pad = (fill || " ").charAt(0);
-        var result = s;
-        var rLen = s.length;
+        var result = s.toString();
+        var rLen = result.length;
 
         if (rLen > len) {
             result = result.substring(rLen-len);
-        } else while (rLen < len) {
-            result = pad + result;
-            ++rLen;
+        } else {
+            while (rLen < len) {
+                result = pad + result;
+                ++rLen;
+            }
         }
 
         return result;
@@ -232,26 +441,19 @@ window.addEventListener("load", function() {
         "fill". If fill is empty or missing, space is used. If the initial string is
         longer than "len", it is truncated on the right to that length */
         var pad = (fill || " ").charAt(0);
-        var result = s;
+        var result = s.toString();
         var rLen = s.length;
 
         if (rLen > len) {
             result = result.substring(0, len);
-        } else while (rLen < len) {
-            result = result + pad;
-            ++rLen;
+        } else {
+            while (rLen < len) {
+                result = result + pad;
+                ++rLen;
+            }
         }
 
         return result;
-    }
-
-    /**************************************/
-    function appendLine(text) {
-        /* Appends "text"+NL as a new text node to the panel DOM element */
-        var e = document.createTextNode(text + "\n");
-
-        panel.appendChild(e);
-        panel.scrollTop += 30
     }
 
     /**************************************/
@@ -295,9 +497,10 @@ window.addEventListener("load", function() {
     }
 
     /**************************************/
-    function readACard(successor) {
+    function readACard(successor, cardData) {
         /* Reads one card image from the buffer, pads or trims the image as
-        necessary to 80 columns, and calls the "successor" function with it.
+        necessary to 80 columns, and calls the "successor" function with it
+        and its location in the buffer.
         If the reader is not ready, nothing happens */
         var bx = bufferOffset;
         var card;
@@ -308,10 +511,12 @@ window.addEventListener("load", function() {
         var delta = millisPerCard - stamp + lastReaderStamp;
 
         lastReaderStamp = stamp;
+        cardData.offset = bx;
 
         if (readerState != readerReady) {
-            ; // just exit
+            cardData.length = -1;          // just exit
         } else if (bx >= bufferLength) {
+            cardData.length = 0;
             setReaderReady(false);
             $$("CRProgressBar").value = 0;
         } else {
@@ -337,7 +542,11 @@ window.addEventListener("load", function() {
                 }
             }
 
+            cardData.length = bx - bufferOffset;
+            ++cardData.serial;
+            cardData.text = card;
             bufferOffset = bx;
+
             $$("CRProgressBar").value = bufferLength-bx;
             while (outHopper.childNodes.length > 1) {
                 outHopper.removeChild(outHopper.firstChild);
@@ -346,9 +555,9 @@ window.addEventListener("load", function() {
             outHopper.appendChild(document.createTextNode(line));
 
             if (delta < 2) {
-                successor(card);
+                successor(cardData);
             } else {
-                setTimeout(successor, delta, card);
+                setTimeout(successor, delta, cardData);
             }
         }
     }
@@ -361,7 +570,7 @@ window.addEventListener("load", function() {
             if (bufferOffset >= bufferLength) {
                 //alert("Empty hopper.");
                 if (eofArmed) {
-                    appendLine("\\\\\\\\\\  [EOF]  /////");
+                    printLine("\\\\\\\\\\  [EOF]  /////");
                     armEOF(false);
                 }
             } else {
@@ -439,31 +648,652 @@ window.addEventListener("load", function() {
     }
 
     /**************************************/
-    function checkBrowser() {
-        /* Checks whether this browser can support the necessary stuff */
-        var missing = "";
+    function startReader() {
+        /* Reads a deck of cards and displays them until the reader goes empty */
 
-        if (!window.File) {missing += ", File"}
-        if (!window.FileReader) {missing += ", FileReader"}
-        if (!window.FileList) {missing += ", FileList"}
-        if (!window.DOMTokenList) {missing += ", DOMTokenList"}
-        if (!window.ArrayBuffer) {missing += ", ArrayBuffer"}
-        if (!window.DataView) {missing += ", DataView"}
-        if (!(window.performance && "now" in performance)) {missing += ", performance.now"}
+        readACard(cardHandler, cardData);
+    }
 
-        if (missing.length == 0) {
-            return false;
+    /**************************************/
+    function printPass1(text) {
+        /* Appends "text"+NL as a new text node to the panel DOM element */
+        var e = document.createTextNode(text + "\n");
+
+        panel.appendChild(e);
+        panel.scrollTop += 30
+    }
+
+    /**************************************/
+    function printError(msg) {
+        ++errorCount;
+        printLine("******** " + msg);
+        printLine("");
+    }
+
+    /**************************************/
+    function declarePointLabel(label, location) {
+        /* For each instance of a point label in the label field, creates a
+        pseudo-label in the symbol table with the next number for that point */
+        var labelID;
+        var pointNr;
+
+        if (label in pointTab) {
+            pointNr = ++pointTab[label];
         } else {
-            alert("No can do... your browser does not support the following features:\n" + missing.substring(2));
-            return true;
+            pointNr = pointTab[label] = 1;
+        }
+
+        labelID = label + padLeft(pointNr, 5-label.length, ".");
+        if (labelID in symTab) {
+            printError("DUPLICATE LABEL IN POINT TABLE -- IMPOSSIBLE")
+        } else {
+            symTab[labelID] = location;
         }
     }
 
     /**************************************/
-    function startReader() {
-        /* Reads a deck of cards and displays them until the reader goes empty */
+    function fetchPointLabel(label, forward) {
+        /* Accesses the location of the specified point label in the forward or
+        backward direction. Returns the location of that label, or -1 if the
+        label is currently undefined */
+        var labelID;
+        var pointNr;
 
-        readACard(processCard);
+        if (label in pointTab) {
+            pointNr = pointTab[label];
+        } else {
+            pointNr = pointTab[label] = 0;
+            if (!forward) {
+                printError("BACKWARD REFERENCE TO UNDECLARED POINT LABEL: " + label);
+            }
+        }
+
+        if (forward) {
+            ++pointNr;
+        }
+
+        labelID = label + padLeft(pointNr, 5-label.length, ".");
+        if (labelID in symTab) {
+            return symTab[labelID];
+        } else {
+            return -1;
+        }
+    }
+
+    /**************************************/
+    function parseNumber(text, token, sign) {
+        /* Parses a decimal number up to 11 digits in length starting at the
+        current offset in "text". If the number is less than 11 digits long,
+        the sign is applied as the high-order digit. Returns the decimal string
+        in token.text and the binary value as the function result */
+        var c;
+        var length = text.length;
+        var raw = "";
+        var x = token.offset;
+
+        while (x < length) {
+            c = text.charAt(x);
+            if (c >= "0" && c <= "9") {
+                ++x;
+                raw += c;
+            } else {
+                break; // out of while loop
+            }
+        }
+
+        if (raw.length > 11) {
+            printError("NUMERIC CONSTANT LONGER THAN 11 DIGITS: " + raw);
+            raw = raw.substring(raw.length-11);
+        } else if (raw.length < 11) {
+            raw = sign.toString() + padLeft(raw, 10, "0");
+        }
+
+        token.newOffset = x;
+        token.text = raw;
+        return parseInt(raw, 10);
+    }
+
+    /**************************************/
+    function parseString(text, token, singleWord) {
+        /* Parses a $-delimited string starting at the current offset in "text".
+        Returns the text of the string in token.text and an array of binary words
+        with the string translated to 220 character code as the function result.
+        The binary words will all have sign digits set to 2.
+        Strings less than multiple of five characters are padded to a multiple
+        of five with spaces (binary zeroes). If "singleWord" is true, the string
+        must be five or fewer characters in length */
+        var c;
+        var code;
+        var count = 0;
+        var doubleDollar = false;
+        var length = text.length
+        var raw = "";
+        var values = [];
+        var word = 2;
+        var x = token.offset;
+
+        function appendCode(code) {
+            if (count >= 5) {       // push out the full word
+                values.push(word);
+                word = 2;
+                count = 0;
+            }
+
+            word = word*100 + code;
+            ++count;
+        }
+
+        if (++x < length) {             // bypass the initial "$"
+            c = text.charAt(x);
+            if (c == "$") {
+                ++x;                    // bypass the second "$"
+                doubleDollar = true;    // don't know what this means yet
+                appendCode(16);         // carriage return
+            }
+        }
+
+        while (x < length) {
+            c = text.charAt(x);
+            if (c == "$") {
+                break;
+            } else {
+                raw += c;
+                code = c.charCodeAt(0);
+                appendCode((code < asciiFilter.length ? asciiFilter[code] : 0));
+                ++x;
+            }
+        }
+
+        while (count < 5) {             // pad out final word with spaces
+            appendCode(0);
+        }
+
+        if (x >= length) {
+            printError("$-STRING NOT TERMINATED");
+        } else {
+            ++x;                        // bypass the terminating "$"
+            if (doubleDollar) {
+                if (x >= length) {
+                    printError("$$-STRING NOT TERMINATED");
+                } else if (text.charAt(x) == "$") {
+                    ++x;                // bypass the second terminating "$"
+                    appendCode(16);     // carriage return
+                } else {
+                    printError("$$-STRING NOT TERMINATED");
+                }
+            }
+        }
+
+        values.push(word);              // push out final word
+        if (singleWord && values.length > 1) {
+            printError("STRING OCCUPIES MORE THAN ONE WORD");
+        }
+
+        token.newOffset = x;
+        token.text = raw;
+        return values;
+    }
+
+    /**************************************/
+    function parseAddressPrimary(text, token, resolved) {
+        /* Parses the next address primary from "text" starting at "token.offset",
+        returning the parsed item in "token.text" and the updated parse offset
+        in "token.newOffset". "token.type" indicates the type:
+            0: empty primary
+            1: *, the current location counter
+            2: integer constant
+            3: regular label
+            4: backward point label (without the leading * or the trailing -)
+            5: forward point label  (ditto, without the trailing +)
+            6: pool constant, 1-11 digit number with a leading + or -)
+        */
+        var c;
+        var length = text.length;
+        var raw = "";
+        var val = 0;
+        var x = token.offset;
+
+        if (x >= length) {                      // empty primary
+            token.type = 0;
+            token.newOffset = length;
+            token.text = "";
+        } else {
+            c = text.charAt(x);
+            switch (true) {
+            case (c == "*"):                    // parse current location counter
+                token.type = 1;
+                token.text = c;
+                token.newOffset = x+1;
+                break;
+
+            case (c >= "0" && c <= "9"):        // parse integer constant
+                val = parseNumber(text, token, 0);
+                token.type = 2;
+                if (val > 9999) {
+                    printError("INTEGER CONSTANT LONGER THAN 4 DIGITS: " + token.text);
+                }
+                break;
+
+            case (c >= "A" && c <= "Z"):        // regular or point label
+                raw = c;
+                while (++x < length) {
+                    c = text.charAt(x);
+                    if (c >= "A" && c <= "Z") {
+                        raw += c;
+                    } else if (c >= "0" && c <= "9") {
+                        raw += c;
+                    } else {
+                        break;  // out of while loop
+                    }
+                }
+
+                if (raw.length > 5) {
+                    printError("LABEL LONGER THAN 5 CHARACTERS: " + raw);
+                }
+
+                // Check if it's a point label (could be followed by an adding operator)
+                if (x >= length) {
+                    token.type = 3;     // label is at the end, can't be a point label
+                } else if (c != "+" && c != "-") {
+                    token.type = 3;     // not followed by +/-, not a point label
+                } else {
+                    token.type = (c == "-" ? 4 : 5);
+                    if (x+1 >= length) {
+                        ++x;            // +/- is at the end, a point label
+                    } else {
+                        c = text.charAt(x+1);
+                        if (c == " ") {
+                            ++x;        // +/- followed by a space, a point label
+                        } else if (c == ",") {
+                            ++x;        // +/- followed by a comma, a point label
+                        } else if (c == "+" || c == "-") {
+                            ++x;        // +/- followed by a +/-, a point label
+                        } else {
+                            token.type = 3;     // not a point label
+                        }
+                    }
+                }
+
+                token.text = raw;
+                token.newOffset = x;
+                break;
+
+            case (c == "+" || c == "-"):        // parse pool constant
+                raw = c;
+                if (++x >= length) {
+                    printError("INVALID POOL CONSTANT SYNTAX");
+                    token.newOffset = x;
+                } else {
+                    token.offset = x;
+                    c = text.charAt(x);
+                    if (c >= "0" && c <= "9") {
+                        parseNumber(text, token, "");
+                        if (token.text.length > 10) {
+                            printError("POOL CONSTANT LONGER THAN 10 DIGITS: " + token.text);
+                        }
+                        token.text = raw + padLeft(token.text, 10, "0");
+                    } else if (c == "$") {
+                        parseString(text, token, true);
+                        token.text = "$" + token.text.substring(0, 5);
+                    } else if (c == " " || c == ",") {
+                        printError("EMPTY POOL CONSTANT");
+                    } else {
+                        val = evaluateAddress(text, token, resolved);
+                        token.text = raw + padLeft(val, 10, "0");
+                    }
+                }
+
+                token.type = 6;
+                break;
+
+            case (c == " "):                    // empty primary
+                token.type = 0;
+                token.newOffset = x;
+                token.text = "";
+                break;
+
+            default:                            // not valid
+                token.type = 0;
+                token.newOffset = x;
+                token.text = "";
+                printError("ADDRESS PRIMARY CANNOT START WITH \"" + c + "\"");
+                break;
+            } // switch true
+        }
+    }
+
+    /**************************************/
+    function evaluateAddress(text, token, resolved) {
+        /* Evaluates the current offset in "text" as an address expression and
+        returns its binary value. If "resolved" is true, the address must resolve
+        to a known address, otherwise an error is issued. If the address cannot
+        be resolved, returns -1.
+        Address expressions consist of a list of address primaries delimited
+        by + or - operators. See parseAddressPrimary() for a definition */
+        var address = 0;                // result address
+        var label;
+        var length = text.length;       // length of operand text
+        var adding = 1;                 // +/- operator
+        var unresolvable = false;       // true if address cannot be resolved
+        var val;                        // value of primary
+
+        do {
+            parseAddressPrimary(text, token, resolved);
+            switch (token.type) {
+            case 0:                     // empty text
+                val = 0;
+                break;
+            case 1:                     // *, current location counter
+                val = location;
+                break;
+            case 2:                     // integer constant
+                val = parseInt(token.text, 10);
+                break;
+            case 3:                     // regular label
+                if (token.text in symTab) {
+                    val = symTab[token.text];
+                } else {
+                    symTab[token.text] = val = -1;
+                    unresolvable = true;
+                }
+                break;
+            case 4:                     // backward point label
+            case 5:                     // forward point label
+                label = "*" + token.text;
+                val = fetchPointLabel(label, token.type == 5);
+                if (val < 0) {
+                    val = -1;
+                    unresolvable = true;
+                }
+                break;
+            case 6:                     // pool constant
+                if (token.text in poolTab) {
+                    val = poolTab[token.text];
+                } else {
+                    poolTab[token.text] = val = -1;
+                    unresolvable = true;
+                }
+                break;
+            default:
+                printError("INVALID ADDRESS TOKEN TYPE CODE: " + token.type);
+                break;
+            } // switch token.type
+
+            if (resolved && unresolvable) {
+                printError("MUST BE A RESOLVED ADDRESS: " + token.text);
+            }
+
+            address += val*adding;
+
+            if (token.newOffset < length) {
+                switch (text.charAt(token.newOffset)) {
+                case "+":
+                    adding = 1;
+                    token.offset = ++token.newOffset;
+                    break;
+                case "-":
+                    adding = -1;
+                    token.offset = ++token.newOffset;
+                    break;
+                default:
+                    length = -1;        // exit do loop
+                    break;
+                }
+            }
+        } while (token.newOffset < length);
+
+        return (unresolvable ? -1 : address);
+    }
+
+    /**************************************/
+    function evaluateOperand(text, token, resolved) {
+        /* Parses and evaluates the fields of a standard operand. An operand
+        consists of a comma-delimited list of address values. Each address value
+        is a sequence of address primaries delimited by + or - operators. The
+        operand is terminated by the first space character. If "resolved" is
+        true, all address values must resolve to defined addresses, otherwise
+        an error is produced and the resulting address value will be -1.
+        Returns an array of address values */
+        var c;
+        var length = text.length;
+        var values = [];
+
+        while (token.offset < length) {
+            values.push(evaluateAddress(text, token, resolved));
+            if (token.newOffset < length) {
+                c = text.charAt(token.newOffset);
+                if (c == ",") {
+                    token.offset = ++token.newOffset;   // continue with next field
+                } else if (c == " ") {
+                    break; // out of while loop
+                } else {
+                    ++token.newOffset;
+                    printError("INVALID OPERAND LIST: " + c);
+                    break;
+                }
+            }
+        }
+
+        //for (var x=0; x<values.length; ++x) {
+        //    printLine("                                                         DEBUG: " + padLeft(values[x], 11));
+        //}
+
+        return values;
+    }
+
+    /**************************************/
+    function parseConstantList(text, token) {
+        /* Parses the operand text for the CNST pseudo-operator and returns an
+        array of binary words with the values found */
+        var c;
+        var length = text.length;
+        var val2;
+        var values = [];
+        var x;
+
+        while (token.offset < length) { // parse comma-delimited values
+            c = text.charAt(token.offset);
+            if (c == ",") {
+                values.push(0);
+            } else if (c == "+") {
+                ++token.offset;
+                values.push(parseNumber(text, token, 0));
+            } else if (c == "-") {
+                ++token.offset;
+                values.push(parseNumber(text, token, 1));
+            } else if (c >= "0" && c <= "9") {
+                values.push(parseNumber(text, token, 0));
+            } else if (c == "$") {
+                val2 = parseString(text, token, false);
+                for (x=0; x<val2.length; ++x) {
+                    values.push(val2[x]);
+                }
+            }
+
+            if (token.newOffset < length) {
+                c = text.charAt(token.newOffset);
+                if (c == ",") {
+                    token.offset = ++token.newOffset;   // continue with next value
+                } else if (c == " ") {
+                    break; // out of while loop
+                } else {
+                    printError("INVALID CONSTANT LIST: " + c);
+                    break; // out of while loop
+                }
+            }
+        } // while x
+
+        //for (x=0; x<values.length; ++x) {
+        //    printLine("                                                         DEBUG: " + padLeft(values[x], 11));
+        //}
+
+        return values;
+    }
+
+    /**************************************/
+    function startAssembly(cardData) {
+        /* Callback function for the card reader. Reads the control cards and
+        then passes control to pass 1 of the assembler */
+        var card = cardData.text;
+        var opCode = card.substring(opCodeIndex, opCodeIndex+5);
+
+        switch (opCode) {
+        case "ASMBL":
+            readACard(startAssembly, cardData);
+            break;
+        case "REORD":
+            readACard(startAssembly, cardData);
+            break;
+        default:
+            cardHandler = assemblePass1;
+            assemblePass1(cardData);
+            break;
+        }
+    }
+
+    /**************************************/
+    function assemblePass1(cardData) {
+        /* Callback function for the card reader. Processes the card image for
+        pass 1 of the assembler */
+        var card = cardData.text;
+        var entry;
+        var finito = false;
+        var label = card.substring(labelIndex, labelIndex+5).trim();
+        var opCode = card.substring(opCodeIndex, opCodeIndex+4).trim();
+        var opDesc;
+        var operand = card.substring(operandIndex, operandIndex+56);
+        var sign = card.substring(opCodeIndex+4, opCodeIndex+5);
+        var tankType = tankComment;
+        var text;
+        var thisLoc = location;
+        var values;
+        var x;
+
+        var token = {                   // token structure for operand parsing
+            type: 0,
+            offset: 0,
+            text: "",
+            newOffset: -1};
+
+        if (opCode.length <= 0) {
+            text = "                     " + card.substring(labelIndex, 72);
+            printLine(text);
+        } else {
+            text = card.substring(72, 80) + "     " + padLeft(location, 4, "0") + "   " + card.substring(labelIndex, 72);
+            printLine(text);
+
+            if (!(opCode in opTab)) {
+                tankType = tankError;
+                printError("INVALID OP CODE");
+            } else {
+                opDesc = opTab[opCode];
+                if (opDesc[0] >= 0) {   // normal instruction
+                    tankType = tankInstruction;
+                    values = evaluateOperand(operand, token, false);   // discard result, take only side effects
+                    ++location;         // normal instructions bump the location counter
+                } else {
+                    // Parse the pseudo-op for size and location
+                    tankType = tankPseudo;
+                    switch (opDesc[0]) {
+                    case pseudoDEFN:
+                        values = evaluateOperand(operand, token, false);
+                        if (values.length > 0) {
+                            thisLoc = values[0];
+                        } else {
+                            printError("OPERAND ADDRESS REQUIRED");
+                        }
+                        break;
+                    case pseudoLOCN:
+                        values = evaluateOperand(operand, token, true);
+                        if (values.length < 1) {
+                            printError("OPERAND ADDRESS REQUIRED");
+                        } else if (values[0] >= 0) {
+                            location = thisLoc = values[0];
+                        }
+                        break;
+                    case pseudoCNST:
+                        values = parseConstantList(operand, token);
+                        location += values.length;
+                        break;
+                    case pseudoF244:
+                    case pseudoF424:
+                        values = evaluateOperand(operand, token, false); // discard result, take only side effects
+                        ++location;     // word-builders merely bump the location counter
+                        break;
+                    case pseudoFBGR:
+                        location += 29; // all format bands are 29 words long
+                        break;
+                    case pseudoFINI:
+                        finito = true;
+                        tankType = tankFini;
+                        values = evaluateOperand(operand, token, true);
+                        break;
+                    default:
+                        printError("INVALID PSEUDO INSTRUCTION CODE: " + opDesc[0]);
+                    } // switch
+                }
+            }
+
+            if (label.length > 0) {         // enter the label into the symbol table
+                if (label.charAt(0) == "*") {
+                    declarePointLabel(label, thisLoc);
+                } else if (!(label in symTab)) {
+                    symTab[label] = thisLoc;
+                } else if (symTab[label] >= 0) {
+                    printError("DUPLICATE LABEL DEFINITION");
+                } else {
+                    symTab[label] = thisLoc;
+                }
+            }
+        }
+
+        entry = {
+            serial: cardData.serial,
+            type: tankType,
+            location: thisLoc,
+            word: 0,
+            offset: cardData.offset,
+            length: cardData.length}
+        tank.push(entry);
+
+        if (!finito) {
+            readACard(assemblePass1, cardData);
+        } else {
+            // Build the constant pool
+            for (text in poolTab) {
+                symTab[text] = location;
+                printLine("             " + padLeft(location, 4, "0") + "               " + text);
+                ++location;
+            }
+
+            // Wrap up Pass 1
+            for (text in symTab) {
+                if (symTab[text] < 0) {
+                    printError("SYMBOL NOT DEFINED: " + text);
+                }
+            }
+
+            printLine("");
+            printLine("END OF PASS 1, ERRORS = " + errorCount);
+            printLine("");
+            printLine("");
+            printLine("SYMBOL TABLE");
+            text = "";
+            thisLoc = 0;
+            values = Object.keys(symTab).sort();
+            for (x=0; x<values.length; ++x) {
+                if (thisLoc > 80) {
+                    printLine(text);
+                    text = "";
+                    thisLoc = 0;
+                }
+
+                text += padLeft(symTab[values[x]], thisLoc-text.length+5) + " " + values[x];
+                thisLoc += 20;
+            }
+
+            printLine(text);
+        }
     }
 
     /**************************************/
@@ -474,10 +1304,11 @@ window.addEventListener("load", function() {
         var match;
         var opCode;
         var operand;
+        var operandRex = /^(\S+)/;
         var x;
 
         // Accumulate statistics
-        // appendLine(card);
+        // printLine(card);
         opCode = card.substring(26, 30).trim();
 
         if (opCode.length > 0) {
@@ -515,9 +1346,9 @@ window.addEventListener("load", function() {
         } else {
             // Report statistics
             setReaderReady(false);
-            appendLine("");
-            appendLine("___________________________");
-            appendLine("");
+            printLine("");
+            printLine("___________________________");
+            printLine("");
             for (opCode in opTab) {
                 entry = opTab[opCode];
                 operand = padRight(opCode, 5);
@@ -525,12 +1356,33 @@ window.addEventListener("load", function() {
                     operand += padLeft(entry[x].toString(), 5);
                 }
 
-                appendLine(operand);
+                printLine(operand);
             }
         }
     }
 
-    /* Start of window.onload() */
+    /**************************************/
+    function checkBrowser() {
+        /* Checks whether this browser can support the necessary stuff */
+        var missing = "";
+
+        if (!window.File) {missing += ", File"}
+        if (!window.FileReader) {missing += ", FileReader"}
+        if (!window.FileList) {missing += ", FileList"}
+        if (!window.DOMTokenList) {missing += ", DOMTokenList"}
+        if (!window.ArrayBuffer) {missing += ", ArrayBuffer"}
+        if (!window.DataView) {missing += ", DataView"}
+        if (!(window.performance && "now" in performance)) {missing += ", performance.now"}
+
+        if (missing.length == 0) {
+            return false;
+        } else {
+            alert("No can do... your browser does not support the following features:\n" + missing.substring(2));
+            return true;
+        }
+    }
+
+    /******************** Start of window.onload() ********************/
     if (checkBrowser()) {
         return;
     }
