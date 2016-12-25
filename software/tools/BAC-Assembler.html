@@ -804,10 +804,6 @@ window.addEventListener("load", function() {
             }
         }
 
-        while (count < 5) {             // pad out final word with spaces
-            appendCode(0);
-        }
-
         if (x >= length) {
             printError("$-STRING NOT TERMINATED");
         } else {
@@ -822,6 +818,10 @@ window.addEventListener("load", function() {
                     printError("$$-STRING NOT TERMINATED");
                 }
             }
+        }
+
+        while (count < 5) {             // pad out final word with spaces
+            appendCode(0);
         }
 
         values.push(word);              // push out final word
@@ -918,7 +918,8 @@ window.addEventListener("load", function() {
                 token.newOffset = x;
                 break;
 
-            case (c == "+" || c == "-"):        // parse pool constant
+            case (c == "+"):                    // parse pool numeric constant
+            case (c == "-"):
                 raw = c;
                 if (++x >= length) {
                     printError("INVALID POOL CONSTANT SYNTAX");
@@ -932,9 +933,6 @@ window.addEventListener("load", function() {
                             printError("POOL CONSTANT LONGER THAN 10 DIGITS: " + token.text);
                         }
                         token.text = raw + padLeft(token.text, 10, "0");
-                    } else if (c == "$") {
-                        parseString(text, token, true);
-                        token.text = "$" + token.text.substring(0, 5);
                     } else if (c == " " || c == ",") {
                         printError("EMPTY POOL CONSTANT");
                     } else {
@@ -943,6 +941,12 @@ window.addEventListener("load", function() {
                     }
                 }
 
+                token.type = 6;
+                break;
+
+            case (c == "$"):                    // parse pool string constant
+                parseString(text, token, true);
+                token.text = "$" + token.text.substring(0, 5);
                 token.type = 6;
                 break;
 
@@ -1208,7 +1212,7 @@ window.addEventListener("load", function() {
                         if (values.length < 1) {
                             printError("OPERAND ADDRESS REQUIRED");
                         } else if (values[0] >= 0) {
-                            location = thisLoc = values[0];
+                            location = values[0];
                         }
                         break;
                     case pseudoCNST:

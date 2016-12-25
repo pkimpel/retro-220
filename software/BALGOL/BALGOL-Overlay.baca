@@ -1,0 +1,574 @@
+             Addr   Sym   Op  - Address         Comments
+
+                          ASBML 2
+                          REORD 100.0
+ 01 00 0     0000   BUF   DEFN  0002            TAPE OUTPUT BUFFER
+ 01 01 0     0000   OT    DEFN  1               OUTPUT TAPE
+ 01 02 0     0000   T     DEFN  2               COMPILER TAPE UNIT
+ 01 03 0     0000   PNTR  DEFN  2               PRINTER UNIT
+001 04 0     0000   PREV  DEFN  101             ADDRESS OF PREVIOUS INSTRUCTION IN BUF
+001 05 0     0000   CNTRI DEFN  180             COUNTER FOR INSTRUCTIONS IN BUFFER
+001 06 0     0000   CNTRF DEFN  181             COUNTER FOR FIX-UPS IN BUFFER
+001 07 0     0000   WRTF  DEFN  183             RTF CONSTANT FOR WRITE SUBROUTINE
+ 01 08 0     0000   DESCR DEFN  184             INSTRUCTION IN OUTPUT BUFFER
+ 01 09 0     0000   EXPLN DEFN  185             SYMBOLIC EXPLANATION
+001 10 0     0000   LCMAX DEFN  202             HIGHEST LOCATION USED IN SEGMENTS
+001 11 0     0000   LRTF  DEFN  207             LOCATION OF LAST RTF IN OUTPUT BUFFER
+001 12 0     0000   HALT1 DEFN  208             ERROR FLAG(SIGN IS 8 IF NO ERRORS)
+001 13 0     0000   VARB  DEFN  251             LAST LOCATION USED FOR VARIABLES, ECT
+ 01 14 0     0000   EPSLN DEFN  258             NUMBER OF EXTERNAL PROGRAMS
+ 01 15 0     0000   AVAIL DEFN  275             FREED-UP LOCATIONS
+ 01 16 0     0000   OP    DEFN  275             OPERATOR STACK
+ 01 17 0     0000   DUMBS DEFN  292             DUMP STACK
+ 01 18 0     0000   SX    DEFN  400             MAG TAPE BUFFER
+ 01 19 0     0000   IMAGE DEFN  1632            CARD INPUT BUFFER
+001 20 0     0000   AZERO DEFN  4095            START OF FIXED POINT CONSTANT LIST
+001 21 0     0000   FZERO DEFN  4097            START OF FLOATING POINT CONSTANT LIST
+ 01 22 0     0000   XONE  DEFN  4099            FIXED POINT CONSTANT 1
+001 23 0     0000   LALE  DEFN  4107            POINTS TO LABEL PROCESSING SUBROUTINE
+001 24 0     0000   SCRTS DEFN  4116            SCRAMBLE TABLE FOR IDENTIFIERS
+001 25 0     0000   SSC   DEFN  4216            POINTS TO WHATS LEFT OF MEMORY
+001 26 0     0000   LOCN  DEFN  4217            LOCATION COUNTER FOR INSTRUCTIONS
+001 27 0     0000   MAMAX DEFN  4227            END OF ASSOCIATIVE MEMORY
+ 01 28 0     0000   MSIZE DEFN  4999            MEMORY SIZE
+
+
+ 01 31 0     0000         LOCN  0000
+001 32 0     0000   MDUMP HLT   0               SYMBOLIC MEMORY DUMP IS ON ODD LANE
+001 33 0     0001         SOH                   SET INDICATOR FOR ENTIRE DUMP
+ 01 34 0     0002         BOF   *+2
+ 01 35 0     0003         IFL   T+,51,3
+ 01 36 0     0004         MRW 4 OT+10
+ 01 37 0     0005         STA   A
+ 01 38 0     0006         STB   B
+ 01 39 0     0007         LBC   *+1
+ 01 40 0     0008         NOP   LOD1-100
+ 01 41 0     0009         MOW 4 0,OT,4
+ 01 42 0     0010         MRD 4 100,OT,BMOD
+ 01 43 0     0011         BUN   100
+ 01 44 0     0012   A     HLT
+ 01 45 0     0013   B     HLT   MSIZE+1
+
+
+ 01 48 0     0014   MLOAD LDB   0
+ 01 49 0     0015         STB   B+,04           GET EXIT LINE
+ 01 50 0     0016         MLS 4 OT              POSITION TAPE SO THAT
+ 01 51 0     0017         MPF 4 OT              SEGMENTATION WILL WORK
+ 01 52 0     0018         LDB   B
+ 01 53 0     0019         SOR
+ 01 54 0     0020         FDV   *
+ 01 55 0     0021         CAD   A
+ 01 56 0     0022   *T    NOP   *+1
+ 01 57 0     0023         STB   T-,51
+ 01 58 0     0024   *B    BUN   *               RETURN TO PROGRAM
+
+
+ 01 61 0     0025         LDB   *+2
+ 01 62 0     0026         RTF    A,1
+ 01 63 0     0027   ZERO  RTF    199,100        ZERO MEMORY
+ 01 64 0     0028         STB   A               BEFORE LOADING PROGRAM
+ 01 65 0     0029         CFR   A,04
+ 01 66 0     0030         BCU   ZERO
+ 01 67 0     0031   LOADP MRD 4 100,OT,1
+ 01 68 0     0032         LDR   X+
+ 01 69 0     0033         STR   M+
+ 01 70 0     0034         LBC   *+1
+ 01 71 0     0035         CLA   100
+ 01 72 0     0036   *A    ADD - 200
+ 01 73 0     0037         ADD - 201
+ 01 74 0     0038         ADD - 202
+ 01 75 0     0039         ADD - 203
+ 01 76 0     0040         ADD - 204             SUM CHECK THE BLOCK
+ 01 77 0     0041         IBB   A-,5
+ 01 78 0     0042         BOF   *+1
+ 01 79 0     0043         BZA   M+
+ 01 80 0     0044         SPO   Q1+,4           IF IT DOES NOT
+ 01 81 0     0045         F424  9669,0,9669     SAY SO AND HALT
+ 01 82 0     0046         MPB 4 OT,1            TRY AGAIN
+ 01 83 0     0047         BUN   LOADP
+
+
+ 01 86 0     0048   *M    CAD   101             GET BUFFER ENTRY
+ 01 87 0     0049         LDB   M-
+001 88 0     0050         BSA   C+,4            IS IT A RTF(IF NOT, ALL INSTRUCTIONS
+
+001 90 0     0051         CLL   Z+              ARE LOADED SO PROCESS FIX-UPS
+ 01 91 0     0052         IFL   Z+,02,99
+ 01 92 0     0053   *A    DLB   Z+,04,1
+001 93 0     0054         LDR - 100             IF FIX-UP HAS A SIGN OF 8 IT INDICATES
+ 01 94 0     0055         BFR   B+,12,80        END OF SOME SEGMENT
+ 01 95 0     0056         BZR   LOADP
+ 01 96 0     0057         DLB - 100,64,0        DO FIX-UP
+ 01 97 0     0058         STR - 0,04
+ 01 98 0     0059         BUN   A-
+
+
+ 02 01 0     0060   *C    STA   R+,66
+002 02 0     0061         DBB   0,9999          INSTRUCTIONS ARE TRANSFERED TO
+ 02 03 0     0062         STB   R+,04           MEMORY WITH A RTF
+ 02 04 0     0063         LDB - 9999
+ 02 05 0     0064   *R    RTF   0,100
+ 02 06 0     0065         SRT   7
+ 02 07 0     0066         ADD   O+              GO GET NEXT RTF
+ 02 08 0     0067         ADL   M-
+ 02 09 0     0068         BUN   M-
+ 02 10 0     0069   *X    CAD   101
+ 02 11 0     0070   *O    HLT   1
+ 02 12 0     0071   *Z    HLT   99              FIX-UP COUNTER
+
+
+ 02 15 0     0072   *B    CFR   SECT,67         HAVE WE LOADED ALL OF THE
+ 02 16 0     0073         BCU   A-              SEGMENT INDICATED BY SECT
+ 02 17 0     0074   LODOX BUN   200
+
+
+ 02 20 0     0075   *V    HLT   1111
+ 02 21 0     0076   LODOV LDB   LODOX
+ 02 22 0     0077         CAD - 0
+ 02 23 0     0078         EXT   V-
+ 02 24 0     0079         SLA   4
+ 02 25 0     0080         STA   SECT,00         GET SEGMENT NUMBER
+ 02 26 0     0081         IFL   LODOX,04,I      ADVANCE EXIT LINE BY ONE
+ 02 27 0     0082         CLB
+ 02 28 0     0083   *B    MTS 4 SECT,OT         SEARCH FOR SEGMENT
+ 02 29 0     0084         MRD 4 100,OT,1
+ 02 30 0     0085         CAD   100
+ 02 31 0     0086         CFA   SECT,100        DID THE MACHINE WORK
+ 02 32 0     0087         BCE   LOADP+1         IF YES,LOAD THE SEGMENT
+ 02 33 0     0088         SPO   Q2+,3           IF NOT PRINT THE MESSAGE
+ 02 34 0     0089         F424  9669,0,9669         SEGMENT ERROR
+ 02 35 0     0090         BUN   B-              TRY AGAIN
+
+ 02 37 0     0091   SECT  HLT 8 0               SEGMENT NUMBER
+
+ 02 39 0     0092   *Q1   CNST  21602020202
+ 02 40 0     0093         CNST  24348454352
+ 02 41 0     0094         CNST  20062645400
+ 02 42 0     0095         CNST  24559595659
+ 02 43 0     0096   *Q2   CNST  21662454754
+ 02 44 0     0097         CNST  24555630045
+ 02 45 0     0098         CNST  25959565902
+
+
+ 02 48 0     0099         LOCN  100
+ 02 49 0     0100         HLT   0
+ 02 50 0     0101   FMT1  FBGR  INPUT,16(P5A),P10Z
+002 51 0     0130   FMT3  FBGR  PRINT,39B,T5A,T1A1B2A4Z,T10N,T8Z1A,XB6Z2A,38B MONITOR
+002 52 0     0159   FMT4  FBGR  PRINT,32B,11(T5A),33B        ERROR MESSAGE FORMAT BAND
+ 02 53 0     0188   TAB   DEFN  *
+ 02 54 0     0188   LOCN  200
+ 02 55 0     0200         HLT   0
+002 56 0     0201   FMT5  FBGR  PRINT,24(T5A)                PRINTER-PUNCH FORMAT BAND
+
+ 02 58 0     0230   LOADL CRI 4 *+2,1           LOADER ENTRANCE
+ 02 59 0     0231         BUN   LOADC
+002 60 0     0232         CRF 4 FMT1+28,51      LOAD INPUT FORMAT IF READY
+ 02 61 0     0233   LOADC STB   200,55
+ 02 62 0     0234   *A    IFL   200,54,1
+ 02 63 0     0235         BOF   A+
+ 02 64 0     0236         CWI 4 A+,2
+ 02 65 0     0237         BUN   A-
+ 02 66 0     0238   *A    CWI 4 *+2,2
+ 02 67 0     0239         BUN   *+4
+002 68 0     0240         CWF 4 FMT3+28,32      LOAD PRINTER FORMATS IF PRINTER READY
+ 02 69 0     0241         CWF 4 FMT4+28,42
+ 02 70 0     0242         CWF 4 FMT5+28,52
+ 02 71 0     0243         CWI 4 *+2,1
+ 02 72 0     0244         BUN   *+2
+002 73 0     0245         CWF 4 FMT5+28,51      LOAD PUNCH FORMAT IF PUNCH IS READY
+ 02 74 0     0246         LDR   B
+ 02 75 0     0247         BUN   ZERO-2
+
+
+ 02 78 0     0248         LOCN  700
+
+ 02 80 0     0700         BCS   *+3,4
+ 02 81 0     0701         STP 4 9898,1642
+ 02 82 0     0702         BUN 4 9898,IMAGE
+ 02 83 0     0703         MRD 4 0900,T,7
+ 02 84 0     0704         MRD 4 1600,T,0
+ 02 85 0     0705         MRD 4 2600,T,0
+ 02 86 0     0706         CLA   3200
+ 02 87 0     0707         LBC   *-1
+ 02 88 0     0708         ADD - 3600
+ 02 89 0     0709         ADD - 3601
+ 02 90 0     0710         ADD - 3602
+ 02 91 0     0711         ADD - 3603
+ 02 92 0     0712         ADD - 3604
+ 02 93 0     0713         ADD - 3605
+ 02 94 0     0714         ADD - 3606
+ 02 95 0     0715         ADD - 3607
+ 02 96 0     0716         ADD - 3608
+ 02 97 0     0717         ADD - 3609
+ 02 98 0     0718         IBB   *-10,10
+ 02 99 0     0719         BOF   *+1
+ 03 00 0     0720         BZA   A+              IF IT DOES NOT      PRINT
+ 03 01 0     0721         SPO   CSERR,4         CHECK SUM ERROR
+ 03 02 0     0722         F424  9669,0,9669
+ 03 03 0     0723         MPB 4 T,2
+ 03 04 0     0724         MPB 4 T,10
+ 03 05 0     0725         MPB 4 T,10
+ 03 06 0     0726         MPB 4 T,10
+ 03 07 0     0727         MRD 4 400,T,10        TRY AGAIN
+ 03 08 0     0728         MRD 4 1400,T,10
+ 03 09 0     0729         MRD 4 2400,T,10
+ 03 10 0     0730         MRD 4 3400,T,2
+ 03 11 0     0731         BUN   707
+
+
+ 03 14 0     0732   *A    CWF 4 ERFRM+28,42
+ 03 15 0     0733         LDB   DUMBS
+ 03 16 0     0734         IBB   A+,9999
+ 03 17 0     0735         LDB   +SCRTB+117
+ 03 18 0     0736         STP   LIBRX
+ 03 19 0     0737         BUN   LIBRF
+ 03 20 0     0738   *A    CAD   HALT1           SET THE X X UP IF AN ERROR
+ 03 21 0     0739         BSA   *+3,8             OCCURRED DURING COMPILATION
+ 03 22 0     0740         LDR   +525005250
+ 03 23 0     0741         STR   HALT
+ 03 24 0     0742         LDB   OP
+ 03 25 0     0743   *A    STB   C+,04           TEST FOR OP STACK EMPTY
+ 03 26 0     0744         IBB   A+,9999         IT SHOULD BE
+ 03 27 0     0745         STP   WEMX
+ 03 28 0     0746         BUN   WEM
+ 03 29 0     0747         CNST  30102030000     EXTRA LEFT PARENTHESIS
+ 03 30 0     0748         LDB   C+
+ 03 31 0     0749         LDB - 0
+ 03 32 0     0750         BUN   A-
+ 03 33 0     0751   *C    HLT   0
+
+
+003 36 0     0752   *A    CAD   BUF             DUMP BUFFER IF SEGMENTATION WAS USED
+ 03 37 0     0753         BFA   A+,64,0         AND BUFFER IS NOT EMPTY
+ 03 38 0     0754         CAD   BUF+99
+ 03 39 0     0755         ADD   BUF+98
+ 03 40 0     0756         BZA   *+3
+ 03 41 0     0757         STP   WRITX
+ 03 42 0     0758         BUN   WRIT5
+ 03 43 0     0759         CAD   BUF             INCREASE SEGMENT NUMBER
+ 03 44 0     0760         CLL   BUF
+ 03 45 0     0761         STA   BUF,64
+ 03 46 0     0762         IFL   BUF,64,1
+ 03 47 0     0763         BUN   C+
+ 03 48 0     0764   *A    LDR   +9669009669     GENERATE BIG X X HALT
+ 03 49 0     0765         STR   INSTR
+ 03 50 0     0766         STP   WRITX
+ 03 51 0     0767         BUN   WRIT2
+ 03 52 0     0768         LDR   +1000600000     FOLLOWED BY A CARD READ
+ 03 53 0     0769         STR   INSTR           IF NOT USING SEGMENTATION
+ 03 54 0     0770         STP   WRITX
+ 03 55 0     0771         BUN   WRIT2
+
+
+ 03 58 0     0772   *C    LDR   $POOL$
+ 03 59 0     0773         STR   EXPLN
+ 03 60 0     0774   *C    LDB   *+1
+ 03 61 0     0775         CAD   XZERO
+ 03 62 0     0776   *A    STA   HOLD
+ 03 63 0     0777         BFA   B+,64,0
+ 03 64 0     0778         SRA   4
+ 03 65 0     0779         LDR - 1
+ 03 66 0     0780         STP   WRITX           OUTPUT ALL CONSTANTS USED BY
+ 03 67 0     0781         BUN   WRIT3           OBJECT PROGRAM
+ 03 68 0     0782         CAD   HOLD
+ 03 69 0     0783   *B    BFA   C+,04,0         XXXX  2R YYYY LINK  R=0 FLOATING
+ 03 70 0     0784         LDB   HOLD            XXXX+1  (CONSTANT)  R=1 INTEGER
+ 03 71 0     0785         CAD - 0               YYY  IS THE ASIGNMENT
+ 03 72 0     0786         BUN   A-              LINK=0 INDICATES END OF LIST
+ 03 73 0     0787   *C    LDB   *+1
+ 03 74 0     0788         CAD   FZERO           PROCESS FLOATING LIST
+ 03 75 0     0789         STP   B-
+ 03 76 0     0790         BUN   A-
+
+
+ 03 79 0     0791         CLL   EXPLN
+ 03 80 0     0792         MLS 4 T
+ 03 81 0     0793         MIB 4 *+2,T
+ 03 82 0     0794         BUN   *-1
+ 03 83 0     0795         MRD 4 LBRT,T,3        READ LIBRARY TABLE
+003 84 0     0796         DFL   WRT10,11,9      CHANGE CONTROL SWITCH FOR EXTERNAL
+ 03 85 0     0797         DFL   FXUPY,11,9
+ 03 86 0     0798         LDB   EPSLN              PROGRAMS
+003 87 0     0799         STP   EXTEX           PROCESS EXTERNAL PROGRAMS IF EPSLN
+ 03 88 0     0800         DBB   EXTP,1             IS NON-ZERO
+003 89 0     0801         DFL   WRT10,11,2      CHANGE CONTROL SWITCH FOR LIBRARY
+ 03 90 0     0802         DFL   FXUPY,11,2
+003 91 0     0803         CAD   +545600         MODIFY ERROR MESSAGE FOR LIBRARY
+003 92 0     0804         STA   CNST9,06        TO READ  UNDEFINED EQUIVALENCE LIBRARY
+                                                                  INCORRECT
+
+
+ 03 96 0     0805   *F    CLL   TST
+ 03 97 0     0806         CLB
+ 03 98 0     0807         CAD   LOCN
+ 03 99 0     0808         STA   LCHOD
+ 04 00 0     0809         DBB   *+1,99990LBRT   START AT LBRT+1
+ 04 01 0     0810   *E    STB   I
+ 04 02 0     0811         CAD - 0
+004 03 0     0812         BSA   A+,1
+004 04 0     0813         BZA   B+              END OF THIS PASS ON THE TABLE
+004 05 0     0814         STA   J,00
+ 04 06 0     0815         DLB   J,64,0
+ 04 07 0     0816         CAD - 0
+ 04 08 0     0817         BFA   A+,11,3         IS THE ROUTINE ASSIGNED
+ 04 09 0     0818         LDB   I                     IF YES
+ 04 10 0     0819         IFL - 0,12,10         MARK IT WITH A SIGN OF 1
+ 04 11 0     0820         BUN   C+
+ 04 12 0     0821   *D    DLB   J,64,0
+ 04 13 0     0822         CAD - 0
+ 04 14 0     0823         BFA   C+,11,4
+ 04 15 0     0824         IFL   TST,00,1        ASSIGN SUBROUTINE IF IT HAS NOT
+004 16 0     0825         STP   LIBRX           ALREADY ASSIGNED,  TST COUNTS NUMBER
+004 17 0     0826         BUN   LIBRF           OF SUBROUTINES ASSIGNED ON THIS PASS
+ 04 18 0     0827   *C    LDB   J               THRU TABLE
+ 04 19 0     0828         IBB   A+,9999         SEQUENCE DOWN LIST OF REQUIRED
+ 04 20 0     0829         CAD - 1                    SUBROUTINES
+ 04 21 0     0830         STA   J
+ 04 22 0     0831         BUN   D-
+ 04 23 0     0832   *A    LDB   I               ADVANCE TO NEXT TABLE ENTRY
+ 04 24 0     0833         IBB   E-,1
+004 25 0     0834   *B    LDB   TST             IF 1 ADDITIONAL SUBROUTINE WAS ASSIGNED
+004 26 0     0835         DBB   F-,1            ANOTHER PASS THRU TABLE IS NECESSARY
+
+
+ 04 29 0     0836   *E    DEFN  *
+ 04 30 0     0836   *F    DLB   II,44,0
+ 04 31 0     0837         CAD - LBRT
+ 04 32 0     0838         BFA   A+,00,0         END OF LIBRARY TABLE
+004 33 0     0839         BSA   B+,1            IF ENTRY WAS MARKED PROCESS THIS
+ 04 34 0     0840   *C    IFL   II,44,1         ROUTINE
+ 04 35 0     0841         BUN   F-
+ 04 36 0     0842   *B    DLB - LBRT,64,0
+004 37 0     0843         CAD - 0               GET OPERAND OF ROUTINE TO BE PROCESSED
+004 38 0     0844         DLB   *,44,0          POSITION TAPE TO BEGINNING OF ROUTINE
+ 04 39 0     0845         MFS   II,T
+ 04 40 0     0846         STA   LOCN,64         SETUP LOCATION COUNTER
+ 04 41 0     0847         SLA   2
+004 42 0     0848         STA   MSK,44          AND MASK FOR RELOCATION OF INSTRUCTIONS
+ 04 43 0     0849         SRA   6
+ 04 44 0     0850         STA   MSK,04
+ 04 45 0     0851         CLL   EQTAB-1         CLEAR EQUIVALENCE TABLE
+ 04 46 0     0852         LDB   +EQTAB
+ 04 47 0     0853         RTF   EQTAB-1,100
+ 04 48 0     0854         CLL   JJ
+ 04 49 0     0855         IFL   JJ,02,2
+ 04 50 0     0856         MLS 4 T
+ 04 51 0     0857         MIB 4 *+2,T
+ 04 52 0     0858         BUN   *-1
+ 04 53 0     0859         MRD 4 BUFR,T,1
+ 04 54 0     0860         CAD   BUFR            DID WE FIND THE RIGHT BLOCK
+ 04 55 0     0861         CFA   II
+ 04 56 0     0862         BCE   E+
+ 04 57 0     0863         SPO   SRERR,3
+ 04 58 0     0864         F424  9669,0,9669
+ 04 59 0     0865         BUN   B-
+ 04 60 0     0866   *G    CLL   JJ
+ 04 61 0     0867         IFL   JJ,02,2
+ 04 62 0     0868         MLS 4 T
+ 04 63 0     0869         MIB 4 *+2,T
+ 04 64 0     0870         BUN   *-1
+ 04 65 0     0871         MRD 4 BUFR,T,1
+ 04 66 0     0872   *E    LDB   *+1
+ 04 67 0     0873         CLA   98
+ 04 68 0     0874         ADD - BUFR+1
+ 04 69 0     0875         DBB   *-1,1           CHECK SUM
+ 04 70 0     0876         BOF   *+1
+ 04 71 0     0877         BZA   D+
+ 04 72 0     0878         SPO   CSERR,4
+ 04 73 0     0879         F424  9669,0,9669
+ 04 74 0     0880         MPB 4 T,1
+ 04 75 0     0881         BUN   G-
+
+
+ 04 78 0     0882   *D    LDB   JJ
+ 04 79 0     0883         CAD - BUFR-1
+ 04 80 0     0884         STA   INSTR
+ 04 81 0     0885         STP   LBSBX           PROCESS INSTRUCTION IN BUFFER
+ 04 82 0     0886         BUN   LBSB
+ 04 83 0     0887         BUN   C-              END OF LIBRARY PROCEDURE
+ 04 84 0     0888         IFL   JJ,02,1
+ 04 85 0     0889         BOF   G-              END OF TAPE BLOCK
+ 04 86 0     0890         BUN   D-
+
+
+ 04 89 0     0891   *A    MIB 4 *+2,T
+ 04 90 0     0892         BUN   *-1
+ 04 91 0     0893         MRW 4 T
+ 04 92 0     0894         CLA                   EMIT AN END OF
+004 93 0     0895         LSA   8
+ 04 94 0     0896         STP   FXUPX
+ 04 95 0     0897         BUN   FXUP
+ 04 96 0     0898         CAD   BUF+98
+ 04 97 0     0899         BSA   *+2,8
+ 04 98 0     0900         BZA   *+3
+ 04 99 0     0901         STP   WRITX           DUMP BUFFER IF NOT EMPTY
+ 05 00 0     0902         BUN   WRIT5
+ 05 01 0     0903         CAD   +9999999999
+ 05 02 0     0904         STA   BUF             OUTPUT A SENTINEL BLOCK
+ 05 03 0     0905         STP   WRITX
+ 05 04 0     0906         BUN   WRIT5
+ 05 05 0     0907         MIB 4 *+2,OT
+ 05 06 0     0908         BUN   *-1
+ 05 07 0     0909         MRW 4 OT
+
+
+                                COMMENT
+                                SEARCH FOR UNDEFINED LABELS AND EXTERNAL PROGRAMS
+                                WORD= T LL SSSS LINK    LL= LENGTH OF IDENTIFIER
+                                               T=2  FOR A NUMERIC LABLE
+                                      SSSS  =     V TR ASIGN 0000
+                                      SSSS+1=     (FIRST FIVE CHARACTERS OF IDENTIFIER)
+                                      SSSS+2=     (NEXT FIVE CHARACTERS)
+                                WE ARE LOOKING FOR THE CASES
+                                (T=9, ASIGN=0) OR (V=9, T=8,9, ASIGN=0)
+
+ 05 20 0     0910   *E    LDB   Z+
+ 05 21 0     0911         CAD - SCRTB           GET HEAD OF STACK
+ 05 22 0     0912   *D    STA   Y+
+ 05 23 0     0913         DLB   Y+,64,0
+ 05 24 0     0914         IBB   A+,9999         STACK HAS NO ENTRIES
+ 05 25 0     0915         BOF   *+1
+ 05 26 0     0916         IFL   Y+,12,90        SET OVERFLOW IF
+ 05 27 0     0917         CAD - 1               OPERAND IS A NUMERIC LABEL
+ 05 28 0     0918         BSA   E+,8            EXTERNAL PROGRAM
+ 05 29 0     0919         BFA   B+,11,9         IS IT A LABEL
+ 05 30 0     0920   *C    LDB   Y+              SEQUENCE DOWN STACK
+ 05 31 0     0921         LDR   +34353600
+ 05 32 0     0922         STR   CNST8,08
+ 05 33 0     0923         CAD - 0
+ 05 34 0     0924         DBB   D-,1000         IF LINK IS LESS THAN 1000
+ 05 35 0     0925   *A    DFL   Z+,02,1         SKIP TO NEXT STACK
+ 05 36 0     0926         BRP   E-
+ 05 37 0     0927         BUN   OUT             END OF SCRAMBLE TABLE
+ 05 38 0     0928   *B    BFA   *+2,64,0        HAS LABEL BEEN ASSIGNED
+ 05 39 0     0929         BUN   C-
+ 05 40 0     0930         DFL   Y+,22,11        SET REPEAT IF IDENTIFIER
+ 05 41 0     0931         CAD - 2               IS LONGER THAN 5 CHARACTERS
+ 05 42 0     0932         LDR - 3
+  5 43 0     0933         LSA   3
+ 05 44 0     0934         BRP   *+2
+ 05 45 0     0935         CLR
+ 05 46 0     0936         BOF   NMBRL           NUMERIC LABEL
+ 05 47 0     0937         STA   DICT+35
+ 05 48 0     0938         STR   DICT+36
+ 05 49 0     0939   PRNT  STP   WEMX
+ 05 50 0     0940         BUN   WEM
+ 05 51 0     0941   CNST8 CNST  33234353600     UNDIFENED LABEL (EXT PROGRAM) L
+ 05 52 0     0942         BUN   C-
+ 05 53 0     0943   *E    BOF   *+1
+ 05 54 0     0944         BFA   *+3,11,8
+ 05 55 0     0945         BFA   B-+2,12,89
+ 05 56 0     0946         BUN   C-
+ 05 57 0     0947         LDR   +10123536
+ 05 58 0     0948         STR   CNST8,08
+ 05 59 0     0949         BUN   B-
+
+
+ 05 62 0     0950   NMBRL LSA   0               CONVERT INTEGER
+ 05 63 0     0951         SRT   10              TO ALFANUMERIC CODE
+ 05 64 0     0952   *B    SLT   1
+ 05 65 0     0953         ADD   +80
+ 05 66 0     0954         BFA   A+,11,8
+ 05 67 0     0955         SLA   1
+ 05 68 0     0956         BUN   B-
+ 05 69 0     0957   *A    STA   DICT+35
+ 05 70 0     0958         IFL   DICT+35,12,30
+ 05 71 0     0959         CLA
+ 05 72 0     0960   *B    SLT   1
+ 05 73 0     0961         ADD   +80
+ 05 74 0     0962         BFA   A+,11,8
+ 05 75 0     0963         SLA   1
+ 05 76 0     0964         BUN   B-
+ 05 77 0     0965   *A    STA   DICT+36
+ 05 78 0     0966         BUN   PRNT
+ 05 79 0     0967   *Y    HLT   0               PRESENT OPERAND
+ 05 80 0     0968   *Z    HLT   99              STACK COUNT
+
+
+ 05 83 0     0969   OUT   CAD   LCHOD
+ 05 84 0     0970         CFA   LCMAX,64
+ 05 85 0     0971         BCH   *+2
+ 05 86 0     0972         CAD   LCMAX
+ 05 87 0     0973         SUB   +10000
+ 05 88 0     0974         SRT   8
+ 05 89 0     0975         BOF   *+1
+ 05 90 0     0976   *B    CLA   300
+ 05 91 0     0977   *C    ADD   +8
+ 05 92 0     0978         SLT   1
+ 05 93 0     0979         SLA   1
+ 05 94 0     0980         DFL   B-,81,1
+ 05 95 0     0981         BRP   C-
+ 05 96 0     0982         SLA   1
+ 05 97 0     0983         STA   DICT+35
+ 05 98 0     0984         CAD   VARB            SET UP CONSTANTS
+ 05 99 0     0985         ADD   +1              IN ALFANUMERIC FORMAT
+ 06 00 0     0986         BPA   *+2
+ 06 01 0     0987         CLA
+ 06 02 0     0988         SRT   4
+ 06 03 0     0989   *C    CLA   3
+  6 04 0     0990   *B    ADD   +8
+ 06 05 0     0991         SLT   1
+ 06 06 0     0992         SLA   1
+ 06 07 0     0993         DFL   C-,01,1
+ 06 08 0     0994         BRP   B-
+ 06 09 0     0995         SLA   1               IF NOT PCS(4)
+ 06 10 0     0996         STA   DICT+36         PRINT MESSAGES
+ 06 11 0     0997         BCS   A+,4
+ 06 12 0     0998         CAD   DICT+36
+ 06 13 0     0999         CFA   DICT+35,88
+ 06 14 0     1000         BCH   *+4
+ 06 15 0     1001         STP   WEMX
+ 06 16 0     1002         BUN   WEM
+ 06 17 0     1003         CNST  36866707147
+ 06 18 0     1004         STP   WEMX
+ 06 19 0     1005         BUN   WEM+2
+ 06 20 0     1006         CNST  34547495036     COMPILED PROGRAM ENDS AT XXXX
+ 06 21 0     1007         STP   WEMX
+ 06 22 0     1008         BUN   WEM+2
+ 06 23 0     1009         CNST  34751535037     PROGRAM VARIABLES START AT XXXX
+ 06 24 0     1010   *A    LDB   DUMBS
+ 06 25 0     1011         DBB   MONST,1         GO GENERATE SYMBOLIC DUMP
+
+
+
+ 06 29 0     1012   LDBG  CAD   HALT
+ 06 30 0     1013         BFA   *+4,31,5
+ 06 31 0     1014         STP 4 9898,0916
+ 06 32 0     1015         BUN 4 9898,IFERR
+ 06 33 0     1016         BUN   *+4
+ 06 34 0     1017         BCS   *+3,4
+ 06 35 0     1018         STP 4 9898,0916
+006 36 0     1019         BUN 4 9898,ZERSS
+ 06 37 0
+ 06 38 0     1020   AGAIN DLB   FIXUP,44,0      THE FIXUP STACK CONTAINS THE
+ 06 39 0     1021         STP   REMX            FIX-UPS FOR CALLS OF EXTERNAL PROGRAMS
+ 06 40 0     1022         BUN   REM             FROM WITHIN SEGMENTS
+ 06 41 0     1023   XT001 BUN   S+              STACK EMPTY
+ 06 42 0     1024         LDR   +POST           A REWIND
+ 06 43 0     1025         STR   XT001,04        WILL BE NECESSARY
+ 06 44 0     1026         STA   HOLD
+ 06 45 0     1027         DLB   HOLD,64,0
+ 06 46 0     1028         CAD - 0
+ 06 47 0     1029         STA   HOLD
+ 06 48 0     1030         SRA   8
+ 06 49 0     1031         SLA   4
+ 06 50 0     1032         STA   THROW
+ 06 51 0     1033         CLB
+ 06 52 0     1034   MTS   MTS 4 THROW,OT        SEARCH FOR PROPER SEGMENT
+ 06 53 0     1035         MRD 4 100,OT,1
+ 06 54 0     1036         CFA   100,00
+ 06 55 0     1037         BCE   RDT+1
+ 06 56 0     1038         SPO   SRERR,3
+ 06 57 0     1039         F424  9669,0,9669
+ 06 58 0     1040         BUN   MTS             TRY AGAIN
+
+ 06 60 0     1041   RDT   MRD 4 100,OT,1
+ 06 61 0     1042         CLA   100
+ 06 62 0     1043         LBC   *-1
+ 06 63 0     1044   *A    ADD - 200
+ 06 64 0     1045         ADD - 201
+ 06 65 0     1046         ADD - 202
+ 06 66 0     1047         ADD - 203
+ 06 67 0     1048         ADD - 204
+ 06 68 0     1049         IBB   A-,5            CHECK SUM BLOCK
+ 06 69 0     1050         BOF   *+1
