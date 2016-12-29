@@ -572,3 +572,620 @@
  06 67 0     1048         ADD - 204
  06 68 0     1049         IBB   A-,5            CHECK SUM BLOCK
  06 69 0     1050         BOF   *+1
+ 06 70 0     1051         BZA   A+
+ 06 71 0     1052         SPO   CSERR,4
+ 06 72 0     1053         F424  9669,0,9669
+ 06 73 0     1054         BUN   *-1
+
+ 06 75 0     1055   *A    CAD   101
+ 06 76 0     1056         BSA   B+,4            IN CASE IT IS NOT
+ 06 77 0     1057         LDR   +1              GET NEXT BLOCK
+ 06 78 0     1058         STR   A-,02
+ 06 79 0     1059         BUN   RDT
+
+
+ 06 82 0     1060   *B    STA   T+              CAN THE FIX-UP BE
+ 06 83 0     1061         SLA   4               IN THIS GROUP OF INSTRUCTIONS
+ 06 84 0     1062         CFA   HOLD,64
+ 06 85 0     1063         BCL   Y+              YES
+ 06 86 0     1064         BCE   Y+
+ 06 87 0     1065   *W    CAD   T+              NO - TRY NEXT GROUP
+ 06 88 0     1066         SRA   1
+ 06 89 0     1067         STA   *+1,42
+ 06 90 0     1068         IFL   A-,02,0
+ 06 91 0     1069         IFL   A-,02,1         GET NEXT RTF
+ 06 92 0     1070         BUN   A-
+
+ 06 94 0     1071   *Y    CAD   T+
+ 06 95 0     1072         SRA   7
+ 06 96 0     1073         ADD   T+
+ 06 97 0     1074         SLA   4
+ 06 98 0     1075         CFA   HOLD,64         IS THE FIX-UP IN THE GROUP
+ 06 99 0     1076         BCH   F+
+ 07 00 0     1077         BUN   W-              NO
+
+ 07 02 0     1078   *F    MPB 4 OT,1
+ 07 03 0     1079         CSU   HOLD
+ 07 04 0     1080         SRA   4
+ 07 05 0     1081         EXT   -1111
+ 07 06 0     1082         ADL   T+              DO ACTUAL FIX-UP IN
+ 07 07 0     1083         CAD   A-              THE BUFFER
+ 07 08 0     1084         LBC   T+
+ 07 09 0     1085         STA   A+,04
+ 07 10 0     1086         DBB   *+1,9999
+ 07 11 0     1087         LDR   HOLD
+ 07 12 0     1088   *A    STR - 0,04
+ 07 13 0     1089         CLA   100
+ 07 14 0     1090         LBC   *-1
+ 07 15 0     1091         CLL   199
+ 07 16 0     1092   *A    SUB - 200
+ 07 17 0     1093         SUB - 201
+ 07 18 0     1094         SUB - 202
+ 07 19 0     1095         SUB - 203
+ 07 20 0     1096         SUB - 204
+ 07 21 0     1097         IBB   A-,5
+ 07 22 0     1098         BOF   *+1
+ 07 23 0     1099         STA   199
+ 07 24 0     1100         MOW 4 100,OT,1
+ 07 25 0     1101         BUN   AGAIN
+ 07 26 0     1102   *T    HLT   0
+
+ 07 28 0     1103   POST  MIB 4 *+2,OT
+ 07 29 0     1104         BUN   *-1
+ 07 30 0     1105         MRW 4 OT
+ 07 31 0     1106   *S    CLB
+ 07 32 0     1107         RTF   SX,100
+ 07 33 0     1108         RTF   SX+100,100
+ 07 34 0     1109         RTF   SX+200,100
+ 07 35 0     1110         MIB 4 *+2,OT
+ 07 36 0     1111         BUN   *-1
+ 07 37 0     1112         MOW 4 0,OT,3
+ 07 38 0     1113         CAD   HALT
+ 07 39 0     1114         BCS   A+,4            IF NOT PCS(4)
+ 07 40 0     1115   *B    STA   *+1             HALT WITH OK OR XX IN A
+ 07 41 0     1116         HLT   0
+ 07 42 0     1117         BUN   LOADC
+ 07 43 0     1118   *A    BFA   B-,31,2         IF PCS(4) HALT ONLY IF XX
+ 07 44 0     1119         BUN   LOADC
+ 07 45 0     1120   II    CNST  1000000         LIBRARY INDEX NUMBER
+ 07 46 0     1121   JJ    HLT   0               TEMP
+ 07 47 0     1122   MSK   HLT   0               RELOCATION MASK FOR INSTRUCTIONS
+
+                                PROCESS EXTERNAL PROGRAMS
+
+
+ 07 52 0     1123   EXTP  CAD   LOCN
+ 07 53 0     1124         CFA   LCMAX
+ 07 54 0     1125         BCH   *+2
+ 07 55 0     1126         CAD   LCMAX
+ 07 56 0     1127         STA   LOCN            LOCN=MAX(LCMAX,LOCN)
+ 07 57 0     1128   NAME  CLL   EQTAB-1
+ 07 58 0     1129         LDB   +EQTAB          CLEAR EQUIVALENCE TABLE
+ 07 59 0     1130         RTF   EQTAB-1,100
+ 07 60 0     1131         CLL   LEVEL
+007 61 0     1132   *Z    STP   READX           READ NAME CARD OF EXTERNAL PROGRAM
+ 07 62 0     1133         BUN   READ
+ 07 63 0     1134         CAD   LOCN
+ 07 64 0     1135         STA   CRD-1
+ 07 65 0     1136         CAD   CRD
+ 07 66 0     1137         BSA   A+,2
+ 07 67 0     1138         STP   WEMX
+ 07 68 0     1139         BUN   WEM
+ 07 69 0     1140         CNST  3060809000      MISSING NAME CARD
+ 07 70 0     1141         BUN   Z-
+ 07 71 0     1142   *A    BCS   *+2,3
+ 07 72 0     1143         BCS   *+3,4
+ 07 73 0     1144         STP 4 9898,1602
+ 07 74 0     1145         BUN 4 9898,CRD
+ 07 75 0     1146   *A    STP   SCANX
+ 07 76 0     1147         BUN   SCAN
+ 07 77 0     1148         CAD   SYMBL
+ 07 78 0     1149         CFA   $FINIS$,00
+ 07 79 0     1150         BCU   *+5
+ 07 80 0     1151         CAD   SYMBL+1
+ 07 81 0     1152         CFA   $H$,00
+ 07 82 0     1153   EXTEX BCE   *
+ 07 83 0     1154         CAD   SYMBL
+ 07 84 0     1155         BSA   B+,2            IS THIS A PREFIX
+ 07 85 0     1156         SRT   10
+ 07 86 0     1157         DIV   +99
+ 07 87 0     1158         STR   LL0
+ 07 88 0     1159         CAD   LEVEL
+ 07 89 0     1160         STP   SRCHX           SEARCH FOR SYMBOL
+ 07 90 0     1161         BUN   SRCH
+ 07 91 0     1162         BUN   Y+              COULD NOT FIND IT
+ 07 92 0     1163         CAD   L
+ 07 93 0     1164         SLA   2
+007 94 0     1165         STA   EQTAB-1,44      PUT LOCATION OF OPERAND OF THE EXTERNAL
+ 07 95 0     1166         CAD   LOCN            PROGRAM INTO EQTAB-1
+ 07 96 0     1167         SRA   4
+ 07 97 0     1168         STA   EQTAB-1,04      ALSO THE ASSIGNMENT
+ 07 98 0     1169         STA   MSK,04
+ 07 99 0     1170         SLA   6
+ 08 00 0     1171         STA   MSK,44          SET UP A MASK FOR RELOCATION
+ 08 01 0     1172         DLB   L,64,0          OF INSTRUCTIONS
+ 08 02 0     1173         CAD - 0
+ 08 03 0     1174         BFA   C+,11,9         EXTERNAL STATEMENT
+ 08 04 0     1175         BFA   E+,11,8         EXTERNAL PROCEDURE
+ 08 05 0     1176   *Y    STP   WEMX
+ 08 06 0     1177         BUN   WEM
+ 08 07 0     1178         CNST  31047141500     EXTERNAL PROGRAM NOT DECLARED
+ 08 08 0     1179         BUN   A+
+ 08 09 0     1180   *B    SRT   10
+ 08 10 0     1181         DIV   +99
+ 08 11 0     1182         STR   LL0
+ 08 12 0     1183         CLA
+008 13 0     1184         STP   SRCHX           SEARCH FOR OPERAND OF PREFIX PROCEDURE
+ 08 14 0     1185         BUN   SRCH
+ 08 15 0     1186         BUN   F+
+ 08 16 0     1187         DLB   L,64,0
+ 08 17 0     1188         CAD - 0
+ 08 18 0     1189         BFA   B+,11,8         DID WE GET A PROCEDURE
+ 08 19 0     1190   *F    STP   WEMX
+ 08 20 0     1191         BUN   WEM
+ 08 21 0     1192         CNST  31712141500     PREFIX PROCEDURE NOT DECLARED
+ 08 22 0     1193         BUN   A-
+ 08 23 0     1194   *B    STA   LEVEL,02
+ 08 24 0     1195         BUN   A-
+
+
+ 08 27 0     1196   *C    DLB   L,64,0
+ 08 28 0     1197         CAD - 0
+ 08 29 0     1198         STA   HOLD
+ 08 30 0     1199         SLA   2
+ 08 31 0     1200         STA   EQTAB-1,44
+ 08 32 0     1201         STP   REMX
+ 08 33 0     1202         BUN   REM
+ 08 34 0     1203         HLT
+ 08 35 0     1204         SLA   4
+ 08 36 0     1205         STA   HOLD,22
+ 08 37 0     1206         CAD   HOLD
+ 08 38 0     1207         BFA   S+,22,00
+ 08 39 0     1208         EXT   +1111110000
+008 40 0     1209         SLA   4               IT WAS - SO ENTER INTO THE FIXUP STACK
+ 08 41 0     1210         ADD   LOCN
+ 08 42 0     1211         SLA   6               LL XXXX YYYY
+ 08 43 0     1212         STA   HOLD
+008 44 0     1213         LDB   AVALE           WHERE      LL= SEGMENT NUMBER
+008 45 0     1214         STP   INSX                 XXXX= LOCATION TO BE FIXED UP
+ 08 46 0     1215         BUN   INS                  YYYY= FIX-UP
+ 08 47 0     1216         CAD   HOLD
+ 08 48 0     1217         STA - 0
+ 08 49 0     1218         STB   HOLD
+ 08 50 0     1219         CAD   HOLD
+ 08 51 0     1220         SLA   4
+ 08 52 0     1221         DLB   FIXUP,44,0
+ 08 53 0     1222         STP   INSX
+ 08 54 0     1223         BUN   INS
+ 08 55 0     1224         BUN   *+4
+ 08 56 0     1225   *S    LSA   0
+ 08 57 0     1226         STP   FXUPX           GENERATE FIX-UP FOR EXTERNAL
+ 08 58 0     1227         BUN   FXUP                     STATEMENT
+ 08 59 0     1228         DLB   L,64,00
+
+
+ 08 62 0     1229   *E    STP   REMX            REMOVE NEXT FIX-UP FROM LIST OF
+008 63 0     1230         BUN   REM             ALL CALLS OF THE DECLARED PROCEDURE
+ 08 64 0     1231         BUN   D+                     LIST IS EXHAUSTED
+ 08 65 0     1232         BSA   T+,8
+008 66 0     1233         BFA   S+,22,0         IS FIX-UP FOR CALL WITHIN A SEGMENT
+ 08 67 0     1234         EXT   +1111110000
+ 08 68 0     1235         SLA   4               IT WAS -- SO ENTER
+ 08 69 0     1236         ADD   LOCN            LL XXXX YYYY
+ 08 70 0     1237         SLA   6               WHERE     LL= SEGMENT NUMBER
+008 71 0     1238         STA   HOLD                  XXXX= LOCATIN TO BE FIXED UP
+ 08 72 0     1239         LDB   AVALE                 YYYY= FIX-UP
+ 08 73 0     1240         STP   INSX
+ 08 74 0     1241         BUN   INS
+ 08 75 0     1242         CAD   HOLD
+ 08 76 0     1243         STA - 0
+ 08 77 0     1244         STB   HOLD
+ 08 78 0     1245         CAD   HOLD
+ 08 79 0     1246         SLA   4
+ 08 80 0     1247         DLB   FIXUP,44,0
+ 08 81 0     1248         STP   INSX
+ 08 82 0     1249         BUN   INS
+ 08 83 0     1250         DLB   L,64,0
+ 08 84 0     1251         BUN   E-
+ 08 85 0     1252   *S    STP   FXUPX           GENERATE FIX-UP FOR EXTERNAL
+ 08 86 0     1253         BUN   FXUP                     PROCEDURE
+ 08 87 0     1254         DLB   L,64,0
+ 08 88 0     1255         BUN   E-
+ 08 89 0     1256   *T    STA   HOLD
+ 08 90 0     1257         DLB   L,74,0
+ 08 91 0     1258         STP   REMX
+ 08 92 0     1259         BUN   REM
+ 08 93 0     1260         HLT
+ 08 94 0     1261         EXT   +11110000
+ 08 95 0     1262         LDR   LOCN
+ 08 96 0     1263         ADL   LOCN
+ 08 97 0     1264         CSA   HOLD
+ 08 98 0     1265         STR   HOLD
+ 08 99 0     1266         STP   FXUPX
+ 09 00 0     1267         BUN   FXUP
+ 09 01 0     1268         DLB   L,64,0
+ 09 02 0     1269         LDR   HOLD
+ 09 03 0     1270         STR   LOCN
+ 09 04 0     1271         BUN   E-
+ 09 05 0     1272   *D    LDB   L,64,0
+ 09 06 0     1273         CAD - 0               SET SIGN TO 8 TO INDICATE
+ 09 07 0     1274         LSA   0             THAT EXTERNAL PROGRAM HAS BEEN
+ 09 08 0     1275         STA - 0               GIVEN AN ASSIGNMENT
+009 09 0     1276         CAD   LOCN            GIVE ASSIGNMENT TO THE EXTERNAL PROGRAM
+ 09 10 0     1277         STA - 0,64
+ 09 11 0     1278   *A    STP   READX           READ ANOTHER CARD
+ 09 12 0     1279         BUN   READ
+ 09 13 0     1280         CLL   LEVEL
+ 09 14 0     1281         CAD   CRD
+ 09 15 0     1282         BSA   NUMB,0          IS THIS AN EQUIVALENCE CARD
+ 09 16 0     1283         BCS   *+2,3
+ 09 17 0     1284         BCS   *+3,4
+ 09 18 0     1285         STP 4 9898,1602
+ 09 19 0     1286         BUN 4 9898,CRD
+ 09 20 0     1287   *B    STP   SCANX           IF YES SCAN FOR THE IDENTIFIER
+ 09 21 0     1288         BUN   SACN
+ 09 22 0     1289         CAD   SYMBL
+ 09 23 0     1290         BSA   Z+,2            IS THE IDENTIFIER A PREFIX
+ 09 24 0     1291         SRT   10              NO IT IS NOT
+ 09 25 0     1292         DIV   +99
+ 09 26 0     1293         STR   LL0
+ 09 27 0     1294         CAD   LEVEL
+ 09 28 0     1295         STP   SRCHX
+ 09 29 0     1296         BUN   SRCHP           SEARCH FOR OPERAND
+ 09 30 0     1297         BUN   Y+              IT WAS NOT DEFINED
+ 09 31 0     1298         STP   LIBRX
+ 09 32 0     1299         DLB   L,64,0
+ 09 33 0     1300         CAD - 0
+ 09 34 0     1301         BSA   *+2,8
+ 09 35 0     1302         LSA   0
+ 09 36 0     1303         SRA   4
+ 09 37 0     1304         STA   TEMP            GET THE ASSIGNMENT OF THE
+ 09 38 0     1305         STB   TEMP,66         REFERENCED IDENTIFIER
+ 09 39 0     1306         IFL   TEMP,62,12
+ 09 40 0     1307         BFA   LIBRF,51,3      IF IT WAS AN UNASSIGNED LIBRARY
+                                                PROCEDURE- GIVE IT AN ASSIGNMENT
+ 09 42 0     1308         CAD   L
+ 09 43 0     1309         SLA   2
+009 44 0     1310         STA   TEMP,44         ALSO SAVE THE SREF OF THE IDENTIFIER
+ 09 45 0     1311         STP   SCANX
+ 09 46 0     1312         BUN   SCAN
+ 09 47 0     1313         LDB   SYMBL           GET EQUIVALENCE NUMBER
+ 09 48 0     1314         DBB   Y+,100          IS IT GREATED THEN 100
+ 09 49 0     1315         CAD   TEMP
+ 09 50 0     1316         STA - EQTAB+100       PUT ENTRY INTO EQUIVALENCE TABLE
+ 09 51 0     1317         BUN   A-
+ 09 52 0     1318   *Y    STP   WEMX
+ 09 53 0     1319         BUN   WEM
+ 09 54 0     1320         CNST  31921090000     IMPROPER EQUIVALENCE CARD
+ 09 55 0     1321         BUN   A-
+ 09 56 0     1322   *Z    SRT   10
+ 09 57 0     1323         DIV   +99
+ 09 58 0     1324         STR   LL0
+ 09 59 0     1325         CLA
+ 09 60 0     1326         STP   SRCHX           GET OPERAND OF PREFIX PROCEDURE
+ 09 61 0     1327         BUN   SRCH
+ 09 62 0     1328         BUN   Y-              IT WAS NOT THERE
+ 09 63 0     1329         DLB   L,64,0
+ 09 64 0     1330         CAD - 0
+ 09 65 0     1331         STA   LEVEL,02        SET UP LEVEL FOR SEARCH OF PROCEDURE
+009 66 0     1332         BFA   B-,11,8
+ 09 67 0     1333         BUN   Y-
+
+
+ 09 70 0     1334   NUMB  DFL   CRD+8,01,1      DECREASE WORD COUNT
+ 09 71 0     1335   *A    LDB   CRD
+ 09 72 0     1336         CAD - CRD+10
+ 09 73 0     1337         STA   INSTR           GET INSTRUCTION
+ 09 74 0     1338         STP   LBSBX
+ 09 75 0     1339         BUN   LBSB            GO DECODE INSTRUCTION
+009 76 0     1340         BUN   NAME            ALL THROUGH WITH THIS EXTERNAL PROGRAM
+ 09 77 0     1341         IFL   CRD,04,1
+ 09 78 0     1342         DFL   CRD+8,01,1      DECREASE WORD COUNT
+ 09 79 0     1343         BRP   A-
+ 09 80 0     1344         STP   READX           READ ANOTHER CARD
+ 09 81 0     1345         BUN   READ
+ 09 82 0     1346         CAD   CRD
+ 09 83 0     1347         BSA   NUMB,0          IS THIS A INSTRUCTION CARD
+ 09 84 0     1348         STP   WEMX            IF NOT PRINT ERROR MESSAGE
+ 09 85 0     1349         BUN   WEM
+ 09 86 0     1350         CNST  30624260000     MISSING FINISH PSEUDO-OP
+
+
+ 09 89 0     1351   READ  CLL   CRD
+ 09 90 0     1352         LDB   +CRD+1
+ 09 91 0     1353         RTF   CRD,15          ZERO INPUT AREA
+ 09 92 0     1354         CLL   SCNCT           SET SCAN TO COLUMN 2
+ 09 93 0     1355         IFL   SCNCT,04,2      AND
+ 09 94 0     1356         STP 4 9999
+ 09 95 0     1357         BUN 4 9999,CRD
+ 09 96 0     1358   READX BUN   *
+
+
+ 09 99 0     1359   SCAN  CLL   K
+010 00 0     1360         CLL   SYMBL           ZERO SYMBOL STORAGE AREA
+010 01 0     1361         LDB   +SYMBL+1
+010 02 0     1362         RTF   SYMBL,9
+010 03 0     1363   *A    DLB   SCNCT,94,0
+010 04 0     1364         CAD - CRD
+010 05 0     1365         LDB   SCNCT
+010 06 0     1366         SLA - 0               GET A CHARACTER
+010 07 0     1367         SRA   8               ADVANCE COLUMN COUNT
+010 08 0     1368         IFL   SCNCT,05,2
+010 09 0     1369         STA   CHAR
+010 10 0     1370         BFA   B+,02,00        IGNORE LEADING BLANKS
+010 11 0     1371         BFFA  C+,02,24        INDICATES THAT A PREFIX FOLLOWS
+010 12 0     1372         BFA   N+,91,8         FIRST CHARACTER NUMERIC, DO NUMBER SCAN
+010 13 0     1373         BFA   R+,91,4         FIRST CHARACTER ALFA, BUILD IDENTIFIER
+010 14 0     1374         BFA   R+,91,5
+010 15 0     1375         BFA   R+,91,6
+010 16 0     1376         BUN   B+              IGNORE ALL OTHER CHARACTERS
+010 17 0     1377   *C    IFL   SYMBL,12,20
+010 18 0     1378   *B    IBB   A-,9840
+010 19 0     1379   *D    STP   WEMX
+010 20 0     1380         BUN   WEM
+010 21 0     1381         CNST  30628295809     MISSING FIELD ON SYMBOLIC CARD
+010 22 0     1382         BUN   SCNXX
+
+
+010 25 0     1383   *R    LBC   K               ENTER CHARACTER
+010 26 0     1384         SLA - 8               INTO SYMBOL STORAGE AREA
+010 27 0     1385         DLB   K,94,0
+010 28 0     1386         DBB   *+4,10          TRUNCATE IDENTIFIER TO 50 CHARACTERS
+010 29 0     1387         ADD - SYMBL+10
+010 30 0     1388         STA - SYMBL+10,00
+010 31 0     1389         IFL   K,05,2
+010 32 0     1390         DLB   SCNCT,94,0
+010 33 0     1391         CAD - CRD
+010 34 0     1392         LDB   SCNCT
+010 35 0     1393         SLA - 0
+010 36 0     1394         SRA   8               GET NEXT CHARACTER
+010 37 0     1395         STA   CHAR
+010 38 0     1396         IFL   SCNCT,05,2
+010 39 0     1397         DBB   D-,162          DID WE FINISH THE CAR(IF SO-ERROR)
+010 40 0     1398         CFA   +40,02          IS THE NEW CHARACTER
+010 41 0     1399         BCH   R-              AN ALFANUMERIC
+010 42 0     1400         BFA   R-,02,14
+010 43 0     1401         CAD   SYMBL
+010 44 0     1402         BSA   SCNXX,0         TERMINATE IF OTHER CHARACTER IS FOUND
+010 45 0     1403         CAD   CHAR            AND WE ARE NOT SCANING A PREFIX
+010 46 0     1404   *E    BFA   SCNXX,02,04     TERMINATE A PREFIX SOON AS WE GET A )
+010 47 0     1405         DLB   SCNCT,94,0
+010 48 0     1406         CAD - CRD
+010 49 0     1407         LDB   SCNCT
+010 50 0     1408         SLA - 0
+010 51 0     1409         SRA   8
+010 52 0     1410         IFL   SCNCT,05,02     CONTINUE LOOKING FOR A )
+010 53 0     1411         IBB   E-,9838
+010 54 0     1412         BUN   D-              IF WE DO NOT FIND IT  ERROR
+
+
+010 57 0     1413   *N    SRT   1
+010 58 0     1414         CAD   SYMBL
+010 59 0     1415         SLT   1
+010 60 0     1416         STA   SYMBL           NUMBER BUILDER
+010 61 0     1417         DLB   SCNCT,94,0
+010 62 0     1418         CAD - CRD
+010 63 0     1419         LDB   SCNCT
+010 64 0     1420         IFL   SCNCT,04,2
+010 65 0     1421         SLA - 0
+010 66 0     1422         SRA   8
+010 67 0     1423         BFA   N-,91,8
+010 68 0     1424         CAD   NTAG            SET LENGTH COUNT TO 10
+010 69 0     1425         STA   K               AND MARK AS A NUMERIC LABEL
+010 70 0     1426   SCNXX CAD   K
+010 71 0     1427         SLA   8
+010 72 0     1428         STA   D2D3            SET UP LENGTH
+010 73 0     1429   SCANX BUN   *
+010 74 0     1430   NTAG  CNST  20000000010
+
+
+010 77 0     1431   SRCHP BFA   A+,02,00        IF AN EQUIVALENCE CARD ENTRY IS
+010 78 0     1432         BUN   SRCH            AT LEVEL ZERO AND HAS LENGTH
+010 79 0     1433   *A    LDR   K               LESS THAN 10 -- IT MAY BE
+010 80 0     1434         CFR   +10,03          IN THE LIST OF SPECIAL LIBRARY
+010 81 0     1435         BCH   SRCH            SUBROUTINES
+010 82 0     1436         LDB   I
+010 83 0     1437         CAD   SYMBL
+010 84 0     1438   *C    CFA - EXLBT,00
+010 85 0     1439         BCE   B+
+010 86 0     1440         DBB   C-,2
+010 87 0     1441   I     CLA   24
+010 88 0     1442         BUN   SRCH            IT IS NOT SO DO NORMAL SEARCH
+010 89 0     1443   *B    CAD - EXLBT+1         I FOUND IT
+010 90 0     1444         STA   L,64            SET UP L TO POINT TO THE OPERAND
+010 91 0     1445         LDB   SRCHX
+010 92 0     1446         BUN - 1               INCREMENTED EXIT
+
+                                PROCESSING SUBROUTINE FOR INSTRUCTINS
+                                IN THE LIBRARY AND EXTERNAL PROGRAMS
+
+010 97 0     1447   *A    F4247 0,0,0
+010 98 0     1448   LBSB  NOP   *               NOP-BUN SWITCH (SEE WHY BELOW)
+010 99 0     1449         CFA   A-
+011 00 0     1450         BCL   Z+              INSTRUCTION IS ABSOLUTE
+011 01 0     1451         BFA   Y+,62,90        PARTIAL FIELD SCAN INSTRUCTION
+011 02 0     1452         BFA   Y+,62,91        PARTIAL FIELD SEARCH INSTRUCTION
+011 03 0     1453         BSA   A+,8            ADDRESS PROGRAM RELATIVE
+011 04 0     1454         BSA   A+,9            ADDRESS PROGRAM RELATIVE - B MOD
+011 05 0     1455         BSA   B+,7            CONTROL FIELD PROGRAM RELATIVE
+011 06 0     1456         BSA   C+,6            ADDRESS IDENTIFIER RELATIVE
+011 07 0     1457         BSA   D+,5            ADDRESS IDENTIFIER RELATIVE - B MOD
+011 08 0     1458   LBSBX BFA   *,62,99         EXIT IF FINISH PSEUDO-OP IS FOUND
+011 09 0     1459         BFA   E+,62,30        RETURN FOR AN EXTERNAL STATEMENT
+011 10 0     1460         BFA   F+,62,00        ADVANCE LOCATION COUNTER
+011 11 0     1461         BFA   G+,62,12        EQUIVALENCE DEFINITION FOR LIBRARY
+011 12 0     1462         BFA   X2+,62,01       NEXT INSTRUCTION IS A 11 DIGIT CONSTANT
+011 13 0     1463         BFA   X1+,62,02       MARKS NEXT INSTRUCTION AS I-O COMMAND
+011 14 0     1464         BFA   X3+,62,03
+011 15 0     1465         BFA   X4+,62,04     RELOCATE CONTROL FIELD OF NEXT INSTR
+011 16 0     1466         STP   WEMX
+011 17 0     1467         BUN   WEM
+011 18 0     1468         CNST  31926000000     IMPROPER PSEUDO-OP
+011 19 0     1469         BUN   X+
+
+
+011 22 0     1470   BIGCN DFL   LBSB,62,29
+011 23 0     1471         BUN   Z+
+
+
+011 26 0     1472   I1    CNST  41000600000     CARD READER CONSTANT
+011 27 0     1473   O1    CNST  41000610000     CARD PUNCH CONSTANT
+011 28 0     1474   O2    CNST  42000610000     PRINTER CONSTANT
+011 29 0     1475   CHNG  BFA   I+,62,60
+011 30 0     1476         BFA   I+,62,62
+011 31 0     1477         BFA   I+,62,64
+011 32 0     1478         LDR   O1
+011 33 0     1479         BFA   *+4,11,1
+011 34 0     1480         LDR   O2
+011 35 0     1481         BFA   *+2,11,2
+011 36 0     1482         BUN   IOERR
+011 37 0     1483   *S    BFA   *+4,62,61
+011 38 0     1484         BFA   S+,62,63
+011 39 0     1485         BFA   S+,62,65
+011 40 0     1486         BUN   IOERR
+011 41 0     1487   *S    STR   INSTR,11
+011 42 0     1488         CAD   INSTR
+011 43 0     1489         DFL   LBSB,62,29
+011 44 0     1490         BUN   LBSB
+011 45 0     1491   *I    LDR   I1
+011 46 0     1492         BFA   S-,11,1
+011 47 0     1493   IOERR STP   WEMX
+011 48 0     1494         BUN   WEM
+011 49 0     1495         CNST  31960380000     IMPROPER CARDATRON INSTRUCTION
+011 50 0     1496         LDR   INSTR
+011 51 0     1497         BUN   S-
+
+
+011 54 0     1500   *A    DFL   INSTR,12,80     ADJUST SIGN
+011 55 0     1501   *L    CAA   MSK
+011 56 0     1502         ADA   INSTR           RELOCATE ADDRESS FIELD
+011 57 0     1503         BOF   *+1
+011 58 0     1504         STA   INSTR,04
+011 59 0     1505         BUN   Z+
+
+011 61 0     1504   *B    DFL   INSTR,12,70     ADJUST SIGN
+011 62 0     1505         SUA   MSK             RELOCATE CONTROL FIELD
+011 63 0     1506         STA   INSTR,44
+011 64 0     1507         BOF   *+1
+011 65 0     1508         BUN   Z+
+
+011 67 0     1509   *H    HLT   0
+011 68 0     1510   *C    DFL   INSTR,12,20     ADJUST SIGN
+011 69 0     1511   *D    DFL   INSTR,12,40
+011 70 0     1512   *K    STA   H-,82
+011 71 0     1513         DLB   H-,84,0         GET EQUIVALENCE TABLE ENTRY
+011 72 0     1514         CAD - EQTAB
+011 73 0     1515         BZA   L+              IMPROPER ENTRY
+011 74 0     1516         BSA   J+,8         SIGN OF 9 MEANS FORWARD REFERENCE TO
+011 75 0     1517         ADA   INSTR           AN EXTERNAL PROCEDURE
+011 76 0     1518   *N    SUB   H-              RELOCATE ADDRESS
+011 77 0     1519         STA   INSTR,04        FIELD RELATIVE TO
+011 78 0     1520         DLB - EQTAB,44,0      THE EQUIVALENCE TABLE ENTRY
+011 79 0     1521         STP   EXPLX
+011 80 0     1522         BUN   EXPL
+011 81 0     1523         BUN   Z+
+
+011 83 0     1524   *J    DLB - EQTAB,44,0      INSERT 9 KK XXXX 0000  KK=INCREMENT
+011 84 0     1525         STP   EXPLX                       XXXX= LOCATION FIXED UP
+011 85 0     1526         BUN   EXPL
+011 86 0     1527         CAD - 0
+011 87 0     1528         BFA   *+2,11,8
+011 88 0     1529         LDB - 0
+011 89 0     1530         STB   H-
+011 90 0     1531         CAA   INSTR
+011 91 0     1532         EXT   +11
+011 92 0     1533         ADA   ADDIT
+011 93 0     1534         CLL   ADDIT
+011 94 0     1535         SLA   4
+011 95 0     1536         STP   INSX
+011 96 0     1537         BUN   INS
+011 97 0     1538         CAA   LOCN
+011 98 0     1539         LSA   8
+011 99 0     1540         LDB   H-
+012 00 0     1541         CLL   H-
+012 01 0     1542         STP   INSX
+012 02 0     1543         BUN   INS
+012 03 0     1544         CAD   INSTR
+012 04 0     1545         CLL   INSTR
+012 05 0     1546         STA   INSTR,67
+012 06 0     1547         BUN   Z+
+012 07 0
+012 08 0     1548   *Y    DFL   INSTR,62,40
+012 09 0     1549         BSA   Z+,4            SPECIAL CONVENTIONS FOR PARTIAL FIELD
+012 10 0     1550         BSA   Z+,5            SCAN AND SCEARCH(90,91 SPECIAL OPS)
+012 11 0     1551         DFL   INSTR,12,20     S=4,5    ADDRESS ABSOLUTE
+012 12 0     1552         BSA   K-,6            S=6,7    ADDRESS RELATIVE TO IDENTIFIER
+012 13 0     1553         BSA   K-,7            S-8,9    ADDRESS RELATIVE TO PROGRAM
+012 14 0     1554         DFL   INSTR,12,20
+012 15 0     1555         BUN   L-
+
+012 17 0     1556   *F2   BUN   BIGCN
+012 18 0     1557   *X2   LDR   F2-             SET UP FOR AN 11 DIGIT
+012 19 0     1558         STR   LBSB            WHICH FOLLOWS
+012 20 0     1559         BUN   X+
+
+012 22 0     1560   *F1   BUN   CHNG
+012 23 0     1561   *X1   LDR   F1-             SET UP FOR THE CARDATRON
+012 24 0     1562         STR   LBSB            INSTRUCTION WHICH FOLLOWS
+012 25 0     1563         BUN   X+
+
+012 27 0     1564   *X3   LDR   INSTR
+012 28 0     1565         STR   ADDIT,04
+012 29 0     1566         BUN   X+
+012 30 0     1567   *X4   LDR   MSK
+012 31 0     1568         STR   MADIT,44
+012 32 0     1569         BUN   X+
+
+012 34 0     1570   *Z    CAA   INSTR
+012 35 0     1571         ADA   ADDIT
+012 36 0     1572         CLL   ADDIT
+012 37 0     1573         STA   INSTR,04
+012 38 0     1574         CAA   INSTR
+012 39 0     1575         ADA   MADIT
+012 40 0     1576         STA   INSTR,44
+012 41 0     1577         CLL   MADIT
+012 42 0     1578         STP   WRITX         OUTPUT PROCESSED INSTRUCTOIN
+012 43 0     1579         BUN   WRIT2
+012 44 0     1580   *X    LDB   LBSBX           INCREMENTED EXIT
+012 45 0     1581         BUN - 1               INDICATES NO FINISH PSEUDO-OP WAS HERE
+
+012 47 0     1582   *E    DLB   EQTAB-1,44,0    RETURN PSEUDO-OP FOR EXTERNAL STATEMENT
+012 48 0     1583         DBB   *+1,9999
+012 49 0     1584         STB   INSTR,04
+012 50 0     1585         BUN   Z-
+
+012 52 0     1586   *F    CAA   INSTR
+012 53 0     1587         SLA   4
+012 54 0     1588         ADA   LOCN
+012 55 0     1589         STA   LOCN,64
+012 56 0     1590         BUN   X-              LOCN=LOCN+NNNN
+
+012 58 0     1591   *G    DLB   INSTR,44,0      EQUIVALENCE DEFINITION FOR LIBRARY
+012 59 0     1592         LDR - 0               GET OPERAND FOR EQUIVALENCE DEFINITION
+012 60 0     1593         LDB   INSTR
+012 61 0     1594         STA - EQTAB,66
+012 62 0     1595         SRT   4               ENTER THE OPERAND INTO EQUIVALENCE
+012 63 0     1596         STR - EQTAB,04        TABLE ALONG WITH ITS ASSIGNMENT
+012 64 0     1597         BUN   X-
+012 65 0     1598   *L    STP   WEMX
+012 66 0     1599         BUN   WEM
+012 67 0     1600   CNST9 CNST  33221000000     IMPROPER EQUIVALENCE  LIBRARY INCORRECT
+012 68 0     1601         BUN   N-
+
+
+012 71 0     1602   EXPL  STB   HOLD
+012 72 0     1603         CAD   HOLD
+012 73 0     1604         SLA   4
+012 74 0     1605         LDB   +23
+012 75 0     1606   *A    CFA - EXLBT,64        OF THE THING REFERENCED
+012 76 0     1607         BCE   A+              BY USE OF AN EQUIVALENCE
+012 77 0     1608         DBB   A-,2
+012 78 0     1609         LDB   HOLD
+012 79 0     1610         LDR - 1
+012 80 0     1611         BFR   *_2,11,0
+012 81 0     1612         STR   EXPLN
+012 82 0     1613   EXPLX BUN   *
+012 83 0     1614   *A    LDR - EXLBT-1
+012 84 0     1615         STR   EXPLN
+012 85 0     1616         LDB   HOLD
+012 86 0     1617         BUN   EXPLX
