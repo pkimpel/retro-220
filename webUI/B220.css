@@ -1,0 +1,75 @@
+/***********************************************************************
+* retro-220/webUI B220.css
+************************************************************************
+* Copyright (c) 2017, Paul Kimpel.
+* Licensed under the MIT License, see
+*       http://www.opensource.org/licenses/mit-license.php
+************************************************************************
+* Burroughs 220 Emulator home page style sheet.
+************************************************************************
+* 2017-01-01  P.Kimpel
+*   Original version, from retro-205 D205.css.
+***********************************************************************/
+
+BODY {
+    font-family:        DejaVuSansWeb, sans-serif;
+    font-size:          10pt;
+    background-color:   white;
+    color:              black;
+    height:             100%;
+    margin:             4px;
+    padding:            4px}
+
+H1 {
+    margin-top:         1em;
+    margin-bottom:      0.5em;
+    font-size:          14pt;
+    font-weight:        bold}
+
+#VersionDiv {
+    position:           absolute;
+    top:                4px;
+    right:              4px;
+    text-align:         right}
+#StatusMsg {
+    text-align:         center;
+    font-size:          85%;
+    color:              blue}
+#InfoTable {
+    margin-top:         0;
+    width:              100%}
+#CenteredBody {
+    position:           absolute;
+    text-align:         center;
+    top:                15%;
+    bottom:             25%;
+    left:               0;
+    right:              0}
+#B220Image {
+    box-shadow:         12px 12px 12px gray;
+    height:             80%}
+#StartUpBtn,
+#ConfigureBtn {
+    margin-top:         2em;
+    background-color:   #246;
+    color:              white;
+    font-family:        DejaVuSansWeb, sans-serif;
+    font-weight:        normal;
+    font-size:          12pt;
+    width:              auto;
+    height:             auto;
+    padding:            0.5em;
+    border-radius:      16px;
+    border:             2px solid #999}
+#StartUpBtn[disabled],
+#ConfigureBtn[disabled] {
+    background-color:   #468;
+    color:              #999;
+    border-color:       #666}
+#PageFooter {
+    margin-top:         2em;
+    margin-left:        calc(50% - 3in);
+    margin-right:       calc(50% - 3in);
+    font-weight:        bold;
+    color:              red;
+    text-align:         center}
