@@ -153,7 +153,7 @@
  02 48 0     0099         LOCN  100
  02 49 0     0100         HLT   0
  02 50 0     0101   FMT1  FBGR  INPUT,16(P5A),P10Z
-002 51 0     0130   FMT3  FBGR  PRINT,39B,T5A,T1A1B2A4Z,T10N,T8Z1A,XB6Z2A,38B MONITOR
+002 51 0     0130   FMT3  FBGR  PRINT,49B,T5A,T1A1B2A4Z,T10N,T8Z1A,XB6Z2A,48B MONITOR
 002 52 0     0159   FMT4  FBGR  PRINT,32B,11(T5A),33B        ERROR MESSAGE FORMAT BAND
  02 53 0     0188   TAB   DEFN  *
  02 54 0     0188   LOCN  200
@@ -1189,3 +1189,443 @@
 012 84 0     1615         STR   EXPLN
 012 85 0     1616         LDB   HOLD
 012 86 0     1617         BUN   EXPLX
+
+
+                                DICTIONARY OF WORDS FOR ERROR MESSAGES IN THE OVERLAY
+
+012 91 0     1618   DICT  CNST  $EXTRA$         01 EXTRA
+012 92 0     1619         CNST  $LEFT$          02 LEFT
+012 93 0     1620         CNST  35741594555     03 PARENTHESIS
+012 94 0     1621         CNST  36348456249
+012 95 0     1622         CNST  $S$
+012 96 0     1623         CNST  35449626249     06 MISSING
+012 97 0     1624         CNST  $NG$
+012 98 0     1625         CNST  $NAME$          08 NAME
+012 99 0     1626         CNST  $CARD$          09 CARD
+013 00 0     1627         CNST  34567634559     10 EXTERNAL
+013 01 0     1628         CNST  $NAL$
+013 02 0     1629         CNST  35759564345     12 PROCEDURE
+013 03 0     1630         CNST  $DURE$
+013 04 0     1631         CNST  $NOT$           14 NOT
+013 05 0     1632         CNST  34445435341     15 DECLARED
+013 06 0     1633         CNST  $RED$
+013 07 0     1634         CNST  35759454649     17 PREFIX
+013 08 0     1635         CNST  $X$
+013 09 0     1636         CNST  34954575956     19 IMPROPER
+013 10 0     1637         CNST  $PER$
+013 11 0     1638         CNST  34558644965     21 EQUIVALENCE
+013 12 0     1639         CNST  34153455543
+013 13 0     1640         CNST  $E$
+013 14 0     1641         CNST  34649554962     24 FINISH
+013 15 0     1642         CNST  $H$
+013 16 0     1643         CNST  35762456444     26 PSEUDO-OP
+013 17 0     1644         CNST  #O-OP$
+013 18 0     1645         CNST  $FIELD$         28 FIELD
+013 19 0     1646         CNST  $ON$            29 ON
+013 20 0     1647         CNST  34845414445     30 HEADER
+013 21 0     1648         CNST  $R$
+013 22 0     1649         CNST  36455444546     32 UNDEFINED
+013 23 0     1650         CNSE  $INED$
+013 24 0     1651         CNST  $LABEL$         34 LABEL
+013 25 0     1652         CNST  $-$             35 -
+013 26 0     1653         CNST  $NAME$          35 (STORAGE FOR PROGRAMMED MESSAGES)
+013 27 0     1654         CNST  $NAME$          37 (STORAGE FOR PROGRAMMED MESSAGES)
+013 28 0     1655         CNST  34955626359     38 INSTRUCTION
+013 29 0     1656         CNST  36443634956
+013 30 0     1657         CNST  $N$
+013 31 0     1658         CNST  $,$             41 ,
+013 32 0     1659         CNST  $TOTAL$         42 TOTAL
+013 33 0     1660         CNST  $CHECK$         43 CHECK
+013 34 0     1661         CNST  $SUM$           44 SUM
+013 35 0     1662         CNST  34356545749     45 COMPILED
+013 36 0     1663         CNSE  $LED$
+013 37 0     1664         CNST  35759564759     47 PROGRAM
+013 38 0     1665         CNST  $AM$
+013 39 0     1666         CNST  $ENDS$          49 ENDS
+013 40 0     1667         CNST  $AT$            50 AT
+013 41 0     1668         CNST  36541594941     51 VARIABLES
+013 42 0     1669         CNST  $BLES$
+013 43 0     1670         CNST  $BEGIN$         53 BEGIN
+013 44 0     1671         CNST  35349425941     54 LIBRARY
+013 45 0     1672         CNST  $RY$
+013 46 0     1673         CNST  34955435659     56 INCORRECT
+013 47 0     1674         CNST  $RECT$
+013 48 0     1675         CNST  36268544256     58 SYMBOLIC
+013 49 0     1676         CNST  $LIC$
+013 50 0     1677         CNST  34341594441     60 CARDATRON
+013 51 0     1678         CNST  $TRON$
+013 52 0     1679         CNST  34356545749     62 COMPILER
+013 53 0     1680         CNST  $LER$
+013 54 0     1681         CNST  34341574143     64 CAPACITY
+013 55 0     1682         CNST  $ITY$
+013 56 0     1683         CNST  34567434545     66 EXCEEDED
+013 57 0     1684         CNST  $DED$
+013 58 0     1685         CNST  35445545659     68 MEMORY
+013 59 0     1686         CNST  $Y$
+013 60 0     1687         CNST  $FOR$           70 FOR
+013 61 0     1688         CNST  35642514543     71 OBJECT
+013 62 0     1689         CNST  $T$
+
+
+013 65 0     1690   LIBRE CAD - 0             PUT LIBRARY SUBROUTINE INTO TARGET
+013 66 0     1691   LIBRX BFA   LIBRX,11,4    PROGRAM IF IT HASNT BEEN PUT THERE
+013 67 0     1692         SRA   4             ALREADY.
+013 68 0     1693         EXT   +1111
+013 69 0     1694         SUB   VARB
+013 70 0     1695         STA   VARB,04
+013 71 0     1696         SLT   4
+013 72 0     1697         STA - 0,64
+013 73 0     1698         IFL - 0,64,1
+013 74 0     1699         IFL - 0,11,1
+013 75 0     1700         BUN   LIBRF
+
+
+013 78 0     1701   FXUP  LDR   LOCN     COMPILE TO SET A PREV FRW REF TO PRES LOC
+013 79 0     1702         STA   DESCR
+013 80 0     1703         SRT   4
+013 81 0     1704         STR   DESCR,04
+013 82 0     1705         STA   WRTF,04
+013 83 0     1706         BSA   *+2,7
+013 84 0     1707         BUN   *+2
+013 85 0     1708         IFL   DESCR,00,1      IF SIGN IS SEVEN, WE MEAN THE
+013 86 0     1709   FXUPY BCS   *+2,2
+013 87 0     1710         BUN   *+4
+013 88 0     1711         BSA   *+3,8
+013 89 0     1712         STP 4 9898,0208
+013 90 0     1713         BUN 4 9898,WRTF
+013 91 0     1714         LDR   DESCR           PRESENT LOCATION PLUS 1
+013 92 0     1715         LDB   LRTF
+013 93 0     1716         CAD   WRTF
+013 94 0     1717         CFA   PREV,04
+013 95 0     1718         BCH   A+              IF WE CAN FIX UP THE INSTRUCTION WHILE
+013 96 0     1719         CAD - BUF+1           IT SITS IN THE OUTPUT BUFFER, WE WILL
+013 97 0     1720         BFA   A+,04,0         DO IT DIRECTLY
+013 98 0     1721         CFA   WRTF,04
+013 99 0     1722         BBCH  A+
+014 00 0     1723         SUB   WRTF
+014 01 0     1724         SLA   6
+014 02 0     1725         STA   *+1,44
+014 03 0     1726         DBB   *+1,0
+014 04 0     1727         STR - BUF+2,04
+014 05 0     1728         BUN   FXUPX
+014 06 0     1729   *A    DFL   CNTRF,00,1      OTHERWISE WE PUT OUT A FIX UP
+014 07 0     1730         LDB   CNTRF           CODE FOR THE LOADING ROUTINE
+014 08 0     1731         STR - BUF+3
+014 09 0     1732         BUN   WRIT6
+014 10 0     1733   FXUPX BUN   FXUPX
+
+
+
+014 14 0     1734   WRIT2 CAD   LOCN            WRITE SUBROUTINE - PUTS INSTRUCTION
+014 15 0     1735         SRA   4                INTO OUTPUT BUFFER.
+014 16 0     1736         IFL   LOCK,64,1       WRIT2 ENTRY - PUT INSTRUCTION OUT FOR
+014 17 0     1737         BOF   *+1
+014 18 0     1738         LDR   INSTR            LOCATION LOCN AND INCREMENT LOCN
+014 19 0     1739   WRIT3 STA   WRTF,04         WRIT3 ENTRY - LOCATION IS IN RA(04)
+014 20 0     1740         SUB   PREV            AND INSTRUCTION IS IN REGISTER R
+014 21 0     1741         LDB   CNTRI
+014 22 0     1742         BFA   E+,04,0
+014 23 0     1743         SUB   XONE+1          DOES THIS LOCATION EQUAL THE PREVIOUS ONE
+014 24 0     1744         BFA   F+,04,0         (IF SO WE WILL ERASE THE PREVIOUS ONE)
+014 25 0     1745         STB   LRTF,04         OR IS IT ONE HIGHER
+014 26 0     1746         CAD   WRTF            IF NOT,WE WILL PUT OUT A NEW RECORD TRANS
+014 27 0     1747         STA - BUF+1
+014 28 0     1748         IFL   CNTRI,00,1
+014 29 0     1749   *F    LDB   LRTF
+014 30 0     1750         IFL - BUF+1,32,1      THE 32-FIELD CONTAINS THE NUMBER OF
+014 31 0     1751   WRIT7 IFL   CNTRI,00,1      SEQUENTIAL WORDS TO LOAD
+014 32 0     1752         LDB   CNTRI
+014 33 0     1753   *E    STR - BUF
+014 34 0     1754         STR   DESCR
+014 35 0     1755   WRT10 BCS   *+2,2
+014 36 0     1756         BUN   *+3
+014 37 0     1757         STP 4 9898,0300
+014 38 0     1758         BUN 4 9898,WRTF
+014 39 0     1759         CLL   EXPLN
+014 40 0     1760         LDR   WRTF
+014 41 0     1761         STR   PREV,04
+014 42 0     1762   WRIT6 LDR   CNTRI           IS THE BUFFER FULL NOW
+014 43 0     1763         CFR   CNTRF
+014 44 0     1764         BCL   WRITX           IF NOT,EXIT
+014 45 0     1765   WRIT5 LBC   NN              IF SO, CALCULATE CHECK SUM
+014 46 0     1766   *C    CLA   BUF+2
+014 47 0     1767         SUB - BUF+99
+014 48 0     1768         IBB   *-1,1
+014 49 0     1769         BOF   *+1
+014 50 0     1770         STA   BUF+99
+014 51 0     1771         MIB 4 *+2,OT
+014 52 0     1772         BUN   *-1
+014 53 0     1773         MLS 4 OT
+014 54 0     1774         MIB 4 *+2,OT
+014 55 0     1775         BUN   *-1
+014 56 0     1776         MOW 4 BUF,OT,1        WRITE ONE BLOCK
+014 57 0     1777         IFL   BUF,00,1
+014 58 0     1778         CLL   CNTRI
+014 59 0     1779         CLL   CNTRF           INITIALIZE FOR NEXT BLOCK
+014 60 0     1780         IFL   CNTRF,00,96
+014 61 0     1781   WRIT4 CLL   BUF+1
+014 62 0     1782         LDB   C-
+014 63 0     1783         RTF   BUF+1,98
+014 64 0     1784         BUN   FXUPX
+014 65 0     1785   WRITX DEFN  FXUPX
+
+
+014 68 0     1785   SRCH  ADD   LL0
+014 69 0     1786         EXT   +11             LOOK FOR SYMBOL IN TABLE
+014 70 0     1787         ADD   +SCRTB
+014 71 0     1788         STA   L
+014 72 0     1789         LDB   L
+014 73 0     1790         DBB   C+,1
+014 74 0     1791   *B    LDB   L
+014 75 0     1792         IBB   SRCHX,9999
+014 76 0     1793   *C    CAD - 1
+014 77 0     1794         CFA   D2D3,23         FIRST COMPARE LENGTHS
+014 78 0     1795         STA   L               (AND WHETHER OR NOT A NUMERIC LABEL)
+014 79 0     1796         SRA   4
+014 80 0     1797         BCU   B-
+014 81 0     1798         STA   TEMP
+014 82 0     1799         IFL   TEMP,63,9
+014 83 0     1800         STA   A+,04
+014 84 0     1801         IFL   A+,04,1
+014 85 0     1802         DLB   TEMP,54,1
+014 86 0     1803         BRP   A+
+014 87 0     1804         LDB   +9
+014 88 0     1805   *A    CAD - *               IF LENGTHS AGREE, COMPARE THE SYMBOLS
+014 89 0     1806         CFA - SYMBL,00
+014 90 0     1807         BCU   B-
+014 91 0     1808         DBB   A-,1
+014 92 0     1809         IFL   SRCHX,04,1      INCREMENTED EXIT
+014 93 0     1810         DLB   L,64,0          IF SYMBOL IS FOUND
+014 94 0     1811   SRCHX BUN   *
+
+
+014 97 0     1812   WEM   LDR   +0525005250     WRITE ERROR MESSAGE
+014 98 0     1813         STR   HALT
+014 99 0     1814         CLL   MSG
+015 00 0     1815         IFL   MSG,12,20
+015 01 0     1816         LDB   C+
+015 02 0     1817         RTF   MSG,8           CLEAR MESSAGE BUFFER
+015 03 0     1818         CLL   TEMP
+015 04 0     1819   *G    LDB   WEMX
+015 05 0     1820         CAD - 0
+015 06 0     1821   *E    CLR   0000
+015 07 0     1822         SRT   8
+015 08 0     1823         BFA   A+,00,00
+015 09 0     1824         STA   E-,04
+015 10 0     1825         STR   TEMP3
+015 11 0     1826   *H    IFL   E-,04,1
+015 12 0     1827         LDB   E-
+015 13 0     1828         LDR - DICT-2          GET DICTIONARY ENTRY
+015 14 0     1829   *C    CLA   MSG+1
+015 15 0     1830   LBC   TEMP
+015 16 0     1831         SLT   2               TRANSFER CHARACTERS
+015 17 0     1832         BFA   B+,00,00
+015 18 0     1833         SLA - 8               BUFFER AREA
+015 19 0     1834         DLB   TEMP,94,00
+015 20 0     1835         LSA   0
+015 21 0     1836         ADD - MSG
+015 22 0     1837         STA - MSG,00
+015 23 0     1838         IFL   TEMP,05,02
+015 24 0     1839         BUN   C-
+015 25 0     1840   *B    BSA   H-,3            PUT SPACE BETWEEN WORDS
+015 26 0     1841         IFL   TEMP,05,02
+015 27 0     1842         CAD   TEMP3
+015 28 0     1843         BUN   E-
+015 29 0     1844   *A    IFL   WEMX,04,01
+015 30 0     1845         STP 4 9898,0906
+015 31 0     1846         BUN 4 9898,MSG
+015 32 0     1847   WEMX  BUN   0000            RETURN AND ATTEMPT TO CONTINUE
+015 33 0     1848   MSG   LOCN  *+9
+
+
+
+015 37 0     1857   LBRT  LOCN  *+300           LIBRARY TABLE
+015 38 0     2157   L     CNST  0               LAST OPERAND
+015 39 0     2158   K     CNST  0               RUNNING COUNT OF LENGTH FOR SYMBOL
+015 40 0     2159   D2D3  HLT   0               STORAGE FOR LENGTH OF SYMBOL
+015 41 0     2160   INSTR HLT   0               CURRENT INSTRUCTION
+015 42 0     2161   LL0   HLT   0               STACK TO SEARCH AT LEVEL 0
+015 43 0     2162   SCNCT HLT   0               COLUMN COUNT
+015 44 0     2163   CHAR  HLT   0               CURRENT CHARACTER BEING SCANED
+015 45 0     2164   ZERSS HLT 2 0
+015 46 0     2165         HLT 2 0
+015 47 0     2166         HLT 2 0
+015 48 0     2167         HLT 2 0
+015 49 0     2168         HLT 2 0
+015 50 0     2169         HLT 2 0
+015 51 0     2170         HLT 2 0
+015 52 0     2171         HLT 2 0
+015 53 0     2172         HLT 2 0
+015 54 0     2173   TEMP3 HLT   0               SHORT TERM STORAGE LOCATION
+015 55 0     2174   TEMP  HLT   0               DITTO
+015 56 0     2175   EXLBT CNST  $FIX$           TABLE FOR SPECIAL LIBRARY ROUTINES
+015 57 0     2176         F244  0,SCRTB+106,0
+015 58 0     2177         CNST  $FLOAT$
+015 59 0     2178         F244  0,SCRTB+108,0
+015 60 0     2179         CNST  $FX*FX$
+015 61 0     2180         F244  0,SCRTB+102,0
+015 62 0     2181         CNST  $FX*FL$
+015 63 0     2182         F244  0,SCRTB+103,0
+015 64 0     2183         CNST  $FL*FX$
+015 65 0     2184         F244  0,SCRTB+104,0
+015 66 0     2185         CNST  $FL*FL$
+015 67 0     2186         F244  0,SCRTB+105,0
+015 68 0     2187         CNST  $LABLE$
+015 69 0     2188         F244  0,SCRTB-9,0
+015 70 0     2189         CNST  $MONIT$
+015 71 0     2190         F244  0,SCRTB+110,0
+015 72 0     2191         CNST  $ERROR$
+015 73 0     2192         F244  0,SCRTB+113,0
+015 74 0     2193         CNST  $TRACE$
+015 75 0     2194         F244  0,SCRTB+114,0
+015 76 0     2195         CNST  $RITE$
+015 77 0     2196         F244  0,SCRTB+116,0
+015 78 0     2197         CNST  $REED$
+015 79 0     2198         F244  0,SCRTB+117,0
+015 80 0     2199   FUNS  F424  FUNS,0,0        ALL PURPOSE STACK
+015 81 0     2200         CNST  20000000000
+015 82 0     2201   CRD   LOCN  *+16            INPUT AREA
+015 83 0     2217         HLT 2 0
+015 84 0     2218   EQTAB LOCN  *+100           EQUIVALENCE TABLE
+015 85 0     2318   BUFR  LOCN  *+100           INPUT BUFFER FOR LIBRARY PROCEDURES
+015 86 0     2418   IFERR CNST  $-----ERROR(S) WERE FOUND-----$
+015 87 0     2424         HLT 2 0
+015 88 0     2425         HLT 2 0
+015 89 0     2426         HLT 2 0
+015 90 0     2427   SYMBL CNST  0,0,0,0,0,0,0,0,0,0       SYMBOL STORAGE AREA
+015 91 0     2437   LEVEL LT    0               LEVEL FOR SEARCHING
+
+
+
+015 94 0     2438   INS   STB   A+,04
+015 95 0     2439   AVALE LDR   AVAIL           INSERT RA(67) INTO ASSOCIATIVE MEMORY
+015 96 0     2440         BFR   B+,04,00
+015 97 0     2441   *C    LDR - 0
+015 98 0     2442         LDB   AVAIL           NORMALLY THIS MEANS ON TOP OF THE
+015 99 0     2443         STA - 0,67            STACK NAMED BY THE B REGISTER
+016 00 0     2444         CAD - 0
+016 01 0     2445         STR - 0,04
+016 02 0     2446   *A    STB   *,04
+016 03 0     2447         STA   AVAIL,04
+016 04 0     2448   INSX  BUN   *
+016 05 0     2449   *B    LDR   MAMAX           IF AVAIL STACK IS EMPTY, TRY TO
+016 06 0     2450         CFR   SSC,04          INCREASE THE SIZE OF
+016 07 0     2451         STR   AVAIL,04        ASSOCIATIVE MEMORY
+016 08 0     2452         STR   D+,04
+016 09 0     2453         DFL   MAMAX,00,1
+016 10 0     2454   *D    CLL   *
+016 11 0     2455         BCH   C-
+016 12 0     2456   FULL  STP   WEMX            IF NO ROOM IS LEFT, GIVE UP
+016 13 0     2457         BUN   WEM
+016 14 0     2458         CNST  36264660000     COMPILER CAPACITY EXCEEDED
+016 15 0     2459         F424  6200,00,7777
+016 16 0
+016 17 0
+016 18 0     2460   REM   STB   A+,04           REMOVE INFORMATION FROM
+016 19 0     2461         LDB - 0               ASSOCIATIVE MEMORY LOCATION IN
+016 20 0     2462         CAD - 0               THE STACK NAMED IN RB
+016 21 0     2463   REMX  IBB   *,9999          IF THE STACK IS EMPTY, EXIT
+016 22 0     2464         IBB   *+1,1
+016 23 0     2465         LDR   AVAIL           OTHERWISE MARK LOCATION AVAILABLE
+016 24 0     2466         STB   AVAIL,04        FOR FUTURE USE
+016 25 0     2467         STR - 0,04
+016 26 0     2468   *A    STA   *,04            INCREMENTED EXIT WITH THE REMOVED
+016 27 0     2469         LDB   REMX            QUANTITY IN RA
+016 28 0     2470         BUN - 1
+016 29 0
+016 30 0                        THE SYMBOLIC MEMORY DUMP GENERATOR
+016 31 0
+016 32 0     2471   KOUNT HLT   0               STACK COUNTER
+016 33 0     2472   COUT  HLT   0               PRESENT LEVEL COUNTER
+016 34 0     2473   *T    NOP   SCRTB           LINK TO NEXT ITEM
+016 35 0     2474   MONST LDB   +TBL+1
+016 36 0     2475         RTF   TBL,100         SET UP HEADS FOR 301 STACKS
+016 37 0     2476         RTF   TBL+100,100
+016 38 0     2477         RTF   TBL+200,100
+016 39 0     2478         CAD   SCRTB+113
+016 40 0     2479         SRA   4
+016 41 0     2480         BFA   J+,51,3
+016 42 0     2481         STA   ASSGZ,04        FIX DUMP SO IT CAN FIND
+016 43 0     2482         IFL   ASSGZ,04,44
+016 44 0     2483         DFL   ASSGZ,12,80
+016 45 0     2484         CAD   SCRTB+117
+016 46 0     2485         SRA   4
+016 47 0     2486         STA   Z1+,04
+016 48 0     2487         STA   Z2+,04
+016 49 0     2488         STA   Z3+,04
+016 50 0     2489         STA   Z4+,04
+016 51 0     2490         STA   Z5+,04
+016 52 0     2491         STA   Z6+,04
+016 53 0     2492         STA   Z7+,04
+016 54 0     2493         STA   Z8+,04
+016 55 0     2494         STA   Z9+,04
+016 56 0     2495         STA   Z10+,04
+016 57 0     2496         STA   Z11+,04
+016 58 0     2497         STA   Z12+,04
+016 59 0     2498         STA   Z13+,04
+016 60 0     2499         STA   Z14+,04
+016 61 0     2500         STA   Z15+,04
+016 62 0     2501         STA   Z16+,04
+016 63 0     2502         STA   Z17+,04
+016 64 0     2503         STA   Z18+,04
+016 65 0     2504         STA   Z19+,04
+016 66 0     2505         STA   Z20+,04
+016 67 0     2506         STA   Z21+,04
+016 68 0     2507         STA   Z22+,04
+016 69 0     2508         STA   Z23+,04
+016 70 0     2509         STA   Z24+,04
+016 71 0     2510         STA   Z25+,04
+016 72 0     2511         STA   Z26+,04
+016 73 0     2512   *J    NOP   SCRTB           LAST ENTRY FROM SCRAMBLE TABLE
+016 74 0     2513         LDR   KOUNT
+016 75 0     2514         STR   COUT
+016 76 0     2515         CFR   +100,00
+016 77 0     2516         BCE   END1            IF EQUAL ALL STACKS IN SCRAMBLE TABLE
+016 78 0     2517         LDB   J-              HAVE BEEN PROCESSED
+016 79 0     2518         CAD - 0               GET NEXT ENTRY FROM SCRTB
+016 80 0     2519         LDB - 0
+016 81 0     2520         STB   J-,04           SAVE LINK TO NEXT ENTRY
+016 82 0     2521         DBB   A+,2000         IF LINK IS LESS THAN 2000 END STACK NOW
+016 83 0     2522         IFL   KOUNT,00,1      INCREASE STACK COUNT
+016 84 0     2523         IFL   T-,04,1
+016 85 0     2524         LDR   T-
+016 86 0     2525         STR   J-,04           SET UP FOR NEXT STACK
+016 87 0     2526         IBB   J-,2000         IF LINK WAS NON-ZERO START NEW STACK
+016 88 0     2527         BZA   J-              SKIP TO NEXT STACK IF ZERO
+016 89 0     2528   *A    SRA   4               GET SREF IN 04 FIELD
+016 90 0     2529         CFA   +2000,04
+016 91 0     2530         BCL   J-              IF SREF IS LESS THAN 2000 GET NEXT ONE
+016 92 0     2531         STA   SREF,04
+016 93 0     2532         SRT   4
+016 94 0     2533         LSA   0
+016 95 0     2534         ADD   +8
+016 96 0     2535         SRA   1
+016 97 0     2536         STA   SL              SAVE SYMBOL LENGTH
+016 98 0     2537         SLT   19
+016 99 0     2538         BPA   *+2
+017 00 0     2539         FDV   *               SET OVERFLOW IF A NUMERIC LABEL
+017 01 0     2540         LDB   SREF
+017 02 0     2541         LDR - 1               GET ACTUAL SYMBOL
+017 03 0     2542         CLA
+017 04 0     2543         DIV   +99             SCRAMBLE IT
+017 05 0     2544         SLT   10
+017 06 0     2545         SUB   COUT            COMPUTE LEVEL
+017 07 0     2546         STA   LEVEL,00
+017 08 0     2547         CAD - 0
+017 09 0     2548         BSA   J-,1            SKIP
+017 10 0     2549         BSA   J-,3            CALL
+017 11 0     2550         BSA   J-,5            BY NAME
+017 12 0     2551         BSA   J-,7            THINGS
+017 13 0     2552         BSA   J-,9            AND INPUT,OUTPUT,FORMAT   LABELS
+017 14 0     2553         BSA   J-,8            AND EXTERNAL PROGRAMS
+017 15 0     2554         BFA   B+,11,1         SIMPLE VARIABLES(FIRST 100 STACKS)
+017 16 0     2555         IFL   LEVEL,81,1
+017 17 0     2556         BFA   B+,11,5         ARRAYS(NEXT 100)
+017 18 0     2557         IFL   LEVEL,81,1
+017 19 0     2558         BFA   A+,11,9         LABELS(NEXT 100)
+017 20 0     2559         IFL   LEVEL,81,1
+017 21 0     2560         BFA   B+,11,8         PROCEDURES(ONLY ONE STACK)
+017 22 0     2561         BUN   J-              GET NEXT ITEM IF IT IS NONE OF ABOVE
+017 23 0
+017 24 0
+017 25 0     2562   *A    CFA   +2000000,64

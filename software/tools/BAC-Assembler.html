@@ -10,9 +10,31 @@
 * Licensed under the MIT License, see
 *       http://www.opensource.org/licenses/mit-license.php
 ************************************************************************
-* Assembler for the Burroughs 220 Algebraic Compiler (BALGOL)
+* Cross-Assembler for the Burroughs 220 Algebraic Compiler (BALGOL)
 *
-* ...
+* Assembles source for 220 machine language programs as used in the
+* BALGOL compiler. Source is read from an emulated card deck -- a text
+* file with the following format:
+*
+*     col 1     Cardatron format band selection digit. Can be anything,
+*               but is typically 1.
+*     col 5-9   symbolic label or point label (*label)
+*     col 11-14 symbolic op code (standard 220 mnemonics)
+*     col 15    override sign (0-9, +, -), blank => 0
+*     col 17... operands (terminated by first free space)
+*     col 73-80 sequence and identification
+*
+* all other columns are ignored by this assembler.
+*
+* Output is a simulated line printer listing in the <iframe> of the web
+* page from which the assembler is run. The output of Pass 1 is designed
+* to match the listing from which the compiler was transcribed, so that
+* it may be compared for proofing purposes.
+*
+* Output of Pass 2 is a traditional assembler listing, with words of
+* generated object code and data.
+*
+* Output of the generated code and data is... *TBD*
 *
 ************************************************************************
 * 2016-12-09  P.Kimpel
@@ -188,11 +210,11 @@ window.addEventListener("load", function() {
     var bufferLength = 0;
     var bufferOffset = 0;
     var cardHandler = startAssembly;
-    var cardsPerMinute = 8000;
+    var cardsPerMinute = 10000;
     var eofArmed = 0;
     var eolRex = /([^\n\r\f]*)((:?\r[\n\f]?)|\n|\f)?/g;
-    var lastReaderStamp = 0;
     var millisPerCard = 60000/cardsPerMinute;
+    var nextReaderStamp = 0;
     var outHopper;
     var outHopperFrame = $$("CROutHopperFrame");
     var panel = $$("TextPanel");
@@ -214,6 +236,20 @@ window.addEventListener("load", function() {
         serial:         0,
         text:           ""}
 
+    var p10 = [     1,
+                   10,
+                  100,
+                 1000,
+                10000,
+               100000,
+              1000000,
+             10000000,
+            100000000,
+           1000000000,
+          10000000000,
+         100000000000,
+        1000000000000];
+
     var asciiFilter = [ // translate ASCII to 220 internal character codes
         // 0   1   2   3   4   5   6   7   8   9   A   B   C   D   E   F
            0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  //  0-0F
@@ -225,8 +261,17 @@ window.addEventListener("load", function() {
            0, 41, 42, 43, 44, 45, 46, 47, 48, 49, 51, 52, 53, 54, 55, 56,  // 60-6F
           57, 58, 59, 62, 63, 64, 65, 66, 67, 68, 69,  0,  0,  0,  0,  0]; // 70-7F
 
-    // Output control
-    var printLine = printPass1;
+    var signValues = {                  // numeric values of sign column
+        " ": 0, "+": 0, "0": 0,
+        "-": 1, "1": 1,
+        "2": 2,
+        "3": 3,
+        "4": 4,
+        "5": 5,
+        "6": 6,
+        "7": 7,
+        "8": 8,
+        "9": 9};
 
     /***************************************
     * Opcode table:
@@ -247,14 +292,16 @@ window.addEventListener("load", function() {
     *        1 = address field, inserted in (04)
     *        2 = secondary value inserted in (33)
     *        3 = secondary value inserted in (44)
-    *        4 = unit or count digit inserted in (01)
+    *        4 = unit or count digit inserted in (11)
     *        5 = variant digit inserted in (41)
     *        6 = sL field designator inserted in (22); if specified, insert 1 in (31)
     *        7 = sL field designator inserted in (22); (31) is undisturbed
-    *        8 = count or value inserted in (32)
-    *        9 = count or value inserted in (42)
-    *       10 = count or value inserted in (21)
-    *       11 = resolved address only
+    *        8 = value inserted in (32)
+    *        9 = value inserted in (42)
+    *       10 = value inserted in (21)
+    *       11 = value inserted in (62)
+    *       12 = value inserted in (64)
+    *       19 = resolved address only
     ***************************************/
 
     // Pseudo-instruction codes
@@ -267,146 +314,133 @@ window.addEventListener("load", function() {
     var pseudoFINI = -9;
 
     var opTab = {
-        "CAD":  [0x010,  1, -1,  2,  0],
-        "CAA":  [0x110,  1, -1,  2,  0],
-        "ADD":  [0x012,  1, -1,  2,  0],
-        "ADA":  [0x112,  1, -1,  2,  0],
-        "ADL":  [0x010,  1, -1,  3,  0],
-        "CSU":  [0x011,  1, -1,  2,  0],
-        "CSA":  [0x111,  1, -1,  2,  0],
-        "SUB":  [0x013,  1, -1,  2,  0],
-        "SUA":  [0x113,  1, -1,  2,  0],
-        "MUL":  [0x014,  1, -1,  3,  0],
-        "DIV":  [0x015,  1, -1,  3,  0],
-        "RND":  [0x016,  1,  0,  3,  0],
-        "FAD":  [0x022,  1, -1,  2,  0,  4, -1],
-        "FAA":  [0x122,  1, -1,  2,  0,  4, -1],
-        "FSU":  [0x023,  1, -1,  2,  0,  4, -1],
-        "FSA":  [0x123,  1, -1,  2,  0,  4, -1],
-        "FMU":  [0x024,  1, -1,  3,  0],
-        "FDV":  [0x025,  1, -1,  3,  0],
-        "SRA":  [0x048,  1, -1,  2,  0],
-        "SRT":  [0x148,  1, -1,  2,  0],
-        "SRS":  [0x248,  1, -1,  2,  0],
-        "SLA":  [0x049,  1, -1,  2,  0],
-        "SLT":  [0x149,  1, -1,  2,  0],
-        "SLS":  [0x249,  1, -1,  2,  0],
-        "LDR":  [0x041,  1, -1,  3,  0],
-        "LDB":  [0x042,  1, -1,  2,  0],
-        "LBC":  [0x142,  1, -1,  2,  0],
-        "LSA":  [0x043,  1,  0,  5, -1,  2,  0],
-        "STA":  [0x040,  1, -1,  6,  0],
-        "STR":  [0x140,  1, -1,  6,  0],
-        "STB":  [0x240,  1, -1,  6,  0],
-        "STP":  [0x044,  1, -1,  3,  0],
-        "RTF":  [0x029,  1, -1,  8, -1],
-        "CLA":  [0x145,  1,  0,  2,  0],
-        "CLR":  [0x245,  1,  0,  2,  0],
-        "CAR":  [0x345,  1,  0,  2,  0],
-        "CLB":  [0x445,  1,  0,  2,  0],
-        "CAB":  [0x545,  1,  0,  2,  0],
-        "CRB":  [0x645,  1,  0,  2,  0],
-        "CLT":  [0x745,  1,  0,  2,  0],
-        "CLL":  [0x046,  1, -1,  3,  0],
-        "EXT":  [0x017,  1, -1,  3,  0],
-        "CFA":  [0x018,  1, -1,  6,  0],
-        "CFR":  [0x118,  1, -1,  2,  0],
-        "BUN":  [0x030,  1, -1,  3,  0],
-        "BOF":  [0x031,  1, -1,  3,  0],
-        "BRP":  [0x032,  1, -1,  3,  0],
-        "BSA":  [0x033,  1, -1,  5, -1,  2,  0],
-        "BPA":  [0x033,  1, -1,  5,  0,  2,  0],
-        "BMA":  [0x033,  1, -1,  5,  1,  2,  0],
-        "BCH":  [0x034,  1, -1,  2,  0],
-        "BCL":  [0x134,  1, -1,  2,  0],
-        "BCE":  [0x035,  1, -1,  2,  0],
-        "BCU":  [0x135,  1, -1,  2,  0],
-        "BFA":  [0x036,  1, -1,  7, -1,  9, -1],
-        "BZA":  [0x036,  1, -1,  7,  0,  9,  0],
-        "BFR":  [0x037,  1, -1,  7, -1,  9, -1],
-        "BZR":  [0x037,  1, -1,  7,  0,  9,  0],
-        "BCS":  [0x038,  1, -1,  4,  0],
-        "SOR":  [0x039,  1,  0,  2,  0],
-        "SOH":  [0x139,  1,  0,  2,  0],
-        "IOM":  [0x239,  1, -1,  2,  0],
-        "HLT":  [0x000,  1,  0,  3,  0],
-        "NOP":  [0x001,  1,  0,  3,  0],
-        "IBB":  [0x020,  1, -1,  3, -1],
-        "DBB":  [0x021,  1, -1,  3, -1],
-        "IFL":  [0x026,  1, -1,  7, -1,  9, -1],
-        "DFL":  [0x027,  1, -1,  7, -1,  9, -1],
-        "DLB":  [0x028,  1, -1,  7, -1,  9, -1],
-        "MTS":  [0x050,  1, -1,  4, -1,  8, -1],
-        "MFS":  [0x4000050,
+        "CAD":  [ 10,  1, -1,  2,  0],
+        "CAA":  [110,  1, -1,  2,  0],
+        "ADD":  [ 12,  1, -1,  2,  0],
+        "ADA":  [112,  1, -1,  2,  0],
+        "ADL":  [ 10,  1, -1,  3,  0],
+        "CSU":  [ 11,  1, -1,  2,  0],
+        "CSA":  [111,  1, -1,  2,  0],
+        "SUB":  [ 13,  1, -1,  2,  0],
+        "SUA":  [113,  1, -1,  2,  0],
+        "MUL":  [ 14,  1, -1,  3,  0],
+        "DIV":  [ 15,  1, -1,  3,  0],
+        "RND":  [ 16,  1,  0,  3,  0],
+        "FAD":  [ 22,  1, -1,  2,  0,  4, -1],
+        "FAA":  [122,  1, -1,  2,  0,  4, -1],
+        "FSU":  [ 23,  1, -1,  2,  0,  4, -1],
+        "FSA":  [123,  1, -1,  2,  0,  4, -1],
+        "FMU":  [ 24,  1, -1,  3,  0],
+        "FDV":  [ 25,  1, -1,  3,  0],
+        "SRA":  [ 48,  1, -1,  2,  0],
+        "SRT":  [148,  1, -1,  2,  0],
+        "SRS":  [248,  1, -1,  2,  0],
+        "SLA":  [ 49,  1, -1,  2,  0],
+        "SLT":  [149,  1, -1,  2,  0],
+        "SLS":  [249,  1, -1,  2,  0],
+        "LDR":  [ 41,  1, -1,  3,  0],
+        "LDB":  [ 42,  1, -1,  2,  0],
+        "LBC":  [142,  1, -1,  2,  0],
+        "LSA":  [ 43,  1,  0,  5, -1,  2,  0],
+        "STA":  [ 40,  1, -1,  6,  0],
+        "STR":  [140,  1, -1,  6,  0],
+        "STB":  [240,  1, -1,  6,  0],
+        "STP":  [ 44,  1, -1,  3,  0],
+        "RTF":  [ 29,  1, -1,  8, -1],
+        "CLA":  [145,  1,  0,  2,  0],
+        "CLR":  [245,  1,  0,  2,  0],
+        "CAR":  [345,  1,  0,  2,  0],
+        "CLB":  [445,  1,  0,  2,  0],
+        "CAB":  [545,  1,  0,  2,  0],
+        "CRB":  [645,  1,  0,  2,  0],
+        "CLT":  [745,  1,  0,  2,  0],
+        "CLL":  [ 46,  1, -1,  3,  0],
+        "EXT":  [ 17,  1, -1,  3,  0],
+        "CFA":  [ 18,  1, -1,  6,  0],
+        "CFR":  [118,  1, -1,  2,  0],
+        "BUN":  [ 30,  1, -1,  3,  0],
+        "BOF":  [ 31,  1, -1,  3,  0],
+        "BRP":  [ 32,  1, -1,  3,  0],
+        "BSA":  [ 33,  1, -1,  5, -1,  2,  0],
+        "BPA":  [ 33,  1, -1,  5,  0,  2,  0],
+        "BMA":  [ 33,  1, -1,  5,  1,  2,  0],
+        "BCH":  [ 34,  1, -1,  2,  0],
+        "BCL":  [134,  1, -1,  2,  0],
+        "BCE":  [ 35,  1, -1,  2,  0],
+        "BCU":  [135,  1, -1,  2,  0],
+        "BFA":  [ 36,  1, -1,  7, -1,  9, -1],
+        "BZA":  [ 36,  1, -1,  7,  0,  9,  0],
+        "BFR":  [ 37,  1, -1,  7, -1,  9, -1],
+        "BZR":  [ 37,  1, -1,  7,  0,  9,  0],
+        "BCS":  [ 38,  1, -1,  4,  0],
+        "SOR":  [ 39,  1,  0,  2,  0],
+        "SOH":  [139,  1,  0,  2,  0],
+        "IOM":  [239,  1, -1,  2,  0],
+        "HLT":  [  0,  1,  0,  3,  0],
+        "NOP":  [  1,  1,  0,  3,  0],
+        "IBB":  [ 20,  1, -1,  3, -1],
+        "DBB":  [ 21,  1, -1,  3, -1],
+        "IFL":  [ 26,  1, -1,  7, -1,  9, -1],
+        "DFL":  [ 27,  1, -1,  7, -1,  9, -1],
+        "DLB":  [ 28,  1, -1,  7, -1,  9, -1],
+        "MTS":  [ 50,  1, -1,  4, -1,  8, -1],
+        "MFS":  [4000050,
                          1, -1,  4, -1,  8, -1],
-        "MTC":  [0x051,  1, -1,  4, -1,  8, -1,  5, -1],
-        "MFC":  [0x4000051,
+        "MTC":  [ 51,  1, -1,  4, -1,  8, -1,  5, -1],
+        "MFC":  [4000051,
                          1, -1,  4, -1,  8, -1,  5, -1],
-        "MRD":  [0x052,  1, -1,  4, -1, 10, -1,  5,  0],
-        "MNC":  [0x052,  1, -1,  4, -1,  8, -1,  5,  1],
-        "MRR":  [0x053,  1, -1,  4, -1, 10, -1,  5,  0],
-        "MIW":  [0x054,  1, -1,  4, -1, 10, -1,  9, -1],
-        "MIR":  [0x055,  1, -1,  4, -1, 10, -1,  9,  0],
-        "MOW":  [0x056,  1, -1,  4, -1, 10, -1,  9, -1],
-        "MIR":  [0x057,  1, -1,  4, -1, 10, -1,  9,  0],
-        "MPF":  [0x058,  4, -1, 10, -1,  1,  0],
-        "MPB":  [0x158,  4, -1, 10, -1,  1,  0],
-        "MPE":  [0x258,  4, -1,  1,  0],
-        "MLS":  [0x450,  4, -1,  8, -1,  1,  0],
-        "MRW":  [0x850,  4, -1,  8, -1,  1,  0],
-        "MDA":  [0x950,  4, -1,  8, -1,  1,  0],
-        "MIB":  [0x059,  1, -1,  4, -1,  8,  0],
-        "MIE":  [0x159,  1, -1,  4, -1,  8,  0],
-        "PRD":  [0x003,  1, -1,  4, -1,  8, -1,  5,  0],
-        "PRB":  [0x004,  1, -1,  4, -1,  5,  0,  8,  0],
-        "PRI":  [0x005,  1, -1,  4, -1,  8, -1,  5,  0],
-        "PWR":  [0x006,  1, -1,  4, -1,  8, -1],
-        "PWI":  [0x007,  1, -1,  4, -1],
-        "CRD":  [0x060,  1, -1,  4, -1,  5,  0],
-        "CWR":  [0x061,  1, -1,  4, -1,  5, -1,  8,  0],
-        "CRF":  [0x062,  1, -1,  4, -1,  5, -1,  8,  0],
-        "CWF":  [0x063,  1, -1,  4, -1,  5, -1,  8,  0],
-        "CRI":  [0x064,  1, -1,  4, -1],
-        "CWI":  [0x065,  1, -1,  4, -1],
-        "KAD":  [0x008,  1,  0,  3,  0],
-        "SPO":  [0x009,  1, -1,  8, -1],
+        "MRD":  [ 52,  1, -1,  4, -1, 10, -1,  5,  0],
+        "MNC":  [ 52,  1, -1,  4, -1,  8, -1,  5,  1],
+        "MRR":  [ 53,  1, -1,  4, -1, 10, -1,  5,  0],
+        "MIW":  [ 54,  1, -1,  4, -1, 10, -1,  9, -1],
+        "MIR":  [ 55,  1, -1,  4, -1, 10, -1,  9,  0],
+        "MOW":  [ 56,  1, -1,  4, -1, 10, -1,  9, -1],
+        "MIR":  [ 57,  1, -1,  4, -1, 10, -1,  9,  0],
+        "MPF":  [ 58,  4, -1, 10, -1,  1,  0],
+        "MPB":  [158,  4, -1, 10, -1,  1,  0],
+        "MPE":  [258,  4, -1,  1,  0],
+        "MLS":  [450,  4, -1,  8, -1,  1,  0],
+        "MRW":  [850,  4, -1,  8,  0,  1,  0],
+        "MDA":  [950,  4, -1,  8, -1,  1,  0],
+        "MIB":  [ 59,  1, -1,  4, -1,  8,  0],
+        "MIE":  [159,  1, -1,  4, -1,  8,  0],
+        "PRD":  [  3,  1, -1,  4, -1,  8, -1,  5,  0],
+        "PRB":  [  4,  1, -1,  4, -1,  5,  0,  8,  0],
+        "PRI":  [  5,  1, -1,  4, -1,  8, -1,  5,  0],
+        "PWR":  [  6,  1, -1,  4, -1,  8, -1],
+        "PWI":  [  7,  1, -1,  4, -1],
+        "CRD":  [ 60,  1, -1,  4, -1,  5,  0],
+        "CWR":  [ 61,  1, -1,  4, -1,  5, -1,  8,  0],
+        "CRF":  [ 62,  1, -1,  4, -1,  5, -1,  8,  0],
+        "CWF":  [ 63,  1, -1,  4, -1,  5, -1,  8,  0],
+        "CRI":  [ 64,  1, -1,  4, -1],
+        "CWI":  [ 65,  1, -1,  4, -1],
+        "KAD":  [  8,  1,  0,  3,  0],
+        "SPO":  [  9,  1, -1,  8, -1],
 
         // Pseudo-ops
         "DEFN": [pseudoDEFN,                    // define symbol
-                        11, -1],
+                        19, -1],
         "LOCN": [pseudoLOCN,                    // set location counter
-                        11, -1],
+                        19, -1],
         "CNST": [pseudoCNST],                   // assemble list of constant values
         "F244": [pseudoF244,                    // assemble word from 22-64-04 fields
-                         1,  0,  1,  0,  1,  0],
+                         7,  0, 12,  0,  1,  0],
         "F424": [pseudoF424,                    // assemble word from 44-62-04 fields
-                         1,  0,  1,  0,  1,  0],
+                         3,  0, 11,  0,  1,  0],
         "FBGR": [pseudoFBGR],                   // assemble Cardatron format band
         "FINI": [pseudoFINI,                    // finish assembly, output constant pool
                          1,  0]
     };
 
-    // Tank entry types
-    var tankFini = 0;
-    var tankError = 1;
-    var tankComment = 2;
-    var tankInstruction = 3;
-    var tankPseudo = 4;
-
 
     // Assembly storage
     var errorCount = 0;                 // assembler error count
+    var errorTank = [];                 // holding area for errors on current line
     var location = 0;                   // current instruction address
-    var tank = [];                      // assembled line structures {serial, type, location, word, offset, length}
-
-    // Symbol table: holds the address value for each label
-    var symTab = {};
-
-    // Point-label table: holds the current sequence number for each point label
-    var pointTab = {};
-
-    // Pool constant table: holds address of the constant word
-    var poolTab = {};
+    var pointTab = {};                  // Point-label table: holds the current sequence number for each point label
+    var poolTab = {};                   // Pool constant table: holds address of the constant word
+    var symTab = {};                    // Symbol table: holds the address value for each label
 
 
     /**************************************/
@@ -508,9 +542,8 @@ window.addEventListener("load", function() {
         var line;
         var match;
         var stamp = performance.now();
-        var delta = millisPerCard - stamp + lastReaderStamp;
+        var delta = nextReaderStamp - stamp;
 
-        lastReaderStamp = stamp;
         cardData.offset = bx;
 
         if (readerState != readerReady) {
@@ -520,6 +553,7 @@ window.addEventListener("load", function() {
             setReaderReady(false);
             $$("CRProgressBar").value = 0;
         } else {
+            nextReaderStamp += millisPerCard;
             eolRex.lastIndex = bx;
             match = eolRex.exec(buffer);
             if (!match) {
@@ -551,14 +585,10 @@ window.addEventListener("load", function() {
             while (outHopper.childNodes.length > 1) {
                 outHopper.removeChild(outHopper.firstChild);
             }
+
             outHopper.appendChild(document.createTextNode("\n"));
             outHopper.appendChild(document.createTextNode(line));
-
-            if (delta < 2) {
-                successor(cardData);
-            } else {
-                setTimeout(successor, delta, cardData);
-            }
+            setTimeout(successor, delta, cardData);
         }
     }
 
@@ -655,7 +685,7 @@ window.addEventListener("load", function() {
     }
 
     /**************************************/
-    function printPass1(text) {
+    function printLine(text) {
         /* Appends "text"+NL as a new text node to the panel DOM element */
         var e = document.createTextNode(text + "\n");
 
@@ -664,10 +694,78 @@ window.addEventListener("load", function() {
     }
 
     /**************************************/
+    function dumpErrorTank() {
+        /* Dumps the tank of error messages */
+        var x;
+
+        for (x=0; x<errorTank.length; ++x) {
+            printLine(errorTank[x]);
+        }
+
+        printLine("");
+        errorTank = [];
+    }
+
+    /**************************************/
     function printError(msg) {
         ++errorCount;
-        printLine("******** " + msg);
-        printLine("");
+        errorTank.push("******** " + msg);
+    }
+
+    /**************************************/
+    function printPass1(seq, location, label, opCode, sign, operand) {
+        /* Prints a line of output from Pass 1 of the assembly */
+        var text;
+
+        if (opCode === null) {
+            text = padRight(" ", 8+5+4+3, " ");
+        } else {
+            text = padLeft(seq, 8, " ") + "     " + padLeft(location, 4, "0") + "   ";
+        }
+
+        text += padRight(label, 6) + padRight(opCode || " ", 4) + padRight(sign, 2, " ") + operand;
+        printLine(text);
+        if (errorTank.length > 0) {
+            dumpErrorTank();
+        }
+    }
+
+    /**************************************/
+    function printPass2(seq, serial, location, word, label, opCode, sign, operand) {
+        /* Prints a line of output from Pass 2 of the assembly */
+        var addr;
+        var op;
+        var text;
+        var variant;
+        var w;
+        var wordText;
+
+        if (opCode === null) {
+            text = padRight(" ", 8+5+5+4+15+3, " ");
+        } else {
+            if (word === null) {
+                wordText = padRight(" ", 15, " ");
+            } else {
+                w = word;
+                addr = w % 10000;
+                w = (w-addr)/10000;
+                op = w % 100;
+                w = (w-op)/100;
+                variant = w % 10000;
+                w = (w-variant)/10000;          // should be just the sign digit left
+                wordText = padLeft(w, 2, " ") + " " + padLeft(variant, 4, "0") + " " +
+                           padLeft(op, 2, "0") + " " + padLeft(addr, 4, "0");
+            }
+
+            text = padLeft(seq, 8, " ") + padLeft(serial || " ", 5, " ") +
+                   "     " + padLeft(location, 4, "0") + wordText + "   ";
+        }
+
+        text += padRight(label, 6) + padRight(opCode || " ", 4) + padRight(sign, 2, " ") + operand;
+        printLine(text);
+        if (errorTank.length > 0) {
+            dumpErrorTank();
+        }
     }
 
     /**************************************/
@@ -685,7 +783,7 @@ window.addEventListener("load", function() {
 
         labelID = label + padLeft(pointNr, 5-label.length, ".");
         if (labelID in symTab) {
-            printError("DUPLICATE LABEL IN POINT TABLE -- IMPOSSIBLE")
+            printError("DUPLICATE POINT LABEL -- IMPOSSIBLE")
         } else {
             symTab[labelID] = location;
         }
@@ -799,8 +897,8 @@ window.addEventListener("load", function() {
             } else {
                 raw += c;
                 code = c.charCodeAt(0);
-                appendCode((code < asciiFilter.length ? asciiFilter[code] 
-                                                      : (code == 0xA4 ? 04 : 0))); // the lozenge
+                appendCode((code < asciiFilter.length ? asciiFilter[code]
+                                                      : (code == 0xA4 ? 4 : 0))); // the lozenge
                 ++x;
             }
         }
@@ -1136,6 +1234,540 @@ window.addEventListener("load", function() {
     }
 
     /**************************************/
+    function generateInstructionWord(opDesc, sign, values) {
+        /* Generates the word value for an executable instruction.
+        "opDesc" is the array of values for the op code from "opTab".
+        "values" is the list of address values parsed from the operand
+        text. Returns the binary value of the word */
+        var f;                          // current field value
+        var nsign = 0;                  // numeric sign value
+        var opTop = opDesc.length;
+        var ox = 0;                     // opDesc[] index
+        var w1;                         // word field 1
+        var w2;                         // word field 2
+        var word = 0;                   // resultant binary word value
+        var vTop = values.length;
+        var vx = 0;                     // values[] index
+
+        if (!(sign in signValues)) {
+            printError("INVALID SIGN VALUE: " + sign);
+        } else {
+            nsign = signValues[sign];
+        }
+
+        if (opDesc[0] > 0) {
+            word = opDesc[0]*p10[4];
+        }
+
+        for (ox=1; ox<opDesc.length; ox+=2) {
+            if (vx < vTop) {
+                f = values[vx];
+            } else if (opDesc[ox+1] < 0) {
+                f = 0;
+                printError("OPERAND FIELD #" + (vx+1).toFixed(0) + " MISSING");
+            } else {
+                f = opDesc[ox+1];
+            }
+
+            if (f < 0) {
+                f = p10[11] - f;
+            }
+
+            switch (opDesc[ox]) {
+            case  1:            // address field, inserted in (04)
+                w2 = word % p10[4];
+                word += f%p10[4] - w2;
+                break;
+            case  2:            // secondary value inserted in (33)
+                w1 = word % p10[10];
+                w2 = w1 - w1 % p10[7];
+                word += (f%p10[3])*p10[7] - w2;
+                break;
+            case  3:            // secondary value inserted in (44)
+                w1 = word % p10[10];
+                w2 = w1 - w1 % p10[6];
+                word += (f%p10[4])*p10[6] - w2;
+                break;
+            case  4:            // unit or count digit inserted in (11)
+                w1 = word % p10[10];
+                w2 = w1 - w1 % p10[9];
+                word += (f%p10[1])*p10[9] - w2;
+                break;
+            case  5:            // variant digit inserted in (41)
+                w1 = word % p10[7];
+                w2 = w1 - w1 % p10[6];
+                word += (f%p10[1])*p10[6] - w2;
+                break;
+            case  6:            // sL field designator inserted in (22); if specified, insert 1 in (31)
+                w1 = word % p10[10];
+                w2 = w1 - w1 % p10[8];
+                word += (f%p10[2])*p10[8] - w2;
+                if (vx < vTop) {
+                    w1 = word % p10[7];
+                    w2 = w1 - w1 % p10[7];
+                    word += p10[7] - w2;
+                }
+                break;
+            case  7:            // sL field designator inserted in (22); (31) is undisturbed
+                w1 = word % p10[10];
+                w2 = w1 - w1 % p10[8];
+                word += (f%p10[2])*p10[8] - w2;
+                break;
+            case  8:            // value inserted in (32)
+                w1 = word % p10[9];
+                w2 = w1 - w1 % p10[7];
+                word += (f%p10[2])*p10[7] - w2;
+                break;
+            case  9:            // value inserted in (42)
+                w1 = word % p10[8];
+                w2 = w1 - w1 % p10[6];
+                word += (f%p10[2])*p10[6] - w2;
+                break;
+            case 10:            // value inserted in (21)
+                w1 = word % p10[9];
+                w2 = w1 - w1 % p10[8];
+                word += (f%p10[2])*p10[8] - w2;
+                break;
+            case 11:            // value inserted in (62)
+                w1 = word % p10[6];
+                w2 = w1 - w1 % p10[4];
+                word += (f%p10[2])*p10[4] - w2;
+                break;
+            case 12:            // value inserted in (64)
+                w1 = word % p10[8];
+                w2 = w1 - w1 % p10[4];
+                word += (f%p10[4])*p10[4] - w2;
+                break;
+            case 19:            // resolved address only
+                w2 = word % p10[4];
+                word += f%p10[4] - w2;
+                break;
+            default:
+                printError("INVALID OPDESC INDEX: " + opDesc[ox]);
+                break;
+            } // switch opDesc[ox]
+
+            ++vx;
+        }
+
+        if (sign != " ") {
+            word = nsign*p10[10] + word % p10[10];
+        }
+
+        return word;
+    }
+
+    /**************************************/
+    function generateFormatBand(operand) {
+        /* Generates the 29 words of a Cardatron format band from the operand
+        text and returns an array of 29 words with band data. Examples:
+
+            FBGR  INPUT,16(P5A),P10Z
+            FBGR  PRINT,49B,T5A,T1A1B2A4Z,T10N,T8Z1A,XB6Z2A,48B MONITOR
+            FBGR  PRINT,32B,11(T5A),33B        ERROR MESSAGE FORMAT BAND
+            FBGR  INPUT,T2Z1B4A,15(T5A)
+            FBGR  INPUT,16(P5A),P10Z
+            FBGR  PRINT,49B,TZZZZZZNNNN,BBB,SBNNNNBNNBNNNN,BT5A,44B
+            FBGR  PRINT,49B,TZZZZZZNNNN,BBB,SBNNNNBNNBZZZZ,5BT5A,44B
+            FBGR  PRINT,49B,TZZZZZZNNNN,BBB,T6Z10BNNNN,50B
+            FBGR  PRINT,7(T5A),85B
+            FBGR  PRINT,TZZNNNNZZZZ,4B,16(T5A),32B
+
+        The first parameter can be "INPUT", "PUNCH", or "PRINT". The first two
+        values generate bands for 80 card columns; the third generates a band
+        for 120 print columns. The remaining comma-delimited parameters are
+        format phrases, one per 220 word. Each phrase may be prefixed by a
+        numeric repeat count. Allowable format codes are:
+
+            A:  copy two digits (one character)
+            B:  input:  ignore two digits in memory
+                output: supply two zero zone/numeric digits on output
+            N:  copy one digit to/from memory and a card column
+            P:  input:  store a zero for the sign digit
+                output: ignore sign digit in memory
+            S:  input:  same as P
+                output: copy zone digit as a separate column
+            T:  input:  like P, but store a 2 for the sign instead
+                output: same as P
+            X:  input:  store zone digit in memory
+                output: copy a zone digit as an overpunch for next code
+            Z:  input:  store zero digit in memory
+                output: supply a zero zone/numeric digit to the device
+            (:  start of repeating group
+            ):  end of repeating group
+        */
+        var band = [];                  // generated format band words
+        var bandType;                   // band type: INPUT, PRINT, PUNCH
+        var codes = "";                 // expanded format band phrases
+        var cx = 0;                     // current operand char offset
+        var dx = 0;                     // band word digit index
+        var oLen;                       // length of phrase text in operand
+        var word = 0;                   // generated band word
+        var wx = 0;                     // band word digit index (power of 10)
+        var x;                          // scratch index
+
+        //--------------------------------------
+        function emitBandDigits(digits, count) {
+            /* Moves digits into format band words starting at the low-order
+            digit of the word. Handles overflow to the next word */
+            var digit;                  // current output digit
+
+            while (count > 0) {
+                --count;
+                digit = digits%10;
+                digits = (digits-digit)/10;
+                if (wx < 11) {
+                    word += digit*p10[wx];
+                    ++wx;
+                } else {
+                    band.unshift(word);
+                    word = digit;
+                    wx = 1;
+                }
+            }
+        }
+
+        //--------------------------------------
+        function flushBandWord(digit) {
+            /* If a partial word exists, fill the remainder with "digit"
+            values, then push it to the band array */
+
+            while (wx < 11) {
+                emitBandDigits(digit, 1);
+            }
+
+            band.unshift(word);
+            wx = 0;
+            word = 0;
+        }
+
+        //--------------------------------------
+        function expandPhrase(cx, level) {
+            /* Expands repeat counts and groups to a string of individual
+            phrase codes in "codes"; adjusts phrase codes for X-code zone-digit
+            behavior */
+            var c;                      // current phrase character
+            var count = 0;              // repeat count
+            var done = false;           // loop control
+            var overpunch = false;      // X-code zone punch flag
+            var px = cx;                // current phrease char offset
+            var tx;                     // temp offset for repeating groups
+
+            do {
+                if (px >= oLen) {
+                    done = true;
+                } else {
+                    c = operand.charAt(px);
+                    ++px;
+                    switch (c) {
+                    case "0":
+                    case "1":
+                    case "2":
+                    case "3":
+                    case "4":
+                    case "5":
+                    case "6":
+                    case "7":
+                    case "8":
+                    case "9":
+                        count = count*10 + (c.charCodeAt(0) - ("0").charCodeAt(0));
+                        break;
+                    case "A":
+                    case "P":
+                    case "T":
+                    case "Z":
+                        do {
+                            --count;
+                            codes += c;
+                        } while (count > 0);
+                        count = 0;
+                        break;
+                    case "B":
+                        do {
+                            --count;
+                            if (overpunch) {
+                                codes += "S";   // half column: standalone sign
+                                overpunch = false;
+                            } else {
+                                codes += c;
+                            }
+                        } while (count > 0);
+                        count = 0;
+                        break;
+                    case "N":
+                        do {
+                            --count;
+                            if (overpunch) {
+                                codes += "D";   // half column: overpunched sign
+                                overpunch = false;
+                            } else {
+                                codes += c;
+                            }
+                        } while (count > 0);
+                        count = 0;
+                        break;
+                    case "S":
+                        codes += "XS";          // acts like XB
+                        count = 0;
+                        break;
+                    case "X":
+                        overpunch = true;
+                        codes += c;             // half-column: zone digit
+                        count = 0;
+                        break;
+                    case "(":
+                        do {
+                            --count;
+                            tx = expandPhrase(px, level+1);
+                        } while (count > 0);
+                        count = 0;
+                        px = tx;
+                        break;
+                    case ")":
+                        if (level < 1) {
+                            printError("EXCESS RIGHT PARENTHESIS");
+                        }
+                        done = true;
+                        break;
+                    case ",":
+                        if (level > 0) {
+                            printError("COMMA IN NESTED PHRASE");
+                        }
+                        codes += c;
+                        count = 0;
+                        break;
+                    default:
+                        printError("INVALID FORMAT BAND CHARACTER: " + c);
+                        break;
+                    } // switch c
+                }
+            } while (!done);
+
+            return px;
+        }
+
+        //--------------------------------------
+        function buildInputBand(cols) {
+            /* Builds an input band from the expanded phrase code string
+            in "codes", placing the result in the "band" array */
+            var c;                      // current phrase code
+            var colCount = 0;           // number of card columns
+            var cx;                     // current offset into codes
+            var dx = 0;                 // current memory word digit index
+
+            for (cx=codes.length-1; cx>=0; --cx) {
+                c = codes.charAt(cx);
+                switch (c) {
+                case "A":               // copy alphanumeric column
+                    if (dx & 1) {
+                        printError("A CODE ON ODD DIGIT: " + cx);
+                    } else if (dx > 9) {
+                        printError("A CODE ON SIGN DIGIT: " + cx);
+                    } else {
+                        emitBandDigits(11, 2);
+                    }
+                    colCount += 1;
+                    dx += 2;
+                    break;
+                case "B":               // ignore column
+                    emitBandDigits(33, 2);
+                    colCount += 1;
+                    break;
+                case "D":               // copy numeric half-column for overpunched sign
+                    emitBandDigits(1, 1);
+                    colCount +=1;
+                    dx += 1;
+                    break;
+                case "N":               // copy numeric column
+                    emitBandDigits(31, 2);
+                    colCount += 1;
+                    dx += 1;
+                    break;
+                case "P":               // insert zero in memory word for sign
+                    if (dx < 10) {
+                        printError("P CODE NOT FOR SIGN DIGIT: " + cx);
+                    }
+                    emitBandDigits(0, 1);
+                    dx += 1;
+                    break;
+                case "S":               // delete numeric half-column for standalone sign
+                    if (dx < 10) {
+                        printError("P CODE NOT FOR SIGN DIGIT: " + cx);
+                    }
+                    emitBandDigits(3, 1);
+                    colCount += 1;
+                    break;
+                case "T":               // insert 2 in memory word sign
+                    if (dx < 10) {
+                        printError("T CODE NOT FOR SIGN DIGIT: " + cx);
+                    }
+                    emitBandDigits(2, 1);
+                    dx += 1;
+                    break;
+                case "X":               // copy zone half-column for sign
+                    emitBandDigits(1, 1);
+                    dx += 1;
+                    break;
+                case "Z":               // insert zero in memory word
+                    emitBandDigits(0, 1);
+                    dx += 1;
+                    break;
+                case ",":               // check that phrase/word boundaries match
+                    if (dx > 0) {
+                        printError("WRONG NUMBER OF DIGITS IN WORD: " + dx);
+                    }
+                    break;
+                default:
+                    printError("INVALID INPUT BAND CODE: " + c);
+                    break;
+                } // switch c
+
+                if (dx > 10) {
+                    if (dx > 11) {
+                        printError("EXCESS NUMBER OF DIGITS IN WORD: " + dx);
+                    }
+                    dx = 0;
+                }
+            } // for cx
+
+            if (dx > 0) {
+                printError("FINAL BAND WORD INCOMPLETE: " + dx);
+            }
+
+            if (colCount != cols) {
+                printError("WRONG NUMBER OF COLUMNS: " + colCount);
+            }
+
+            emitBandDigits(0, 11);      // push out last word from Cardatron
+            flushBandWord(3);           // pad out the last word with 3s
+        }
+
+        //--------------------------------------
+        function buildOutputBand(cols) {
+            /* Builds an output band from the expanded phrase code string
+            in "codes", placing the result in the "band" array */
+            var c;                      // current phrase code
+            var colCount = 0;           // number of columns on card/line
+            var cx;                     // current offset into codes
+            var dx = 0;                 // current memory word digit index
+
+            for (cx=codes.length-1; cx>=0; --cx) {
+                c = codes.charAt(cx);
+                switch (c) {
+                case "A":               // copy alphanumeric column
+                    if (dx & 1) {
+                        printError("A CODE ON ODD DIGIT: " + cx);
+                    } else if (dx > 9) {
+                        printError("A CODE ON SIGN DIGIT: " + cx);
+                    } else {
+                        emitBandDigits(11, 2);
+                    }
+                    colCount += 1;
+                    dx += 2;
+                    break;
+                case "B":               // supply zeroes for blank column
+                    emitBandDigits(0, 2);
+                    colCount += 1;
+                    break;
+                case "D":               // copy numeric half-column for overpunched sign
+                    emitBandDigits(1, 1);
+                    colCount +=1;
+                    dx += 1;
+                    break;
+                case "N":               // copy numeric column
+                    emitBandDigits(2, 1);
+                    colCount += 1;
+                    dx += 1;
+                    break;
+                case "P":               // ignore sign digit in word
+                case "T":
+                    if (dx < 10) {
+                        printError("P,T CODE NOT FOR SIGN DIGIT: " + cx);
+                    }
+                    emitBandDigits(3, 1);
+                    dx += 1;
+                    break;
+                case "S":               // supply numeric half-column for standalone sign
+                    if (dx < 10) {
+                        printError("P,T CODE NOT FOR SIGN DIGIT: " + cx);
+                    }
+                    emitBandDigits(0, 1);
+                    colCount += 1;
+                    break;
+                case "X":               // copy zone digit for sign
+                    emitBandDigits(1, 1);
+                    dx += 1;
+                    break;
+                case "Z":               // ignore digit in memory word
+                    emitBandDigits(3, 1);
+                    dx += 1;
+                    break;
+                case ",":               // check that phrase/word boundaries match
+                    if (dx > 0) {
+                        printError("WRONG NUMBER OF DIGITS IN WORD: " + dx);
+                    }
+                    break;
+                default:
+                    printError("INVALID OUTPUT BAND CODE: " + c);
+                    break;
+                } // switch c
+
+                if (dx > 10) {
+                    if (dx > 11) {
+                        printError("EXCESS NUMBER OF DIGITS IN WORD: " + dx);
+                    }
+                    dx = 0;
+                }
+            } // for cx
+
+            if (dx > 0) {
+                printError("FINAL BAND WORD INCOMPLETE: " + dx);
+            }
+
+            if (colCount != cols) {
+                printError("WRONG NUMBER OF COLUMNS: " + colCount);
+            }
+
+            flushBandWord(3);           // pad out the last word with 3s
+        }
+
+        //--------------------------------------
+        x = operand.indexOf(" ");
+        oLen = (x < 0 ? operand.length : x);
+
+        x = operand.indexOf(",");
+        bandType = (x < 0 ? "" : operand.substring(0,x));
+
+        cx = x+1;
+        while (cx < oLen) {
+            cx = expandPhrase(cx, 0);
+        }
+
+        printLine(codes);       ////////////////// DEBUG //////////////////
+
+        switch (bandType) {
+        case "INPUT":
+            buildInputBand(80);
+            break;
+        case "PUNCH":
+            buildOutputBand(80);
+            break;
+        case "PRINT":
+            buildOutputBand(120);
+            break;
+        default:
+            printError("INVALID FORMAT BAND TYPE: " + bandType);
+            break;
+        }
+
+        while (band.length < 29) {
+            band.unshift(33333333333);
+        }
+
+        return band;
+    }
+
+    /**************************************/
     function startAssembly(cardData) {
         /* Callback function for the card reader. Reads the control cards and
         then passes control to pass 1 of the assembler */
@@ -1150,6 +1782,16 @@ window.addEventListener("load", function() {
             readACard(startAssembly, cardData);
             break;
         default:
+            errorCount = 0;
+            errorTank = [];
+            location = 0;
+            cardData.serial = 0;
+            symTab = {};
+            pointTab = {};
+            poolTab = {};
+            symTab["RLO"] = 1;          // kludge for CWR reload-lockout field
+
+            nextReaderStamp = performance.now();
             cardHandler = assemblePass1;
             assemblePass1(cardData);
             break;
@@ -1161,14 +1803,14 @@ window.addEventListener("load", function() {
         /* Callback function for the card reader. Processes the card image for
         pass 1 of the assembler */
         var card = cardData.text;
-        var entry;
         var finito = false;
         var label = card.substring(labelIndex, labelIndex+5).trim();
         var opCode = card.substring(opCodeIndex, opCodeIndex+4).trim();
         var opDesc;
         var operand = card.substring(operandIndex, operandIndex+56);
+        var origLoc = location;
+        var seq = card.substring(72, 80);
         var sign = card.substring(opCodeIndex+4, opCodeIndex+5);
-        var tankType = tankComment;
         var text;
         var thisLoc = location;
         var values;
@@ -1181,24 +1823,17 @@ window.addEventListener("load", function() {
             newOffset: -1};
 
         if (opCode.length <= 0) {
-            text = "                     " + card.substring(labelIndex, 72);
-            printLine(text);
+            printPass1(seq, location, label, null, sign, operand);
         } else {
-            text = card.substring(72, 80) + "     " + padLeft(location, 4, "0") + "   " + card.substring(labelIndex, 72);
-            printLine(text);
-
             if (!(opCode in opTab)) {
-                tankType = tankError;
                 printError("INVALID OP CODE");
             } else {
                 opDesc = opTab[opCode];
                 if (opDesc[0] >= 0) {   // normal instruction
-                    tankType = tankInstruction;
                     values = evaluateOperand(operand, token, false);   // discard result, take only side effects
                     ++location;         // normal instructions bump the location counter
                 } else {
                     // Parse the pseudo-op for size and location
-                    tankType = tankPseudo;
                     switch (opDesc[0]) {
                     case pseudoDEFN:
                         values = evaluateOperand(operand, token, false);
@@ -1230,7 +1865,6 @@ window.addEventListener("load", function() {
                         break;
                     case pseudoFINI:
                         finito = true;
-                        tankType = tankFini;
                         values = evaluateOperand(operand, token, true);
                         break;
                     default:
@@ -1250,16 +1884,9 @@ window.addEventListener("load", function() {
                     symTab[label] = thisLoc;
                 }
             }
-        }
 
-        entry = {
-            serial: cardData.serial,
-            type: tankType,
-            location: thisLoc,
-            word: 0,
-            offset: cardData.offset,
-            length: cardData.length}
-        tank.push(entry);
+            printPass1(seq, origLoc, label, opCode, sign, operand);
+        }
 
         if (!finito) {
             readACard(assemblePass1, cardData);
@@ -1278,7 +1905,7 @@ window.addEventListener("load", function() {
                 }
             }
 
-            printLine("");
+            dumpErrorTank();
             printLine("END OF PASS 1, ERRORS = " + errorCount);
             printLine("");
             printLine("");
@@ -1298,6 +1925,178 @@ window.addEventListener("load", function() {
             }
 
             printLine(text);
+
+            if (errorCount == 0) {
+                initializePass2(cardData);
+            }
+        }
+    }
+
+    /**************************************/
+    function initializePass2(cardData) {
+        /* Reinitializes the assembler to reread the input file for Pass 2 */
+        var e;
+
+        errorCount = 0;
+        errorTank = [];
+        location = 0;
+        bufferOffset = 0;       // reset the card buffer position
+        cardData.serial = 0;
+        nextReaderStamp = performance.now();
+        for (e in pointTab) {   // reset the point label table
+            pointTab[e] = 0;
+        }
+
+        cardHandler = startPass2;
+        readACard(startPass2, cardData);
+    }
+
+    /**************************************/
+    function startPass2(cardData) {
+        /* Sets up for Pass 2 of the assembly and initiates it */
+        var card = cardData.text;
+        var opCode = card.substring(opCodeIndex, opCodeIndex+5);
+
+        switch (opCode) {
+        case "ASMBL":
+            readACard(startPass2, cardData);
+            break;
+        case "REORD":
+            readACard(startPass2, cardData);
+            break;
+        default:
+            cardHandler = assemblePass2;
+            assemblePass2(cardData);
+            break;
+        }
+    }
+
+    /**************************************/
+    function assemblePass2(cardData) {
+        /* Callback function for the card reader. Processes the card image for
+        pass 1 of the assembler */
+        var card = cardData.text;
+        var finito = false;
+        var label = card.substring(labelIndex, labelIndex+5).trim();
+        var opCode = card.substring(opCodeIndex, opCodeIndex+4).trim();
+        var opDesc;
+        var operand = card.substring(operandIndex, operandIndex+56);
+        var origLoc = location;
+        var seq = card.substring(72, 80);
+        var serial = cardData.serial;
+        var sign = card.substring(opCodeIndex+4, opCodeIndex+5);
+        var text;
+        var thisLoc = location;
+        var values;
+        var word;
+        var x;
+
+        var token = {                   // token structure for operand parsing
+            type: 0,
+            offset: 0,
+            text: "",
+            newOffset: -1};
+
+        if (opCode.length <= 0) {
+            printPass2(seq, serial, location, null, label, null, sign, operand);
+        } else {
+            if (!(opCode in opTab)) {
+                printError("INVALID OP CODE");
+                printPass2(seq, serial, origLoc, null, label, opCode, sign, operand);
+            } else {
+                opDesc = opTab[opCode];
+                if (opDesc[0] >= 0) {   // normal instruction
+                    values = evaluateOperand(operand, token, true);
+                    word = generateInstructionWord(opDesc, sign, values);
+                    printPass2(seq, serial, origLoc, word, label, opCode, sign, operand);
+                    ++location;         // normal instructions bump the location counter
+                } else {
+                    // Parse the pseudo-op
+                    switch (opDesc[0]) {
+                    case pseudoDEFN:
+                        values = evaluateOperand(operand, token, true);
+                        if (values.length > 0) {
+                            thisLoc = values[0];
+                        } else {
+                            printError("OPERAND ADDRESS REQUIRED");
+                        }
+                        printPass2(seq, serial, origLoc, null, label, opCode, sign, operand);
+                        break;
+                    case pseudoLOCN:
+                        values = evaluateOperand(operand, token, true);
+                        if (values.length < 1) {
+                            printError("OPERAND ADDRESS REQUIRED");
+                        } else if (values[0] >= 0) {
+                            location = values[0];
+                        }
+                        printPass2(seq, serial, origLoc, null, label, opCode, sign, operand);                        break;
+                        break;
+                    case pseudoCNST:
+                        values = parseConstantList(operand, token);
+                        location += values.length;
+                        printPass2(seq, serial, origLoc, values[0], label, opCode, sign, operand);
+                        for (x=1; x<values.length; ++x) {
+                            printPass2("", null, origLoc+x, values[x], "", "", "", "", "");
+                        }
+                        break;
+                    case pseudoF244:
+                    case pseudoF424:
+                        values = evaluateOperand(operand, token, true);
+                        word = generateInstructionWord(opDesc, sign, values);
+                        printPass2(seq, serial, origLoc, word, label, opCode, sign, operand);
+                        ++location;
+                        break;
+                    case pseudoFBGR:
+                        values = generateFormatBand(operand);
+                        location += 29; // all format bands are 29 words long
+                        printPass2(seq, serial, origLoc, values[0], label, opCode, sign, operand);
+                        for (x=1; x<values.length; ++x) {
+                            printPass2("", null, origLoc+x, values[x], "", "", "", "", "");
+                        }
+                        break;
+                    case pseudoFINI:
+                        finito = true;
+                        values = evaluateOperand(operand, token, true);
+                        break;
+                    default:
+                        printError("INVALID PSEUDO INSTRUCTION CODE: " + opDesc[0]);
+                    } // switch
+                }
+            }
+
+            if (label.length > 0) {         // increment any point label counter
+                if (label.charAt(0) == "*") {
+                    if (label in pointTab) {
+                        ++pointTab[label];
+                    } else {
+                        pointTab[label] = 1;
+                    }
+                }
+            }
+        }
+
+        if (!finito) {
+            readACard(assemblePass2, cardData);
+        } else {
+            // Output the constant pool
+            for (text in poolTab) {
+                symTab[text] = location;
+                printLine("             " + padLeft(location, 4, "0") + "               " + text);
+                ++location;
+            }
+
+            // Wrap up Pass 2
+            for (text in symTab) {
+                if (symTab[text] < 0) {
+                    printError("SYMBOL NOT DEFINED: " + text);
+                }
+            }
+
+            printLine("");
+            printLine("END OF PASS 2, ERRORS = " + errorCount);
+
+            setReaderReady(false);
+            cardHandler = startAssembly;
         }
     }
 
