@@ -138,6 +138,25 @@
     left:               40px;
     top:                12px}
 
+#StorageLabel {
+    left:               78px;
+    top:                12px}
+
+#MagneticTapeLabel {
+    left:               116px;
+    top:                12px}
+
+#CardatronLabel {
+    left:               154px;
+    top:                12px}
+
+#PaperTapeLabel {
+    left:               192px;
+    top:                12px}
+
+#HighSpeedPrinterLabel {
+    left:               230px;
+    top:                12px}
 
 
 

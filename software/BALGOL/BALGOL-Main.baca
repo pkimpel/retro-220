@@ -1029,7 +1029,7 @@
 010 36 0     1015   *J    CFR   ARAMD,64      IF WE HAVE A NEW SYMBOL, AND WE ARENT
 010 37 0     1016         DLB   L,64,00       PROCESSING AN ARRAY DECLARATION,
 010 38 0     1017         BCE   S+             ITS A VARIABLE
-010 39 0     1018         IFL - 011,1
+010 39 0     1018         IFL - 0,11,1
 010 40 0     1019         BUN   I-
 010 41 0     1020   *S    IFL - 0,11,5        IN ARRAY DECLARATION, MARK THE PRESENT
 010 42 0     1021         STP   FRMEX          SYMBOL AS AN ARRAY AND SEND IT AND AN
@@ -4271,7 +4271,7 @@
 042 77 0     3910         LDB   I
 042 78 0     3911         CAA - V
 042 79 0     3912         STA - V
-042 80 0     3913   *V    DLB - V,64,0        V(I) IS A CONSTANT.
+042 80 0     3913   *X    DLB - V,64,0        V(I) IS A CONSTANT.
 042 81 0     3914         LDR - 1             CHECK IF IT IS A SPECIAL ONE
 042 82 0     3915         BZR   A+            IS IS ZERO
 042 83 0     3916         CFR   FONE+1
@@ -4331,7 +4331,7 @@
 043 37 0     3970         ADL   TEMP2
 043 38 0     3971         CAD   OPRTN
 043 39 0     3972         BFA   A+,41,0       ADD,MULTIPLY, DIVIDE OPS
-043 40 0     3973         BFA   41,1          MAX, MIN OPS
+043 40 0     3973         BFA   B+,41,1       MAX, MIN OPS
 043 41 0     3974         CAD   J             AND,OR,EQIV,IMPL OPS.
 043 42 0     3975         ADL   TEMP2
 043 43 0     3976         CSU   V1            CHECK FOR VALID BOOLEAN OPERANDS

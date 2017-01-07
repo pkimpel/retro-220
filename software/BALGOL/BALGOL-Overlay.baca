@@ -1,5 +1,3 @@
-             Addr   Sym   Op  - Address         Comments
-
                           ASBML 2
                           REORD 100.0
  01 00 0     0000   BUF   DEFN  0002            TAPE OUTPUT BUFFER
@@ -1626,6 +1624,272 @@
 017 20 0     2559         IFL   LEVEL,81,1
 017 21 0     2560         BFA   B+,11,8         PROCEDURES(ONLY ONE STACK)
 017 22 0     2561         BUN   J-              GET NEXT ITEM IF IT IS NONE OF ABOVE
-017 23 0
-017 24 0
+
+
 017 25 0     2562   *A    CFA   +2000000,64
+017 26 0     2563         BCL   J-              SKIP SEGMENT NAMES
+017 27 0     2564   *B    STB   VL,33           VECTOR LENGTH
+017 28 0     2565         IFL   VL,32,04        FOUR IS NORMAL(ARRAYS REQUIRE 6)
+017 29 0     2566         STA   VECTR+3         SAVE OPERAND
+017 30 0     2567         CAA - 1
+017 31 0     2568         LDR - 2               GET SYMBOL
+017 32 0     2569         LDB   SL
+017 33 0     2570         DBB   *+2,2
+017 34 0     2571         CLR                   SYMBOL LENGTH LEQ 5 CHARACTERS
+017 35 0     2572         BOF   NUMLB           NUMERIC LABEL
+017 36 0     2573         STA   VECTR+1
+017 37 0     2574         STR   VECTR+2         SAVE FIRST 10 CHARACTERS OF SYMBOL
+
+
+017 40 0     2575   RETRN LDR   VECTR+3
+017 41 0     2576         CLA
+017 42 0     2577         BFR   P+,11,1
+017 43 0     2578         BFR   P+,11,9
+017 44 0     2579         BFR   *+3,11,5
+017 45 0     2580         STA   VECTR+3,89      PROCEDURE  02 FIELD IS LEVEL
+017 46 0     2581         BUN   P+
+017 47 0     2582         LDB   VECTR+3
+017 48 0     2583         IFL   VL,32,2         NEED TWO MORE FOR ARRAYS
+017 49 0     2584         LDR - 0
+017 50 0     2585         STR   HOLD            SAVE LINK
+017 51 0     2586         SRT   4
+017 52 0     2587         CAD   VECTR+3
+017 53 0     2588         CLL   VECTR+3
+017 54 0     2589         CLL   VECTR+4
+017 55 0     2590         CLL   VECTR+5
+017 56 0     2591         STR   VECTR+3,04      LENGTH
+017 57 0     2592         STA   VECTR+5,67      SAVE OPERAND OF ARRAY
+017 58 0     2593         CLL   DIM
+017 59 0     2594         LDB   HOLD
+017 60 0     2595         IBB   C+,9999         LINK ZERO INDICATES WE HAVE LINEAR
+017 61 0     2596         BUN   D+                           ARRAY
+017 62 0     2597   *A    LDB   HOLD            END OF DIMENSION LIST OF CONSTANTS
+017 63 0     2598         IBB   A+,9999         IF LINK IS ZERO
+017 64 0     2599   *D    LDR - 1
+017 65 0     2600         DLB - 1,64,0
+017 66 0     2601         STR   HOLD            SAVE OPERAND OF CONSTANT
+017 67 0     2602         CAD - 1
+017 68 0     2603         LDB   DIM
+017 69 0     2604         STA - DIMS            PUT CONSTANT INTO DIMENSION LIST
+017 70 0     2605         IFL   DIM,00,1        INCREASE DIMENSION COUNT
+017 71 0     2606         BUN   A-
+017 72 0     2607   *A    LDR   DIMS
+017 73 0     2608         STR   VECTR+4         SAVE LENGTH OF A ROW
+017 74 0     2609   *B    LDB   DIM
+017 75 0     2610         CAD - DIMS-1
+017 76 0     2611         ADD   +1
+017 77 0     2612         MUL - DIMS-2          CALCULATE ADDRESS OF FIRST
+017 78 0     2613         STR - DIMS-2          ELEMENT OF THE ARRAY
+017 79 0     2614         DFL   DIM,00,1
+017 80 0     2615         DBB   B-,3
+017 81 0     2616         CAA   DIMS
+017 82 0     2617         ADD   +1
+017 83 0     2618         SLA   4
+017 84 0     2619         ADA   VECTR+5
+017 85 0     2620   *F    STA   VECTR+5,64      STORE ACTUAL ADDRESS
+017 86 0     2621         BUN   P+
+017 87 0     2622   *C    LDR   VECTR+3         LINEAR ARRAY
+017 88 0     2623         STR   VECTR+4         LENGTH OF ROW IS LENGTH OF ARRAY
+017 89 0     2624         CAD   VECTR+5
+017 90 0     2625         ADD   +10000          ACTUAL ADDRESS IS ONLY 1 GREATER
+017 91 0     2626         BUN   F-
+
+
+017 94 0     2627   *P    CAD   +TBL
+017 95 0     2628         ADD   LEVEL
+017 96 0     2629         STA   LEVEL           SET UP SEARCH OF PROPER STACK
+017 97 0     2630         STA   THROW           (NOTICE EVERY STACK IS INITIALIZED
+017 98 0     2631   TLU   LDB   LEVEL           WITH THE SYMBOL 9999999999)
+017 99 0     2632         CAD - 0
+018 00 0     2633         STA   HOLD            SAVE LINK TO NEXT ITEM
+018 01 0     2634         DLB   HOLD,64,0
+018 02 0     2635         LDR   VECTR+1
+018 03 0     2636         CFR - 0,00            COMPARE FIRST FIVE CHARACTERS
+018 04 0     2637         BCL   YES             YES, INSERT IT
+018 05 0     2638         BCE   MAYBE           COMPARISON ON NEXT 5 NEEDED
+018 06 0     2639   *C    LDR   LEVEL
+018 07 0     2640         STR   THROW           LAST OPERAND USED LINKS TO
+018 08 0     2641         LDR   HOLD            THE OPERAND TO BE USED
+018 09 0     2642         STR   LEVEL
+018 10 0     2643         BUN   TLU
+
+
+018 13 0     2644   YES   LDR   LEVEL
+018 14 0     2645         CFR   THROW           IF THEY ARE EQUAL THEN THE SPECIAL
+018 15 0     2646         BCE   EH              CASE WHERE THE HEAD OF THE STACK
+018 16 0     2647         CAD   LEVEL           IS CHANGED
+018 17 0     2648         STA   VECTR,04
+018 18 0     2649         STP   GETX            GET NEXT FREE CELLS
+018 19 0     2650         BUN   GET
+018 20 0     2651         LDB   THROW
+018 21 0     2652         STA - 0,04            INSERT NEW OPERAND WITH
+018 22 0     2653         ADD   +1              ITS NICE INFORMATIN INTO STACK
+018 23 0     2654         SLA   4
+018 24 0     2655         STA   VECTR,64
+018 25 0     2656         LDB   MEM
+018 26 0     2657   VL    RTF   VECTR,4         ENTER THE VECTOR INTO THE STACK
+018 27 0     2658         STB   MEM
+018 28 0     2659         BUN   J-
+018 29 0     2660   EH    STP   GETX            GET NEXT FREE CELLS
+018 30 0     2661         BUN   GET
+018 31 0     2662         ADD   +1
+018 32 0     2663         SLA   4
+018 33 0     2664         ADD   MEM
+018 34 0     2665         LDB   THROW           DO AN INSERT FOR THIS SPECIAL CASE
+018 35 0     2666         LDR - 0
+018 36 0     2667         STA - 0
+018 37 0     2668         STR   VECTR
+018 38 0     2669         BUN   VL-1
+
+
+018 41 0     2670   MAYBE LDR   VECTR+2         COMPARE WITH
+018 42 0     2671         CFR - 1,00            NEXT FIVE CHARACTERS
+018 43 0     2672         BCH   C-
+018 44 0     2673         BUN   YES
+
+
+018 47 0     2674   NUMLB BZA   A+              CONVERT PUBLIC NUMERIC LABELS
+018 48 0     2675         SRT   10              TO ALFANUMERIC FORM
+018 49 0     2676         CLL   VECTR+1         WITH LEADING ZEROES
+018 50 0     2677         BFR   B+,55,0         SUPPRESSED
+018 51 0     2678         STP   SUPX
+018 52 0     2679         BUN   SUP
+018 53 0     2680         STA   VECTR+1
+018 54 0     2681         STP   NSUPX
+018 55 0     2682         BUN   NSUP
+018 56 0     2683         STA   VECTR+2
+018 57 0     2684         BUN   RETRN
+018 58 0     2685   *B    SLT   5
+018 59 0     2686         STP   SUPX
+018 60 0     2687         BUN   SUP
+018 61 0     2688         STA   VECTR+2
+018 62 0     2689         BUN   RETRN
+018 63 0     2690   *A    LDR   +80
+018 64 0     2691         BUN   RETRN-2
+
+
+018 67 0     2692   SUP   SLT   1               CONVERT A 5 DIGIT NUMERIC
+018 68 0     2693         BZA   *+2             TO ALFA WITH SUPPRESSION
+018 69 0     2694         ADD   +80             OF LEADING ZEROES
+018 70 0     2695         IFL   *-1,11,2
+018 71 0     2696   SUPX  BOF   *
+018 72 0     2697         SLA   1
+018 73 0     2698         BUN   SUP
+
+
+018 76 0     2699   NSUP  SLT   1               CONVERT A 5 DIGIT NUMERIC
+018 77 0     2700         ADD   +80             TO ALFA - DO NOT SUPPRESS
+018 78 0     2701   NSUPX BFA   *,11,8          LEADING ZEROES
+018 79 0     2702         SLA   1
+018 80 0     2703         BUN   NSUP
+
+
+018 83 0     2704   END1  MLS 4 OT+10           MEMORY DUMP GOES ON ODD LANE
+018 84 0     2705         MPF 4 OT,4
+018 85 0     2706   *A    LDB   +DUMBS
+018 86 0     2707         STP   REMX            ENTRY IN DUMP STACK IS N NNNN LL LINK
+018 87 0     2708         BUN   REM             WHERE  NNNN= NUMBER OF ITEMS IN LIST
+018 88 0     2709         BUN   ACTUA                  LL= LEVEL NUMBER FOR THE
+018 89 0     2710         LDB   +SBMUD                     PROCEDURE WHICH CONTAINS
+018 90 0     2711         STP   INSX                       THE DUMP LIST
+018 91 0     2712         BUN   INS
+018 92 0     2713         BUN   A-              INVERT STACK OF NECESSARY DUMPS
+018 93 0     2714   ACTUA LDB   +SBMUD
+018 94 0     2715         STP   REMX
+018 95 0     2716         BUN   REM
+018 96 0     2717         BUN   FIN             END OF DUMPS
+018 97 0     2718         CLL   IDEX
+018 98 0     2719         STA   HOLD            SAVE DUMP ENTRY
+018 99 0     2720         BFA   C+,62,0         IF ZERO - DUMP FOR PROGRAM
+019 00 0     2721         SRA   4               IF NON-ZERO
+019 01 0     2722         STA   IDEX,02         SAVE LEVEL AND GET ASSOCIATED
+019 02 0     2723         CAD   TBL+300         PROCEDURE NAME
+019 03 0     2724   *B    STA   DIM
+019 04 0     2725         DLB   DIM,64,0
+019 05 0     2726         CAD - 2
+019 06 0     2727         CFA   IDEX,02
+019 07 0     2728         BCE   A+              PROCEDURE NAME FOUND
+019 08 0     2729         LDB   DIM             GET NEXT ITEM FROM PROCEDURE STACK
+019 09 0     2730         CAD - 0
+019 10 0     2731         BUN   B-
+019 11 0     2732   *A    CAD - 0
+019 12 0     2733         LDR - 1
+019 13 0     2734         STA   J++4,00
+019 14 0     2735         STR   J++5,00
+019 15 0     2736         LDR   +EN
+019 16 0     2737         STR   EM,04
+019 17 0     2738         MOW 4 Q+,OT,3
+019 18 0     2739   *C    STB   PRSW1,62
+019 19 0     2740         STB   PRSW2,62
+019 20 0     2741         CAD   HOLD
+019 21 0     2742         BFA   *+3,45,0        IF THE DUMP LIST WAS NULL
+019 22 0     2743         IFL   PRSW1,62,29     SET SOME SWITCHES SO THAT
+019 23 0     2744         IFL   PRSW2,62,29     EVERY TABLE ITEM OUTPUT TO TAPE
+019 24 0     2745         IFL   PRSW1,62,1      WILL HAVE A SIGN OF 4
+019 25 0     2746         IFL   PRSW2,62,1
+019 26 0     2747         DLB   SCRTB+114,64,0
+019 27 0     2748         STB   TRCE,04
+019 28 0     2749         BUN   END15
+
+
+019 31 0     2750   LOD3  DEFN  *
+019 32 0     2750   *Q    BCS   V+-LOD3+100,9
+019 33 0     2751   *Z1   STP   *,2438
+019 34 0     2752   *Z2   BUN   *,J+-LOD3+100
+019 35 0     2753   *V    NOP   LOD1-100
+019 36 0     2754         NOP   1
+019 37 0     2755         LDB   *-1-LOD3+100
+019 38 0     2756         RTF   *+2-LOD3+100,3
+019 39 0     2757         BUN   1
+019 40 0     2758         LBC   V--LOD3+100
+019 41 0     2759         MRD 4 100,OT,3,BMOD
+019 42 0     2760         BUN   100
+019 43 0     2761   *J    CNST  $         PROCEDURE
+019 44 0     2771
+019 45 0     2782                          $
+019 46 0     2785         LOCN  *+10
+
+
+019 49 0     2795   END15 MOW 4 Q+,OT,3
+019 50 0     2796         LDB   IDEX                          DUMP
+019 51 0     2797         CAD - TBL+200
+019 52 0     2798   *C    STA   HOLD
+019 53 0     2799         LDB   HOLD
+019 54 0     2800         IBB   END2,9999       END OF THIS LABEL STACK
+019 55 0     2801         DLB   HOLD,64,0
+019 56 0     2802         CAD - 2               GET OPERAND OF THE LABEL
+019 57 0     2803         STB   STOX1,62
+019 58 0     2804         BPA   PRSW1           SIGN OF 0 MEANS NOT BEING DUMPED
+019 59 0     2805         IFL   STOX1,62,1
+019 60 0     2806         BUN   B+
+019 61 0     2807   PRSW1 BUN   D+              DUMP HAD A NULL LIST
+019 62 0     2808         IFL   STOX1,62,1      SET UP TO MARK ITEM WITH A SIGN OF 4
+019 63 0     2809         BUN   B+
+019 64 0     2810   *D    IFL   STOX1,62,30     DO NOT MARK FOR DUMPING
+019 65 0     2811   *B    CAD - 0
+019 66 0     2812         STP   STOXX
+019 67 0     2813         BUN   STOX1
+019 68 0     2814         CAD - 1
+019 69 0     2815         STP   STOXX           ENTER ITEM INTO OUTPUT BUFFER
+019 70 0     2816         BUN   STOX1
+019 71 0     2817         CAD - 2
+019 72 0     2818         STP   STOXX
+019 73 0     2819         BUN   STOX1
+019 74 0     2820         LDB   HOLD
+019 75 0     2821         CAD - 0
+019 76 0     2822         BUN   C-
+
+
+019 79 0     2823   END2  LSA   9               OUTPUT END FLAG
+019 80 0     2824         STP   STOXX
+019 81 0     2825         BUN   STOX
+019 82 0     2826         IFL   *-1,11,5
+019 83 0     2827         BOF   END3
+019 84 0     2828         LDB   IDEX
+019 85 0     2829         CAD - TBL
+019 86 0     2830         BUN   C-              PROCESS SIMPLE VARIABLES
+
+
+
+
+019 91 0     2831   STOX1 BUN   STOX

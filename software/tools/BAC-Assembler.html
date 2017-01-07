@@ -209,7 +209,7 @@ window.addEventListener("load", function() {
     var buffer = "";
     var bufferLength = 0;
     var bufferOffset = 0;
-    var cardHandler = startAssembly;
+    var cardHandler = initializePass1;
     var cardsPerMinute = 10000;
     var eofArmed = 0;
     var eolRex = /([^\n\r\f]*)((:?\r[\n\f]?)|\n|\f)?/g;
@@ -301,6 +301,9 @@ window.addEventListener("load", function() {
     *       10 = value inserted in (21)
     *       11 = value inserted in (62)
     *       12 = value inserted in (64)
+    *       13 = BU pair for CRF/CWF: (B-1)*2 in (41) U in (11)
+    *       14 = reload-lockout value added to (41)
+    *       15 = digit inserted in (11); if specified, insert 1 in (41)
     *       19 = resolved address only
     ***************************************/
 
@@ -326,10 +329,10 @@ window.addEventListener("load", function() {
         "MUL":  [ 14,  1, -1,  3,  0],
         "DIV":  [ 15,  1, -1,  3,  0],
         "RND":  [ 16,  1,  0,  3,  0],
-        "FAD":  [ 22,  1, -1,  2,  0,  4, -1],
-        "FAA":  [122,  1, -1,  2,  0,  4, -1],
-        "FSU":  [ 23,  1, -1,  2,  0,  4, -1],
-        "FSA":  [123,  1, -1,  2,  0,  4, -1],
+        "FAD":  [ 22,  1, -1,  2,  0,  4,  0],
+        "FAA":  [122,  1, -1,  2,  0,  4,  0],
+        "FSU":  [ 23,  1, -1,  2,  0,  4,  0],
+        "FSA":  [123,  1, -1,  2,  0,  4,  0],
         "FMU":  [ 24,  1, -1,  3,  0],
         "FDV":  [ 25,  1, -1,  3,  0],
         "SRA":  [ 48,  1, -1,  2,  0],
@@ -341,7 +344,7 @@ window.addEventListener("load", function() {
         "LDR":  [ 41,  1, -1,  3,  0],
         "LDB":  [ 42,  1, -1,  2,  0],
         "LBC":  [142,  1, -1,  2,  0],
-        "LSA":  [ 43,  1,  0,  5, -1,  2,  0],
+        "LSA":  [ 43,  5, -1,  1,  0,  2,  0],
         "STA":  [ 40,  1, -1,  6,  0],
         "STR":  [140,  1, -1,  6,  0],
         "STB":  [240,  1, -1,  6,  0],
@@ -385,21 +388,21 @@ window.addEventListener("load", function() {
         "DLB":  [ 28,  1, -1,  7, -1,  9, -1],
         "MTS":  [ 50,  1, -1,  4, -1,  8, -1],
         "MFS":  [4000050,
-                         1, -1,  4, -1,  8, -1],
+                       1, -1,  4, -1,  8, -1],
         "MTC":  [ 51,  1, -1,  4, -1,  8, -1,  5, -1],
         "MFC":  [4000051,
-                         1, -1,  4, -1,  8, -1,  5, -1],
+                       1, -1,  4, -1,  8, -1,  5, -1],
         "MRD":  [ 52,  1, -1,  4, -1, 10, -1,  5,  0],
-        "MNC":  [ 52,  1, -1,  4, -1,  8, -1,  5,  1],
+        "MNC":  [ 52,  1, -1,  4, -1, 10, -1,  5,  1],
         "MRR":  [ 53,  1, -1,  4, -1, 10, -1,  5,  0],
-        "MIW":  [ 54,  1, -1,  4, -1, 10, -1,  9, -1],
+        "MIW":  [ 54,  1, -1,  4, -1, 10, -1,  9,  0],
         "MIR":  [ 55,  1, -1,  4, -1, 10, -1,  9,  0],
-        "MOW":  [ 56,  1, -1,  4, -1, 10, -1,  9, -1],
+        "MOW":  [ 56,  1, -1,  4, -1, 10, -1,  9,  0],
         "MIR":  [ 57,  1, -1,  4, -1, 10, -1,  9,  0],
         "MPF":  [ 58,  4, -1, 10, -1,  1,  0],
         "MPB":  [158,  4, -1, 10, -1,  1,  0],
         "MPE":  [258,  4, -1,  1,  0],
-        "MLS":  [450,  4, -1,  8, -1,  1,  0],
+        "MLS":  [450,  4, -1,  8,  0,  1,  0],
         "MRW":  [850,  4, -1,  8,  0,  1,  0],
         "MDA":  [950,  4, -1,  8, -1,  1,  0],
         "MIB":  [ 59,  1, -1,  4, -1,  8,  0],
@@ -409,14 +412,14 @@ window.addEventListener("load", function() {
         "PRI":  [  5,  1, -1,  4, -1,  8, -1,  5,  0],
         "PWR":  [  6,  1, -1,  4, -1,  8, -1],
         "PWI":  [  7,  1, -1,  4, -1],
-        "CRD":  [ 60,  1, -1,  4, -1,  5,  0],
-        "CWR":  [ 61,  1, -1,  4, -1,  5, -1,  8,  0],
-        "CRF":  [ 62,  1, -1,  4, -1,  5, -1,  8,  0],
-        "CWF":  [ 63,  1, -1,  4, -1,  5, -1,  8,  0],
+        "CRD":  [ 60,  1, -1,  4, -1,  5,  0,  8,  0],
+        "CWR":  [ 61,  1, -1,  4, -1, 13, -1,  8,  0],
+        "CRF":  [ 62,  1, -1, 13, -1, 14,  0],
+        "CWF":  [ 63,  1, -1, 13, -1, 14,  0],
         "CRI":  [ 64,  1, -1,  4, -1],
         "CWI":  [ 65,  1, -1,  4, -1],
         "KAD":  [  8,  1,  0,  3,  0],
-        "SPO":  [  9,  1, -1,  8, -1],
+        "SPO":  [  9,  1, -1,  8, -1, 15,  0],
 
         // Pseudo-ops
         "DEFN": [pseudoDEFN,                    // define symbol
@@ -741,10 +744,10 @@ window.addEventListener("load", function() {
         var wordText;
 
         if (opCode === null) {
-            text = padRight(" ", 8+5+5+4+15+3, " ");
+            text = padRight(" ", 8+6+6+4+16+3, " ");
         } else {
             if (word === null) {
-                wordText = padRight(" ", 15, " ");
+                wordText = padRight(" ", 16, " ");
             } else {
                 w = word;
                 addr = w % 10000;
@@ -753,12 +756,12 @@ window.addEventListener("load", function() {
                 w = (w-op)/100;
                 variant = w % 10000;
                 w = (w-variant)/10000;          // should be just the sign digit left
-                wordText = padLeft(w, 2, " ") + " " + padLeft(variant, 4, "0") + " " +
+                wordText = padLeft(w, 3, " ") + " " + padLeft(variant, 4, "0") + " " +
                            padLeft(op, 2, "0") + " " + padLeft(addr, 4, "0");
             }
 
-            text = padLeft(seq, 8, " ") + padLeft(serial || " ", 5, " ") +
-                   "     " + padLeft(location, 4, "0") + wordText + "   ";
+            text = padLeft(seq, 8, " ") + padLeft(serial || " ", 6, " ") +
+                   "      " + padLeft(location, 4, "0") + wordText + "   ";
         }
 
         text += padRight(label, 6) + padRight(opCode || " ", 4) + padRight(sign, 2, " ") + operand;
@@ -1216,7 +1219,7 @@ window.addEventListener("load", function() {
             if (token.newOffset < length) {
                 c = text.charAt(token.newOffset);
                 if (c == ",") {
-                    token.offset = ++token.newOffset;   // continue with next value
+                    ++token.newOffset;  // continue with next value
                 } else if (c == " ") {
                     break; // out of while loop
                 } else {
@@ -1224,6 +1227,8 @@ window.addEventListener("load", function() {
                     break; // out of while loop
                 }
             }
+
+            token.offset = token.newOffset;
         } // while x
 
         //for (x=0; x<values.length; ++x) {
@@ -1231,6 +1236,14 @@ window.addEventListener("load", function() {
         //}
 
         return values;
+    }
+
+    /**************************************/
+    function emitWord(location, word) {
+        /* Outputs one word of assembled code to the object program */
+
+        //*** STUB FOR NOW ***//
+        return;
     }
 
     /**************************************/
@@ -1291,52 +1304,75 @@ window.addEventListener("load", function() {
             case  4:            // unit or count digit inserted in (11)
                 w1 = word % p10[10];
                 w2 = w1 - w1 % p10[9];
-                word += (f%p10[1])*p10[9] - w2;
+                word += (f%10)*p10[9] - w2;
                 break;
             case  5:            // variant digit inserted in (41)
                 w1 = word % p10[7];
                 w2 = w1 - w1 % p10[6];
-                word += (f%p10[1])*p10[6] - w2;
+                word += (f%10)*p10[6] - w2;
                 break;
             case  6:            // sL field designator inserted in (22); if specified, insert 1 in (31)
                 w1 = word % p10[10];
                 w2 = w1 - w1 % p10[8];
-                word += (f%p10[2])*p10[8] - w2;
+                word += (f%100)*p10[8] - w2;
                 if (vx < vTop) {
-                    w1 = word % p10[7];
+                    w1 = word % p10[8];
                     w2 = w1 - w1 % p10[7];
-                    word += p10[7] - w2;
+                    word += p10[8] - w2;
                 }
                 break;
             case  7:            // sL field designator inserted in (22); (31) is undisturbed
                 w1 = word % p10[10];
                 w2 = w1 - w1 % p10[8];
-                word += (f%p10[2])*p10[8] - w2;
+                word += (f%100)*p10[8] - w2;
                 break;
             case  8:            // value inserted in (32)
                 w1 = word % p10[9];
                 w2 = w1 - w1 % p10[7];
-                word += (f%p10[2])*p10[7] - w2;
+                word += (f%100)*p10[7] - w2;
                 break;
             case  9:            // value inserted in (42)
                 w1 = word % p10[8];
                 w2 = w1 - w1 % p10[6];
-                word += (f%p10[2])*p10[6] - w2;
+                word += (f%100)*p10[6] - w2;
                 break;
             case 10:            // value inserted in (21)
                 w1 = word % p10[9];
                 w2 = w1 - w1 % p10[8];
-                word += (f%p10[2])*p10[8] - w2;
+                word += (f%10)*p10[8] - w2;
                 break;
             case 11:            // value inserted in (62)
                 w1 = word % p10[6];
                 w2 = w1 - w1 % p10[4];
-                word += (f%p10[2])*p10[4] - w2;
+                word += (f%100)*p10[4] - w2;
                 break;
             case 12:            // value inserted in (64)
                 w1 = word % p10[8];
                 w2 = w1 - w1 % p10[4];
                 word += (f%p10[4])*p10[4] - w2;
+                break;
+            case 13:            // BU pair for CRF/CWF: (B-1)*2 in (41) U in (11)
+                w1 = word % p10[7];             // band in (41)
+                w2 = w1 - w1 % p10[6];
+                word += (((f%100-f%10)/10)-1)*2*p10[6] - w2;
+                w1 = word % p10[10];            // unit in (11)
+                w2 = w1 - w1 % p10[9];
+                word += (f%10)*p10[9] - w2;
+                break;
+            case 14:            // reload-lockout value added to (41)
+                w1 = word % p10[7];             // band in (41)
+                w2 = w1 + ((f%10)*p10[6])%p10[7];
+                word += w2 - w1;
+                break;
+            case 15:            // digit inserted in (11); if specified, insert 1 in (41)
+                w1 = word % p10[10];
+                w2 = w1 - w1 % p10[9];
+                word += (f%100)*p10[9] - w2;
+                if (vx < vTop) {
+                    w1 = word % p10[7];
+                    w2 = w1 - w1 % p10[6];
+                    word += p10[7] - w2;
+                }
                 break;
             case 19:            // resolved address only
                 w2 = word % p10[4];
@@ -1768,7 +1804,24 @@ window.addEventListener("load", function() {
     }
 
     /**************************************/
-    function startAssembly(cardData) {
+    function initializePass1(cardData) {
+        /* Initializes or reinitializes the assembler for Pass 1 */
+
+        errorCount = 0;
+        errorTank = [];
+        location = 0;
+        cardData.serial = 0;
+        symTab = {};
+        pointTab = {};
+        poolTab = {};
+        symTab["RLO"] = 1;              // kludge for CWR reload-lockout field
+
+        nextReaderStamp = performance.now();
+        cardHandler = startPass1;
+    }
+
+    /**************************************/
+    function startPass1(cardData) {
         /* Callback function for the card reader. Reads the control cards and
         then passes control to pass 1 of the assembler */
         var card = cardData.text;
@@ -1776,22 +1829,12 @@ window.addEventListener("load", function() {
 
         switch (opCode) {
         case "ASMBL":
-            readACard(startAssembly, cardData);
+            readACard(startPass1, cardData);
             break;
         case "REORD":
-            readACard(startAssembly, cardData);
+            readACard(startPass1, cardData);
             break;
         default:
-            errorCount = 0;
-            errorTank = [];
-            location = 0;
-            cardData.serial = 0;
-            symTab = {};
-            pointTab = {};
-            poolTab = {};
-            symTab["RLO"] = 1;          // kludge for CWR reload-lockout field
-
-            nextReaderStamp = performance.now();
             cardHandler = assemblePass1;
             assemblePass1(cardData);
             break;
@@ -1822,55 +1865,59 @@ window.addEventListener("load", function() {
             text: "",
             newOffset: -1};
 
-        if (opCode.length <= 0) {
+        if (opCode == "REM") {
             printPass1(seq, location, label, null, sign, operand);
         } else {
-            if (!(opCode in opTab)) {
+            if (opCode.length <= 0) {   // treat like a CNST pseudo-op
+                opDesc = opTab["CNST"];
+            } else if (!(opCode in opTab)) {    // treat like a NOP
                 printError("INVALID OP CODE");
+                opDesc = opTab["NOP"];
             } else {
                 opDesc = opTab[opCode];
-                if (opDesc[0] >= 0) {   // normal instruction
-                    values = evaluateOperand(operand, token, false);   // discard result, take only side effects
-                    ++location;         // normal instructions bump the location counter
-                } else {
-                    // Parse the pseudo-op for size and location
-                    switch (opDesc[0]) {
-                    case pseudoDEFN:
-                        values = evaluateOperand(operand, token, false);
-                        if (values.length > 0) {
-                            thisLoc = values[0];
-                        } else {
-                            printError("OPERAND ADDRESS REQUIRED");
-                        }
-                        break;
-                    case pseudoLOCN:
-                        values = evaluateOperand(operand, token, true);
-                        if (values.length < 1) {
-                            printError("OPERAND ADDRESS REQUIRED");
-                        } else if (values[0] >= 0) {
-                            location = values[0];
-                        }
-                        break;
-                    case pseudoCNST:
-                        values = parseConstantList(operand, token);
-                        location += values.length;
-                        break;
-                    case pseudoF244:
-                    case pseudoF424:
-                        values = evaluateOperand(operand, token, false); // discard result, take only side effects
-                        ++location;     // word-builders merely bump the location counter
-                        break;
-                    case pseudoFBGR:
-                        location += 29; // all format bands are 29 words long
-                        break;
-                    case pseudoFINI:
-                        finito = true;
-                        values = evaluateOperand(operand, token, true);
-                        break;
-                    default:
-                        printError("INVALID PSEUDO INSTRUCTION CODE: " + opDesc[0]);
-                    } // switch
-                }
+            }
+
+            if (opDesc[0] >= 0) {   // normal instruction
+                values = evaluateOperand(operand, token, false);   // discard result, take only side effects
+                ++location;         // normal instructions bump the location counter
+            } else {
+                // Parse the pseudo-op for size and location
+                switch (opDesc[0]) {
+                case pseudoDEFN:
+                    values = evaluateOperand(operand, token, false);
+                    if (values.length > 0) {
+                        thisLoc = values[0];
+                    } else {
+                        printError("OPERAND ADDRESS REQUIRED");
+                    }
+                    break;
+                case pseudoLOCN:
+                    values = evaluateOperand(operand, token, true);
+                    if (values.length < 1) {
+                        printError("OPERAND ADDRESS REQUIRED");
+                    } else if (values[0] >= 0) {
+                        location = values[0];
+                    }
+                    break;
+                case pseudoCNST:
+                    values = parseConstantList(operand, token);
+                    location += values.length;
+                    break;
+                case pseudoF244:
+                case pseudoF424:
+                    values = evaluateOperand(operand, token, false); // discard result, take only side effects
+                    ++location;     // word-builders merely bump the location counter
+                    break;
+                case pseudoFBGR:
+                    location += 29; // all format bands are 29 words long
+                    break;
+                case pseudoFINI:
+                    finito = true;
+                    values = evaluateOperand(operand, token, true);
+                    break;
+                default:
+                    printError("INVALID PSEUDO INSTRUCTION CODE: " + opDesc[0]);
+                } // switch
             }
 
             if (label.length > 0) {         // enter the label into the symbol table
@@ -1925,6 +1972,7 @@ window.addEventListener("load", function() {
             }
 
             printLine(text);
+            printLine("");
 
             if (errorCount == 0) {
                 initializePass2(cardData);
@@ -1997,71 +2045,83 @@ window.addEventListener("load", function() {
             text: "",
             newOffset: -1};
 
-        if (opCode.length <= 0) {
-            printPass2(seq, serial, location, null, label, null, sign, operand);
+        if (opCode == "REM") {
+            printPass1(seq, location, label, null, sign, operand);
         } else {
-            if (!(opCode in opTab)) {
+            if (opCode.length <= 0) {   // treat line a CNST pseudo-op
+                opDesc = opTab["CNST"];
+            } else if (!(opCode in opTab)) {
                 printError("INVALID OP CODE");
-                printPass2(seq, serial, origLoc, null, label, opCode, sign, operand);
+                opDesc = opTab["NOP"];
             } else {
                 opDesc = opTab[opCode];
-                if (opDesc[0] >= 0) {   // normal instruction
+            }
+
+            if (opDesc[0] >= 0) {   // normal instruction
+                values = evaluateOperand(operand, token, true);
+                word = generateInstructionWord(opDesc, sign, values);
+                printPass2(seq, serial, origLoc, word, label, opCode, sign, operand);
+                emitWord(location, word);
+                ++location;         // normal instructions bump the location counter
+            } else {
+                // Parse the pseudo-op
+                switch (opDesc[0]) {
+                case pseudoDEFN:
+                    values = evaluateOperand(operand, token, true);
+                    if (values.length > 0) {
+                        thisLoc = values[0];
+                    } else {
+                        printError("OPERAND ADDRESS REQUIRED");
+                    }
+                    printPass2(seq, serial, origLoc, null, label, opCode, sign, operand);
+                    break;
+                case pseudoLOCN:
+                    values = evaluateOperand(operand, token, true);
+                    if (values.length < 1) {
+                        printError("OPERAND ADDRESS REQUIRED");
+                    } else if (values[0] >= 0) {
+                        location = values[0];
+                    }
+                    printPass2(seq, serial, origLoc, null, label, opCode, sign, operand);                        break;
+                    break;
+                case pseudoCNST:
+                    values = parseConstantList(operand, token);
+                    printPass2(seq, serial, origLoc, values[0], label, opCode, sign, operand);
+                    emitWord(location, values[0]);
+                    ++location;
+                    for (x=1; x<values.length; ++x) {
+                        printPass2("", null, origLoc+x, values[x], "", "", "", "", "");
+                        emitWord(location, values[x]);
+                        ++location;
+                    }
+                    break;
+                case pseudoF244:
+                case pseudoF424:
                     values = evaluateOperand(operand, token, true);
                     word = generateInstructionWord(opDesc, sign, values);
                     printPass2(seq, serial, origLoc, word, label, opCode, sign, operand);
-                    ++location;         // normal instructions bump the location counter
-                } else {
-                    // Parse the pseudo-op
-                    switch (opDesc[0]) {
-                    case pseudoDEFN:
-                        values = evaluateOperand(operand, token, true);
-                        if (values.length > 0) {
-                            thisLoc = values[0];
-                        } else {
-                            printError("OPERAND ADDRESS REQUIRED");
-                        }
-                        printPass2(seq, serial, origLoc, null, label, opCode, sign, operand);
-                        break;
-                    case pseudoLOCN:
-                        values = evaluateOperand(operand, token, true);
-                        if (values.length < 1) {
-                            printError("OPERAND ADDRESS REQUIRED");
-                        } else if (values[0] >= 0) {
-                            location = values[0];
-                        }
-                        printPass2(seq, serial, origLoc, null, label, opCode, sign, operand);                        break;
-                        break;
-                    case pseudoCNST:
-                        values = parseConstantList(operand, token);
-                        location += values.length;
-                        printPass2(seq, serial, origLoc, values[0], label, opCode, sign, operand);
-                        for (x=1; x<values.length; ++x) {
-                            printPass2("", null, origLoc+x, values[x], "", "", "", "", "");
-                        }
-                        break;
-                    case pseudoF244:
-                    case pseudoF424:
-                        values = evaluateOperand(operand, token, true);
-                        word = generateInstructionWord(opDesc, sign, values);
-                        printPass2(seq, serial, origLoc, word, label, opCode, sign, operand);
+                    emitWord(location, word);
+                    ++location;
+                    break;
+                case pseudoFBGR:
+                    values = generateFormatBand(operand);
+                    printPass2(seq, serial, origLoc, values[0], label, opCode, sign, operand);
+                    emitWord(location, values[0]);
+                    ++location;
+                    for (x=1; x<values.length; ++x) {
+                        printPass2("", null, origLoc+x, values[x], "", "", "", "", "");
+                        emitWord(location, values[x]);
                         ++location;
-                        break;
-                    case pseudoFBGR:
-                        values = generateFormatBand(operand);
-                        location += 29; // all format bands are 29 words long
-                        printPass2(seq, serial, origLoc, values[0], label, opCode, sign, operand);
-                        for (x=1; x<values.length; ++x) {
-                            printPass2("", null, origLoc+x, values[x], "", "", "", "", "");
-                        }
-                        break;
-                    case pseudoFINI:
-                        finito = true;
-                        values = evaluateOperand(operand, token, true);
-                        break;
-                    default:
-                        printError("INVALID PSEUDO INSTRUCTION CODE: " + opDesc[0]);
-                    } // switch
-                }
+                    }
+                    break;
+                case pseudoFINI:
+                    finito = true;
+                    values = evaluateOperand(operand, token, true);
+                    printPass2(seq, serial, origLoc, null, label, opCode, sign, operand);
+                    break;
+                default:
+                    printError("INVALID PSEUDO INSTRUCTION CODE: " + opDesc[0]);
+                } // switch
             }
 
             if (label.length > 0) {         // increment any point label counter
@@ -2080,9 +2140,11 @@ window.addEventListener("load", function() {
         } else {
             // Output the constant pool
             for (text in poolTab) {
-                symTab[text] = location;
-                printLine("             " + padLeft(location, 4, "0") + "               " + text);
-                ++location;
+                location = symTab[text];
+                token.offset = 0;
+                values = parseConstantList(text, token);
+                printPass2(seq, serial, location, values[0], "", "", "", text);
+                emitWord(location, values[0]);
             }
 
             // Wrap up Pass 2
@@ -2096,7 +2158,7 @@ window.addEventListener("load", function() {
             printLine("END OF PASS 2, ERRORS = " + errorCount);
 
             setReaderReady(false);
-            cardHandler = startAssembly;
+            initializePass1(cardData);
         }
     }
 
@@ -2206,6 +2268,8 @@ window.addEventListener("load", function() {
             "</style>";
     outHopper = document.createElement("pre");
     outHopperFrame.contentDocument.body.appendChild(outHopper);
+
+    initializePass1(cardData);
 }, false);
 </script>
 
