@@ -4407,7 +4407,7 @@
 044 13 0     4040         STR   ACTBL+5,21
 044 14 0     4041         SRS   10
 044 15 0     4042         STA   B-,04         SET ACCUM TO THE CURRENT RESULT
-044 16 0     4043         LDB -
+044 16 0     4043         LDB   B-
 044 17 0     4044         CAD - ACTBL-1
 044 18 0     4045         STA   ACCUM
 044 19 0     4046   INTRX BUN   *

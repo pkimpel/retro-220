@@ -1,4 +1,4 @@
-                          ASBML 2
+                          ASMBL 2
                           REORD 100.0
  01 00 0     0000   BUF   DEFN  0002            TAPE OUTPUT BUFFER
  01 01 0     0000   OT    DEFN  1               OUTPUT TAPE
@@ -20,11 +20,11 @@
  01 17 0     0000   DUMBS DEFN  292             DUMP STACK
  01 18 0     0000   SX    DEFN  400             MAG TAPE BUFFER
  01 19 0     0000   IMAGE DEFN  1632            CARD INPUT BUFFER
-001 20 0     0000   AZERO DEFN  4095            START OF FIXED POINT CONSTANT LIST
+001 20 0     0000   XZERO DEFN  4095            START OF FIXED POINT CONSTANT LIST
 001 21 0     0000   FZERO DEFN  4097            START OF FLOATING POINT CONSTANT LIST
  01 22 0     0000   XONE  DEFN  4099            FIXED POINT CONSTANT 1
 001 23 0     0000   LALE  DEFN  4107            POINTS TO LABEL PROCESSING SUBROUTINE
-001 24 0     0000   SCRTS DEFN  4116            SCRAMBLE TABLE FOR IDENTIFIERS
+001 24 0     0000   SCRTB DEFN  4116            SCRAMBLE TABLE FOR IDENTIFIERS
 001 25 0     0000   SSC   DEFN  4216            POINTS TO WHATS LEFT OF MEMORY
 001 26 0     0000   LOCN  DEFN  4217            LOCATION COUNTER FOR INSTRUCTIONS
 001 27 0     0000   MAMAX DEFN  4227            END OF ASSOCIATIVE MEMORY
@@ -51,7 +51,7 @@
  01 48 0     0014   MLOAD LDB   0
  01 49 0     0015         STB   B+,04           GET EXIT LINE
  01 50 0     0016         MLS 4 OT              POSITION TAPE SO THAT
- 01 51 0     0017         MPF 4 OT              SEGMENTATION WILL WORK
+ 01 51 0     0017         MPF 4 OT,1            SEGMENTATION WILL WORK
  01 52 0     0018         LDB   B
  01 53 0     0019         SOR
  01 54 0     0020         FDV   *
@@ -62,8 +62,8 @@
 
 
  01 61 0     0025         LDB   *+2
- 01 62 0     0026         RTF    A,1
- 01 63 0     0027   ZERO  RTF    199,100        ZERO MEMORY
+ 01 62 0     0026         RTF   A,1
+ 01 63 0     0027   ZERO  RTF   199,100         ZERO MEMORY
  01 64 0     0028         STB   A               BEFORE LOADING PROGRAM
  01 65 0     0029         CFR   A,04
  01 66 0     0030         BCU   ZERO
@@ -154,7 +154,7 @@
 002 51 0     0130   FMT3  FBGR  PRINT,49B,T5A,T1A1B2A4Z,T10N,T8Z1A,XB6Z2A,48B MONITOR
 002 52 0     0159   FMT4  FBGR  PRINT,32B,11(T5A),33B        ERROR MESSAGE FORMAT BAND
  02 53 0     0188   TAB   DEFN  *
- 02 54 0     0188   LOCN  200
+ 02 54 0     0188         LOCN  200
  02 55 0     0200         HLT   0
 002 56 0     0201   FMT5  FBGR  PRINT,24(T5A)                PRINTER-PUNCH FORMAT BAND
 
@@ -300,7 +300,7 @@
  03 97 0     0806         CLB
  03 98 0     0807         CAD   LOCN
  03 99 0     0808         STA   LCHOD
- 04 00 0     0809         DBB   *+1,99990LBRT   START AT LBRT+1
+ 04 00 0     0809         DBB   *+1,9999-LBRT   START AT LBRT+1
  04 01 0     0810   *E    STB   I
  04 02 0     0811         CAD - 0
 004 03 0     0812         BSA   A+,1
@@ -537,7 +537,7 @@
  06 34 0     1017         BCS   *+3,4
  06 35 0     1018         STP 4 9898,0916
 006 36 0     1019         BUN 4 9898,ZERSS
- 06 37 0
+
  06 38 0     1020   AGAIN DLB   FIXUP,44,0      THE FIXUP STACK CONTAINS THE
  06 39 0     1021         STP   REMX            FIX-UPS FOR CALLS OF EXTERNAL PROGRAMS
  06 40 0     1022         BUN   REM             FROM WITHIN SEGMENTS
@@ -821,7 +821,7 @@
  09 18 0     1285         STP 4 9898,1602
  09 19 0     1286         BUN 4 9898,CRD
  09 20 0     1287   *B    STP   SCANX           IF YES SCAN FOR THE IDENTIFIER
- 09 21 0     1288         BUN   SACN
+ 09 21 0     1288         BUN   SCAN
  09 22 0     1289         CAD   SYMBL
  09 23 0     1290         BSA   Z+,2            IS THE IDENTIFIER A PREFIX
  09 24 0     1291         SRT   10              NO IT IS NOT
@@ -911,7 +911,7 @@
 010 08 0     1368         IFL   SCNCT,05,2
 010 09 0     1369         STA   CHAR
 010 10 0     1370         BFA   B+,02,00        IGNORE LEADING BLANKS
-010 11 0     1371         BFFA  C+,02,24        INDICATES THAT A PREFIX FOLLOWS
+010 11 0     1371         BFA   C+,02,24        INDICATES THAT A PREFIX FOLLOWS
 010 12 0     1372         BFA   N+,91,8         FIRST CHARACTER NUMERIC, DO NUMBER SCAN
 010 13 0     1373         BFA   R+,91,4         FIRST CHARACTER ALFA, BUILD IDENTIFIER
 010 14 0     1374         BFA   R+,91,5
@@ -1054,12 +1054,12 @@
 011 51 0     1497         BUN   S-
 
 
-011 54 0     1500   *A    DFL   INSTR,12,80     ADJUST SIGN
-011 55 0     1501   *L    CAA   MSK
-011 56 0     1502         ADA   INSTR           RELOCATE ADDRESS FIELD
-011 57 0     1503         BOF   *+1
-011 58 0     1504         STA   INSTR,04
-011 59 0     1505         BUN   Z+
+011 54 0     1498   *A    DFL   INSTR,12,80     ADJUST SIGN
+011 55 0     1499   *L    CAA   MSK
+011 56 0     1500         ADA   INSTR           RELOCATE ADDRESS FIELD
+011 57 0     1501         BOF   *+1
+011 58 0     1502         STA   INSTR,04
+011 59 0     1503         BUN   Z+
 
 011 61 0     1504   *B    DFL   INSTR,12,70     ADJUST SIGN
 011 62 0     1505         SUA   MSK             RELOCATE CONTROL FIELD
@@ -1107,7 +1107,7 @@
 012 04 0     1545         CLL   INSTR
 012 05 0     1546         STA   INSTR,67
 012 06 0     1547         BUN   Z+
-012 07 0
+
 012 08 0     1548   *Y    DFL   INSTR,62,40
 012 09 0     1549         BSA   Z+,4            SPECIAL CONVENTIONS FOR PARTIAL FIELD
 012 10 0     1550         BSA   Z+,5            SCAN AND SCEARCH(90,91 SPECIAL OPS)
@@ -1180,7 +1180,7 @@
 012 77 0     1608         DBB   A-,2
 012 78 0     1609         LDB   HOLD
 012 79 0     1610         LDR - 1
-012 80 0     1611         BFR   *_2,11,0
+012 80 0     1611         BFR   *+2,11,0
 012 81 0     1612         STR   EXPLN
 012 82 0     1613   EXPLX BUN   *
 012 83 0     1614   *A    LDR - EXLBT-1
@@ -1217,13 +1217,13 @@
 013 14 0     1641         CNST  34649554962     24 FINISH
 013 15 0     1642         CNST  $H$
 013 16 0     1643         CNST  35762456444     26 PSEUDO-OP
-013 17 0     1644         CNST  #O-OP$
+013 17 0     1644         CNST  $O-OP$
 013 18 0     1645         CNST  $FIELD$         28 FIELD
 013 19 0     1646         CNST  $ON$            29 ON
 013 20 0     1647         CNST  34845414445     30 HEADER
 013 21 0     1648         CNST  $R$
 013 22 0     1649         CNST  36455444546     32 UNDEFINED
-013 23 0     1650         CNSE  $INED$
+013 23 0     1650         CNST  $INED$
 013 24 0     1651         CNST  $LABEL$         34 LABEL
 013 25 0     1652         CNST  $-$             35 -
 013 26 0     1653         CNST  $NAME$          35 (STORAGE FOR PROGRAMMED MESSAGES)
@@ -1236,7 +1236,7 @@
 013 33 0     1660         CNST  $CHECK$         43 CHECK
 013 34 0     1661         CNST  $SUM$           44 SUM
 013 35 0     1662         CNST  34356545749     45 COMPILED
-013 36 0     1663         CNSE  $LED$
+013 36 0     1663         CNST  $LED$
 013 37 0     1664         CNST  35759564759     47 PROGRAM
 013 38 0     1665         CNST  $AM$
 013 39 0     1666         CNST  $ENDS$          49 ENDS
@@ -1265,7 +1265,7 @@
 013 62 0     1689         CNST  $T$
 
 
-013 65 0     1690   LIBRE CAD - 0             PUT LIBRARY SUBROUTINE INTO TARGET
+013 65 0     1690   LIBRF CAD - 0             PUT LIBRARY SUBROUTINE INTO TARGET
 013 66 0     1691   LIBRX BFA   LIBRX,11,4    PROGRAM IF IT HASNT BEEN PUT THERE
 013 67 0     1692         SRA   4             ALREADY.
 013 68 0     1693         EXT   +1111
@@ -1285,53 +1285,53 @@
 013 82 0     1705         STA   WRTF,04
 013 83 0     1706         BSA   *+2,7
 013 84 0     1707         BUN   *+2
-013 85 0     1708         IFL   DESCR,00,1      IF SIGN IS SEVEN, WE MEAN THE
+013 85 0     1708         IFL   DESCR,00,1    IF SIGN IS SEVEN, WE MEAN THE
 013 86 0     1709   FXUPY BCS   *+2,2
 013 87 0     1710         BUN   *+4
 013 88 0     1711         BSA   *+3,8
 013 89 0     1712         STP 4 9898,0208
 013 90 0     1713         BUN 4 9898,WRTF
-013 91 0     1714         LDR   DESCR           PRESENT LOCATION PLUS 1
+013 91 0     1714         LDR   DESCR         PRESENT LOCATION PLUS 1
 013 92 0     1715         LDB   LRTF
 013 93 0     1716         CAD   WRTF
 013 94 0     1717         CFA   PREV,04
-013 95 0     1718         BCH   A+              IF WE CAN FIX UP THE INSTRUCTION WHILE
-013 96 0     1719         CAD - BUF+1           IT SITS IN THE OUTPUT BUFFER, WE WILL
-013 97 0     1720         BFA   A+,04,0         DO IT DIRECTLY
+013 95 0     1718         BCH   A+            IF WE CAN FIX UP THE INSTRUCTION WHILE
+013 96 0     1719         CAD - BUF+1         IT SITS IN THE OUTPUT BUFFER, WE WILL
+013 97 0     1720         BFA   A+,04,0       DO IT DIRECTLY
 013 98 0     1721         CFA   WRTF,04
-013 99 0     1722         BBCH  A+
+013 99 0     1722         BCH   A+
 014 00 0     1723         SUB   WRTF
 014 01 0     1724         SLA   6
 014 02 0     1725         STA   *+1,44
 014 03 0     1726         DBB   *+1,0
 014 04 0     1727         STR - BUF+2,04
 014 05 0     1728         BUN   FXUPX
-014 06 0     1729   *A    DFL   CNTRF,00,1      OTHERWISE WE PUT OUT A FIX UP
-014 07 0     1730         LDB   CNTRF           CODE FOR THE LOADING ROUTINE
+014 06 0     1729   *A    DFL   CNTRF,00,1    OTHERWISE WE PUT OUT A FIX UP
+014 07 0     1730         LDB   CNTRF         CODE FOR THE LOADING ROUTINE
 014 08 0     1731         STR - BUF+3
 014 09 0     1732         BUN   WRIT6
 014 10 0     1733   FXUPX BUN   FXUPX
 
 
 
-014 14 0     1734   WRIT2 CAD   LOCN            WRITE SUBROUTINE - PUTS INSTRUCTION
-014 15 0     1735         SRA   4                INTO OUTPUT BUFFER.
-014 16 0     1736         IFL   LOCK,64,1       WRIT2 ENTRY - PUT INSTRUCTION OUT FOR
+014 14 0     1734   WRIT2 CAD   LOCN          WRITE SUBROUTINE - PUTS INSTRUCTION
+014 15 0     1735         SRA   4              INTO OUTPUT BUFFER.
+014 16 0     1736         IFL   LOCN,64,1     WRIT2 ENTRY - PUT INSTRUCTION OUT FOR
 014 17 0     1737         BOF   *+1
-014 18 0     1738         LDR   INSTR            LOCATION LOCN AND INCREMENT LOCN
-014 19 0     1739   WRIT3 STA   WRTF,04         WRIT3 ENTRY - LOCATION IS IN RA(04)
-014 20 0     1740         SUB   PREV            AND INSTRUCTION IS IN REGISTER R
+014 18 0     1738         LDR   INSTR          LOCATION LOCN AND INCREMENT LOCN
+014 19 0     1739   WRIT3 STA   WRTF,04       WRIT3 ENTRY - LOCATION IS IN RA(04)
+014 20 0     1740         SUB   PREV          AND INSTRUCTION IS IN REGISTER R
 014 21 0     1741         LDB   CNTRI
 014 22 0     1742         BFA   E+,04,0
-014 23 0     1743         SUB   XONE+1          DOES THIS LOCATION EQUAL THE PREVIOUS ONE
-014 24 0     1744         BFA   F+,04,0         (IF SO WE WILL ERASE THE PREVIOUS ONE)
-014 25 0     1745         STB   LRTF,04         OR IS IT ONE HIGHER
-014 26 0     1746         CAD   WRTF            IF NOT,WE WILL PUT OUT A NEW RECORD TRANS
+014 23 0     1743         SUB   XONE+1        DOES THIS LOCATION EQUAL THE PREVIOUS ONE
+014 24 0     1744         BFA   F+,04,0       (IF SO WE WILL ERASE THE PREVIOUS ONE)
+014 25 0     1745         STB   LRTF,04       OR IS IT ONE HIGHER
+014 26 0     1746         CAD   WRTF          IF NOT,WE WILL PUT OUT A NEW RECORD TRANS
 014 27 0     1747         STA - BUF+1
 014 28 0     1748         IFL   CNTRI,00,1
 014 29 0     1749   *F    LDB   LRTF
-014 30 0     1750         IFL - BUF+1,32,1      THE 32-FIELD CONTAINS THE NUMBER OF
-014 31 0     1751   WRIT7 IFL   CNTRI,00,1      SEQUENTIAL WORDS TO LOAD
+014 30 0     1750         IFL - BUF+1,32,1    THE 32-FIELD CONTAINS THE NUMBER OF
+014 31 0     1751   WRIT7 IFL   CNTRI,00,1    SEQUENTIAL WORDS TO LOAD
 014 32 0     1752         LDB   CNTRI
 014 33 0     1753   *E    STR - BUF
 014 34 0     1754         STR   DESCR
@@ -1342,10 +1342,10 @@
 014 39 0     1759         CLL   EXPLN
 014 40 0     1760         LDR   WRTF
 014 41 0     1761         STR   PREV,04
-014 42 0     1762   WRIT6 LDR   CNTRI           IS THE BUFFER FULL NOW
+014 42 0     1762   WRIT6 LDR   CNTRI         IS THE BUFFER FULL NOW
 014 43 0     1763         CFR   CNTRF
-014 44 0     1764         BCL   WRITX           IF NOT,EXIT
-014 45 0     1765   WRIT5 LBC   NN              IF SO, CALCULATE CHECK SUM
+014 44 0     1764         BCL   WRITX         IF NOT,EXIT
+014 45 0     1765   WRIT5 LBC   NN            IF SO, CALCULATE CHECK SUM
 014 46 0     1766   *C    CLA   BUF+2
 014 47 0     1767         SUB - BUF+99
 014 48 0     1768         IBB   *-1,1
@@ -1356,10 +1356,10 @@
 014 53 0     1773         MLS 4 OT
 014 54 0     1774         MIB 4 *+2,OT
 014 55 0     1775         BUN   *-1
-014 56 0     1776         MOW 4 BUF,OT,1        WRITE ONE BLOCK
+014 56 0     1776         MOW 4 BUF,OT,1      WRITE ONE BLOCK
 014 57 0     1777         IFL   BUF,00,1
 014 58 0     1778         CLL   CNTRI
-014 59 0     1779         CLL   CNTRF           INITIALIZE FOR NEXT BLOCK
+014 59 0     1779         CLL   CNTRF         INITIALIZE FOR NEXT BLOCK
 014 60 0     1780         IFL   CNTRF,00,96
 014 61 0     1781   WRIT4 CLL   BUF+1
 014 62 0     1782         LDB   C-
@@ -1415,7 +1415,7 @@
 015 12 0     1827         LDB   E-
 015 13 0     1828         LDR - DICT-2          GET DICTIONARY ENTRY
 015 14 0     1829   *C    CLA   MSG+1
-015 15 0     1830   LBC   TEMP
+015 15 0     1830         LBC   TEMP
 015 16 0     1831         SLT   2               TRANSFER CHARACTERS
 015 17 0     1832         BFA   B+,00,00
 015 18 0     1833         SLA - 8               BUFFER AREA
@@ -1491,7 +1491,7 @@
 015 88 0     2425         HLT 2 0
 015 89 0     2426         HLT 2 0
 015 90 0     2427   SYMBL CNST  0,0,0,0,0,0,0,0,0,0       SYMBOL STORAGE AREA
-015 91 0     2437   LEVEL LT    0               LEVEL FOR SEARCHING
+015 91 0     2437   LEVEL HLT   0               LEVEL FOR SEARCHING
 
 
 
@@ -1517,8 +1517,8 @@
 016 13 0     2457         BUN   WEM
 016 14 0     2458         CNST  36264660000     COMPILER CAPACITY EXCEEDED
 016 15 0     2459         F424  6200,00,7777
-016 16 0
-016 17 0
+
+
 016 18 0     2460   REM   STB   A+,04           REMOVE INFORMATION FROM
 016 19 0     2461         LDB - 0               ASSOCIATIVE MEMORY LOCATION IN
 016 20 0     2462         CAD - 0               THE STACK NAMED IN RB
@@ -1530,9 +1530,9 @@
 016 26 0     2468   *A    STA   *,04            INCREMENTED EXIT WITH THE REMOVED
 016 27 0     2469         LDB   REMX            QUANTITY IN RA
 016 28 0     2470         BUN - 1
-016 29 0
-016 30 0                        THE SYMBOLIC MEMORY DUMP GENERATOR
-016 31 0
+
+                                THE SYMBOLIC MEMORY DUMP GENERATOR
+
 016 32 0     2471   KOUNT HLT   0               STACK COUNTER
 016 33 0     2472   COUT  HLT   0               PRESENT LEVEL COUNTER
 016 34 0     2473   *T    NOP   SCRTB           LINK TO NEXT ITEM
@@ -1893,3 +1893,177 @@
 
 
 019 91 0     2831   STOX1 BUN   STOX
+019 92 0     2832         LSA   4               MARK ITEM FOR DUMPING
+019 93 0     2833   STOX  STA   0               ENTER ITEM INTO BUFFER
+019 94 0     2834         IFL   STOX,02,1
+019 95 0     2835         BOF   *+2
+019 96 0     2836   STOXX BUN   *               EXIT LINE
+019 97 0     2837         MOW 4 0,OT,1          BUFFER FULL
+019 98 0     2838         BUN   STOXX
+
+020 00 0     2839   LOD1  DEFN  *               THIS PROGRAM IS RELOCATED TO
+020 01 0     2839   *Q    NOP 8 J++1            LOCATION 0100 AT OBJECT TIME
+020 02 0     2840   *R    CLB 8 I+              AND CUASES THE PRINTING OF
+020 03 0     2841         BUN 8 *+3             THE FOLLOWING LIST
+020 04 0     2842   *A    LDB 8 B+
+020 05 0     2843         IBB 8 C+,1
+020 06 0     2844         MRD 4 0,OT,1
+020 07 0     2845         DBB 8 *+1,100         LAST LABEL PASSED WAS L(N)
+020 08 0     2846   *C    CAD - 100
+020 09 0     2847         STB 8 B+,04
+020 10 0     2848         BSA 8 EM,9            LABEL IN PROGRAM  NUMBER OF TIMES
+020 11 0     2849         BCS 8 A-,9
+020 12 0     2850         IOM 8 EM                                   EXECUTED
+020 13 0     2851         BSA 8 EM,4
+020 14 0     2852         BUN 8 A-
+020 15 0     2853   EM    DEFN  *                      L                N
+020 16 0     2853   *D    BUN 8 *+1
+020 17 0     2854         NOP 8 I++6                   -                -
+020 18 0     2855         LDB 8 *-1
+020 19 0     2856   ASSGZ RTF 8 NONE,4          VARIABLE IN PROGRAM           VALUE
+020 20 0     2857         CAD 8 I++6
+020 21 0     2858         ADA 8 I++7                     V                      N
+020 22 0     2859         BOF 8 *+1                      -                      -
+020 23 0     2860         BZA 8 *+2                      -                      -
+020 24 0     2861         BUN 8 EN-2
+020 25 0     2862         NOP 8 NONE
+020 26 0     2863         LDB 8 *-1
+020 27 0     2864         STB 8 ASSGZ,04
+020 28 0     2865         BUN 8 D-
+020 29 0     2866   *Z3   STP   *,2438
+020 30 0     2867   *Z4   BUN   *,I+-LOD1+100
+020 31 0     2868   EN    LDB 8 R-              WITH A PROCEDURE THE FIRST
+020 32 0     2869         CLL 8 I+-1          MESSAGE IS NOT PRINTED
+020 33 0     2870         IFL 8 I+-1,12,20
+020 34 0     2871         RTF 8 I+-1,24
+020 35 0     2872         DFL 8 B+,04,1
+020 36 0     2873         STP 8 D-
+020 37 0     2874         BUN 8 A-
+020 38 0     2875         BSA 8 V+,9
+020 39 0     2876   *Z5   STP   *,2468
+020 40 0     2877   *Z6   BUN   *,J+-LOD1+100
+020 41 0     2878         DFL 8 B+,04,1
+020 42 0     2879         STP 8 D-
+020 43 0     2880         BUN 8 A-
+020 44 0     2881   *E    STA 8 I++2,00
+020 45 0     2882         BSA 8 V+,9
+020 46 0     2883         STP 8 D-
+020 47 0     2884         BUN 8 A-
+020 48 0     2885         STA 8 I++3,00
+020 49 0     2886         STP 8 D-
+020 50 0     2887         BUN 8 A-
+020 51 0     2888         DLB - 100,64,0
+020 52 0     2889         CSA - 0
+020 53 0     2890         BFA 8 *+2,62,44
+020 54 0     2891         CSA - 1
+020 55 0     2892         CFA 8 TRCE,04
+020 56 0     2893         BCU 8 *+2
+020 57 0     2894         IBB 8 *-5,2
+020 58 0     2895         SRA   6
+020 59 0     2896         ADD 8 D1
+020 60 0     2897         STP 8 D-
+020 61 0     2898         BUN 8 A1+
+020 62 0     2899         STA 8 I++8,08
+020 63 0     2900   *Z7   STP   *,2408
+020 64 0     2901   *Z8   BUN   *,I+-LOD1+100
+020 65 0     2902         STP 8 D-
+020 66 0     2903         BUN 8 A-
+020 67 0     2904         BUN 8 E-
+020 68 0     2905   *V    LDB 8 A9+
+020 69 0     2906         CLL 8 J+-1
+020 70 0     2907         IFL 8 J+-1,12,20
+020 71 0     2908         RTF 8 J+-1,35
+020 72 0     2909         STP 8 D-
+020 73 0     2910         BUN 8 A-
+020 74 0     2911         BSA 8 V+,9
+020 75 0     2912   *Z9   STP   *,2468
+020 76 0     2913   *Z10  BUN   *,K+-LOD1+100
+020 77 0     2914   *Z11  STP   *,2448
+020 78 0     2915   *Z12  BUN   *,J+-LOD1+100
+020 79 0     2916         DFL 8 B+,04,1
+020 80 0     2917   *C    STP 8 D-
+020 81 0     2918         BUN 8 A-
+020 82 0     2919         BSA 8 V+,9
+020 83 0     2920         STA 8 J++2,00
+020 84 0     2921         STP 8 D-
+020 85 0     2922         BUN 8 A-
+020 86 0     2923         STA 8 J++3,00
+020 87 0     2924         STP 8 D-
+020 88 0     2925         BUN 8 A-
+020 89 0     2926         SRT   10
+020 90 0     2927         DLB - 100,64,0
+020 91 0     2928   *A9   CLA 8 J+
+020 92 0     2929         ADD - 0
+020 93 0     2930         BFR 8 F+,21,0
+020 94 0     2931         STP 8 D-
+020 95 0     2932         BUN 8 A1+
+020 96 0     2933         LDB 8 Q-
+020 97 0     2934         DBB 8 *+1,9993
+020 98 0     2935         RTF 8 S+,3
+020 99 0     2936         CLL 8 J++11
+021 00 0     2937         IFL 8 J++11,12,20
+021 01 0     2938   *Z13  STP   *,2408
+021 02 0     2939   *Z14  BUN   *,J+-LOD1+100
+021 03 0     2940         BUN 8 C-
+021 04 0     2941   *F    SLA   2
+021 05 0     2942         STA 8 S++5,02
+021 06 0     2943         SRA   2
+021 07 0     2944         SLA   2
+021 08 0     2945         STP 8 D-
+021 09 0     2946         BUN 8 A1+
+021 10 0     2947         LDB 8 Q-
+021 11 0     2948         DBB 8 *+1,9993
+021 12 0     2949         RTF 8 S+,3
+021 13 0     2950         IFL 8 J++8,02,03
+021 14 0     2951         CAD 8 S++5
+021 15 0     2952         LDR 8 S++1
+021 16 0     2953         BFR 8 *+2,21,0
+021 17 0     2954         SUB 8 S++4
+021 18 0     2955         STP 8 D-
+021 19 0     2956         BUN 8 A1+
+021 20 0     2957         SLT   16
+021 21 0     2958         STR 8 J++11,44
+021 22 0     2959         CAD 8 S+
+021 23 0     2960         SRA   2
+021 24 0     2961         STA 8 J++10,04
+021 25 0     2962         IFL 8 J++10,82,23
+021 26 0     2963         BUN 8 F--3
+021 27 0     2964   *A1   CLL 8 S+
+021 28 0     2965         IFL 8 S+,12,20
+021 29 0     2966         BPA 8 *+3
+021 30 0     2967         IFL 8 S+,82,20
+021 31 0     2968         LSA   0
+021 32 0     2969         SRT   10
+021 33 0     2970   TRCE  CLB
+021 34 0     2971   *B    CLA
+021 35 0     2972   *Y    SLA   1
+021 36 0     2973         ADD 8 S++3
+021 37 0     2974         SLT   1
+021 38 0     2975         IBB 8 Y-,2000
+021 39 0     2976         STA 9 S++1,00
+021 40 0     2977         IFL 8 Y-,11,5
+021 41 0     2978         BOF 8 D-
+021 42 0     2979         IBB 8 B-,1
+021 43 0     2980   D1    CNST  10000
+021 44 0     2981   *S    CNST  20000000000
+021 45 0     2982         CNST  20000000000
+021 46 0     2983         CNST  20000000000
+021 47 0     2984         CNST  8
+021 48 0     2985         CNST  50
+021 49 0     2986         CNST  0
+021 50 0     2987   *K    CNST  $        VARIABLE IN PROGRAM                    VALUE $
+021 51 0     2998         CNST  20000000000
+021 52 0     2999   *J    CNST  $        LABEL IN PROGRAM       NUMBER OF TIMES EXECUTE
+021 53 0     3009               D$
+021 54 0     3010         CNST  20000000000
+021 55 0     3011   *I    CNST  $        LAST LABEL PASSED WAS
+021 56 0     3021
+021 57 0     3032                          $
+
+
+021 60 0     3035   *V    NOP   Q+-100          THIS PROGRAM READS IN THE
+021 61 0     3036         LDB 8 *+2           ARRAY DUMP ROUTINE
+021 62 0     3037         RTF 8 *+2,3
+021 63 0     3038         BUN   98
+021 64 0     3039         LBC 8 *-4
+021 65 0     3040         MRD 4 100,1,3,BMOD
