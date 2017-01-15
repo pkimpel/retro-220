@@ -1,0 +1,48 @@
+   .00.0     0100   ERROR DEFN  100
+   .00.0     0000   FXFX  CLB
+   .00.0     0001         LDB 8 FXFX
+   .00.0     0002         BZA 8 F+
+   .00.0     0003         STR 6 ERROR+49      B
+   .00.0     0004         STA 6 ERROR+52
+   .00.0     0005         CLL 6 ERROR+50      C
+   .00.0     0006         IFL 6 ERROR+50,00,1
+   .00.0     0007   *A    CAD 6 ERROR+48         =5(11)
+   .00.0     0008         MUL 6 ERROR+49      B
+   .00.0     0009         STA 6 ERROR+49      B
+   .00.0     0010         BZR 8 B+
+   .00.0     0011         CAD 6 ERROR+50      C
+   .00.0     0012         MUL 6 ERROR+52
+   .00.0     0013         STR 6 ERROR+52      C
+   .00.0     0014         BZA 8 B+
+   .00.0     0015         BUN 8 A+
+   .00.0     0016   *B    LDR 6 ERROR+49      B
+   .00.0     0017         BZR 8 C+
+   .00.0     0018         CAD 6 ERROR+52
+   .00.0     0019         MUL 6 ERROR+52
+   .00.0     0020         STR 6 ERROR+52
+   .00.0     0021         BZA 8 A-
+   .00.0     0022   *A    CAD 6 ERROR+49      B
+   .00.0     0023         BMA 8 E+
+   .00.0     0024         LDR 8 $FXFX$
+   .00.0     0025         BUN 6 ERROR
+   .00.0     0026   *C    CAD 6 ERROR+50      C
+   .00.0     0027         BFR 8 D+,12,10
+   .00.0     0028         BUN - 0
+   .00.0     0029   *D    LDR 8 +1
+   .00.0     0030         CLA
+   .00.0     0031         DIV 6 ERROR+50      C
+   .00.0     0032         BUN - 0
+   .00.0     0033   *F    CFR 6 ERROR+24      ZERO
+   .00.0     0034         BCH - 0
+   .00.0     0035         LDR 8 $FXFX$
+   .00.0     0036         BUN 6 ERROR+7
+   .00.0     0037   *E    CLA
+   .00.0     0038         BUN - 0
+   .00.0     0039   LOCN  LOCN  *+2
+   .00.0     0041         CNST  40000990000
+   .00.0     0042         CNST  $FX*FX ERROR=1 $
+   .00.0     0045         CNST  90000000000
+   .00.0     0046         LOCN  LOCN
+   .00.0     0039         FINI  FXFX
+               39               +0000000001
+               40               $FXFX

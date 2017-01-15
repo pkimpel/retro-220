@@ -1,0 +1,35 @@
+   .00.0       THE LIBRARY ERROR SUBROUTINE
+   .00.0     0000   ERROR DEFN  *
+   .00.0     0000   ERA   STP 8 C+
+   .00.0     0001         BUN 8 A+
+   .00.0     0002   MSGA  CNST  $RESULT OUT OF RANGE IN   $
+   .00.0     0007   ERB   STP 8 C+
+   .00.0     0008         BUN 8 A+
+   .00.0     0009   MSGB  CNST  $RESULT UNDEFINED FOR     $
+   .00.0     0014   ERC   STP 8 C+
+   .00.0     0015         BUN 8 A+
+   .00.0     0016   MSGC  CNST  $RESULT ILL-DEFINED FOR   $
+   .00.0     0021   ERD   CLL 8 OUT+5
+   .00.0     0022         STP 8 C+
+   .00.0     0023         BUN 8 A++2
+   .00.0     0024   Z     CNST 0
+   .00.0     0025   MSGD  CNST  $ ARITHMETIC OVERFLOW$
+   .00.0     0029   *A    STR 8 OUT+5
+   .00.0     0030         CAR
+   .00.0     0031         STB 8 B+,04
+   .00.0     0032         LDB 8 OUT1
+   .00.0     0033   *C    RTF   *,5
+   .00.0     0034         F4246 1106,44,0100
+   .00.0     0035         F4246 OUT,30,0100
+   .00.0     0036   *B    BUN   *
+   .00.0     0037   OUT   CNST  0,0,0,0,0,0,0,0,0,0,0
+   .00.0     0048   H     CNST  5000000000
+   .00.0     0049   B     CNST  0
+   .00.0     0050   C     CNST  0
+   .00.0     0051   ONE   CNST  5110000000
+   .00.0     0052   A     CNST  0
+   .00.0     0053   OUT1  HLT 8 OUT
+   .00.0     0054         CNST  40000990000
+   .00.0     0055         CNST  $ERROR RITE=1 $
+   .00.0     0058         CNST  90000000000
+   .00.0     0059         FINI  ERROR

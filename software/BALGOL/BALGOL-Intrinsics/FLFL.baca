@@ -1,0 +1,58 @@
+   .00.0     0100   ERROR DEFN  100
+   .00.0     0200   LOG   DEFN  200
+   .00.0     0300   EXP   DEFN  300
+   .00.0     0400   FIX   DEFN  400
+   .00.0     0000   FLFL  F4247 6,1,0
+   .00.0     0001         STR 6 ERROR+50      C
+   .00.0     0002         STB 8 A+,41
+   .00.0     0003         STA 6 ERROR+52
+   .00.0     0004         DLB 8 FLFL,44,0
+   .00.0     0005         BOF 6 ERROR+21
+   .00.0     0006   *C    LDB 8 FLFL
+   .00.0     0007         BZA 8 D+
+   .00.0     0008         BMA 8 E+
+   .00.0     0009   *F    STP 6 LOG
+   .00.0     0010         BUN 6 LOG
+   .00.0     0011         FMU 6 ERROR+50      C
+   .00.0     0012         BOF 8 G+
+   .00.0     0013         CFA 8 +5311282665
+   .00.0     0014         BCH 8 Y+
+   .00.0     0015         STP 6 EXP
+   .00.0     0016         BUN 6 EXP
+   .00.0     0017   *A    LSA   0
+   .00.0     0018   *Z    LDB 8 FLFL
+   .00.0     0019         BUN - 0
+   .00.0     0020   *D    CFR 6 ERROR+24      =0=
+   .00.0     0021         BCH - 0
+   .00.0     0022         BUN 8 X+
+   .00.0     0023   *E    SOH
+   .00.0     0024         SLT   10
+   .00.0     0025         STP 6 FIX
+   .00.0     0026         BUN 6 FIX
+   .00.0     0027         SOR
+   .00.0     0028         BZR 8 I+
+   .00.0     0029   *X    LDB 8 FLFL
+   .00.0     0030         LDR 8 $FLFL$
+   .00.0     0031         BUN 6 ERROR+7
+   .00.0     0032   *I    SLS   10
+   .00.0     0033         RND
+   .00.0     0034         SRS   4
+   .00.0     0035         STA 8 A-,41
+   .00.0     0036         CAA 6 ERROR+52
+   .00.0     0037         BUN 8 F-
+   .00.0     0038   *Y    LDR 8 $FLFL$
+   .00.0     0039         LDB 8 FLFL
+   .00.0     0040         BUN 6 ERROR
+   .00.0     0041   *G    CAD 6 ERROR+52
+   .00.0     0042         MUL 6 ERROR+50      C
+   .00.0     0043         BPA 8 Y-
+   .00.0     0044         CLA
+   .00.0     0045         BUN 8 Z-
+   .00.0     0046   LOCN  LOCN  *+2
+   .00.0     0048         CNST  4000090000
+   .00.0     0049         CNST  $FL*FL ERROR=1 LOG=2 EXP=3 FIX=4 $
+   .00.0     0056         CNST  90000000000
+   .00.0     0057         LOCN  LOCN
+   .00.0     0046         FINI  1
+   .00.0       46               $FLFL
+   .00.0      047               +5311282665

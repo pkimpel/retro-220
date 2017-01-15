@@ -303,9 +303,9 @@
  04 00 0     0809         DBB   *+1,9999-LBRT   START AT LBRT+1
  04 01 0     0810   *E    STB   I
  04 02 0     0811         CAD - 0
-004 03 0     0812         BSA   A+,1
-004 04 0     0813         BZA   B+              END OF THIS PASS ON THE TABLE
-004 05 0     0814         STA   J,00
+004 03 0     0812         BSA   A+,1                                                            ORIGINALLY: 00X 0X 0   08/V
+004 04 0     0813         BZA   B+              END OF THIS PASS ON THE TABLE                   ORIGINALLY: 00X 0X 0   0(/X
+004 05 0     0814         STA   J,00                                                            ORIGINALLY: 00X 0X 0   0(/X
  04 06 0     0815         DLB   J,64,0
  04 07 0     0816         CAD - 0
  04 08 0     0817         BFA   A+,11,3         IS THE ROUTINE ASSIGNED
@@ -805,7 +805,7 @@
  09 02 0     1269         LDR   HOLD
  09 03 0     1270         STR   LOCN
  09 04 0     1271         BUN   E-
- 09 05 0     1272   *D    LDB   L,64,0
+ 09 05 0     1272   *D    DLB   L,64,0
  09 06 0     1273         CAD - 0               SET SIGN TO 8 TO INDICATE
  09 07 0     1274         LSA   0             THAT EXTERNAL PROGRAM HAS BEEN
  09 08 0     1275         STA - 0               GIVEN AN ASSIGNMENT
@@ -1494,7 +1494,6 @@
 015 91 0     2437   LEVEL HLT   0               LEVEL FOR SEARCHING
 
 
-
 015 94 0     2438   INS   STB   A+,04
 015 95 0     2439   AVALE LDR   AVAIL           INSERT RA(67) INTO ASSOCIATIVE MEMORY
 015 96 0     2440         BFR   B+,04,00
@@ -2067,3 +2066,366 @@
 021 63 0     3038         BUN   98
 021 64 0     3039         LBC 8 *-4
 021 65 0     3040         MRD 4 100,1,3,BMOD
+021 66 0     3041   NONE  CNST  $(NONE)              $
+021 67 0     3045         LOCN  LOD1+240
+
+
+
+021 71 0     3079   END3  CAD   STOX            DUMP BUFFER(LABELS AND VARIABLES)
+021 72 0     3080         BFA   *+2,04,0        IF IT IS NOT EMPTY
+021 73 0     3081         MOW 4 0,OT,1
+021 74 0     3082         CLR
+021 75 0     3083         STR   STOX,04         INITIALIZE  STORE ROUTINE
+021 76 0     3084         MOW 4 Q+,OT,3
+021 77 0     3085         LDB   IDEX
+021 78 0     3086         CAD - TBL+100
+021 79 0     3087   *C    STA   HOLD
+021 80 0     3088         LDB   HOLD
+021 81 0     3089         IBB   END4,9999       END OF LIST OF ARRAYS
+021 82 0     3090         DLB   HOLD,64,0
+021 83 0     3091         CAD - 4
+021 84 0     3092         STB   STOX1,62
+021 85 0     3093         BPA   PRSW2           ITEM UNMARKES - MARK IT IF PRSW2 IS ON
+021 86 0     3094         IFL   STOX1,62,1
+021 87 0     3095         BUN   A+
+021 88 0     3096   PRSW2 BUN   D+
+021 89 0     3097         IFL   STOX1,62,1
+021 90 0     3098         BUN   A+
+021 91 0     3099   *D    IFL   STOX1,62,30
+021 92 0     3100   *A    CAD - 0
+021 93 0     3101         STP   STOXX
+021 94 0     3102         BUN   STOX1
+021 95 0     3103         CAD - 1
+021 96 0     3104         STP   STOXX
+021 97 0     3105         BUN   STOX1
+021 98 0     3106         CAD - 2
+021 99 0     3107         STP   STOXX
+022 00 0     3108         BUN   STOX1
+022 01 0     3109         CAD - 3               OUTPUT ARRAY ITEM TO TAPE
+022 02 0     3110         STP   STOXX
+022 03 0     3111         BUN   STOX1
+022 04 0     3112         CAD - 4
+022 05 0     3113         STP   STOXX
+022 06 0     3114         BUN   STOX1
+022 07 0     3115         LDB   HOLD
+022 08 0     3116         CAD - 0
+022 09 0     3117         BUN   C-
+
+
+022 12 0     3118   END4  LSA   9
+022 13 0     3119         STP   STOXX           PUT A END FLAG OUT TO BUFFER
+022 14 0     3120         BUN   STOX
+022 15 0     3121         CAD   STOX
+022 16 0     3122         BFA   *+2,04,0
+022 17 0     3123         MOW 4 0,OT,1          DUMP BUFFER IF NOT EMPTY
+022 18 0     3124         CLR
+022 19 0     3125         STR   STOX,04         INITIALIZE STORE SUBROUTINE
+022 20 0     3126         BUN   ACTUA           GET NEXTITEM FOR SBMUD STACK
+
+
+022 23 0     3127   LOD2  DEFN  *               THIS PROGRAM IS RELOCATED TO
+022 24 0     3127   *Q    CLB 8 J++1            LOCATION 0100 AT OBJECT TIME
+022 25 0     3128         BUN 8 *+3             AND CAUSES THE PRINTING OF
+022 26 0     3129   *A    LDB 8 B+              THE FOLLOWING LIST
+022 27 0     3130         IBB 8 C+,1
+022 28 0     3131         MRD 4 0,1,1
+022 29 0     3132         DBB 8 *+1,100
+022 30 0     3133   *C    CAD - 100
+022 31 0     3134         STB 8 B+,04
+022 32 0     3135         BSA 8 D+,9            ARRAY A
+022 33 0     3136         BCS 8 A-,9
+022 34 0     3137         IOM 8 D+
+022 35 0     3138         BSA 8 D+,4            (ELEMENTS OF THE ARRAY PRINTED BY ROW)
+022 36 0     3139         BUN 8 A-
+022 37 0     3140   *D    BUN 8 *+2
+022 38 0     3141         BUN 8 *-1
+022 39 0     3142         BSA 8 V+,9
+022 40 0     3143         STA 8 I++3,00
+022 41 0     3144         STP 8 D-
+022 42 0     3145         BUN 8 A-              NOTE THAT A ROW HAS AS MANY ELEMENTS
+022 43 0     3146         STA 8 I++4,00       IN IT AS THE LAST INTEGER IN THE
+022 44 0     3147   *Z15  STP   *,2468
+022 45 0     3148   *Z16  BUN   *,I+-LOD2+100
+022 46 0     3149   *Z17  STP   *,2448
+022 47 0     3150   *Z18  BUN   *,J+-LOD2+100
+022 48 0     3151         STP 8 D-
+022 49 0     3152         BUN 8 A-
+022 50 0     3153         STA 8 L+
+022 51 0     3154         STP 8 D-
+022 52 0     3155         BUN 8 A-
+022 53 0     3156         CFA 8 S+,00
+022 54 0     3157         BCU 8 *+2
+022 55 0     3158         CAD 8 S++1
+022 56 0     3159         STA 8 L++1
+022 57 0     3160         STA 8 L++2
+022 58 0     3161         STP 8 D-
+022 59 0     3162         BUN 8 A-
+022 60 0     3163         CFA 8 S+,21
+022 61 0     3164         SRA   4
+022 62 0     3165         STA 8 G+,04
+022 63 0     3166   *H    CLL 8 N+
+022 64 0     3167         IFL 8 N+,00,21
+022 65 0     3168         CAR
+022 66 0     3169   *G    ADD   *
+022 67 0     3170         CLL 8 J+-1
+022 68 0     3171         CLL 8 T+
+022 69 0     3172         IFL 8 T+,12,20
+022 70 0     3173         BPA 8 *+3
+022 71 0     3174         IFL 8 T+,82,20
+022 72 0     3175         LSA   0
+022 73 0     3176         BCU 8 *+3
+022 74 0     3177         SLT   2
+022 75 0     3178         STR 8 S++2,02
+022 76 0     3179         SRT   10
+022 77 0     3180         CLB
+022 78 0     3181   *B    CLA
+022 79 0     3182   *Y    SLA   1
+022 80 0     3183         ADD 8 S++3
+022 81 0     3184         SLT   1
+022 82 0     3185         IBB 8 Y-,2000
+022 83 0     3186         STA 9 T++1,00
+022 84 0     3187         IFL 8 Y-,11,5
+022 85 0     3188         BOF 8 *+2
+022 86 0     3189         IBB 8 B-,1
+022 87 0     3190         BCE 8 P+
+022 88 0     3191         CLL 8 T++3
+022 89 0     3192   *M    LBC 8 N+
+022 90 0     3193         LDR 8 T+
+022 91 0     3194         STR 9 J++22,04
+022 92 0     3195         LDR 8 T++1
+022 93 0     3196         STR 9 J++23
+022 94 0     3197         LDR 8 T++2
+022 95 0     3198         STR 9 J++24
+022 96 0     3199         LDR 8 T++3
+022 97 0     3200         STR 9 J++25,66
+022 98 0     3201         DLB 8 L++1,04,1
+022 99 0     3202         IBB 8 W+,9999
+023 00 0     3203         DLB 8 N+,04,3
+023 01 0     3204         IBB 8 Y+,9999
+023 02 0     3205   *H    DLB 8 L+,04,1
+023 03 0     3206         DBB 8 X+,1
+023 04 0     3207         LDR 8 O+
+023 05 0     3208         BZR 8 E+
+023 06 0     3209   *F    STP 8 D-
+023 07 0     3210         BUN 8 A-
+023 08 0     3211         BUN 8 D-+2
+023 09 0     3212   *Z19  DEFN  *
+023 10 0     3212   *E    STP   *,2428
+023 11 0     3213   *Z20  BUN   *,J+-LOD2+100
+023 12 0     3214         LDB 8 Q-
+023 13 0     3215         RTF 8 J+,23
+023 14 0     3216         BUN 8 F-
+023 15 0     3217   *X    CLL 8 O+
+023 16 0     3218         IFL 8 G-,04,1
+023 17 0     3219         CLA
+023 18 0     3220         BUN 8 G-
+023 19 0     3221   *Y    DEFN  *
+023 20 0     3221   *Z21  STP   *,2408
+023 21 0     3222   *Z22  BUN   *,J+-LOD2+100
+023 22 0     3223         CLL 8 N+
+023 23 0     3224         IFL 8 N+,04,21
+023 24 0     3225         LDB 8 Q-
+023 25 0     3226         RTF 8 J+,23
+023 26 0     3227         STP 8 O+
+023 27 0     3228         BUN 8 H-
+023 28 0     3229   *Z23  DEFN  *
+023 29 0     3229   *W    STP   *,2428
+023 30 0     3230   *Z24  BUN   *,J+-LOD2+100
+023 31 0     3231         LDR 8 L++2
+023 32 0     3232         STR 8 L++1
+023 33 0     3233         BUN 8 Y-+2
+023 34 0     3234   *P    IFL 8 T+,02,03
+023 35 0     3235         STR 8 T++2,04
+023 36 0     3236         IFL 8 T++2,82,23
+023 37 0     3237         CAD 8 S++2
+023 38 0     3238         LDR 8 T++1                                                            ORIGINALLY: 0V3 38 0   3V38
+023 39 0     3239         BFR 8 *+2,21,0                                                        ORIGINALLY: 0VK X( 0   XVX(
+023 40 0     3240         SUB 8 S++4                                                            ORIGINALLY: 05X 70 0   75X0
+023 41 0     3241         BPA 8 *+3
+023 42 0     3242         IFL 8 T++2,02,20
+023 43 0     3243         LSA   0
+023 44 0     3244         CLR
+023 45 0     3245         SRT   1
+023 46 0     3246         SLA   1
+023 47 0     3247         SLT   7
+023 48 0     3248         ADD 8 S++5
+023 49 0     3249         STA 8 T++3,00
+023 50 0     3250         BUN 8 M-
+023 51 0     3251   *O    CNST  0
+023 52 0     3252   *T    CNST  20000000000
+023 53 0     3253         CNST  20000000000
+023 54 0     3254         CNST  20000000000
+023 55 0     3255         CNST  20000000000
+023 56 0     3256   *S    CNST  1
+023 57 0     3257         CNST  9999
+023 58 0     3258         CNST  0
+023 59 0     3259         CNST  8
+023 60 0     3260         CNST  50
+023 61 0     3261         CNST  8080000000
+023 62 0     3262   *L    CNST  0
+023 63 0     3263         CNST  0
+023 64 0     3264         CNST  0
+023 65 0     3265   *N    CNST  0
+023 66 0     3266   *I    CNST  $       ARRAY
+023 67 0     3276
+023 68 0     3287                         $
+023 69 0     3290   *J    CNST  $
+023 70 0     3300
+023 71 0     3311                         $
+
+
+023 74 0     3314   *V    NOP   LOD3-100        GET EITHER A PROCEDURE
+023 75 0     3315         LDB 8 S-              HEADER OR END OF DUMP
+023 76 0     3316         RTF 8 *+2,3           PROGRAM
+023 77 0     3317         BUN   1
+023 78 0     3318         LBC 8 *-4
+023 79 0     3319         MRD 4 100,1,3,BMOD
+023 80 0     3320         BUN   100
+023 81 0     3321         LOCN  LOD2+240
+
+
+023 84 0     3367   FIN   MOW 4 Q+,OT,1         OUTPUT END OF DUMP PROGRAM
+023 85 0     3368         MRW 4 OT
+023 86 0     3369         CAD   MEM
+023 87 0     3370         CFA   +LDBG-1
+023 88 0     3371         BCH   A+
+023 89 0     3372         BUN   LDBG
+023 90 0     3373   *A    CFA   +MEM+302
+023 91 0     3374         BCL   A+
+023 92 0     3375         BUN   LDBG
+023 93 0     3376   *A    MIB 4 *+2,T
+023 94 0     3377         BUN   *-1
+023 95 0     3378         MRW 4 T
+023 96 0     3379         DLB   *,44,0
+023 97 0     3380         MPF 4 T,10
+023 98 0     3381         DBB   *-1,1100
+023 99 0     3382         MPF 4 T,2
+024 00 0     3383         LDB   *+1
+024 01 0     3384   POSCT NOP   0
+024 02 0     3385         IBB   *+3,9999
+024 03 0     3386         MPF 4 T,1
+024 04 0     3387         BUN   *-2
+024 05 0     3388         MRD 4 400,T,10
+024 06 0     3389         MRD 4 1400,T,10
+024 07 0     3390         MRW 4 T
+024 08 0     3391         MIB 4 *+2,T
+024 09 0     3392         BUN   *-1
+024 10 0     3393         MLS 4 OT
+024 11 0     3394         BUN   LDBG
+
+
+024 14 0     3395   LOD4  DEFN  4
+024 15 0     3395   *Q    MRW 4 OT+10
+024 16 0     3396         BCS   *+3-LOD4+100,9
+024 17 0     3397   *Z25  STP   *,2418
+024 18 0     3398   *Z26  BUN   *,J+-LOD4+100
+024 19 0     3399         LDR   A+-LOD4+100
+024 20 0     3400         STR   MLOAD-1
+024 21 0     3401         BUN   MLOAD-1
+024 22 0     3402   *A    MNC 4 0,OT,4
+024 23 0     3403   *J    CNST  $
+024 24 0     3413
+024 25 0     3424                          $
+024 26 0     3427         LOCN  *+10          SPACE FOR PATCHES
+
+
+024 29 0     3437   GET   CAD   MEM
+024 30 0     3438         ADD   +7
+024 31 0     3439         CFA   +XZERO-1,04
+024 32 0     3440         BCH   A+              IS THERE ENOUGH ROOM
+024 33 0     3441         CAD   MEM             YES-  USE PRESENT SETTING OF MEM
+024 34 0     3442   GETX  BUN   *
+024 35 0     3443   *A    CAD   +700            IF NOT SET IT TO 0800
+024 36 0     3444         STA   MEM             AND DONT BOTHER CHECKING ANY MORE
+024 37 0     3445         BUN   GETX
+
+
+024 40 0     3446   SBMUD F244  0,SBMUD,0       INVERTED DUMP STACK
+024 41 0     3447   FIXUP F424  FIXUP,0,0       FIX-UPS FOR CALLS OF EXT PROGRAMS FROM
+                                                WITHIN SEGMENTS
+024 43 0     3448   NN    CNST  99              CONSTANT 99
+024 44 0     3449   LCHOD CNST  0
+024 45 0     3450   HALT  F424  757,0,7250      O K  HALT
+024 46 0     3451   VECTR CNST  0,0,0,0,0,0     STORAGE VECTOR USED BY THE MONSTER
+024 47 0     3457   SRERR CNST  21662454159     SEARCH ERROR
+024 48 0     3458         CNST  24348004559
+024 49 0     3459         CNST  25956590202
+024 50 0     3460   CSERR CNST  21643484543     CHECK SUM ERROR
+024 51 0     3461         CNST  25200626454
+024 52 0     3462         CNST  20045595956
+024 53 0     3463         CNST  25902020202
+024 54 0     3464   ERFRM FBGR  PRINT,9(T5A),75B
+024 55 0     3493   SREF  CNST  0               SYMBOL REFERENCE ADDRESS - PRESENT ITEM
+024 56 0     3494   SL    CNST  0               SYMBOL LENGTH
+024 57 0     3495   HOLD  CNST  0               SHORT TERM STORAGE LOCATION
+024 58 0     3496   THROW CNST  0               DITTO
+024 59 0     3497   NINES CNST  9999999999,9999999999   LARGEST POSSIBLE SYMBOL
+                                ALL 301 STACKS USED BY THE MONSTER ARE INITIALIZED WITH
+                                THIS SYMBOL SO SORTING CAN BE DONE
+024 62 0     3499   IDEX  CNST  0               LEVEL OF PROCEDURE
+024 63 0     3500   DIM   CNST  0               NUMBER OF DIMENSIONS
+024 64 0     3501   J     CNST  0               COUNTER USED IN CONNECTION WITH LBRT
+024 65 0     3502   TST   CNST  0               COUNT OF ROUTINES ASSIGNED INDIRECTLY
+024 66 0     3503   ADDIT CNST  0
+024 67 0     3504   MADIT CNST  0
+024 68 0     3505   DIMS  LOCN  *+20            DIMENSION LIST
+024 69 0     3525   LX    LOCN  *+50
+024 70 0     3575   MEM   HLT   *+302           NEXT FREE LOCATION
+024 71 0     3576   TBL   F244  0,NINES,0       SORTED STACKS SET UP BY THE MONSTER
+024 72 0     3577         LOCN  4000
+024 73 0     4000         MRW   2,4
+024 74 0     4001   *A    MPF   2,0
+024 75 0     4002         DFL   A--1,01,1
+024 76 0     4003         BRP   A-
+024 77 0     4004         MPF   2,5
+024 78 0     4005         MOW   0000,2,3
+024 79 0     4006         MOW   700,2,9
+024 80 0     4007         MOW   1600,2,0
+024 81 0     4008         MOW   2600,2,0
+024 82 0     4009         MRW   2
+024 83 0     4010         F424  2222,00,2222
+024 84 0     4011         LOCN  LX
+024 85 0     3525         FINI  2
+             3525               +0000010000
+             3526               +0000000010
+             3527               +0000000040
+             3528               +0000000080
+             3529               +0000000100
+             3530               +0000000700
+             3531               +0525005250
+             3532               +0000000001
+             3533               +0000000011
+             3534               +0011110000
+             3535               $FINIS
+             3536               +1000600000
+             3537               +0000002000
+             3538               +0002000000
+             3539               -0000001111
+             3540               +0000001111
+             3541               +1111110000
+             3542               +0000000023
+             3543               $H
+             3544               +0000545600
+             3545               +0000000007
+             3546               +9669009669
+             3547               $POOL
+             3548               +0034353600
+             3549               +0000000008
+             3550               +9999999999
+             3551               +0000000009
+             3552               +0000000099
+             3553               +0010123536
+             3554               +0000004233
+             3555               +0000002218
+             3556               +0000001103
+             3557               +0000002202
+             3558               +0000002428
+             3559               +0000004116
+             3560               +0000003577
+             3561               +0000003576
+             3562               +0000000292
+             3563               +0000003446
+             3564               +0000002868
+             3565               +0000001011
+             3566               +0000003877
+             3567               +0000004094

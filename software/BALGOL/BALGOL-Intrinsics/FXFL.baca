@@ -1,0 +1,16 @@
+   .00.0     0100   FLOAT DEFN  100
+   .00.0     0200   FLFL  DEFN  200
+   .00.0     0300   ERROR DEFN  300
+   .00.0     0000   FXFL  CLB
+   .00.0     0001         LDB 8 FXFL
+   .00.0     0002         STB 6 FLFL,04
+   .00.0     0003         STR 6 ERROR+50      C
+   .00.0     0004         STR 6 ERROR+49      B
+   .00.0     0005         STP 6 FLOAT
+   .00.0     0006         BUN 6 FLOAT
+   .00.0     0007         LDR 6 ERROR+50      C
+   .00.0     0008         BUN 6 FLFL+2
+   .00.0     0009         CNST  40000990000
+   .00.0     0010         CNST  $FX*FL FLOAT=1 FL*FL=2 ERROR=3 $
+   .00.0     0016         CNST  90000000000
+   .00.0     0017         FINI  1

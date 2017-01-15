@@ -1,0 +1,24 @@
+   .00.0     0100   ERROR DEFN  100
+   .00.0     0000   FIX   CRB
+   .00.0     0001         SRT   8
+   .00.0     0002         STA 8 A+,04
+   .00.0     0003         LDB 8 A+
+   .00.0     0004   *A    CLA
+   .00.0     0005         IBB 8 B+,9949
+   .00.0     0006         DBB 8 C+,10
+   .00.0     0007         SLT - 11
+   .00.0     0008   *B    LDB 8 FIX
+   .00.0     0009         BUN - 0
+   .00.0     0010   *C    IOM 8 D+
+   .00.0     0011         LDR 8 $FIX$
+   .00.0     0012         LDB 8 FIX
+   .00.0     0013         BUN 6 ERROR
+   .00.0     0014   *D    CLR
+   .00.0     0015         BUN 8 B-
+   .00.0     0016   LOCN  LOCN  *+1
+   .00.0     0017         CNST  40000990000
+   .00.0     0018         CNST  $FIX,INTEGER(REAL) ERROR=1 $
+   .00.0     0024         CNST  90000000000
+   .00.0     0025         LOCN  LOCN
+   .00.0     0016         FINI  FIX
+               16               $FIX

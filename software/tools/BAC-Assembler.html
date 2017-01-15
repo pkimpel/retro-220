@@ -95,8 +95,7 @@ DIV.heading {
 #Spinner {
     position:           absolute;
     top:                200px;
-    left:               auto;
-    right:              auto;
+    left:               200px;
     z-index:            10}
 </style>
 </head>
@@ -125,7 +124,9 @@ window.addEventListener("load", function() {
     var bufferLength = 0;
     var bufferOffset = 0;
     var eolRex = /([^\n\r\f]*)((:?\r[\n\f]?)|\n|\f)?/g;
+
     var panel = $$("TextPanel");
+    var sprintLimit = 100;              // cards processed before yielding control
 
     // Input field 0-relative column locations
     var labelIndex = 4;
@@ -210,7 +211,7 @@ window.addEventListener("load", function() {
     *    Each 220 assembler op code is defined by an array with a variable number
     *    of elements. The first element is the operation code, including any variant
     *    digit in (41) and is always required. The variant digit may be overlayed by
-    *    other fields in the instruction. If this value is negative, it indicates a
+    *    other fields in the instruction. If the code is negative, it indicates a
     *    pseudo-operator or other special handling.
     *
     *    The remainder of the array consists of number pairs, one for each comma-
@@ -318,7 +319,7 @@ window.addEventListener("load", function() {
         "IFL":  [ 26,  1, -1,  7, -1,  9, -1],
         "DFL":  [ 27,  1, -1,  7, -1,  9, -1],
         "DLB":  [ 28,  1, -1,  7, -1,  9, -1],
-        "MTS":  [ 50,  1, -1,  4, -1,  8, -1],
+        "MTS":  [ 50,  1, -1,  4, -1,  8,  0],
         "MFS":  [4000050,
                        1, -1,  4, -1,  8,  0],
         "MTC":  [ 51,  1, -1,  4, -1,  8, -1,  5, -1],
@@ -432,11 +433,10 @@ window.addEventListener("load", function() {
         /* Reads one card image from the buffer, pads or trims the image as
         necessary to 80 columns, and fills in the global "cardData" structure
         with the text and its location in the buffer */
-        var bx = bufferOffset;
-        var card;
-        var cardLength;
-        var line;
-        var match;
+        var bx = bufferOffset;          // current buffer offset
+        var card;                       // card image, padded/truncated to 80 columns
+        var cardLength;                 // original delimited card image length
+        var match;                      // regular expression match result
 
         cardData.offset = bx;
         if (bx >= bufferLength) {
@@ -455,9 +455,8 @@ window.addEventListener("load", function() {
 
             cardLength = card.length;
             if (cardLength > 80) {
-                line = card = card.substring(0, 80);
+                card = card.substring(0, 80);
             } else {
-                line = card;
                 while (card.length <= 70) {
                     card += "          ";
                 }
@@ -475,7 +474,7 @@ window.addEventListener("load", function() {
 
     /**************************************/
     function fileLoader_onLoad(ev) {
-        /* Handle the onload event for a Text FileReader */
+        /* Handles the onload event for a readAsText FileReader */
 
         buffer = ev.target.result;
         bufferOffset = 0;
@@ -487,7 +486,7 @@ window.addEventListener("load", function() {
     /**************************************/
     function fileSelector_onChange(ev) {
         /* Handle the <input type=file> onchange event when a file is selected */
-        var e;
+        var e;                          // spinner image DOM element
         var f = ev.target.files[0];
         var reader = new FileReader();
 
@@ -496,7 +495,7 @@ window.addEventListener("load", function() {
                 "\nModified " + f.lastModifiedDate +
                 "\nType=" + f.type + ", Size=" + f.size + " octets");
         ********************/
-          
+
         // initiate the spinner to run while compiling
         e = document.createElement("img");
         e.src = "../../webUI/resources/ajax-spinner.gif";
@@ -518,7 +517,7 @@ window.addEventListener("load", function() {
 
     /**************************************/
     function dumpErrorTank() {
-        /* Dumps the tank of error messages */
+        /* Dumps the tank of error messages to the text panel */
         var x;
 
         for (x=0; x<errorTank.length; ++x) {
@@ -531,6 +530,8 @@ window.addEventListener("load", function() {
 
     /**************************************/
     function printError(msg) {
+        /* Prints an error message to the text panel and bumps the error count */
+
         ++errorCount;
         errorTank.push("******** " + msg);
     }
@@ -539,8 +540,8 @@ window.addEventListener("load", function() {
     function declarePointLabel(label, location) {
         /* For each instance of a point label in the label field, creates a
         pseudo-label in the symbol table with the next number for that point */
-        var labelID;
-        var pointNr;
+        var labelID;                    // unique symbol for the point label instance
+        var pointNr;                    // current point number
 
         if (label in pointTab) {
             pointNr = ++pointTab[label];
@@ -561,8 +562,8 @@ window.addEventListener("load", function() {
         /* Accesses the location of the specified point label in the forward or
         backward direction. Returns the location of that label, or -1 if the
         label is currently undefined */
-        var labelID;
-        var pointNr;
+        var labelID;                    // unique symbol for the point label instance
+        var pointNr;                    // current point number
 
         if (label in pointTab) {
             pointNr = pointTab[label];
@@ -589,12 +590,13 @@ window.addEventListener("load", function() {
     function parseNumber(text, token, sign) {
         /* Parses a decimal number up to 11 digits in length starting at the
         current offset in "text". If the number is less than 11 digits long,
-        the sign is applied as the high-order digit. Returns the decimal string
-        in token.text and the binary value as the function result */
-        var c;
-        var length = text.length;
-        var raw = "";
-        var x = token.offset;
+        the sign is applied as the high-order digit; otherwise the sign is
+        ignored. Returns the decimal string in token.text and the binary value
+        as the function result */
+        var c;                          // current parse character
+        var length = text.length;       // length of operand string
+        var raw = "";                   // raw parsed token text
+        var x = token.offset;           // current offset into operand string
 
         while (x < length) {
             c = text.charAt(x);
@@ -632,7 +634,7 @@ window.addEventListener("load", function() {
         this is a continuation of an existing string by setting "continued" to
         true, and placing data for any prior partial word in token.text and
         token.word */
-        var c;                          // current character
+        var c;                          // current parse character
         var code;                       // current 220 char code
         var count = 0;                  // chars in current word
         var doubleDollar = false;       // $$-delimited string
@@ -665,7 +667,7 @@ window.addEventListener("load", function() {
                 if (c == "$") {
                     ++x;                // bypass the second "$"
                     doubleDollar = true;// don't know what this means yet
-                    appendCode(16);     // carriage return
+                    appendCode(16);     // but for now we'll treat it as a carriage return
                 }
             }
         }
@@ -694,7 +696,7 @@ window.addEventListener("load", function() {
                     printError("$$-STRING NOT TERMINATED");
                 } else if (text.charAt(x) == "$") {
                     ++x;                // bypass the second terminating "$"
-                    appendCode(16);     // carriage return
+                    appendCode(16);     // and append another carriage return
                 } else {
                     printError("$$-STRING NOT TERMINATED");
                 }
@@ -721,11 +723,11 @@ window.addEventListener("load", function() {
         /* Parses the next address primary from "text" starting at "token.offset",
         returning the parsed item in "token.text" and the updated parse offset
         in "token.newOffset". "token.type" indicates the type */
-        var c;
-        var length = text.length;
-        var raw = "";
-        var val = 0;
-        var x = token.offset;
+        var c;                          // current parse character
+        var length = text.length;       // length of operand text
+        var raw = "";                   // raw text of parsed token
+        var val = 0;                    // temp used with numeric pool constants
+        var x = token.offset;           // current offset into operand string
 
         if (x >= length) {                      // empty primary
             token.type = tokEmpty;
@@ -853,8 +855,8 @@ window.addEventListener("load", function() {
         Address expressions consist of a list of address primaries delimited
         by + or - operators. See parseAddressPrimary() for a definition */
         var address = 0;                // result address
-        var label;
-        var length = text.length;       // length of operand text
+        var label;                      // constructed point label ID
+        var length = text.length;       // length of operand string
         var adding = 1;                 // +/- operator
         var unresolvable = false;       // true if address cannot be resolved
         var val;                        // value of primary
@@ -942,9 +944,9 @@ window.addEventListener("load", function() {
         true, all address values must resolve to defined addresses, otherwise
         an error is produced and the resulting address value will be -1.
         Returns an array of address values */
-        var c;
-        var length = text.length;
-        var values = [];
+        var c;                          // current parse character
+        var length = text.length;       // length of operand string
+        var values = [];                // array of operand field address values
 
         if (text.charAt(token.offset) != " ") {         // check for empty operand
             while (token.offset < length) {
@@ -977,13 +979,14 @@ window.addEventListener("load", function() {
         array of binary words with the values found. This pseudo can continue
         across multiple cards if the continuation cards have a blank opCode field.
         The only time this is an issue is for continued strings, so the caller
-        will indicate this by setting "continued" to true */
-        var c;
-        var length = text.length;
-        var opCode;
-        var val2;
-        var values = [];
-        var x;
+        must indicate this by setting "continued" to true. Only fully-parsed words
+        are returned in the result array. Any partial word of string text for an
+        unterminated string is left for the continuation call */
+        var c;                          // current parse character
+        var length = text.length;       // length of operand string
+        var val2;                       // temp array of result words from parsing strings
+        var values = [];                // result array of completely parsed words
+        var x;                          // scratch index
 
         while (token.offset < length) { // parse comma-delimited values
             c = text.charAt(token.offset);
@@ -1038,16 +1041,16 @@ window.addEventListener("load", function() {
     function generateInstructionWord(opDesc, sign, values) {
         /* Generates the word value for an executable instruction.
         "opDesc" is the array of values for the op code from "opTab".
-        "values" is the list of address values parsed from the operand
-        text. Returns the binary value of the word */
+        "values" is the list of address values parsed from the operand text.
+        Returns the binary value of the word */
         var f;                          // current field value
         var nsign = 0;                  // numeric sign value
-        var opTop = opDesc.length;
+        var opTop = opDesc.length;      // length of op code description array
         var ox = 0;                     // opDesc[] index
         var w1;                         // word field 1
         var w2;                         // word field 2
         var word = 0;                   // resultant binary word value
-        var vTop = values.length;
+        var vTop = values.length;       // length of operand address values array
         var vx = 0;                     // values[] index
 
         if (!(sign in signValues)) {
@@ -1071,75 +1074,75 @@ window.addEventListener("load", function() {
             }
 
             if (f < 0) {
-                f = p10[11] - f;
+                f = p10[11] - f;        // compute a 10-digit 10s-complement
             }
 
             switch (opDesc[ox]) {
-            case  1:            // address field, inserted in (04)
+            case  1:                    // address field, inserted in (04)
                 w2 = word % p10[4];
                 word += f%p10[4] - w2;
                 break;
-            case  2:            // secondary value inserted in (33)
+            case  2:                    // secondary value inserted in (33)
                 w1 = word % p10[10];
                 w2 = w1 - w1 % p10[7];
                 word += (f%p10[3])*p10[7] - w2;
                 break;
-            case  3:            // secondary value inserted in (44)
+            case  3:                    // secondary value inserted in (44)
                 w1 = word % p10[10];
                 w2 = w1 - w1 % p10[6];
                 word += (f%p10[4])*p10[6] - w2;
                 break;
-            case  4:            // unit or count digit inserted in (11)
+            case  4:                    // unit or count digit inserted in (11)
                 w1 = word % p10[10];
                 w2 = w1 - w1 % p10[9];
                 word += (f%10)*p10[9] - w2;
                 break;
-            case  5:            // variant digit inserted in (41)
+            case  5:                    // variant digit inserted in (41)
                 w1 = word % p10[7];
                 w2 = w1 - w1 % p10[6];
                 word += (f%10)*p10[6] - w2;
                 break;
-            case  6:            // sL field designator inserted in (22); if specified, insert 1 in (31)
+            case  6:                    // sL field designator inserted in (22); if specified, insert 1 in (31)
                 w1 = word % p10[10];
                 w2 = w1 - w1 % p10[8];
                 word += (f%100)*p10[8] - w2;
                 if (vx < vTop) {
                     w1 = word % p10[8];
                     w2 = w1 - w1 % p10[7];
-                    word += p10[8] - w2;
+                    word += p10[7] - w2;
                 }
                 break;
-            case  7:            // sL field designator inserted in (22); (31) is undisturbed
+            case  7:                    // sL field designator inserted in (22); (31) is undisturbed
                 w1 = word % p10[10];
                 w2 = w1 - w1 % p10[8];
                 word += (f%100)*p10[8] - w2;
                 break;
-            case  8:            // value inserted in (32)
+            case  8:                    // value inserted in (32)
                 w1 = word % p10[9];
                 w2 = w1 - w1 % p10[7];
                 word += (f%100)*p10[7] - w2;
                 break;
-            case  9:            // value inserted in (42)
+            case  9:                    // value inserted in (42)
                 w1 = word % p10[8];
                 w2 = w1 - w1 % p10[6];
                 word += (f%100)*p10[6] - w2;
                 break;
-            case 10:            // value inserted in (21)
+            case 10:                    // value inserted in (21)
                 w1 = word % p10[9];
                 w2 = w1 - w1 % p10[8];
                 word += (f%10)*p10[8] - w2;
                 break;
-            case 11:            // value inserted in (62)
+            case 11:                    // value inserted in (62)
                 w1 = word % p10[6];
                 w2 = w1 - w1 % p10[4];
                 word += (f%100)*p10[4] - w2;
                 break;
-            case 12:            // value inserted in (64)
+            case 12:                    // value inserted in (64)
                 w1 = word % p10[8];
                 w2 = w1 - w1 % p10[4];
                 word += (f%p10[4])*p10[4] - w2;
                 break;
-            case 13:            // BU pair for CRF/CWF: (B-1)*2 in (41) U in (11)
+            case 13:                    // BU pair for CRF/CWF: (B-1)*2 in (41) U in (11)
                 w1 = word % p10[7];             // band in (41)
                 w2 = w1 - w1 % p10[6];
                 word += (((f%100-f%10)/10)-1)*2*p10[6] - w2;
@@ -1147,22 +1150,22 @@ window.addEventListener("load", function() {
                 w2 = w1 - w1 % p10[9];
                 word += (f%10)*p10[9] - w2;
                 break;
-            case 14:            // reload-lockout value added to (41)
+            case 14:                    // reload-lockout value added to (41)
                 w1 = word % p10[7];             // band in (41)
                 w2 = w1 + ((f%10)*p10[6])%p10[7];
                 word += w2 - w1;
                 break;
-            case 15:            // digit inserted in (11); if specified, insert 1 in (41)
+            case 15:                    // digit inserted in (11); if specified, insert 1 in (41)
                 w1 = word % p10[10];
                 w2 = w1 - w1 % p10[9];
                 word += (f%100)*p10[9] - w2;
                 if (vx < vTop) {
                     w1 = word % p10[7];
                     w2 = w1 - w1 % p10[6];
-                    word += p10[7] - w2;
+                    word += p10[6] - w2;
                 }
                 break;
-            case 19:            // resolved address only
+            case 19:                    // resolved address only
                 w2 = word % p10[4];
                 word += f%p10[4] - w2;
                 break;
@@ -1207,15 +1210,16 @@ window.addEventListener("load", function() {
         format phrases, one per 220 word. Each phrase may be prefixed by a
         numeric repeat count. Allowable format codes are:
 
-            A:  copy two digits (one character)
+            A:  copy two zone/numeric digits (one character)
             B:  input:  ignore two digits in memory
                 output: supply two zero zone/numeric digits on output
-            N:  copy one digit to/from memory and a card column
+            N:  copy one digit to/from memory and a card column, normally
+                supplying a zero for the zone
             P:  input:  store a zero for the sign digit
                 output: ignore sign digit in memory
             S:  input:  same as P
                 output: copy zone digit as a separate column
-            T:  input:  like P, but store a 2 for the sign instead
+            T:  input:  like P, but store a 2 for the sign instead of zero
                 output: same as P
             X:  input:  store zone digit in memory
                 output: copy a zone digit as an overpunch for next code
@@ -1223,7 +1227,17 @@ window.addEventListener("load", function() {
                 output: supply a zero zone/numeric digit to the device
             (:  start of repeating group
             ):  end of repeating group
-        */
+
+        This generator works by expanding all repeat counts and groups to a linear
+        string of format codes, then walking that string backwards to generate the
+        Cardatron format band digits. If this is an input format, the result is
+        padded with 11 zero codes to push the final word into the 220's D register.
+        For both input and output bands, the result is padded with 3 (delete) codes
+        out to a total of 29 words. Note that the band words are returned in
+        reverse order, to match the right-to-left processing of card columns by the
+        Cardatron and the order in which the 220 fetched words from memory when
+        loading format bands. If all that sounds very confusing, it's why we have
+        format band generators */
         var band = [];                  // generated format band words
         var bandType;                   // band type: INPUT, PRINT, PUNCH
         var codes = "";                 // expanded format band phrases
@@ -1257,8 +1271,8 @@ window.addEventListener("load", function() {
 
         //--------------------------------------
         function flushBandWord(digit) {
-            /* If a partial word exists, fill the remainder with "digit"
-            values, then push it to the band array */
+            /* If a partial word exists, fill the remainder with "digit" values,
+            then push it to the band array */
 
             while (wx < 11) {
                 emitBandDigits(digit, 1);
@@ -1271,9 +1285,8 @@ window.addEventListener("load", function() {
 
         //--------------------------------------
         function expandPhrase(cx, level) {
-            /* Expands repeat counts and groups to a string of individual
-            phrase codes in "codes"; adjusts phrase codes for X-code zone-digit
-            behavior */
+            /* Expands repeat counts and groups to a string of individual phrase
+            codes in "codes"; adjusts phrase codes for X-code zone-digit behavior */
             var c;                      // current phrase character
             var count = 0;              // repeat count
             var done = false;           // loop control
@@ -1559,7 +1572,7 @@ window.addEventListener("load", function() {
             flushBandWord(3);           // pad out the last word with 3s
         }
 
-        //--------------------------------------
+        //-------------------------------------- start of generateFormatBand()
         x = operand.indexOf(" ");
         oLen = (x < 0 ? operand.length : x);
 
@@ -1596,6 +1609,33 @@ window.addEventListener("load", function() {
     }
 
     /**************************************/
+    function dumpSymbolTable() {
+        /* Dumps the contents of the symbol table to the text panel */
+        var keys;                       // sorted symbol table keys
+        var offset = 0;                 // print line offset
+        var text = "";                  // print line
+        var x;                          // scratch index
+
+        printLine("");
+        printLine("SYMBOL TABLE");
+        printLine("");
+
+        keys = Object.keys(symTab).sort();
+        for (x=0; x<keys.length; ++x) {
+            if (offset > 80) {
+                printLine(text);
+                text = "";
+                offset = 0;
+            }
+
+            text += padLeft(symTab[keys[x]], offset-text.length+5) + " " + keys[x];
+            offset += 20;
+        }
+
+        printLine(text);
+    }
+
+    /**************************************/
     function assembleFile() {
         /* Initializes or reinitializes the assembler for a new file */
 
@@ -1612,19 +1652,13 @@ window.addEventListener("load", function() {
 
         clearPanel();
         startPass1();
-
-        if (errorCount == 0) {
-            initializePass2();
-        }
-
-        $$("TextDiv").removeChild($$("Spinner"));
     }
 
     /**************************************/
     function startPass1() {
         /* Reads the control cards and then passes control to Pass 1 of the assembler */
-        var done = false;
-        var opCode;
+        var done = false;               // loop control
+        var opCode;                     // op code field of current card
 
         do {
             readACard();
@@ -1640,7 +1674,7 @@ window.addEventListener("load", function() {
                     break;
                 default:
                     done = true;
-                    assemblePass1();
+                    setTimeout(assemblePass1, 100);
                     break;
                 }
             }
@@ -1649,8 +1683,8 @@ window.addEventListener("load", function() {
 
     /**************************************/
     function printPass1(seq, location, label, opCode, sign, operand) {
-        /* Prints a line of output from Pass 1 of the assembly */
-        var text;
+        /* Prints a line of output from Pass 1 of the assembly to the text panel */
+        var text;                       // formatted line image
 
         if (opCode === null) {
             text = padRight(" ", 8+5+4+3, " ");
@@ -1692,32 +1726,34 @@ window.addEventListener("load", function() {
     /**************************************/
     function assemblePass1() {
         /* Processes card images for Pass 1 of the assembler. Enters with the
-        first card in "cardData */
-        var card;
-        var continuedString = false;
-        var done = false;
-        var finito = false;
-        var label;
-        var opCode;
-        var opDesc;
-        var operand;
-        var origLoc;
-        var seq;
-        var sign;
-        var text;
-        var thisLoc;
-        var values;
-        var x;
+        first card in "cardData. Every "sprintCount" cards, this routine reschedules
+        itself after a short delay and then exits. This allows the text panel to be
+        updated in the browser window */
+        var card;                       // current card to be assembled
+        var continuedString = false;    // true if processing a string split across cards
+        var done = false;               // loop control
+        var finito = false;             // true if the FINI pseudo-op has been sensed
+        var label;                      // label symbol from the card
+        var opCode;                     // op code field from the card
+        var opDesc;                     // array of op code description words from opTab{}
+        var operand;                    // operand field from the card
+        var origLoc;                    // original location for this line
+        var seq;                        // sequence field from the card
+        var sign;                       // sign-override field from the card
+        var sprintCount = 0;            // counter for periodic refreshing of the text panel
+        var text;                       // scratch string
+        var thisLoc;                    // current location for this line (changed by DEFN)
+        var values;                     // array of address or word values from parsing operands
+        var x;                          // scratch index
 
         do {
             card = cardData.text;
             label = card.substring(labelIndex, labelIndex+5).trim();
             opCode = card.substring(opCodeIndex, opCodeIndex+4).trim();
             operand = card.substring(operandIndex, operandIndex+operandLength); // no trim
-            origLoc = location;
             seq = card.substring(72, 80);
             sign = card.substring(opCodeIndex+4, opCodeIndex+5);
-            thisLoc = location;
+            origLoc = thisLoc = location;
 
             if (opCode == "REM") {
                 printPass1(seq, location, label, null, sign, operand);
@@ -1813,11 +1849,16 @@ window.addEventListener("load", function() {
 
             if (cardData.atEOF) {
                 done = true;
+                if (!finito) {
+                    printError("EOF encountered before FINI in Pass 1");
+                }
+            } else if (++sprintCount > sprintLimit && !continuedString) {
+                done = true;
             }
         } while (!done);
 
         if (!finito) {
-            printError("EOF encountered before FINI in Pass 1");
+            setTimeout(assemblePass1, 100);
         } else {
             buildPoolPass1();
 
@@ -1830,51 +1871,40 @@ window.addEventListener("load", function() {
 
             dumpErrorTank();
             printLine("END OF PASS 1, ERRORS = " + errorCount);
-            printLine("");
-            printLine("");
-            printLine("SYMBOL TABLE");
-            text = "";
-            thisLoc = 0;
-            values = Object.keys(symTab).sort();
-            for (x=0; x<values.length; ++x) {
-                if (thisLoc > 80) {
-                    printLine(text);
-                    text = "";
-                    thisLoc = 0;
-                }
+            dumpSymbolTable();
 
-                text += padLeft(symTab[values[x]], thisLoc-text.length+5) + " " + values[x];
-                thisLoc += 20;
+            if (errorCount == 0) {      // advance to Pass 2
+                setTimeout(initializePass2, 100);
+            } else {                    // we're done -- remove the spinner image
+                $$("TextDiv").removeChild($$("Spinner"));
             }
-
-            printLine(text);
-            printLine("");
         }
     }
 
     /**************************************/
     function initializePass2() {
         /* Reinitializes the assembler to reread the input file for Pass 2 */
-        var e;
+        var e;                          // point label ID
 
         errorCount = 0;
         errorTank = [];
         location = 0;
-        bufferOffset = 0;       // reset the card buffer position
+        bufferOffset = 0;               // reset the card buffer position
         cardData.atEOF = false;
         cardData.serial = 0;
-        for (e in pointTab) {   // reset the point label table
+        for (e in pointTab) {           // reset the point label table
             pointTab[e] = 0;
         }
 
+        printLine("");
         startPass2();
     }
 
     /**************************************/
     function startPass2() {
         /* Sets up for Pass 2 of the assembly and initiates it */
-        var done = false;
-        var opCode;
+        var done = false;               // loop control
+        var opCode;                     // op code parsed from card
 
         do {
             readACard();
@@ -1890,7 +1920,7 @@ window.addEventListener("load", function() {
                     break;
                 default:
                     done = true;
-                    assemblePass2();
+                    setTimeout(assemblePass2, 100);
                     break;
                 }
             }
@@ -1899,13 +1929,13 @@ window.addEventListener("load", function() {
 
     /**************************************/
     function printPass2(seq, serial, location, word, label, opCode, sign, operand) {
-        /* Prints a line of output from Pass 2 of the assembly */
-        var addr;
-        var op;
-        var text;
-        var variant;
-        var w;
-        var wordText;
+        /* Prints a line of output from Pass 2 of the assembly  to the text panel */
+        var addr;                       // address (04) field of instruction word
+        var op;                         // op code (62) field of instruction word
+        var text;                       // scratch string
+        var variant;                    // variant (44) field of instruction word
+        var w;                          // scratch variable for word field partitioning
+        var wordText;                   // instruction word as text "9 9999 99 9999"
 
         if (opCode === null) {
             text = padRight(" ", 8+6+6+4+16+3, " ");
@@ -1938,12 +1968,12 @@ window.addEventListener("load", function() {
     /**************************************/
     function buildPoolPass2() {
         /* Builds the final constant pool */
-        var keys;
-        var label;
-        var text;
-        var values;
-        var x;
-        var xref = {};
+        var keys;                       // addresses for pool words
+        var label;                      // pool entry ID
+        var text;                       // scratch string
+        var values;                     // parseConstantList() result
+        var x;                          // scratch index
+        var xref = {};                  // hash used to build address keys for sorting
 
         // First, extract all the viable pool entries for sorting
         for (label in poolTab) {
@@ -1982,36 +2012,38 @@ window.addEventListener("load", function() {
 
     /**************************************/
     function assemblePass2() {
-        /* Callback function for the card reader. Processes the card image for
-        pass 1 of the assembler */
-        var card;
-        var continuedString = false;
-        var done = false;
-        var finito = false;
-        var label;
-        var opCode;
-        var opDesc;
-        var operand;
-        var origLoc;
-        var seq;
-        var serial;
-        var sign;
-        var text;
-        var thisLoc;
-        var values;
-        var word;
-        var x;
+        /* Processes card images for Pass 2 of the assembler. Enters with the
+        first card in "cardData. Every "sprintCount" cards, this routine reschedules
+        itself after a short delay and then exits. This allows the text panel to be
+        updated in the browser window */
+        var card;                       // current card to be assembled
+        var continuedString = false;    // true if processing a string split across cards
+        var done = false;               // loop control
+        var finito = false;             // true if the FINI pseudo-op has been sensed
+        var label;                      // label symbol from the card
+        var opCode;                     // op code field from the card
+        var opDesc;                     // array of op code description words from opTab{}
+        var operand;                    // operand field from the card
+        var origLoc;                    // original location for this line
+        var seq;                        // sequence field from the card
+        var serial;                     // card serial number for printPass2()
+        var sign;                       // sign-override field from the card
+        var sprintCount = 0;            // counter for periodic refreshing of the text panel
+        var text;                       // scratch string
+        var thisLoc;                    // current location for this line (changed by DEFN)
+        var values;                     // array of address or word values from parsing operands
+        var word;                       // assembled instruction word
+        var x;                          // scratch index
 
         do {
             card = cardData.text;
             label = card.substring(labelIndex, labelIndex+5).trim();
             opCode = card.substring(opCodeIndex, opCodeIndex+4).trim();
             operand = card.substring(operandIndex, operandIndex+operandLength);
-            origLoc = location;
             seq = card.substring(72, 80);
             serial = cardData.serial;
             sign = card.substring(opCodeIndex+4, opCodeIndex+5);
-            thisLoc = location;
+            origLoc = thisLoc = location;
 
             if (opCode == "REM") {
                 printPass2(seq, serial, location, word, label, null, sign, operand);
@@ -2128,11 +2160,16 @@ window.addEventListener("load", function() {
 
             if (cardData.atEOF) {
                 done = true;
+                if (!finito) {
+                    printError("EOF encountered before FINI in Pass 2");
+                }
+            } else if (++sprintCount > sprintLimit && !continuedString) {
+                done = true;
             }
         } while (!done);
 
         if (!finito) {
-            printError("EOF encountered before FINI in Pass 2");
+            setTimeout(assemblePass2, 100);
         } else {
             buildPoolPass2();
 
@@ -2143,9 +2180,10 @@ window.addEventListener("load", function() {
                 }
             }
 
+            buffer = "";                // release the card buffer area
             printLine("");
             printLine("END OF PASS 2, ERRORS = " + errorCount);
-            buffer = "";                // release the card buffer area
+            $$("TextDiv").removeChild($$("Spinner"));   // remove the spinner image
         }
     }
 
