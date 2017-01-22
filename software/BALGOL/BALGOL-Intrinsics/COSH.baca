@@ -1,0 +1,25 @@
+   .00.0     0100   EXP   DEFN  100
+   .00.0     0200   ERROR DEFN  200
+   .00.0     0000   COSH  NOP
+   .00.0     0001         LDR 8 COSH2
+   .00.0     0002         LSA   0
+   .00.0     0003         STP 6 EXP
+   .00.0     0004         BUN 6 EXP+2
+   .00.0     0005         BZA 8 A+
+   .00.0     0006         STA 6 ERROR+52
+   .00.0     0007         CAD 6 ERROR+51      =1.0=
+   .00.0     0008         FDB 6 ERROR+52
+   .00.0     0009         FAD 6 ERROR+52
+   .00.0     0010         FMU 8 +5050000000
+   .00.0     0011   *A    LDB 8 COSH
+   .00.0     0012         BUN - 0
+   .00.0     0013   COSH2 HLT 8 COSH1
+   .00.0     0014   COSH1 CNST  $COSH$
+   .00.0     0015   LOCN  LOCN  *+1
+   .00.0     0016         CNST  40000990000
+   .00.0     0017         CMST  $COSH,REAL(REAL) EXP=1 ERROR=2 $
+   .00.0     0023         CNST  90000000000
+   .00.0     0024         LOCN  LOCN
+   .00.0     0015         FINI  COSH
+               15               +5050000000
+

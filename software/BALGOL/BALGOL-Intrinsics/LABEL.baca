@@ -1,0 +1,64 @@
+   .00.0       THE LABEL PROCESSING SUBROUTINE
+   .00.0     0100   ERROR DEFN  100
+   .00.0     0000   LABEL BCS   *,8
+   .00.0     0001         LDB 8 NUMLB
+   .00.0     0002         BOF 6 ERROR+21
+   .00.0     0003         LDB 8 LABEL
+   .00.0     0004         DLB - 9998,44,1
+   .00.0     0005         STB 8 HOLD
+   .00.0     0006         LDB 8 LABEL
+   .00.0     0007         DLB - 9999,44,0
+   .00.0     0008         STA 8 HOLD1
+   .00.0     0009         CAD - 0
+   .00.0     0010         STA 6 ERROR+49      B
+   .00.0     0011         SRT   10
+   .00.0     0012         STP 8 NUMLX
+   .00.0     0013         BSA 8 NUMLB,1
+   .00.0     0014         STA 6 ERROR+44
+   .00.0     0015         STR 6 ERROR+45
+   .00.0     0016         CAA 8 HOLD
+   .00.0     0017         SUB 8 +10000
+   .00.0     0018         SRT   10
+   .00.0     0019         STP 8 NUMLX
+   .00.0     0020         BUN 8 NUMLB
+   .00.0     0021         STR 6 ERROR+46,08
+   .00.0     0022   *I    BUN 8 *+1
+   .00.0     0023         IFL 6 ERROR+46,22,24
+   .00.0     0024         IFL 6 ERROR+47,22,04
+   .00.0     0025         IFL 8 I-,04,3
+   .00.0     0026         BCS 8 PRINT,7
+   .00.0     0027   EXIT  LDB 8 LABEL
+   .00.0     0028         CAD 8 HOLD1
+   .00.0     0029         BUN - 0
+   .00.0
+   .00.0     0030   PRINT LDB 8 *+2
+   .00.0     0031         RTF 6 ERROR+24,1    ZERO
+   .00.0     0032         RTF 6 ERROR+37,5
+   .00.0     0033         STP 6 ERROR+36
+   .00.0     0034         BUN 6 ERROR+34
+   .00.0     0035         BUN 8 EXIT
+   .00.0
+   .00.0
+   .00.0     0036   NUMLB F4248 8001,45,LABEL+3
+   .00.0     0037         SLA   1
+   .00.0     0038         SLT   1
+   .00.0     0039         SUB 8 +80
+   .00.0     0040         IFL 8 NUMLB,11,8
+   .00.0     0041         BOF 8 NUMLB+1
+   .00.0     0042         IFL 8 *-1,11,5
+   .00.0     0043         BOF 8 A+
+   .00.0     0044         STA 6 ERROR+50      C
+   .00.0     0045         BUN 8 NUMLB
+   .00.0     0046   *A    SRT   10
+   .00.0     0047         CAD 6 ERROR+50      C
+   .00.0     0048   NUMLX BUN   *
+   .00.0     0049   LOCN  LOCN  *+4
+   .00.0     0053         CNST  40000990000
+   .00.0     0054         CNST  $LABEL ERROR=1 $
+   .00.0     0057         CNST  90000000000
+   .00.0     0058         LOCN  LOCN
+   .00.0     0049         FINI  LABEL
+               49   HOLD1
+               50   HOLD
+               51               +0000010000
+               52               +0000000080

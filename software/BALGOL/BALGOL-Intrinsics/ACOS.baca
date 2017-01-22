@@ -1,0 +1,29 @@
+   .00.0     0100   ATAN  DEFN  100
+   .00.0     0200   ROMXX DEFN  200
+   .00.0     0300   ERROR DEFN  300
+   .00.0     0000   ACOS  NOP
+   .00.0     0001         STA 6 ERROR+52
+   .00.0     0002         LDB 8 ACOS
+   .00.0     0003         BZA 6 ROMXX+39
+   .00.0     0004         LDR 8 ACOS2
+   .00.0     0005         STP 6 ROMXX
+   .00.0     0006         BUN 6 ROMXX+4
+   .00.0     0007         FDV 6 ERROR+52
+   .00.0     0008         STP 6 ATAN
+   .00.0     0009         BUN 6 ATAN
+   .00.0     0010         LDB 8 ACOS
+   .00.0     0011         LDR 6 ERROR+52
+   .00.0     0012         SLT   0
+   .00.0     0013         BPA - 0
+   .00.0     0014         FAD 8 +5131415927
+   .00.0     0015         BUN - 0
+   .00.0     0016   ACOS2 HLT 8 ACOS1
+   .00.0     0017   ACOS1 CNST  $ACOS$
+   .00.0     0018   X     CNST  0
+   .00.0     0019   LOCN  LOCN  *+1
+   .00.0     0020         CNST  40000990000
+   .00.0     0021         CNST  $ARCCOS,REAL(REAL) ARCTAN=1 ROMXX=2 ERROR=3 $
+   .00.0     0030         CNST  90000000000
+   .00.0     0031         LOCN  LOCN
+   .00.0     0019         FINI  ACOS
+               19               +5131415927

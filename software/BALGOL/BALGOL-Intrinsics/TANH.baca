@@ -1,0 +1,33 @@
+   .00.0     0100   SINH  DEFN  100
+   ,00,0     0200   COSH  DEFN  200
+   .00.0     0300   ERROR DEFN  300
+   .00.0     0000   TANH  NOP
+   .00.0     0001         STA 8 X
+   .00.0     0002         LDR 8 TANH2
+   .00.0     0003         CFA 8 +5250000000,00
+   .00.0     0004         BCH 8 B+
+   .00.0     0005         STP 6 COSH
+   .00.0     0006         BUN 6 COSH+2
+   .00.0     0007         STA 8 COSHX
+   .00.0     0008         BZA 8 A+
+   .00.0     0009         CAD 8 X
+   .00.0     0010         STP 6 SINH
+   .00.0     0011         BUN 6 SINH
+   .00.0     0012         FDV 8 COSHX
+   .00.0     0013   *A    LDB 8 TANH
+   .00.0     0014         BUN - 0
+   .00.0     0015   *B    CAD 6 ERROR+51      =1.0=
+   .00.0     0016         LDR 8 X
+   .00.0     0017         SLT   0
+   .00.0     0018         BUN 8 A-
+   .00.0     0019   X     CNST  0
+   .00.0     0020   COSHX CNST  0
+   .00.0     0021   TANH2 HLT 8 TANH1
+   .00.0     0022   TAHN1 CNST  $TANH$
+   .00.0     0023   LOCN  LOCN  *+1
+   .00.0     0024         CNST  40000990000
+   .00.0     0025         CNST  $TANH,REAL(REAL) SINH=1 COSH=2 ERROR=3 $
+   .00.0     0033         CNST  90000000000
+   .00.0     0034         LOCN  LOCN
+   .00.0     0023         FINI  TANH
+               23               +5250000000

@@ -126,6 +126,7 @@ window.addEventListener("load", function() {
     var eolRex = /([^\n\r\f]*)((:?\r[\n\f]?)|\n|\f)?/g;
 
     var panel = $$("TextPanel");
+    var rTrimRex = /\s*$/;
     var sprintLimit = 100;              // cards processed before yielding control
 
     // Input field 0-relative column locations
@@ -162,6 +163,7 @@ window.addEventListener("load", function() {
         newOffset: -1};
 
     // Assembly storage
+    var autoSymTab = {};                // auto-declared (undefined) symbol table
     var errorCount = 0;                 // assembler error count
     var errorTank = [];                 // holding area for errors on current line
     var location = 0;                   // current instruction address
@@ -416,6 +418,20 @@ window.addEventListener("load", function() {
         }
 
         return result;
+    }
+
+    /**************************************/
+    function rTrim(s) {
+        /* Returns the string "s" stripped of any trailing whitespace */
+        var x = s.search(rTrimRex);
+
+        if (x < 0 ) {
+            return s;
+        } else if (x < 1) {
+            return "";
+        } else {
+            return s.substring(0, x);
+        }
     }
 
     /**************************************/
@@ -1644,6 +1660,7 @@ window.addEventListener("load", function() {
         location = 0;
         cardData.atEOF = false;
         cardData.serial = 0;
+        autoSymTab = {};
         pointTab = {};
         poolTab = {};
         symTab = {};
@@ -1692,7 +1709,7 @@ window.addEventListener("load", function() {
             text = padLeft(seq, 8, " ") + "     " + padLeft(location, 4, "0") + "   ";
         }
 
-        text += padRight(label, 6) + padRight(opCode || " ", 4) + padRight(sign, 2, " ") + operand;
+        text += padRight(label, 6) + padRight(opCode || " ", 4) + padRight(sign, 2, " ") + rTrim(operand);
         printLine(text);
         if (errorTank.length > 0) {
             dumpErrorTank();
@@ -1850,6 +1867,7 @@ window.addEventListener("load", function() {
             if (cardData.atEOF) {
                 done = true;
                 if (!finito) {
+                    finito = true;
                     printError("EOF encountered before FINI in Pass 1");
                 }
             } else if (++sprintCount > sprintLimit && !continuedString) {
@@ -1860,14 +1878,19 @@ window.addEventListener("load", function() {
         if (!finito) {
             setTimeout(assemblePass1, 100);
         } else {
-            buildPoolPass1();
-
-            // Wrap up Pass 1, check for undefined symbols
-            for (text in symTab) {
-                if (symTab[text] < 0) {
-                    printError("SYMBOL NOT DEFINED: " + text);
+            // Wrap up Pass 1 and check for undefined symbols.
+            // Oddly, undefined symbols appear to have been implicitly defined at the end,
+            // so build a table of them and assign locations.
+            for (label in symTab) {
+                if (symTab[label] < 0) {
+                    autoSymTab[label] = location;
+                    symTab[label] = location;
+                    printPass1("", location, label, "", "", "");
+                    ++location;
                 }
             }
+
+            buildPoolPass1();
 
             dumpErrorTank();
             printLine("END OF PASS 1, ERRORS = " + errorCount);
@@ -1958,7 +1981,7 @@ window.addEventListener("load", function() {
                    "      " + padLeft(location, 4, "0") + wordText + "   ";
         }
 
-        text += padRight(label, 6) + padRight(opCode || " ", 4) + padRight(sign, 2, " ") + operand;
+        text += padRight(label, 6) + padRight(opCode || " ", 4) + padRight(sign, 2, " ") + rTrim(operand);
         printLine(text);
         if (errorTank.length > 0) {
             dumpErrorTank();
@@ -2161,6 +2184,7 @@ window.addEventListener("load", function() {
             if (cardData.atEOF) {
                 done = true;
                 if (!finito) {
+                    finito = true;
                     printError("EOF encountered before FINI in Pass 2");
                 }
             } else if (++sprintCount > sprintLimit && !continuedString) {
@@ -2171,6 +2195,11 @@ window.addEventListener("load", function() {
         if (!finito) {
             setTimeout(assemblePass2, 100);
         } else {
+            // dump the auto-defined symbols
+            for (label in autoSymTab) {
+                printPass2("", null, autoSymTab[label], 0, label, "", "", "");
+            }
+
             buildPoolPass2();
 
             // Wrap up Pass 2, check again for undefined symbols (shouldn't be any)

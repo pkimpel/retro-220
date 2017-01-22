@@ -1,0 +1,20 @@
+   .00.0     0100   ATAN  DEFN  100
+   .00.0     0200   ROMXX DEFN  200
+   .00.0     0300   ERROR DEFN  300
+   .00.0     0000   ASIN  NOP
+   .00.0     0001         STA 6 ERROR+52
+   .00.0     0002         LDR 8 ASIN2
+   .00.0     0003         STP 6 ROMXX
+   .00.0     0004         BUN 6 ROMXX+4
+   .00.0     0005         LDB 8 ASIN
+   .00.0     0006         BZA 6 ROMXX+39
+   .00.0     0007         STA 6 ERROR+49      B
+   .00.0     0008         CAD 6 ERROR+52
+   .00.0     0009         FDV 6 ERROR+49      B
+   .00.0     0010         BUN 6 ATAN+2
+   .00.0     0011   ASIN2 HLT 8 ASIN1
+   .00.0     0012   ASIN1 CNST  $ASIN$
+   .00.0     0013         CNST  40000990000
+   .00.0     0014         CNST  $ARCSIN,REAL(REAL) ARCTAN=1 ROMXX=2 ERROR=3 $
+   .00.0     0023         CNST  90000000000
+   .00.0     0024         FINI  ASIN

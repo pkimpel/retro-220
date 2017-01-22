@@ -6,6 +6,9 @@ Unless otherwise specified, all files are in standard Windows text
 format, with carriage-return/line-feed delimiters.
 
 
+    [WORK IN PROGRESS]
+
+
 BAC-Assembler.html
     HTML/Javascript assembler for the assembly language dialect used
     with the BALGOL Main, Overlay, and intrinsic functions.

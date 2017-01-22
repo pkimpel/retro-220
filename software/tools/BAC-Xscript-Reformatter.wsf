@@ -44,18 +44,18 @@ Dim fso
 Dim lastSeq
 
 '---------------------------------------
-Function PadLeft(ByVal s, ByVal chars)
+Function PicZn(ByVal s, ByVal chars)
   'Formats the string "s" to be exactly "chars" characters long, padding
   'with spaces or truncating on the left, as necessary.
   Dim sLen
 
   sLen = Len(s)
   If sLen < chars Then
-    PadLeft = Space(chars - sLen) & s
+    PicZn = Space(chars - sLen) & s
   ElseIf sLen > chars Then
-    PadLeft = Right(s, chars)
+    PicZn = Right(s, chars)
   Else
-    PadLeft = s
+    PicZn = s
   End If
 End Function
 
@@ -98,10 +98,10 @@ Sub WriteCard(cardFile, seq, text)
   Dim seqNr
   Dim seqText
 
-  seqText = PadLeft(seq, 8)
+  seqText = PicZn(seq, 8)
   image = PicXn(text, 72)
   If Len(Trim(seqText)) = 0 Then
-    seqText = Replace(lastSeq, " ", "")
+    seqText = Replace(Replace(lastSeq, " ", ""), ".", "")
     If IsNumeric(seqText) Then
       seqNr = CLng(seqText)
     Else
@@ -109,7 +109,7 @@ Sub WriteCard(cardFile, seq, text)
     End If
 
     seqNr = seqNr + 10
-    seqText = PadLeft("0" & seqNr, 6)
+    seqText = PicZn("0" & seqNr, 6)
     seqText = Mid(seqText, 1, 3) & " " & Mid(seqText, 4, 2) & " " & Mid(seqText, 6)
   End If
 
@@ -122,12 +122,15 @@ Sub ExtractCode(byVal xScriptName, byVal deckName)
   'Extracts source from an assembler transcription file.
   'The assembler source is written as card images to a file with the same
   'name as the transcription file, but modified with a ".card" extension.
-  Dim addr
+  Dim address
   Dim card
   Dim cardFile
+  Dim label
   Dim lastAddr
   Dim line
   Dim lineNr
+  Dim operand
+  Dim opCode
   Dim seq
   Dim text
   Dim word
@@ -137,28 +140,41 @@ Sub ExtractCode(byVal xScriptName, byVal deckName)
   Const labelCol = 21
   Const opCodeCol = 27
   Const operandCol = 33
+  Const lastCol = 90
 
   Set xFile = fso.OpenTextfile(xScriptName, ForReading, False, False)
   lineNr = 1
 
   Set cardFile = fso.OpenTextFile(deckName, ForWriting, True, True)
+  line = xFile.ReadLine
+  If Mid(line, addrCol, 2) = "  " Then
+    text = Mid(line, addrCol+2, opCodeCol-addrCol-2)
+    If Len(Trim(text)) > 0 Then
+      '-- assume it's a heading line and convert to a REM card
+      WriteCard cardFile, Mid(line, 1, 8), "1" & Space(9) & "REM   " & Mid(line, addrCol+2, lastCol-addrCol+2)
+      line = xFile.ReadLine
+    End If
+  End If
 
   Do While Not xFile.AtEndOfStream
-    line = xFile.ReadLine
     lineNr = lineNr+1
-    seq = RTrim(Mid(line, 1, 8))
+    address = RTrim(Mid(line, addrCol, 4))
+    label = RTrim(Mid(line, labelCol, 5))
+    opCode = RTrim(Mid(line, opCodeCol, 5))
+    operand = RTrim(Mid(line, operandCol, lastCol-operandCol))
+    seq = LTrim(Mid(line, 1, 8))
 
-    '-- If the sequence and opCode fields are blank, and address field is not present, generate a REM card
-    '-- If the sequence field is blank, and the address field IS present, do not generate a card
-    If Len(seq) = 0 And Len(RTrim(Mid(line, opCodeCol, 5))) = 0 And Len(RTrim(Mid(line, addrCol, 4))) = 0 Then
-      WriteCard cardFile, seq, "1" & Space(9) & "REM   " & Mid(line, operandCol)
-    ElseIf Len(seq) > 0 Or Len(RTrim(Mid(line, addrCol, 4))) = 0 Then
+    '-- If the address and opCode fields are blank, generate a REM card
+    '-- If the sequence field is blank, and the address field is not, do not generate a card
+    If Len(opCode) = 0 And Len(address) = 0 Then
+      WriteCard cardFile, seq, "1" & Space(9) & "REM   " & operand
+    ElseIf Len(seq) > 0 Or Len(address) = 0 Then
       '-- Reformat and write the assembler card image
       WriteCard cardFile, seq, "1" & Space(3) & _
-             PicXn(Mid(line, labelCol, 5), 6) & _
-             PicXn(Mid(line, opCodeCol, 5), 6) & _
-             Mid(line, operandCol)
+             PicXn(label, 6) & PicXn(opCode, 6) & operand
     End If
+
+    line = xFile.ReadLine
   Loop
 
   cardFile.Close
@@ -181,7 +197,7 @@ Else
   If args.Count > 1 Then
     lastSeq = Trim(args.Item(1))
   Else
-    lastSeq = "01 0"
+    lastSeq = "09 0"
   End If
 End If
 
