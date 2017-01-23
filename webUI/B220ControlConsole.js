@@ -15,7 +15,7 @@
 /**************************************/
 function B220ControlConsole(p, systemShutdown) {
     /* Constructor for the ControlConsole object */
-    var h = 584;
+    var h = 568;
     var w = 1064;
     var mnemonic = "ControlConsole";
 
@@ -44,8 +44,10 @@ function B220ControlConsole(p, systemShutdown) {
 
 /**************************************/
 B220ControlConsole.displayRefreshPeriod = 50;   // milliseconds
-B220ControlConsole.offSwitchClass = "./resources/ToggleDown.png";
-B220ControlConsole.onSwitchClass = "./resources/ToggleUp.png";
+B220ControlConsole.offSwitchImage = "./resources/ToggleDown.png";
+B220ControlConsole.onSwitchImage = "./resources/ToggleUp.png";
+B220ControlConsole.offOrganSwitchImage = "./resources/Organ-Switch-Up.png"
+B220ControlConsole.onOrganSwitchImage = "./resources/Organ-Switch-Down.png"
 
 /**************************************/
 B220ControlConsole.prototype.$$ = function $$(e) {
@@ -58,7 +60,7 @@ B220ControlConsole.prototype.powerOnSystem = function powerOnSystem() {
 
     if (!this.p.poweredOn) {
         this.p.powerUp();
-        this.powerLamp.set(1);
+        //this.powerLamp.set(1);
         this.window.focus();
         if (!this.intervalToken) {
             this.intervalToken = this.window.setInterval(this.boundUpdatePanel, B220ControlConsole.displayRefreshPeriod);
@@ -72,7 +74,7 @@ B220ControlConsole.prototype.powerOffSystem = function powerOffSystem() {
 
     if (this.p.poweredOn) {
         this.systemShutdown();
-        this.powerLamp.set(0);
+        //this.powerLamp.set(0);
         if (this.intervalToken) {       // if the display auto-update is running
             this.window.clearInterval(this.intervalToken);  // kill it
             this.intervalToken = 0;
@@ -509,6 +511,7 @@ B220ControlConsole.prototype.flipSwitch = function flipSwitch(ev) {
 B220ControlConsole.prototype.consoleOnLoad = function consoleOnLoad() {
     /* Initializes the Supervisory Panel window and user interface */
     var body;
+    var panel;
     var prefs = this.config.getNode("ControlConsole");
     var x;
 
@@ -530,30 +533,88 @@ B220ControlConsole.prototype.consoleOnLoad = function consoleOnLoad() {
 
     // Status Panels
 
-    this.digitCheckLamp = new ColoredLamp(body, null, null, "DigitCheckLamp", "redLamp lampCollar", "whiteLit");
-    this.powerLamp = new ColoredLamp(body, null, null, "PowerLamp", "greenLamp", "greenLit");
+    panel = this.$$("AlarmPanel");
+    this.digitCheckLamp = new ColoredLamp(panel, null, null, "DigitCheckLamp", "redLamp lampCollar", "redLit");
+    this.programCheck = new ColoredLamp(panel, null, null, "ProgramCheckLamp", "redLamp lampCollar", "redLit");
+    this.storageLamp = new ColoredLamp(panel, null, null, "StorageLamp", "redLamp lampCollar", "redLit");
+    this.magneticTapeLamp = new ColoredLamp(panel, null, null, "MagneticTapeLamp", "redLamp lampCollar", "redLit");
+    this.cardatronLamp = new ColoredLamp(panel, null, null, "CardatronLamp", "redLamp lampCollar", "redLit");
+    this.paperTapeLamp = new ColoredLamp(panel, null, null, "PaperTapeLamp", "redLamp lampCollar", "redLit");
+    this.highSpeedPrinterLamp = new ColoredLamp(panel, null, null, "HighSpeedPrinterLamp", "redLamp lampCollar", "redLit");
+    this.systemNotReadyLamp = new ColoredLamp(panel, null, null, "SystemNotReadyLamp", "redLamp lampCollar", "redLit");
+    this.computerNotReadyLamp = new ColoredLamp(panel, null, null, "ComputerNotReadyLamp", "redLamp lampCollar", "redLit");
 
-    this.overflowLamp = new ColoredLamp(body, null, null, "OverflowLamp", "redLamp", "redLit");
+    panel = this.$$("OperationPanel");
+    this.runLamp = new ColoredLamp(panel, null, null, "RunLamp", "redLamp lampCollar", "redLit");
+    this.fetchLamp = new ColoredLamp(panel, null, null, "FetchLamp", "redLamp lampCollar", "redLit");
+    this.executeLamp = new ColoredLamp(panel, null, null, "ExecuteLamp", "redLamp lampCollar", "redLit");
 
-    this.sectorLamp = new ColoredLamp(body, null, null, "SectorLamp", "whiteLamp", "whiteLit");
-    this.controlLamp = new ColoredLamp(body, null, null, "ControlLamp", "orangeLamp", "orangeLit");
-    this.fcLamp = new ColoredLamp(body, null, null, "FCLamp", "whiteLamp", "whiteLit");
-    this.idleLamp = new ColoredLamp(body, null, null, "IdleLamp", "redLamp", "redLit");
-
-    this.executeLamp = new ColoredLamp(body, null, null, "ExecuteLamp", "whiteLamp", "whiteLit");
-    this.fetchLamp = new ColoredLamp(body, null, null, "FetchLamp", "whiteLamp", "whiteLit");
+    panel = this.$$("StatusPanel");
+    this.overflowLamp = new ColoredLamp(panel, null, null, "OverflowLamp", "redLamp lampCollar", "redLit");
+    this.repeatLamp = new ColoredLamp(panel, null, null, "RepeatLamp", "redLamp lampCollar", "redLit");
+    this.lowLamp = new ColoredLamp(panel, null, null, "LowLamp", "redLamp lampCollar", "redLit");
+    this.equalLamp = new ColoredLamp(panel, null, null, "EqualLamp", "redLamp lampCollar", "redLit");
+    this.highLamp = new ColoredLamp(panel, null, null, "HighLamp", "redLamp lampCollar", "redLit");
 
     // Organ Switches
 
-    this.audibleAlarmSwitch = new ToggleSwitch(body, null, null, "AudibleAlarmSwitch",
-            B220ControlConsole.offSwitchClass, B220ControlConsole.onSwitchClass);
-    this.audibleAlarmSwitch.set(this.p.sswAudibleAlarm = prefs.audibleAlarmSwitch);
-    this.lockNormalSwitch = new ToggleSwitch(body, null, null, "LockNormalSwitch",
-            B220ControlConsole.offSwitchClass, B220ControlConsole.onSwitchClass);
-    this.lockNormalSwitch.set(this.p.sswLockNormal = prefs.lockNormalSwitch);
-    this.stepContinuousSwitch = new ToggleSwitch(body, null, null, "StepContinuousSwitch",
-            B220ControlConsole.offSwitchClass, B220ControlConsole.onSwitchClass);
-    this.stepContinuousSwitch.set(this.p.sswStepContinuous = prefs.stepContinuousSwitch);
+    panel = this.$$("ControlSwitchPanel");
+    this.controlSwitch1 = new OrganSwitch(panel, null, null, "ControlSwitch1",
+            B220ControlConsole.offOrganSwitchImage, B220ControlConsole.onOrganSwitchImage, false);
+    this.controlSwitch2 = new OrganSwitch(panel, null, null, "ControlSwitch2",
+            B220ControlConsole.offOrganSwitchImage, B220ControlConsole.onOrganSwitchImage, false);
+    this.controlSwitch3 = new OrganSwitch(panel, null, null, "ControlSwitch3",
+            B220ControlConsole.offOrganSwitchImage, B220ControlConsole.onOrganSwitchImage, false);
+    this.controlSwitch4 = new OrganSwitch(panel, null, null, "ControlSwitch4",
+            B220ControlConsole.offOrganSwitchImage, B220ControlConsole.onOrganSwitchImage, false);
+    this.controlSwitch5 = new OrganSwitch(panel, null, null, "ControlSwitch5",
+            B220ControlConsole.offOrganSwitchImage, B220ControlConsole.onOrganSwitchImage, false);
+    this.controlSwitch6 = new OrganSwitch(panel, null, null, "ControlSwitch6",
+            B220ControlConsole.offOrganSwitchImage, B220ControlConsole.onOrganSwitchImage, false);
+    this.controlSwitch7 = new OrganSwitch(panel, null, null, "ControlSwitch7",
+            B220ControlConsole.offOrganSwitchImage, B220ControlConsole.onOrganSwitchImage, false);
+    this.controlSwitch8 = new OrganSwitch(panel, null, null, "ControlSwitch8",
+            B220ControlConsole.offOrganSwitchImage, B220ControlConsole.onOrganSwitchImage, false);
+    this.controlSwitch9 = new OrganSwitch(panel, null, null, "ControlSwitch9",
+            B220ControlConsole.offOrganSwitchImage, B220ControlConsole.onOrganSwitchImage, false);
+    this.controlSwitch10 = new OrganSwitch(panel, null, null, "ControlSwitch10",
+            B220ControlConsole.offOrganSwitchImage, B220ControlConsole.onOrganSwitchImage, false);
+
+    panel = this.$$("OperationSwitchPanel");
+    this.stopSwitch = new OrganSwitch(panel, null, null, "StopSwitch",
+            B220ControlConsole.offOrganSwitchImage, B220ControlConsole.onOrganSwitchImage, true);
+    this.startSwitch = new OrganSwitch(panel, null, null, "StartSwitch",
+            B220ControlConsole.offOrganSwitchImage, B220ControlConsole.onOrganSwitchImage, true);
+    this.stepSwitch = new OrganSwitch(panel, null, null, "StepSwitch",
+            B220ControlConsole.offOrganSwitchImage, B220ControlConsole.onOrganSwitchImage, true);
+    this.clearSwitch = new OrganSwitch(panel, null, null, "ClearSwitch",
+            B220ControlConsole.offOrganSwitchImage, B220ControlConsole.onOrganSwitchImage, true);
+
+    panel = this.$$("MiscellaneousSwitchPanel");
+    this.keyboardSwitch = new OrganSwitch(panel, null, null, "KeyboardSwitch",
+            B220ControlConsole.offOrganSwitchImage, B220ControlConsole.onOrganSwitchImage, false);
+    this.sOnSwitch = new OrganSwitch(panel, null, null, "SOnSwitch",
+            B220ControlConsole.offOrganSwitchImage, B220ControlConsole.onOrganSwitchImage, false);
+    this.unitsSwitch = new OrganSwitch(panel, null, null, "UnitsSwitch",
+            B220ControlConsole.offOrganSwitchImage, B220ControlConsole.onOrganSwitchImage, false);
+    this.sToPSwitch = new OrganSwitch(panel, null, null, "SToPSwitch",
+            B220ControlConsole.offOrganSwitchImage, B220ControlConsole.onOrganSwitchImage, false);
+    this.sToCSwitch = new OrganSwitch(panel, null, null, "SToCSwitch",
+            B220ControlConsole.offOrganSwitchImage, B220ControlConsole.onOrganSwitchImage, false);
+    this.resetTransferSwitch = new OrganSwitch(panel, null, null, "ResetTransferSwitch",
+            B220ControlConsole.offOrganSwitchImage, B220ControlConsole.onOrganSwitchImage, false);
+    this.tcuClearSwitch = new OrganSwitch(panel, null, null, "TCUClearSwitch",
+            B220ControlConsole.offOrganSwitchImage, B220ControlConsole.onOrganSwitchImage, false);
+
+    /********** DEBUG **********/
+    var that = this;
+    this.controlSwitch1.addEventListener("click", function setCS1(ev) {
+        that.controlSwitch1.flip();
+    });
+    this.stopSwitch.addEventListener("click", function setStop(ev) {
+        that.stopSwitch.set(1);
+    });
+    /***************************/
 
     // Events
     this.$$("IntervalTimerResetBtn").addEventListener("click", this.boundResetTimer);

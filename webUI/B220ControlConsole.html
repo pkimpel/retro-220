@@ -29,11 +29,14 @@
 <div id=PanelSurface class=panelSurface>
     <img id=BurroughsMeatball src="resources/Burroughs-Meatball.png">
     <img id=BurroughsLogo src="resources/Burroughs-Logo.jpg">
-    <!-- <img id=B220Logo src="resources/B220-Logo.jpg"> -->
     <div id=B220Logo>2 2 0</div>
 
+    <div id=IntervalTimerResetCaption class=caption>ZERO TIMER</div>
     <div id=IntervalTimerResetBtn class=blackButton3>&nbsp;</div>
     <div id=IntervalTimer>0000.0</div>
+
+    <div id=PowerOffBtn class=redButton3>&nbsp;</div>
+    <div id=PowerOffCaption class=caption>POWER OFF</div>
 
     <!--
     <div id=AdderDiv class=panelRegister>
@@ -54,22 +57,101 @@
     <div id=SRegPanel class=panelRegister></div>
 
     <div id=AlarmPanel class=panelDiv>
-        <button id=DigitCheckLabel class=panelLabel>DIGIT<br>CHECK</button>
-        <button id=ProgramCheckLabel class=panelLabel>PROGRAM<br>CHECK</button>
-        <button id=StorageLabel class=panelLabel>STORAGE</button>
-        <button id=MagneticTapeLabel class=panelLabel>MAGNETIC<br>TAPE</button>
-        <button id=CardatronLabel class=panelLabel>CARDATRON</button>
-        <button id=PaperTapeLabel class=panelLabel>PAPER<br>TAPE</button>
-        <button id=HighSpeedPrinterLabel class=panelLabel>HIGH SPEED<br>PRINTER</button>
+        <div id=AlarmCaption>
+            <div class=panelTopCaption>
+                <span class=panelTopCaptionSpan>ALARMS</span>
+            </div>
+        </div>
+        <div id=NotReadyCaption>
+            <div class=panelTopCaption>
+                <span class=panelTopCaptionSpan>NOT READY</span>
+            </div>
+        </div>
+
+        <button id=DigitCheckLampLabel class=panelLabel>DIGIT<br>CHECK</button>
+        <button id=ProgramCheckLampLabel class=panelLabel>PROGRAM<br>CHECK</button>
+        <button id=StorageLampLabel class=panelLabel>STORAGE</button>
+        <button id=MagneticTapeLampLabel class=panelLabel>MAGNETIC<br>TAPE</button>
+        <button id=CardatronLampLabel class=panelLabel>CARDATRON</button>
+        <button id=PaperTapeLampLabel class=panelLabel>PAPER<br>TAPE</button>
+        <button id=HighSpeedPrinterLampLabel class=panelLabel>HIGH SPEED<br>PRINTER</button>
+        <button id=Blank1LampLabel class=panelLabel>&nbsp;</button>
+        <button id=SystemNotReadyLampLabel class=panelLabel>SYSTEM</button>
+        <button id=ComputerNotReadyLampLabel class=panelLabel>COMPUTER</button>
     </div>
 
-    <!--
-    <div id=PowerOnBtn class=blackButton3>&nbsp;</div>
-    <div id=PowerOnCaption class=caption>ON</div>
-    -->
+    <div id=OperationPanel class=panelDiv>
+        <div class=panelTopCaption>
+            <span class=panelTopCaptionSpan>OPERATION</span>
+        </div>
 
-    <div id=PowerOffBtn class=redButton3>&nbsp;</div>
-    <div id=PowerOffCaption class=caption>OFF</div>
+        <button id=RunLampLabel class=panelLabel>RUN</button>
+        <button id=FetchLampLabel class=panelLabel>FETCH</button>
+        <button id=ExecuteLampLabel class=panelLabel>EXECUTE</button>
+        <button id=Blank2LampLabel class=panelLabel>&nbsp;</button>
+    </div>
+
+    <div id=StatusPanel class=panelDiv>
+        <div id=ComparisonCaption>
+            <div class=panelTopCaption>
+                <span class=panelTopCaptionSpan>COMPARISON</span>
+            </div>
+        </div>
+
+        <button id=OverflowLampLabel class=panelLabel>OVER<br>FLOW</button>
+        <button id=RepeatLampLabel class=panelLabel>REPEAT</button>
+        <button id=Blank3LampLabel class=panelLabel>&nbsp;</button>
+        <button id=LowLampLabel class=panelLabel>LOW</button>
+        <button id=EqualLampLabel class=panelLabel>EQUAL</button>
+        <button id=HighLampLabel class=panelLabel>HIGH</button>
+        <button id=Blank4LampLabel class=panelLabel>&nbsp</button>
+        <button id=Blank5LampLabel class=panelLabel>&nbsp;</button>
+        <button id=Blank6LampLabel class=panelLabel>&nbsp;</button>
+        <button id=Blank7LampLabel class=panelLabel>&nbsp;</button>
+    </div>
+
+    <div id=ControlSwitchPanel class=panelDiv>
+        <div class=panelTopCaption>
+            <span class=panelTopCaptionSpan>PROGRAM CONTROL SWITCHES</span>
+        </div>
+
+        <button id=ControlSwitch1Label class=panelLabel>1</button>
+        <button id=ControlSwitch2Label class=panelLabel>2</button>
+        <button id=ControlSwitch3Label class=panelLabel>3</button>
+        <button id=ControlSwitch4Label class=panelLabel>4</button>
+        <button id=ControlSwitch5Label class=panelLabel>5</button>
+        <button id=ControlSwitch6Label class=panelLabel>6</button>
+        <button id=ControlSwitch7Label class=panelLabel>7</button>
+        <button id=ControlSwitch8Label class=panelLabel>8</button>
+        <button id=ControlSwitch9Label class=panelLabel>9</button>
+        <button id=ControlSwitch10Label class=panelLabel>10</button>
+    </div>
+
+    <div id=OperationSwitchPanel class=panelDiv>
+        <button id=StopSwitchLabel class=panelLabel>STOP</button>
+        <button id=StartSwitchLabel class=panelLabel>START</button>
+        <button id=StepSwitchLabel class=panelLabel>STEP</button>
+        <button id=ClearSwitchLabel class=panelLabel>CLEAR</button>
+    </div>
+
+    <div id=MiscellaneousSwitchPanel class=panelDiv>
+        <div id=ProgramCheckingCaption>
+            <div class=panelTopCaption>
+                <span class=panelTopCaptionSpan>PROGRAM CHECKING SWITCHES</span>
+            </div>
+        </div>
+
+        <button id=Blank10SwitchLabel class=panelLabel>&nbsp;</button>
+        <button id=Blank11SwitchLabel class=panelLabel>&nbsp;</button>
+        <button id=Blank12SwitchLabel class=panelLabel>&nbsp;</button>
+        <button id=KeyboardSwitchLabel class=panelLabel>KEYBOARD</button>
+        <button id=SOnSwitchLabel class=panelLabel>"S" ON</button>
+        <button id=UnitsSwitchLabel class=panelLabel>UNITS</button>
+        <button id=SToPSwitchLabel class=panelLabel>"S" TO P</button>
+        <button id=SToCSwitchLabel class=panelLabel>"S" TO C</button>
+        <button id=ResetTransferSwitchLabel class=panelLabel>RESET<br>TRANSFER</button>
+        <button id=TCUClearSwitchLabel class=panelLabel>TCU CLEAR</button>
+    </div>
 
     <!--
 

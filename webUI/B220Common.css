@@ -48,6 +48,7 @@ BODY {
 
 BODY.panelBody {
     position:           relative;
+    height:             100%;
     font-size:          8pt;
     margin:             0;
     padding:            0}
@@ -306,7 +307,7 @@ DIV.blackControlKnobBottomCaption {
     text-align:         center}
 
 DIV.panelSurface {
-    position:           relative;
+    position:           absolute;
     background-color:   #D8C5BC;        /* putty #EDEAE8; */
     color:              black}
 
@@ -314,12 +315,12 @@ DIV.panelRegister {
     position:           absolute;
     overflow:           hidden;
     color:              white;
-    background-color:   black;
+    background-color:   #333;
     border-radius:      4px;
-    border-top:         3px solid #666;
-    border-left:        3px solid #666;
-    border-right:       3px solid #333;
-    border-bottom:      3px solid #333;
+    border-top:         3px solid #999;
+    border-left:        3px solid #999;
+    border-right:       3px solid #666;
+    border-bottom:      3px solid #666;
     box-shadow:         3px 3px 2px #999;
     font-size:          6px}
 
@@ -327,12 +328,12 @@ DIV.panelDiv {
     position:           absolute;
     overflow:           hidden;
     color:              white;
-    background-color:   black;
+    background-color:   #333;
     border-radius:      4px;
-    border-top:         3px solid #666;
-    border-left:        3px solid #666;
-    border-right:       3px solid #333;
-    border-bottom:      3px solid #333;
+    border-top:         3px solid #999;
+    border-left:        3px solid #999;
+    border-right:       3px solid #666;
+    border-bottom:      3px solid #666;
     box-shadow:         3px 3px 2px #999;
     font-size:          6px}
 
@@ -364,6 +365,27 @@ SPAN.panelSpan {
     padding-right:      2px;
     background-color:   #246}
 
+DIV.panelTopCaption {
+    position:           absolute;
+    font-size:          7px;
+    font-weight:        normal;
+    text-align:         center;
+    height:             7px;
+    top:                0.75em;
+    left:               4px;
+    right:              4px;
+    border-top:         2px solid #D8C5BC;
+    color:              #D8C5BC}
+
+SPAN.panelTopCaptionSpan {
+    position:           relative;
+    top:                -1em;
+    font-size:          7px;
+    padding-left:       4px;
+    padding-right:      4px;
+    color:              #D8C5BC;
+    background-color:   #333}
+
 DIV.panelRegCaption {
     position:           absolute;
     width:              22px;
@@ -378,7 +400,7 @@ DIV.panelRegCaption {
     border-right:       1px solid #666;
     border-bottom:      1px solid #666;
     color:              white;
-    background-color:   black}
+    background-color:   #333}
 
 SPAN.panelRegSpan {
     font-size:          18px;
@@ -396,7 +418,7 @@ DIV.panelRegSpacer {
     border-right:       1px solid #666;
     border-bottom:      1px solid #666;
     color:              white;
-    background-color:   black}
+    background-color:   #333}
 
 DIV.panelRegClearBar {
     position:           absolute;
@@ -482,9 +504,9 @@ BUTTON.panelLabel {
     width:              32px;
     height:             18px;
     color:              #D8C5BC;
-    background-color:   black;
+    background-color:   #333;
     border-radius:      4px;
-    border:             2px solid white;
+    border:             1px solid #D8C5BC;
     line-height:        5px;
     font-size:          5px;
     font-weight:        normal}

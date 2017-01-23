@@ -33,10 +33,20 @@
     font-size:          36px;
     font-weight:        bold}
 
+#IntervalTimerResetCaption {
+    top:                21px;
+    left:               calc(50% - 30px);
+    width:              120px;
+    text-align:         right}
+#IntervalTimerResetBtn {
+    position:           absolute;
+    top:                12px;
+    left:               calc(50% + 96px)}
+
 #IntervalTimer {
     position:           absolute;
     top:                12px;
-    left:               calc(50% - 42px);
+    left:               calc(50% + 134px);
     width:              84px;
     height:             18px;
     font-size:          18px;
@@ -52,26 +62,23 @@
     color:              white;
     background-color:   black}
 
-#IntervalTimerResetBtn {
-    position:           absolute;
-    top:                12px;
-    left:               calc(50% - 82px)}
+#PowerOffBtn {
+    left:               calc(50% + 240px);
+    top:                12px}
+#PowerOffCaption {
+    left:               calc(50% + 268px);
+    top:                21px}
+
+#VersionDiv {
+    right:              12px;
+    bottom:             4px;
+    color:              black}
 
 #PanelSurface {
-    height:             500px;
+    height:             100%;
     width:              100%}
 
-#ControlDiv {
-    left:               832px;
-    top:                48px;
-    width:              288px;
-    height:             128px}
-
-#AdderDiv {
-    left:               438px;
-    top:                192px;
-    width:              336px;
-    height:             132px}
+/***** Main Registers *****/
 
 #ARegPanel {
     left:               12px;
@@ -119,79 +126,463 @@
     left:               900px;
     top:                208px;
     width:              144px;
-    height:             132px}
+    height:             128px}
+
+/***** Alarm Panel *****/
 
 #AlarmPanel {
     left:               12px;
     top:                368px;
-    width:              384px;
+    width:              382px;
     height:             64px}
 
-#DigitCheckLabel {
-    left:               2px;
+#AlarmCaption {
+    position:           absolute;
+    left:               0;
+    width:              268px}
+
+#NotReadyCaption {
+    position:           absolute;
+    left:               266px;
+    right:              0}
+
+#DigitCheckLampLabel {
+    left:               4px;
     top:                12px}
 #DigitCheckLamp {
-    left:               18px;
-    top:                404px}
+    left:               6px;
+    top:                32px}
 
-#ProgramCheckLabel {
-    left:               40px;
+#ProgramCheckLampLabel {
+    left:               42px;
+    top:                12px}
+#ProgramCheckLamp {
+    left:               44px;
+    top:                32px}
+
+#StorageLampLabel {
+    left:               80px;
+    top:                12px}
+#StorageLamp {
+    left:               82px;
+    top:                32px}
+
+#MagneticTapeLampLabel {
+    left:               118px;
+    top:                12px}
+#MagneticTapeLamp {
+    left:               120px;
+    top:                32px}
+
+#CardatronLampLabel {
+    left:               156px;
+    top:                12px}
+#CardatronLamp {
+    left:               158px;
+    top:                32px}
+
+#PaperTapeLampLabel {
+    left:               194px;
+    top:                12px}
+#PaperTapeLamp {
+    left:               196px;
+    top:                32px}
+
+#HighSpeedPrinterLampLabel {
+    left:               232px;
+    top:                12px}
+#HighSpeedPrinterLamp {
+    left:               234px;
+    top:                32px}
+
+#Blank1LampLabel {
+    left:               270px;
     top:                12px}
 
-#StorageLabel {
-    left:               78px;
+#SystemNotReadyLampLabel {
+    left:               308px;
+    top:                12px}
+#SystemNotReadyLamp {
+    left:               310px;
+    top:                32px}
+
+#ComputerNotReadyLampLabel {
+    left:               346px;
+    top:                12px}
+#ComputerNotReadyLamp {
+    left:               348px;
+    top:                32px}
+
+/***** Operation Panel *****/
+
+#OperationPanel {
+    left:               452px;
+    top:                368px;
+    width:              154px;
+    height:             64px}
+
+#OperationCaption {
+    position:           absolute;
+    left:               0;
+    width:              268px}
+
+#RunLampLabel {
+    left:               4px;
+    top:                12px}
+#RunLamp {
+    left:               6px;
+    top:                32px}
+
+#FetchLampLabel {
+    left:               42px;
+    top:                12px}
+#FetchLamp {
+    left:               44px;
+    top:                32px}
+
+#ExecuteLampLabel {
+    left:               80px;
+    top:                12px}
+#ExecuteLamp {
+    left:               82px;
+    top:                32px}
+
+#Blank2LampLabel {
+    left:               118px;
     top:                12px}
 
-#MagneticTapeLabel {
-    left:               116px;
+/***** Status Panel *****/
+
+#StatusPanel {
+    left:               662px;
+    top:                368px;
+    width:              382px;
+    height:             64px}
+
+#ComparisonCaption {
+    position:           absolute;
+    left:               114px;
+    width:              116px}
+
+#OverflowLampLabel {
+    left:               4px;
+    top:                12px}
+#OverflowLamp {
+    left:               6px;
+    top:                32px}
+
+#RepeatLampLabel {
+    left:               42px;
+    top:                12px}
+#RepeatLamp {
+    left:               44px;
+    top:                32px}
+
+#Blank3LampLabel {
+    left:               80px;
     top:                12px}
 
-#CardatronLabel {
-    left:               154px;
+#LowLampLabel {
+    left:               118px;
+    top:                12px}
+#LowLamp {
+    left:               120px;
+    top:                32px}
+
+#EqualLampLabel {
+    left:               156px;
+    top:                12px}
+#EqualLamp {
+    left:               158px;
+    top:                32px}
+
+#HighLampLabel {
+    left:               194px;
+    top:                12px}
+#HighLamp {
+    left:               196px;
+    top:                32px}
+
+#Blank4LampLabel {
+    left:               232px;
     top:                12px}
 
-#PaperTapeLabel {
-    left:               192px;
+#Blank5LampLabel {
+    left:               270px;
     top:                12px}
 
-#HighSpeedPrinterLabel {
-    left:               230px;
+#Blank6LampLabel {
+    left:               308px;
     top:                12px}
 
+#Blank7LampLabel {
+    left:               346px;
+    top:                12px}
+
+/***** Control Switch Panel *****/
+
+#ControlSwitchPanel {
+    left:               12px;
+    top:                464px;
+    width:              382px;
+    height:             80px}
+
+#ControlSwitch1Label {
+    left:               4px;
+    top:                12px}
+#ControlSwitch1 {
+    position:           absolute;
+    left:               4px;
+    top:                40px;
+    height:             32px;
+    width:              32px}
+
+#ControlSwitch2Label {
+    left:               42px;
+    top:                12px}
+#ControlSwitch2 {
+    position:           absolute;
+    left:               42px;
+    top:                40px;
+    height:             32px;
+    width:              32px}
+
+#ControlSwitch3Label {
+    left:               80px;
+    top:                12px}
+#ControlSwitch3 {
+    position:           absolute;
+    left:               80px;
+    top:                40px;
+    height:             32px;
+    width:              32px}
+
+#ControlSwitch4Label {
+    left:               118px;
+    top:                12px}
+#ControlSwitch4 {
+    position:           absolute;
+    left:               118px;
+    top:                40px;
+    height:             32px;
+    width:              32px}
+
+#ControlSwitch5Label {
+    left:               156px;
+    top:                12px}
+#ControlSwitch5 {
+    position:           absolute;
+    left:               156px;
+    top:                40px;
+    height:             32px;
+    width:              32px}
+
+#ControlSwitch6Label {
+    left:               194px;
+    top:                12px}
+#ControlSwitch6 {
+    position:           absolute;
+    left:               194px;
+    top:                40px;
+    height:             32px;
+    width:              32px}
+
+#ControlSwitch7Label {
+    left:               232px;
+    top:                12px}
+#ControlSwitch7 {
+    position:           absolute;
+    left:               232px;
+    top:                40px;
+    height:             32px;
+    width:              32px}
+
+#ControlSwitch8Label {
+    left:               270px;
+    top:                12px}
+#ControlSwitch8 {
+    position:           absolute;
+    left:               270px;
+    top:                40px;
+    height:             32px;
+    width:              32px}
+
+#ControlSwitch9Label {
+    left:               308px;
+    top:                12px}
+#ControlSwitch9 {
+    position:           absolute;
+    left:               308px;
+    top:                40px;
+    height:             32px;
+    width:              32px}
+
+#ControlSwitch10Label {
+    left:               346px;
+    top:                12px}
+#ControlSwitch10 {
+    position:           absolute;
+    left:               346px;
+    top:                40px;
+    height:             32px;
+    width:              32px}
+
+/***** Operation Switch Panel *****/
+
+#OperationSwitchPanel {
+    left:               452px;
+    top:                464px;
+    width:              154px;
+    height:             80px}
+
+#StopSwitchLabel {
+    left:               4px;
+    top:                12px}
+#StopSwitch {
+    position:           absolute;
+    left:               4px;
+    top:                40px;
+    height:             32px;
+    width:              32px}
+
+#StartSwitchLabel {
+    left:               42px;
+    top:                12px}
+#StartSwitch {
+    position:           absolute;
+    left:               42px;
+    top:                40px;
+    height:             32px;
+    width:              32px}
+
+#StepSwitchLabel {
+    left:               80px;
+    top:                12px}
+#StepSwitch {
+    position:           absolute;
+    left:               80px;
+    top:                40px;
+    height:             32px;
+    width:              32px}
+
+#ClearSwitchLabel {
+    left:               118px;
+    top:                12px}
+#ClearSwitch {
+    position:           absolute;
+    left:               118px;
+    top:                40px;
+    height:             32px;
+    width:              32px}
+
+/***** Miscellaneous Switch Panel *****/
+
+#MiscellaneousSwitchPanel {
+    left:               662px;
+    top:                464px;
+    width:              382px;
+    height:             80px}
+
+#ProgramCheckingCaption {
+    position:           absolute;
+    left:               114px;
+    width:              192px}
+
+#Blank10SwitchLabel {
+    left:               4px;
+    top:                12px}
+
+#Blank11SwitchLabel {
+    left:               42px;
+    top:                12px}
+
+#Blank12SwitchLabel {
+    left:               80px;
+    top:                12px}
+
+#KeyboardSwitchLabel {
+    left:               118px;
+    top:                12px}
+#KeyboardSwitch {
+    position:           absolute;
+    left:               118px;
+    top:                40px;
+    height:             32px;
+    width:              32px}
+
+#SOnSwitchLabel {
+    left:               156px;
+    top:                12px}
+#SOnSwitch {
+    position:           absolute;
+    left:               156px;
+    top:                40px;
+    height:             32px;
+    width:              32px}
+
+#UnitsSwitchLabel {
+    left:               194px;
+    top:                12px}
+#UnitsSwitch {
+    position:           absolute;
+    left:               194px;
+    top:                40px;
+    height:             32px;
+    width:              32px}
+
+#SToPSwitchLabel {
+    left:               232px;
+    top:                12px}
+#SToPSwitch {
+    position:           absolute;
+    left:               232px;
+    top:                40px;
+    height:             32px;
+    width:              32px}
+
+#SToCSwitchLabel {
+    left:               270px;
+    top:                12px}
+#SToCSwitch {
+    position:           absolute;
+    left:               270px;
+    top:                40px;
+    height:             32px;
+    width:              32px}
+
+#ResetTransferSwitchLabel {
+    left:               308px;
+    top:                12px}
+#ResetTransferSwitch {
+    position:           absolute;
+    left:               308px;
+    top:                40px;
+    height:             32px;
+    width:              32px}
+
+#TCUClearSwitchLabel {
+    left:               346px;
+    top:                12px}
+#TCUClearSwitch {
+    position:           absolute;
+    left:               346px;
+    top:                40px;
+    height:             32px;
+    width:              32px}
 
 
-
-#CarryPanel {
-    left:               224px;
-    top:                0;
-    width:              80px;
-    height:             132px}
-
-#AdderPanel {
-    left:               288px;
-    top:                0;
-    width:              60px;
-    height:             132px}
-
-
+/***** Old Stuff *****/
 
 #PowerOnBtn {
-    left:               380px;
+    left:               600px;
     top:                330px}
 #PowerOnCaption {
-    left:               380px;
+    left:               600px;
     top:                360px;
     width:              24px}
 #PowerLamp {
-    left:               380px;
+    left:               600px;
     top:                378px}
-#PowerOffBtn {
-    left:               380px;
-    top:                426px}
-#PowerOffCaption {
-    left:               380px;
-    top:                456px;
-    width:              24px}
 
 
 #ComputerStopCaption {
@@ -199,13 +590,6 @@
     top:                300px;
     width:              160px}
 
-#OverflowLamp {
-    left:               466px;
-    top:                330px}
-#OverflowLampCaption {
-    left:               454px;
-    top:                360px;
-    width:              40px}
 #ResetOverflowBtn {
     left:               461px;
     top:                416px}
@@ -302,28 +686,6 @@
     top:                300px;
     width:              64px}
 
-#ExecuteLamp {
-    left:               844px;
-    top:                330px}
-#ExecuteLampCaption {
-    left:               840px;
-    top:                360px;
-    width:              32px}
-#ExecuteBtn {
-    left:               840px;
-    top:                416px}
-
-#FetchLamp {
-    left:               884px;
-    top:                330px}
-#FetchLampCaption {
-    left:               880px;
-    top:                360px;
-    width:              32px}
-#FetchBtn {
-    left:               880px;
-    top:                416px}
-
 #OperationCaption {
     left:               950px;
     top:                300px;
@@ -342,8 +704,3 @@
     left:               932px;
     top:                408px;
     width:              60px}
-
-#VersionDiv {
-    right:              12px;
-    bottom:             8px;
-    color:              black}

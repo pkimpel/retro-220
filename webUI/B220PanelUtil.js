@@ -6,7 +6,15 @@
 *       http://www.opensource.org/licenses/mit-license.php
 ************************************************************************
 * JavaScript object definition for the Burroughs 220 Emulator Control
-* Panel utility constructors.
+* Panel utility constructors:
+*   NeonLamp
+*   NeonLampBox
+*   ColoredLamp
+*   ToggleSwitch
+*   ThreeWaySwitch
+*   OrganSwitch
+*   BlackControlKnob
+*   PanelRegister
 ************************************************************************
 * 2017-01-01  P.Kimpel
 *   Original version, from retro-205 D205PanelUtil.js.
@@ -54,6 +62,13 @@ NeonLamp.levelClass = [                 // css class names for the lamp levels
             NeonLamp.litClass + "4",
             NeonLamp.litClass + "5",
             NeonLamp.litClass];
+
+/**************************************/
+NeonLamp.prototype.addEventListener = function addEventListener(eventName, handler, useCapture) {
+    /* Sets an event handler whenever the image element is clicked */
+
+    this.element.addEventListener(eventName, handler, useCapture);
+};
 
 /**************************************/
 NeonLamp.prototype.set = function set(state) {
@@ -133,6 +148,13 @@ NeonLampBox.lampBoxClass = "lampBox";
 NeonLampBox.lampButtonClass = "lampButton";
 
 /**************************************/
+NeonLampBox.prototype.addEventListener = function addEventListener(eventName, handler, useCapture) {
+    /* Sets an event handler whenever the image element is clicked */
+
+    this.element.addEventListener(eventName, handler, useCapture);
+};
+
+/**************************************/
 NeonLampBox.prototype.set = function set(state) {
     /* Changes the visible state of the lamp according to the value of "state", 0-1 */
 
@@ -197,6 +219,13 @@ function ColoredLamp(parent, x, y, id, offClass, onClass) {
 ColoredLamp.lampLevels = 6;
 ColoredLamp.topCaptionClass = "coloredLampTopCaption";
 ColoredLamp.bottomCaptionClass = "coloredLampBottomCaption";
+
+/**************************************/
+ColoredLamp.prototype.addEventListener = function addEventListener(eventName, handler, useCapture) {
+    /* Sets an event handler whenever the image element is clicked */
+
+    this.element.addEventListener(eventName, handler, useCapture);
+};
 
 /**************************************/
 ColoredLamp.prototype.set = function set(state) {
@@ -273,6 +302,13 @@ function ToggleSwitch(parent, x, y, id, offImage, onImage) {
 
 ToggleSwitch.topCaptionClass = "toggleSwitchTopCaption";
 ToggleSwitch.bottomCaptionClass = "toggleSwitchBottomCaption";
+
+/**************************************/
+ToggleSwitch.prototype.addEventListener = function addEventListener(eventName, handler, useCapture) {
+    /* Sets an event handler whenever the image element is clicked */
+
+    this.element.addEventListener(eventName, handler, useCapture);
+};
 
 /**************************************/
 ToggleSwitch.prototype.set = function set(state) {
@@ -356,6 +392,13 @@ ThreeWaySwitch.topCaptionClass = "ToggleSwitchTopCaption";
 ThreeWaySwitch.bottomCaptionClass = "ToggleSwitchBottomCaption";
 
 /**************************************/
+ThreeWaySwitch.prototype.addEventListener = function addEventListener(eventName, handler, useCapture) {
+    /* Sets an event handler whenever the image element is clicked */
+
+    this.element.addEventListener(eventName, handler, useCapture);
+};
+
+/**************************************/
 ThreeWaySwitch.prototype.set = function set(state) {
     /* Changes the visible state of the switch according to the value
     of "state" */
@@ -410,6 +453,95 @@ ThreeWaySwitch.prototype.setCaption = function setCaption(caption, atBottom) {
 
 
 /***********************************************************************
+*  Panel Organ Switch                                                  *
+***********************************************************************/
+function OrganSwitch(parent, x, y, id, offImage, onImage, momentary) {
+    /* Constructor for the organ switch objects used within panels. x & y are
+    the coordinates of the switch within its containing element; id is the DOM id */
+
+    this.state = 0;                     // current switch state, 0=off
+    this.topCaptionDiv = null;          // optional top caption element
+    this.bottomCaptionDiv = null;       // optional bottom caption element
+    this.offImage = offImage;           // image used for the off state
+    this.onImage = onImage;             // image used for the on state
+    this.momentary = momentary || false;// true if the switch is only momentary-on
+
+    // visible DOM element
+    this.element = document.createElement("img");
+    this.element.id = id;
+    this.element.src = offImage;
+    if (x !== null) {
+        this.element.style.left = x.toString() + "px";
+    }
+    if (y !== null) {
+        this.element.style.top = y.toString() + "px";
+    }
+
+    if (parent) {
+        parent.appendChild(this.element);
+    }
+}
+
+/**************************************/
+
+OrganSwitch.topCaptionClass = "OrganSwitchTopCaption";
+OrganSwitch.bottomCaptionClass = "OrganSwitchBottomCaption";
+OrganSwitch.momentaryPeriod = 250;      // time for momentary switch to bounce back, ms
+
+/**************************************/
+OrganSwitch.prototype.addEventListener = function addEventListener(eventName, handler, useCapture) {
+    /* Sets an event handler whenever the image element is clicked */
+
+    this.element.addEventListener(eventName, handler, useCapture);
+};
+
+/**************************************/
+OrganSwitch.prototype.set = function set(state) {
+    /* Changes the visible state of the switch according to the low-order
+    bit of "state" */
+    var newState = state & 1;
+
+    if (this.state ^ newState) {         // the state has changed
+        this.state = newState;
+        this.element.src = (newState ? this.onImage : this.offImage);
+        if (this.momentary && newState) {
+            setCallback(null, this, OrganSwitch.momentaryPeriod, this.set, 0);
+        }
+    }
+};
+
+/**************************************/
+OrganSwitch.prototype.flip = function flip() {
+    /* Complements the visible state of the switch */
+
+    this.set(this.state ^ 1);
+};
+
+/**************************************/
+OrganSwitch.prototype.setCaption = function setCaption(caption, atBottom) {
+    /* Establishes an optional caption at the top or bottom of a single switch.
+    Returns the caption element */
+    var e = (atBottom ? this.bottomCaptionDiv : this.topCaptionDiv);
+
+    if (e) {
+        e.textContent = caption;
+    } else {
+        e = document.createElement("div");
+        if (atBottom) {
+            this.bottomCaptionDiv = e;
+            e.className = OrganSwitch.bottomCaptionClass;
+        } else {
+            this.topCaptionDiv = e;
+            e.className = OrganSwitch.topCaptionClass;
+        }
+        e.appendChild(document.createTextNode(caption));
+        this.element.appendChild(e);
+    }
+    return e;
+};
+
+
+/***********************************************************************
 *  Black Control Knob                                                  *
 ***********************************************************************/
 function BlackControlKnob(parent, x, y, id, initial, positions) {
@@ -451,6 +583,13 @@ BlackControlKnob.topCaptionClass = "blackControlKnobTopCaption";
 BlackControlKnob.bottomCaptionClass = "blackControlKnobBottomCaption";
 BlackControlKnob.className = "blackControlKnob1";
 BlackControlKnob.size = 64;             // width/height in pixels
+
+/**************************************/
+BlackControlKnob.prototype.addEventListener = function addEventListener(eventName, handler, useCapture) {
+    /* Sets an event handler whenever the canvas element is clicked */
+
+    this.element.addEventListener(eventName, handler, useCapture);
+};
 
 /**************************************/
 BlackControlKnob.prototype.set = function set(position) {
@@ -639,6 +778,13 @@ PanelRegister.regSpacerClass = "panelRegSpacer";
 PanelRegister.regClearBarClass = "panelRegClearBar";
 PanelRegister.captionSpanClass = "panelRegSpan";
 PanelRegister.boxCaptionClass = "boxCaption";
+
+/**************************************/
+PanelRegister.prototype.addEventListener = function addEventListener(eventName, handler, useCapture) {
+    /* Sets an event handler whenever the parent element is clicked */
+
+    this.element.addEventListener(eventName, handler, useCapture);
+};
 
 /**************************************/
 PanelRegister.prototype.xCoord = function xCoord(col) {
