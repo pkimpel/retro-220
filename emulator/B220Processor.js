@@ -10,26 +10,24 @@
 * Instance variables in all caps generally refer to register or flip-flop (FF)
 * entities in the processor hardware. See the following documents:
 *
-*   Burroughs 205 Handbook
-*       (Bulletin 3021, Burroughs Corporation, 1956).
-*   Programming and Coding Manual, Datatron
-*       (Bulletin 3040A, ElectroData Corporation, 1954).
-*   Handbook of Operating Procedures for the Burroughs 205
-*       (Bulletin 3034A, Burroughs Corporation, May 1960).
+*   Burroughs 220 Operational Characterists Manual
+*       (Bulletin 5020A, Burroughs Corporation, revised August 1960).
+*   Handbook of Operating Procedures for the Burroughs 220
+*       (Bulletin 5023, Burroughs Corporation, November 1959).
+*   Burroughs 220 Schematics
+*       (Technical Manual 4053-1, Burroughs Corporation, December 1958).
+*   Datatron 220 Schematics, Section I [CPU.pdf]
+*       (Technical Manual 4053, Burroughs Corporation, December 1958).
 *
 * available at:
-*   http://bitsavers.org/pdf/burroughs/electrodata/205/
+*   http://bitsavers.org/pdf/burroughs/electrodata/220/
 *
 * also:
 *
-*   TM4001 Datatron 205 Computer (Training Edition)
-*       (Burroughs Corporation, December,1956).
-*   Burroughs 205 Handbook: Floating Point Control Unit Model 36044
-*       (Bulletin 3028, Burroughs Corporation 1957).
-*   Engineering Description of the ElectroData Digital Computer, J. C. Alrich,
-*       (IRE Transactions on Electronic Computers, vol EC-4, Number 1, March 1955).
+*   An Introduction to Coding the Burroughs 220
+*       (Bulletin 5019, Burroughs Corporation, December, 1958).
 *
-* Datatron 205 word format:
+* Burroughs 220 word format:
 *   44 bits, encoded as binary-coded decimal (BCD); non-decimal codes are invalid
 *   and cause the computer to stop with a Forbidden Combination (FC) alarm.
 *   High-order 4 bits are the "sign digit":
@@ -44,7 +42,7 @@
 *   Instruction word format:
 *       Low-order 4 digits: operand address
 *       Next-higher 2 digits: operation code
-*       Next-higher 4 digits: breakpoint and special-function codes
+*       Next-higher 4 digits: control and variant digits used by some instructions
 *       Sign digit: odd value indicates the B register is to be added to the
 *           operand address prior to execution.
 *
@@ -53,7 +51,7 @@
 *
 ************************************************************************
 * 2017-01-01  P.Kimpel
-*   Original version, cloned from a bit of retro-205 code.
+*   Original version, cloned from retro-205 emulator/D205Processor.js.
 ***********************************************************************/
 "use strict";
 
@@ -72,25 +70,133 @@ function B220Processor(config, devices) {
     this.successor = null;              // Current delayed-action successor function
 
     // Memory
-    this.memoryDrum = new ArrayBuffer(4080*8);                  // Drum: 4080 64-bit FP words
-    this.MM = new Float64Array(this.memoryDrum, 0, 4000);       // Main memory, 4000 words
-    this.L4 = new Float64Array(this.memoryDrum, 4000*8, 20);    // 4000 loop, 20 words
-    this.L5 = new Float64Array(this.memoryDrum, 4020*8, 20);    // 5000 loop, 20 words
-    this.L6 = new Float64Array(this.memoryDrum, 4040*8, 20);    // 6000 loop, 20 words
-    this.L7 = new Float64Array(this.memoryDrum, 4060*8, 20);    // 7000 loop, 20 words
+    this.MM = new Float64Array(config.getNode("memorySize"));   // Main memory, 11-digit words
 
-    // Supervisory Panel switches
-    this.sswLockNormal = 0;             // Lock/Normal switch
-    this.sswStepContinuous = 0;         // Step/Continuous switch
-    this.sswAudibleAlarm = 0;           // Audible alarm
+    // Processor throttling control
+    this.runTime = 0;                   // Running time for processor, ms
+    this.scheduler = 0;                 // Current setCallback token
+    this.procStart = 0;                 // Javascript time that the processor started running, ms
+    this.procTime = 0;                  // Total processor running time, ms
 
-    // Control Console switches
-    this.cswPOSuppress = 0;             // Print-out suppress
-    this.cswSkip = 0;                   // Skip instruction
-    this.cswAudibleAlarm = 0;           // Audible alarm
-    this.cswOutput = 0;                 // Output knob: 0=Off, 1=Page, 2=Tape (mapped from actual knob values)
-    this.cswInput = 0;                  // Input knob: 0=Mechanical reader, 1=Optical reader, 2=Keyboard
-    this.cswBreakpoint = 0;             // Breakpoint knob: 0=Off, 1, 2, 4
+    this.delayDeltaAvg = 0;             // Average difference between requested and actual setCallback() delays, ms
+    this.delayLastStamp = 0;            // Timestamp of last setCallback() delay, ms
+    this.delayRequested = 0;            // Last requested setCallback() delay, ms
+
+    // Primary Registers
+    this.A = new B220Processor.Register(11*4, this, false);
+    this.B = new B220Processor.Register( 4*4, this, false);
+    this.C = new B220Processor.Register(10*4, this, false);
+    this.D = new B220Processor.Register(11*4, this, false);
+    this.E = new B220Processor.Register( 4*4, this, false);
+    this.P = new B220Processor.Register( 4*4, this, false);
+    this.R = new B220Processor.Register(11*4, this, false);
+    this.S = new B220Processor.Register( 4*4, this, false);
+
+    // Control Console Lamps
+    this.digitCheckAlarm =      new B220Processor.FlipFlop(this, false);
+    this.programCheckAlarm =    new B220Processor.FlipFlop(this, false);
+    this.storageAlarm =         new B220Processor.FlipFlop(this, false);
+    this.magneticTapeAlarm =    new B220Processor.FlipFlop(this, false);
+    this.paperTapeAlarm =       new B220Processor.FlipFlop(this, false);
+    this.cardatronAlarm =       new B220Processor.FlipFlop(this, false);
+
+    this.systemNotReady =       new B220Processor.FlipFlop(this, false);
+    this.computerNotReady =     new B220Processor.FlipFlop(this, false);
+    this.computerNotReady.set(1);       // initial state after power-up
+
+    // Control Console Switches
+    this.PC1SW = 0;                     // Program control switches 1-10
+    this.PC2SW = 0;
+    this.PC3SW = 0;
+    this.PC4SW = 0;
+    this.PC5SW = 0;
+    this.PC6SW = 0;
+    this.PC7SW = 0;
+    this.PC8SW = 0;
+    this.PC9SW = 0;
+    this.PC0SW = 0;
+
+    this.SONSW = 0;                     // S "On" switch
+    this.SUNITSSW = 0;                  // S units switch
+    this.STOCSW = 0;                    // S to C switch
+    this.STOPSW = 0;                    // S to P switch
+
+    // Left-Hand Maintenance Panel Switches
+    this.HOLDPZTZEROSW = 0;
+    this.LEADINGZEROESSW = 0;
+    this.PAPERTAPESUMSW = 0;
+    this.ORDERCOMPLEMENTSW = 0;
+    this.MEMORYLOCKOUTSW = 0;
+    this.DCLOCKOUTSW = 0;
+    this.SPDPHOLDSW = 0;
+    this.HOLDSEQUENCE1SW = 0;
+    this.HOLDSEQUENCE2SW = 0;
+    this.HOLDSEQUENCE4SW = 0;
+    this.HOLDSEQUENCE8SW = 0;
+
+    // Left-Hand Maintenance Panel Registers & Flip-Flops
+    this.CI = new B220Processor.Register(5, this, false);       // carry inverters
+    this.DC = new B220Processor.Register(6, this, false);       // digit counter (modulo 20)
+    this.SC = new B220Processor.Register(4, this, false);       // sequence counter
+    this.SI = new B220Processor.Register(4, this, false);       // sum inverters
+    this.X =  new B220Processor.Register(4, this, false);       // adder X input
+    this.Y =  new B220Processor.Register(4, this, false);       // adder Y input
+    this.Z =  new B220Processor.Register(4, this, false);       // decimal sum inverters, adder output
+
+    this.C10 = new B220Processor.FlipFlop(this, false);         // decimal carry toggle
+    this.DST = new B220Processor.FlipFlop(this, false);         // D-sign toggle
+    this.LT1 = new B220Processor.FlipFlop(this, false);         // logical toggle 1
+    this.LT2 = new B220Processor.FlipFlop(this, false);         // logical toggle 2
+    this.LT3 = new B220Processor.FlipFlop(this, false);         // logical toggle 3
+    this.SCI = new B220Processor.FlipFlop(this, false);         // sequence counter inverter
+    this.SGT = new B220Processor.FlipFlop(this, false);         // sign toggle
+    this.SUT = new B220Processor.FlipFlop(this, false);         // subtract toggle
+    this.TBT = new B220Processor.FlipFlop(this, false);         // tape busy toggle
+    this.TCT = new B220Processor.FlipFlop(this, false);         // tape clock toggle
+    this.TPT = new B220Processor.FlipFlop(this, false);         // tape pulse toggle
+    this.TWT = new B220Processor.FlipFlop(this, false);         // tape write toggle
+
+    // Right-Hand Maintenance Panel Switches
+    this.MULTIPLEACCESSSW = 0;
+    this.V1V2V3COUNTSW = 0;
+    this.AUDIBLEALARMSW = 0;
+    this.PCOUNTSW = 0;
+    this.DIGITCHECKSW = 0;
+    this.ALARMSW = 0;
+    this.ADCOUNTSW = 0;
+    this.IDLEALARMSW = 0;
+    this.FREQUENCYSELECTSW = 0;
+    this.SINGLEPULSESW = 0;
+    this.FETCHEXECUTELOCKSW = 0;
+
+    // Right-Hand Maintenance Panel Registers & Flip-Flops
+    this.AX = new B220Processor.Register(10, this, false);      // AX register
+    this.BI = new B220Processor.Register( 8, this, false);      // paper tape decoder
+    this.DX = new B220Processor.Register( 8, this, false);      // DX register
+    this.PA = new B220Processor.Register( 8, this, false);      // PA register
+
+    this.ALT = new B220Processor.FlipFlop(this, false);         // program check alarm toggle
+    this.AST = new B220Processor.FlipFlop(this, false);         // asynchronous toggle
+    this.CCT = new B220Processor.FlipFlop(this, false);         // ?? toggle
+    this.CRT = new B220Processor.FlipFlop(this, false);         // Cardatron alarm toggle
+    this.DPT = new B220Processor.FlipFlop(this, false);         // ?? digit pulse toggle
+    this.EWT = new B220Processor.FlipFlop(this, false);         // end of word toggle
+    this.EXT = new B220Processor.FlipFlop(this, false);         // fetch(0)/execute(1) toggle
+    this.HAT = new B220Processor.FlipFlop(this, false);         // ?? toggle
+    this.HCT = new B220Processor.FlipFlop(this, false);         // ?? toggle
+    this.HIT = new B220Processor.FlipFlop(this, false);         // high comparison toggle
+    this.MAT = new B220Processor.FlipFlop(this, false);         // multiple access toggle
+    this.MET = new B220Processor.FlipFlop(this, false);         // memory (storage) alarm toggle
+    this.MNT = new B220Processor.FlipFlop(this, false);         // manual toggle
+    this.OFT = new B220Processor.FlipFlop(this, false);         // overflow toggle
+    this.PAT = new B220Processor.FlipFlop(this, false);         // paper tape alarm toggle
+    this.PRT = new B220Processor.FlipFlop(this, false);         // paper tape read toggle
+    this.PZT = new B220Processor.FlipFlop(this, false);         // paper tape zone toggle
+    this.RPT = new B220Processor.FlipFlop(this, false);         // repeat toggle
+    this.RUT = new B220Processor.FlipFlop(this, false);         // run toggle
+    this.SST = new B220Processor.FlipFlop(this, false);         // single-step toggle
+    this.TAT = new B220Processor.FlipFlop(this, false);         // magnetic tape alarm toggle
+    this.UET = new B220Processor.FlipFlop(this, false);         // unequal comparison toggle (HIT=UET=0 => off)
 
     // Mag-Tape Control Unit switch
     this.tswSuppressB = 0;              // Suppress B-register modification on input
@@ -117,66 +223,31 @@ function B220Processor(config, devices) {
     this.boundMagTapeSendBlock = B220Processor.bindMethod(this, B220Processor.prototype.magTapeSendBlock);
     this.boundMagTapeTerminateSend = B220Processor.bindMethod(this, B220Processor.prototype.magTapeTerminateSend);
 
-    // Processor throttling control
-    this.scheduler = 0;                 // Current setCallback token
-    this.procStart = 0;                 // Javascript time that the processor started running, ms
-    this.procTime = 0;                  // Total processor running time, ms
-
-    // External switches [used by EXC (71)]
-    this.externalSwitch = [0, 0, 0, 0, 0, 0, 0, 0];
-
-    // Register average-intensity accumulators
-    this.glowTimer = null;
-    this.toggleGlow = {
-        glowA: new Float64Array(44),
-        glowB: new Float64Array(16),
-        glowC: new Float64Array(40),
-        glowD: new Float64Array(44),
-        glowR: new Float64Array(40),
-        glowCtl: new Float64Array(40),
-        glowADDER: new Float64Array(4),
-        glowCT: new Float64Array(5),
-        glowTiming: 0,
-        glowOverflow: 0,
-        glowTWA: 0,
-        glow3IO: 0,
-        glowMAIN: 0,
-        glowRWM: 0,
-        glowRWL: 0,
-        glowWDBL: 0,
-        glowACTION: 0,
-        glowACCESS: 0,
-        glowLM: 0,
-        glowL4: 0,
-        glowL5: 0,
-        glowL6: 0,
-        glowL7: 0};
-
     this.clear();                       // Create and initialize the processor state
 
-    this.loadDefaultProgram();          // Preload a default program
+    //this.loadDefaultProgram();          // Preload a default program
 }
 
 /**************************************/
 
 /* Global constants */
-B220Processor.version = "0.00a";
+B220Processor.version = "0.00b";
 
-B220Processor.drumRPM = 3570;           // memory drum speed, RPM
-B220Processor.trackSize = 200;          // words per drum revolution
-B220Processor.loopSize = 20;            // words per high-speed loop
-B220Processor.wordTime = 60000/B220Processor.drumRPM/B220Processor.trackSize;
-                                        // one word time, about 0.084 ms at 3570rpm (=> 142.8 KHz)
-B220Processor.wordsPerMilli = 1/B220Processor.wordTime;
-                                        // word times per millisecond
 B220Processor.neonPersistence = 1000/30;
                                         // persistence of neon bulb glow [ms]
-B220Processor.maxGlowTime = B220Processor.neonPersistence*B220Processor.wordsPerMilli;
-                                        // panel bulb glow persistence [word-times]
+B220Processor.maxGlowTime = B220Processor.neonPersistence;
+                                        // panel bulb glow persistence [ms]
 B220Processor.lampGlowInterval = 50;    // background lamp sampling interval (ms)
-B220Processor.adderGlowAlpha = B220Processor.wordTime/12/B220Processor.neonPersistence;
+B220Processor.adderGlowAlpha = B220Processor.neonPersistence/12;
                                         // adder and carry toggle glow decay factor,
-                                        // based on one digit (1/12 word) time
+                                        // based on one digit (1/12 word) time [ms]
+
+B220Processor.cyclesPerMilli = 1000;    // clock cycles per millisecond (1000 => 1.0 MHz)
+B220Processor.timeSlice = 4000;         // this.run() time-slice, clocks
+B220Processor.delayAlpha = 0.001;       // decay factor for exponential weighted average delay
+B220Processor.delayAlpha1 = 1-B220Processor.delayAlpha;
+B220Processor.slackAlpha = 0.0001;      // decay factor for exponential weighted average slack
+B220Processor.slackAlpha1 = 1-B220Processor.slackAlpha;
 
 B220Processor.pow2 = [ // powers of 2 from 0 to 52
                      0x1,              0x2,              0x4,              0x8,
@@ -216,55 +287,97 @@ B220Processor.prototype.clear = function clear() {
 
     this.clearControl();
 
-    // Registers
-    this.A = 0;                         // A register - accumulator
-    this.B = 0;                         // B register - index, loop control
-    this.C = 0;                         // C register - current operator, control counter
-    this.D = 0;                         // D register - input buffer from memory and I/O
-    this.R = 0;                         // R register - accumulator extension
+    // Primary Registers
+    this.A.set(0);
+    this.B.set(0);
+    this.C.set(0);
+    this.D.set(0);
+    this.E.set(0);
+    this.P.set(0);
+    this.R.set(0);
+    this.S.set(0);
+
+    // Control Console Lamps
+    this.digitCheckAlarm.set(0);
+    this.programCheckAlarm.set(0);
+    this.storageAlarm.set(0);
+    this.magneticTapeAlarm.set(0);
+    this.paperTapeAlarm.set(0);
+    this.cardatronAlarm.set(0);
+
+    this.systemNotReady.set(0);
+    this.computerNotReady.set(0);
+
+    // Left-Hand Maintenance Panel Registers & Flip-Flops
+    this.CI.set(0);
+    this.DC.set(0);
+    this.SC.set(0);
+    this.SI.set(0);
+    this.X.set(0);
+    this.Y.set(0);
+    this.Z.set(0);
+
+    this.C10.set(0);
+    this.DST.set(0);
+    this.LT1.set(0);
+    this.LT2.set(0);
+    this.LT3.set(0);
+    this.SCI.set(0);
+    this.SGT.set(0);
+    this.SUT.set(0);
+    this.TBT.set(0);
+    this.TCT.set(0);
+    this.TPT.set(0);
+    this.TWT.set(0);
+
+    // Right-Hand Maintenance Panel Registers & Flip-Flops
+    this.AX.set(0);
+    this.BI.set(0);
+    this.DX.set(0);
+    this.PA.set(0);
+
+    this.ALT.set(0);
+    this.AST.set(0);
+    this.CCT.set(0);
+    this.CRT.set(0);
+    this.DPT.set(0);
+    this.EWT.set(0);
+    this.EXT.set(1);                    // clear to fetch state
+    this.HAT.set(0);
+    this.HCT.set(0);
+    this.HIT.set(0);
+    this.MAT.set(0);
+    this.MET.set(0);
+    this.MNT.set(0);
+    this.OFT.set(0);
+    this.PAT.set(0);
+    this.PRT.set(0);
+    this.PZT.set(0);
+    this.RPT.set(0);
+    this.RUT.set(0);
+    this.SST.set(0);
+    this.TAT.set(0);
+    this.UET.set(0);
 
     this.COP = 0;                       // copy of C register op code (2 digits)
     this.CADDR = 0;                     // copy of C register operand address (4 digits)
     this.CCONTROL = 0;                  // copy of C register control address (4 digits)
     this.CEXTRA = 0;                    // high-order four digits of instruction word + sign
 
-    // Adder registers
-    this.ADDER = 0;                     // The adder
-    this.CT = 0;                        // Carry toggles for the adder
+    // Timing control and statistics
+    this.cycleCount = 0;                // Cycle count for current instruction
+    this.cycleLimit = 0;                // Cycle limit for this.run()
+    this.normalCycles = 0;              // Current normal-state cycle count (for UI display)
+    this.runCycles = 0;                 // Current cycle count for this.run()
+    this.totalCycles = 0;               // Total cycles executed on this processor
+    this.procStart = 0;                 // Javascript time that the processor started running, ms
+    this.procTime = 0.001;              // Total processor running time, ms
+    this.procSlack = 0;                 // Total processor throttling delay, ms
+    this.procSlackAvg = 0;              // Average slack time per time slice, ms
+    this.procRunAvg = 0;                // Average run time per time slice, ms
 
-    // Operational toggles
-    this.togTiming = 1;                 // Timing toggle: 0=execute, 1=fetch
-    this.togCST = 1;                    // Computer Stop toggle (?)
-    this.cctContinuous = 0;             // Console step(0) / continuous(1) toggle
-
-    // Halt/error toggles
-    this.stopOverflow = 0;              // Halted due to overflow
-    this.stopSector = 0;                // Halted due to sector alarm
-    this.stopForbidden = 0;             // Halted due to forbidden combination
-    this.stopControl = 0;               // Halted due to Stop operator (08) or overflow
-    this.stopBreakpoint = 0;            // Halted due to breakpoint
-    this.stopIdle = 1;                  // Halted or in step mode
-
-    // Memory control toggles
-    this.memMAIN = 0;                   // Access is to main memory
-    this.memRWM = 0;                    // Read/write main memory
-    this.memRWL = 0;                    // Read/write loop memory
-    this.memWDBL = 0;                   // Word or block transfer
-    this.memACTION = 0;                 // Memory access ACTION toggle
-    this.memACCESS = 0;                 // Memory access active toggle
-    this.memLM = 0;                     // Loop/main access toggle
-    this.memL4 = 0;                     // 4000 loop access
-    this.memL5 = 0;                     // 5000 loop access
-    this.memL6 = 0;                     // 6000 loop access
-    this.memL7 = 0;                     // 7000 loop access
-
-    // Statistics timers
-    this.lastGlowTime = 0;              // Last panel lamp intensity update time [word-times]
-    this.memoryStartTime = 0;           // Start of last memory access [word-times]
-    this.memoryStopTime = 0;            // End of last memory access [word-times]
-
-    this.setTimingToggle(0);            // set to Execute initially
-    this.sampleLamps(1.0, 1.0);         // initialize the lamp-glow averages
+    //this.setTimingToggle(0);            // set to Execute initially
+    //this.sampleLamps(1.0, 1.0);         // initialize the lamp-glow averages
 
     // Kill any pending action that may be in process
     if (this.scheduler) {
@@ -334,6 +447,104 @@ B220Processor.prototype.clearControl = function clearControl() {
     this.kDigit = 0;                    // variant/format digits from upper part of instruction
     this.selectedUnit = 0;              // currently-selected unit number
 };
+
+
+/***********************************************************************
+*   Generic Register Class                                             *
+***********************************************************************/
+
+B220Processor.Register = function Register(bits, p, invisible) {
+    /* Constructor for the generic Register class. Defines a binary register
+    of "bits" bits. "p" is a reference to the Processor object, used to access
+    the timing members. "invisible" should be true if the register does not
+    have a visible presence in the UI -- this will inhibit computing average
+    lamp glow values for the register */
+
+    this.bits = bits;                   // number of bits in register
+    this.visible = (invisible ? false : true);
+    this.lastRunTime = 0;               // time register was last set
+    this.p = p;                         // processor instance
+    this.value = 0;                     // binary value of register: read-only externally
+
+    this.glow = new Float64Array(bits); // average lamp glow values
+};
+
+/**************************************/
+B220Processor.Register.prototype.set = function set(value) {
+    /* Set a binary value into the register. Use this rather than setting
+    the value member directly so that average lamp glow can be computed.
+    Returns the new value */
+    var alpha = Math.max(Math.max(this.p.runTime-this.lastRunTime, 1)/B220Processor.maxGlowTime, 1.0);
+    var alpha1 = 1.0-alpha;
+    var b = 0;
+    var bit;
+    var v = this.value;
+
+    // Update the lamp glow for the former state.
+    if (this.visible) {
+        while (v) {
+            bit = v % 2;
+            v = (v-bit)/2;
+            this.glow[b] = this.glow[b]*alpha1 + bit*alpha;
+            ++b;
+        }
+
+        while (b < this.bits) {
+            this.glow[b] *= alpha1;
+            ++b;
+        }
+    }
+
+    // Set the new state.
+    this.value = value;
+    this.lastRunTime = this.p.runTime;
+    return this.value;
+};
+
+
+/***********************************************************************
+*   Generic Flip-Flop Class                                            *
+***********************************************************************/
+
+B220Processor.FlipFlop = function FlopFlop(p, invisible) {
+    /* Constructor for the generaic FlipFlop class. "p" is a reference to the
+    Processor object, used to access the timing members. "invisible" should be
+    true if the FF does not have a visible presence in the UI -- this will
+    inhibit computing the average lamp glow value for it */
+
+    this.visible = (invisible ? false : true);
+    this.lastRunTime = 0;               // time register was last set
+    this.p = p;                         // processor instance
+    this.value = 0;                     // binary value of register: read-only externally
+    this.glow = 0;                      // average lamp glow value
+};
+
+/**************************************/
+B220Processor.FlipFlop.prototype.set = function set(value) {
+    /* Set the value of the FF. Use this rather than setting the value member
+    directly so that average lamp glow can be computed. Returns the new value */
+    var alpha = Math.min(Math.max(this.p.runTime-this.lastRunTime, 1)/B220Processor.maxGlowTime, 1.0);
+    var alpha1 = 1.0-alpha;
+    var v = this.value;
+
+    // Update the lamp glow for the former state.
+    if (this.visible) {
+        this.glow = this.glow*alpha1 + value*alpha;
+    }
+
+    // Set the new state.
+    this.value = (value ? 1 : 0);
+    this.lastRunTime = this.p.runTime;
+    return this.value;
+};
+
+/**************************************/
+B220Processor.FlipFlop.prototype.flip = function flip() {
+    /* Complement the value of the FF. Returns the new value */
+
+    return this.set(this.value ? 0 : 1);
+};
+
 
 /***********************************************************************
 *   Utility Functions                                                  *
@@ -750,7 +961,7 @@ B220Processor.prototype.bcdAdd = function bcdAdd(a, d, complement, initialCarry)
 
         // compute the carry toggle register (just for display)
         ct = (((ad & dd) | (ad & ct) | (dd & ct)) << 1) + carry;
-        this.updateAdderGlow(adder, ct);
+        //this.updateAdderGlow(adder, ct);
 
         // rotate the adder into the sign digit
         am += adder*0x10000000000;
@@ -1384,7 +1595,7 @@ B220Processor.prototype.readMemoryFinish = function readMemoryFinish() {
     function. Note: the word has already been stored in D by readMemory() */
 
     this.scheduler = 0;
-    this.stopMemoryTiming();
+    //this.stopMemoryTiming();
     this.successor();
 };
 
@@ -1431,7 +1642,7 @@ B220Processor.prototype.readMemory = function readMemory(successor) {
     latency = (addr%trackSize - drumTime%trackSize + trackSize)%trackSize;
     this.procTime += latency+1;         // emulated time at end of drum access
     this.memACTION = 1;
-    this.startMemoryTiming(drumTime);
+    //this.startMemoryTiming(drumTime);
     this.successor = successor;
     this.scheduler = setCallback(cbCategory, this,
             (this.procTime-drumTime)/B220Processor.wordsPerMilli, this.readMemoryFinish);
@@ -1444,7 +1655,7 @@ B220Processor.prototype.writeMemoryFinish = function writeMemoryFinish(clearA) {
     memory control toggles, and calls the current successor function */
 
     this.scheduler = 0;
-    this.stopMemoryTiming();
+    //this.stopMemoryTiming();
     if (clearA) {
         this.A = 0;
     }
@@ -1495,7 +1706,7 @@ B220Processor.prototype.writeMemory = function writeMemory(successor, clearA) {
     latency = (addr%trackSize - drumTime%trackSize + trackSize)%trackSize;
     this.procTime += latency+1;         // emulated time at end of drum access
     this.memACTION = 1;
-    this.startMemoryTiming(drumTime);
+    //this.startMemoryTiming(drumTime);
     this.successor = successor;
     this.scheduler = setCallback(cbCategory, this,
             (this.procTime-drumTime)/B220Processor.wordsPerMilli, this.writeMemoryFinish, clearA);
@@ -1558,7 +1769,7 @@ B220Processor.prototype.blockFromLoop = function blockFromLoop(loop, successor) 
                 B220Processor.trackSize)%B220Processor.trackSize;
     this.procTime += latency+B220Processor.loopSize; // emulated time at end of drum access
     this.memACTION = 1;
-    this.startMemoryTiming(drumTime);
+    //this.startMemoryTiming(drumTime);
     this.successor = successor;
     this.scheduler = setCallback("MEMM", this,
             (this.procTime-drumTime)/B220Processor.wordsPerMilli, this.writeMemoryFinish, false);
@@ -1631,7 +1842,7 @@ B220Processor.prototype.blockToLoop = function blockToLoop(loop, successor) {
                 B220Processor.trackSize)%B220Processor.trackSize;
     this.procTime += latency+B220Processor.loopSize; // emulated time at end of drum access
     this.memACTION = 1;
-    this.startMemoryTiming(drumTime);
+    //this.startMemoryTiming(drumTime);
     this.successor = successor;
     this.scheduler = setCallback("MEMM", this,
             (this.procTime-drumTime)/B220Processor.wordsPerMilli, this.writeMemoryFinish, false);
@@ -1642,7 +1853,7 @@ B220Processor.prototype.searchMemoryFinish = function searchMemoryFinish() {
     /* Handles completion of a search memory operation and resets the memory
     toggle and timing state */
 
-    this.stopMemoryTiming();
+    //this.stopMemoryTiming();
     this.executionComplete();
 };
 
@@ -1678,7 +1889,7 @@ B220Processor.prototype.searchMemory = function searchMemory(high) {
 
     if (!this.memACCESS) {
         this.memACCESS = this.memACTION = this.memMAIN = this.memLM = 1;
-        this.startMemoryTiming(performance.now()*B220Processor.wordsPerMilli);
+        //this.startMemoryTiming(performance.now()*B220Processor.wordsPerMilli);
     }
 
     addr = B220Processor.bcdBinary(this.CADDR % 0x4000);
@@ -3240,7 +3451,7 @@ B220Processor.prototype.powerUp = function powerUp() {
         this.cardatron = this.devices.CardatronControl;
         this.magTape = this.devices.MagTapeControl;
         this.lastGlowTime = performance.now()*B220Processor.wordsPerMilli;
-        this.glowTimer = setInterval(this.boundUpdateLampGlow, B220Processor.lampGlowInterval);
+        //this.glowTimer = setInterval(this.boundUpdateLampGlow, B220Processor.lampGlowInterval);
     }
 };
 
@@ -3260,6 +3471,73 @@ B220Processor.prototype.powerDown = function powerDown() {
             this.glowTimer = null;
         }
     }
+};
+/**************************************/
+B220Processor.prototype.schedule = function schedule() {
+    /* Schedules the processor running time and attempts to throttle performance
+    to approximate that of a real B220. It establishes
+    a timeslice in terms of a number of processor "cycles" of 5 microseconds
+    each and calls run() to execute at most that number of cycles. run()
+    counts up cycles until it reaches this limit or some terminating event
+    (such as a halt), then exits back here. If the processor remains active,
+    this routine will reschedule itself after an appropriate delay, thereby
+    throttling the performance and allowing other modules a chance at the
+    single Javascript execution thread */
+    var clockOff = performance.now();   // ending time for the delay and the run() call, ms
+    var delayTime;                      // delay from/until next run() for this processor, ms
+    var runTime;                        // real-world processor running time, ms
+
+    this.scheduler = 0;
+    delayTime = clockOff - this.delayLastStamp;
+    this.procSlack += delayTime;
+
+    // Compute the exponential weighted average of scheduling delay
+    this.delayDeltaAvg = (delayTime - this.delayRequested)*B220Processor.delayAlpha +
+                         this.delayDeltaAvg*B220Processor.delayAlpha1;
+    this.procSlackAvg = B220Processor.slackAlpha*delayTime +
+                        this.procSlackAvg*B220Processor.slackAlpha1;
+
+    if (this.busy) {
+        this.cycleLimit = B220Processor.timeSlice;
+
+        this.run();                     // execute instructions for the timeslice
+
+        clockOff = performance.now();
+        this.procRunAvg = (clockOff - this.delayLastStamp)*B220Processor.slackAlpha +
+                     this.procRunAvg*B220Processor.slackAlpha1;
+        this.delayLastStamp = clockOff;
+        this.totalCycles += this.runCycles;
+        if (!this.busy) {
+            this.delayRequested = 0;
+        } else {
+            runTime = this.procTime;
+            while (runTime < 0) {
+                runTime += clockOff;
+            }
+
+            delayTime = this.totalCycles/B220Processor.cyclesPerMilli - runTime;
+            // delayTime is the number of milliseconds the processor is running ahead of
+            // real-world time. Web browsers have a certain minimum setTimeout() delay. If the
+            // delay is less than our estimate of that minimum, setCallback will yield to
+            // the event loop but otherwise continue (real time should eventually catch up --
+            // we hope). If the delay is greater than the minimum, setCallback will reschedule
+            // us after that delay.
+
+            this.delayRequested = delayTime;
+            this.scheduler = setCallback(this.mnemonic, this, delayTime, this.schedule);
+        }
+    }
+};
+
+/**************************************/
+B220Processor.prototype.step = function step() {
+    /* Single-steps the processor. Normally this will cause one instruction to
+    be executed, but note that in the case of an interrupt or char-mode CRF, one
+    or two injected instructions (e.g., SFI followed by ITI) could also be executed */
+
+    this.cycleLimit = 1;
+    this.run();
+    this.totalCycles += this.runCycles;
 };
 
 /**************************************/

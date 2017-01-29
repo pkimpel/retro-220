@@ -522,39 +522,39 @@ B220ControlConsole.prototype.consoleOnLoad = function consoleOnLoad() {
 
     // Main Registers
 
-    this.regA = new PanelRegister(this.$$("ARegPanel"), 44, 4, "A_", "A");
-    this.regB = new PanelRegister(this.$$("BRegPanel"), 16, 4, "B_", "B");
-    this.regC = new PanelRegister(this.$$("CRegPanel"), 40, 4, "C_", "C");
-    this.regD = new PanelRegister(this.$$("DRegPanel"), 44, 4, "D_", "D");
-    this.regE = new PanelRegister(this.$$("ERegPanel"), 16, 4, "E_", "E");
-    this.regR = new PanelRegister(this.$$("RRegPanel"), 44, 4, "R_", "R");
-    this.regP = new PanelRegister(this.$$("PRegPanel"), 16, 4, "P_", "P");
-    this.regS = new PanelRegister(this.$$("SRegPanel"), 16, 4, "S_", "S");
+    this.regA = new PanelRegister(this.$$("ARegPanel"), 11*4, 4, "A_", "A");
+    this.regB = new PanelRegister(this.$$("BRegPanel"),  4*4, 4, "B_", "B");
+    this.regC = new PanelRegister(this.$$("CRegPanel"), 10*4, 4, "C_", "C");
+    this.regD = new PanelRegister(this.$$("DRegPanel"), 11*4, 4, "D_", "D");
+    this.regE = new PanelRegister(this.$$("ERegPanel"),  4*4, 4, "E_", "E");
+    this.regR = new PanelRegister(this.$$("RRegPanel"), 11*4, 4, "R_", "R");
+    this.regP = new PanelRegister(this.$$("PRegPanel"),  4*4, 4, "P_", "P");
+    this.regS = new PanelRegister(this.$$("SRegPanel"),  4*4, 4, "S_", "S");
 
     // Status Panels
 
     panel = this.$$("AlarmPanel");
-    this.digitCheckLamp = new ColoredLamp(panel, null, null, "DigitCheckLamp", "redLamp lampCollar", "redLit");
-    this.programCheck = new ColoredLamp(panel, null, null, "ProgramCheckLamp", "redLamp lampCollar", "redLit");
-    this.storageLamp = new ColoredLamp(panel, null, null, "StorageLamp", "redLamp lampCollar", "redLit");
-    this.magneticTapeLamp = new ColoredLamp(panel, null, null, "MagneticTapeLamp", "redLamp lampCollar", "redLit");
-    this.cardatronLamp = new ColoredLamp(panel, null, null, "CardatronLamp", "redLamp lampCollar", "redLit");
-    this.paperTapeLamp = new ColoredLamp(panel, null, null, "PaperTapeLamp", "redLamp lampCollar", "redLit");
+    this.digitCheckLamp =       new ColoredLamp(panel, null, null, "DigitCheckLamp", "redLamp lampCollar", "redLit");
+    this.programCheck =         new ColoredLamp(panel, null, null, "ProgramCheckLamp", "redLamp lampCollar", "redLit");
+    this.storageLamp =          new ColoredLamp(panel, null, null, "StorageLamp", "redLamp lampCollar", "redLit");
+    this.magneticTapeLamp =     new ColoredLamp(panel, null, null, "MagneticTapeLamp", "redLamp lampCollar", "redLit");
+    this.cardatronLamp =        new ColoredLamp(panel, null, null, "CardatronLamp", "redLamp lampCollar", "redLit");
+    this.paperTapeLamp =        new ColoredLamp(panel, null, null, "PaperTapeLamp", "redLamp lampCollar", "redLit");
     this.highSpeedPrinterLamp = new ColoredLamp(panel, null, null, "HighSpeedPrinterLamp", "redLamp lampCollar", "redLit");
-    this.systemNotReadyLamp = new ColoredLamp(panel, null, null, "SystemNotReadyLamp", "redLamp lampCollar", "redLit");
+    this.systemNotReadyLamp =   new ColoredLamp(panel, null, null, "SystemNotReadyLamp", "redLamp lampCollar", "redLit");
     this.computerNotReadyLamp = new ColoredLamp(panel, null, null, "ComputerNotReadyLamp", "redLamp lampCollar", "redLit");
 
     panel = this.$$("OperationPanel");
-    this.runLamp = new ColoredLamp(panel, null, null, "RunLamp", "redLamp lampCollar", "redLit");
-    this.fetchLamp = new ColoredLamp(panel, null, null, "FetchLamp", "redLamp lampCollar", "redLit");
-    this.executeLamp = new ColoredLamp(panel, null, null, "ExecuteLamp", "redLamp lampCollar", "redLit");
+    this.runLamp =              new ColoredLamp(panel, null, null, "RunLamp", "blueLamp lampCollar", "blueLit");
+    this.fetchLamp =            new ColoredLamp(panel, null, null, "FetchLamp", "blueLamp lampCollar", "blueLit");
+    this.executeLamp =          new ColoredLamp(panel, null, null, "ExecuteLamp", "blueLamp lampCollar", "blueLit");
 
     panel = this.$$("StatusPanel");
-    this.overflowLamp = new ColoredLamp(panel, null, null, "OverflowLamp", "redLamp lampCollar", "redLit");
-    this.repeatLamp = new ColoredLamp(panel, null, null, "RepeatLamp", "redLamp lampCollar", "redLit");
-    this.lowLamp = new ColoredLamp(panel, null, null, "LowLamp", "redLamp lampCollar", "redLit");
-    this.equalLamp = new ColoredLamp(panel, null, null, "EqualLamp", "redLamp lampCollar", "redLit");
-    this.highLamp = new ColoredLamp(panel, null, null, "HighLamp", "redLamp lampCollar", "redLit");
+    this.overflowLamp =         new ColoredLamp(panel, null, null, "OverflowLamp", "blueLamp lampCollar", "blueLit");
+    this.repeatLamp =           new ColoredLamp(panel, null, null, "RepeatLamp", "blueLamp lampCollar", "blueLit");
+    this.lowLamp =              new ColoredLamp(panel, null, null, "LowLamp", "blueLamp lampCollar", "blueLit");
+    this.equalLamp =            new ColoredLamp(panel, null, null, "EqualLamp", "blueLamp lampCollar", "blueLit");
+    this.highLamp =             new ColoredLamp(panel, null, null, "HighLamp", "blueLamp lampCollar", "blueLit");
 
     // Organ Switches
 

@@ -28,7 +28,7 @@
 
 <div id=PanelSurface class=panelSurface>
     <img id=BurroughsMeatball src="resources/Burroughs-Meatball.png">
-    <img id=BurroughsLogo src="resources/Burroughs-Logo.jpg">
+    <img id=BurroughsLogo src="resources/Burroughs-Logo.png">
     <div id=B220Logo>2 2 0</div>
 
     <div id=IntervalTimerResetCaption class=caption>ZERO TIMER</div>
@@ -153,67 +153,18 @@
         <button id=TCUClearSwitchLabel class=panelLabel>TCU CLEAR</button>
     </div>
 
-    <!--
-
-    <div id=ComputerStopCaption class=panelCaption>
-        <span class=panelSpan>COMPUTER STOP</span>
-    </div>
-
-    <div id=OverflowLampCaption class=caption>OVERFLOW</div>
-    <div id=ResetOverflowBtn class=blackButton1>&nbsp;</div>
-    <div id=ResetOverflowCaption class=caption>RESET</div>
-
-    <div id=SectorLampCaption class=caption>SECTOR</div>
-    <div id=ResetSectorBtn class=blackButton1>&nbsp;</div>
-    <div id=ResetSectorCaption class=caption>RESET</div>
-
-    <div id=ControlLampCaption class=caption>CONTROL</div>
-    <div id=ResetControlBtn class=blackButton1>&nbsp;</div>
-    <div id=ResetControlCaption class=caption>RESET</div>
-
-    <div id=FCLampCaption class=caption>F.C.</div>
-
-    <div id=IdleLampCaption class=caption>IDLE</div>
-
-    <div id=AudibleAlarmOn class=caption>ON</div>
-    <div id=AudibleAlarmOff class=caption>AUD. ALARM<br>DISABLE</div>
-
-    <div id=ClearBtn class=redButton1>&nbsp;</div>
-    <div id=ClearBtnCaption class=caption>CLEAR</div>
-
-    <div id=LockNormalOn class=caption>LOCK</div>
-    <div id=LockNormalOff class=caption>NORMAL</div>
-
-    <div id=ExecuteBtn class=blackButton1>&nbsp;</div>
-    <div id=FetchBtn class=blackButton1>&nbsp;</div>
-
-    <div id=TimingToggleCaption class=caption>TIMING TOGGLE</div>
-    <div id=ExecuteLampCaption class=caption>EXECUTE</div>
-    <div id=FetchLampCaption class=caption>FETCH</div>
-
-    <div id=OperationCaption class=caption>OPERATION</div>
-
-    <div id=StepContinuousOn class=caption>CONTINUOUS</div>
-    <div id=StepContinuousOff class=caption>STEP</div>
-
-    <div id=StartBtn class=blackButton3>&nbsp;</div>
-    <div id=StartCaption class=caption>START</div>
-
-    -->
-
     <div id=VersionDiv class=caption>
         retro-220 <span id=EmulatorVersion>?.??</span>
     </div>
 </div>
 
-<div id=Diagnostics style="display:none">
+<div id=Diagnostics>
     <br>
     Proc Delta: <input id=ProcDelta class="rj" type=text size=10>
     &nbsp;&nbsp;
     Latency: <input id=LastLatency class="rj" type=text size=10>
 
-    <table id=CallbackTable
-           style="position:relative; top:1ex; visibility:visible; border-collapse:collapse; border-spacing:0">
+    <table id=CallbackTable>
     <thead>
       <tr>
         <th>ID

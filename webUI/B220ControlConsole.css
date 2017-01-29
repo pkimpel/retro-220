@@ -11,15 +11,15 @@
 *   Original version, from D205SupervisoryPanel.css
 ***********************************************************************/
 
-#BurroughsMeatball {
+#BurroughsLogo {
     position:           absolute;
     left:               12px;
     top:                6px;
     height:             36px}
 
-#BurroughsLogo {
+#BurroughsMeatball {
     position:           absolute;
-    left:               100px;
+    left:               334px;
     top:                6px;
     height:             36px}
 
@@ -87,13 +87,13 @@
     height:             128px}
 
 #RRegPanel {
-    left:               372px;
+    left:               calc(50% - 156px);
     top:                48px;
     width:              312px;
     height:             128px}
 
 #DRegPanel {
-    left:               732px;
+    right:              12px;
     top:                48px;
     width:              312px;
     height:             128px}
@@ -111,19 +111,19 @@
     height:             128px}
 
 #CRegPanel {
-    left:               384px;
+    left:               calc(50% - 144px);
     top:                208px;
     width:              288px;
     height:             128px}
 
 #ERegPanel {
-    left:               732px;
+    right:              180px;
     top:                208px;
     width:              144px;
     height:             128px}
 
 #SRegPanel {
-    left:               900px;
+    right:              12px;
     top:                208px;
     width:              144px;
     height:             128px}
@@ -216,7 +216,7 @@
 /***** Operation Panel *****/
 
 #OperationPanel {
-    left:               452px;
+    left:               calc(50% - 77px);
     top:                368px;
     width:              154px;
     height:             64px}
@@ -254,7 +254,7 @@
 /***** Status Panel *****/
 
 #StatusPanel {
-    left:               662px;
+    right:              12px;
     top:                368px;
     width:              382px;
     height:             64px}
@@ -430,7 +430,7 @@
 /***** Operation Switch Panel *****/
 
 #OperationSwitchPanel {
-    left:               452px;
+    left:               calc(50% - 77px);
     top:                464px;
     width:              154px;
     height:             80px}
@@ -478,7 +478,7 @@
 /***** Miscellaneous Switch Panel *****/
 
 #MiscellaneousSwitchPanel {
-    left:               662px;
+    right:              12px;
     top:                464px;
     width:              382px;
     height:             80px}
@@ -571,6 +571,19 @@
     width:              32px}
 
 
+/***** Diagnostics Panel (DEBUG) *****/
+
+#Diagnostics {
+    display:            none}
+
+#CallbackTable {
+    position:           relative;
+    top:                1ex;
+    visibility:         visible;
+    border-collapse:    collapse;
+    border-spacing:     0}
+
+
 /***** Old Stuff *****/
 
 #PowerOnBtn {
@@ -580,127 +593,3 @@
     left:               600px;
     top:                360px;
     width:              24px}
-#PowerLamp {
-    left:               600px;
-    top:                378px}
-
-
-#ComputerStopCaption {
-    left:               478px;
-    top:                300px;
-    width:              160px}
-
-#ResetOverflowBtn {
-    left:               461px;
-    top:                416px}
-#ResetOverflowCaption {
-    left:               461px;
-    top:                456px;
-    width:              34px}
-
-#SectorLamp {
-    left:               506px;
-    top:                330px}
-#SectorLampCaption {
-    left:               497px;
-    top:                360px;
-    width:              40px}
-#ResetSectorBtn {
-    left:               501px;
-    top:                416px}
-#ResetSectorCaption {
-    left:               501px;
-    top:                456px;
-    width:              34px}
-
-#ControlLamp {
-    left:               546px;
-    top:                330px}
-#ControlLampCaption {
-    left:               537px;
-    top:                360px;
-    width:              40px}
-#ResetControlBtn {
-    left:               541px;
-    top:                416px}
-#ResetControlCaption {
-    left:               541px;
-    top:                456px;
-    width:              34px}
-
-#FCLamp {
-    left:               586px;
-    top:                330px}
-#FCLampCaption {
-    left:               586px;
-    top:                360px;
-    width:              24px}
-
-#IdleLamp {
-    left:               626px;
-    top:                330px}
-#IdleLampCaption {
-    left:               626px;
-    top:                360px;
-    width:              24px}
-
-#AudibleAlarmSwitch {
-    position:           absolute;
-    left:               626px;
-    top:                420px;
-    width:              24px}
-#AudibleAlarmOn {
-    left:               626px;
-    top:                408px;
-    width:              24px}
-#AudibleAlarmOff {
-    left:               608px;
-    top:                456px;
-    line-height:        130%;
-    width:              60px}
-
-#ClearBtn {
-    left:               710px;
-    top:                374px}
-#ClearBtnCaption {
-    left:               710px;
-    top:                300px;
-    width:              32px}
-
-#LockNormalSwitch {
-    position:           absolute;
-    left:               808px;
-    top:                378px;
-    width:              24px}
-#LockNormalOn {
-    left:               808px;
-    top:                370px;
-    width:              24px}
-#LockNormalOff {
-    left:               802px;
-    top:                408px;
-    width:              36px}
-
-#TimingToggleCaption {
-    left:               844px;
-    top:                300px;
-    width:              64px}
-
-#OperationCaption {
-    left:               950px;
-    top:                300px;
-    width:              88px}
-
-#StepContinuousSwitch {
-    position:           absolute;
-    left:               950px;
-    top:                378px;
-    width:              24px}
-#StepContinuousOn {
-    left:               932px;
-    top:                370px;
-    width:              60px}
-#StepContinuousOff {
-    left:               932px;
-    top:                408px;
-    width:              60px}

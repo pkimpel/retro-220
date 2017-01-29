@@ -232,25 +232,25 @@ DIV.orangeLit5 {
 DIV.orangeLit {
     background-image:   radial-gradient(circle, #F93, #E93, #960)}
 
-DIV.greenLamp {
+DIV.blueLamp {
     position:           absolute;
     width:              24px;
     height:             24px;
     font-size:          4px;
     border-radius:      50%;
-    background-image:   radial-gradient(circle, #090, #030)}
-DIV.greenLit1 {
-    background-image:   radial-gradient(circle, #0A0, #090, #040)}
-DIV.greenLit2 {
-    background-image:   radial-gradient(circle, #0B0, #0A0, #050)}
-DIV.greenLit3 {
-    background-image:   radial-gradient(circle, #0C0, #0B0, #060)}
-DIV.greenLit4 {
-    background-image:   radial-gradient(circle, #0D0, #0C0, #070)}
-DIV.greenLit5 {
-    background-image:   radial-gradient(circle, #0E0, #0D0, #080)}
-DIV.greenLit {
-    background-image:   radial-gradient(circle, #0F0, #0E0, #090)}
+    background-image:   radial-gradient(circle, #039, #003)}
+DIV.blueLit1 {
+    background-image:   radial-gradient(circle, #03A, #039, #004)}
+DIV.blueLit2 {
+    background-image:   radial-gradient(circle, #03B, #03A, #005)}
+DIV.blueLit3 {
+    background-image:   radial-gradient(circle, #04C, #04C, #006)}
+DIV.blueLit4 {
+    background-image:   radial-gradient(circle, #05D, #05D, #007)}
+DIV.blueLit5 {
+    background-image:   radial-gradient(circle, #06E, #06E, #008)}
+DIV.blueLit {
+    background-image:   radial-gradient(circle, #07F, #07F, #009)}
 
 DIV.coloredLampTopCaption {
     position:           absolute;

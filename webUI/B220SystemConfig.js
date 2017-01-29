@@ -55,6 +55,7 @@ B220SystemConfig.prototype.createConfigData = function createConfigData() {
 
     this.configData = {
         version: this.configVersion,
+        memorySize: 5000,               // 11-digit words
 
         SupervisoryPanel: {
             pulseSourceSwitch: 0,
