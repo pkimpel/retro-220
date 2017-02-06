@@ -28,15 +28,19 @@
 *       (Bulletin 5019, Burroughs Corporation, December, 1958).
 *
 * Burroughs 220 word format:
-*   44 bits, encoded as binary-coded decimal (BCD); non-decimal codes are invalid
-*   and cause the computer to stop with a Forbidden Combination (FC) alarm.
+*   44 bits, encoded as binary-coded decimal (BCD); non-decimal codes are
+*   invalid and cause the computer to stop with a Digit Check alarm, also known
+*   as a Forbidden Combination (FC).
+*
 *   High-order 4 bits are the "sign digit":
 *       Low-order bit of this digit is the actual sign.
 *       Higher-order bits are used in some I/O operations.
 *   Remaining 40 bits are the value as:
-*       10 decimal digits as a fractional mantissa, with the decimal point between
-*           the sign and high-order (10th) digits
-*       5 character codes
+*       10 decimal digits as a fractional mantissa, with the decimal point
+*           between the sign and high-order (10th) digits
+*       a floating point value with the first two digits as the exponent (biased
+*           by 50) followed by a fractional 8-digit mantissa
+*       5 two-digit character codes
 *       one instruction word
 *
 *   Instruction word format:
@@ -46,8 +50,7 @@
 *       Sign digit: odd value indicates the B register is to be added to the
 *           operand address prior to execution.
 *
-* Processor timing is maintained internally in units of "word-times": 1/200-th
-* revolution of the memory drum, or about 84 µs at 3570rpm.
+* Processor timing is maintained internally in units of milliseconds.
 *
 ************************************************************************
 * 2017-01-01  P.Kimpel
@@ -57,30 +60,38 @@
 
 /**************************************/
 function B220Processor(config, devices) {
-    /* Constructor for the 205 Processor module object */
+    /* Constructor for the 220 Processor module object */
 
     // Emulator control
-    this.cardatron = null;              // Reference to Cardatron Control Unit
-    this.config = config;               // Reference to SystemConfig object
-    this.console = null;                // Reference to Control Console for I/O
-    this.devices = devices;             // Hash of I/O device objects
-    this.ioCallback = null;             // Current I/O interface callback function
-    this.magTape = null;                // Reference to Magnetic Tape Control Unit
-    this.poweredOn = 0;                 // System is powered on and initialized
-    this.successor = null;              // Current delayed-action successor function
+    this.cardatron = null;              // reference to Cardatron Control Unit
+    this.config = config;               // reference to SystemConfig object
+    this.console = null;                // reference to Control Console for I/O
+    this.devices = devices;             // hash of I/O device objects
+    this.ioCallback = null;             // current I/O interface callback function
+    this.magTape = null;                // reference to Magnetic Tape Control Unit
+    this.poweredOn = 0;                 // system is powered on and initialized
+    this.successor = null;              // current delayed-action successor function
 
     // Memory
-    this.MM = new Float64Array(config.getNode("memorySize"));   // Main memory, 11-digit words
+    this.memorySize = config.getNode("memorySize");     // memory size, words
+    this.MM = new Float64Array(this.memorySize);        // main memory, 11-digit words
+    this.IB = new B220Processor.Register(11*4, this, true);     // memory Input Buffer
 
-    // Processor throttling control
-    this.runTime = 0;                   // Running time for processor, ms
-    this.scheduler = 0;                 // Current setCallback token
+    // Processor throttling control and timing statistics
     this.procStart = 0;                 // Javascript time that the processor started running, ms
-    this.procTime = 0;                  // Total processor running time, ms
+    this.realTime = 0;                  // estimated real time, ms
+    this.runLimit = 0;                  // current time slice limit on this.realTime
+    this.procTime = 0;                  // total internal running time for processor, ms
+    this.scheduler = 0;                 // current setCallback token
+    this.timerTime = 0;                 // elapsed run-time timer value, ms
 
-    this.delayDeltaAvg = 0;             // Average difference between requested and actual setCallback() delays, ms
-    this.delayLastStamp = 0;            // Timestamp of last setCallback() delay, ms
-    this.delayRequested = 0;            // Last requested setCallback() delay, ms
+    this.procSlack = 0;                 // total processor throttling delay, ms
+    this.procSlackAvg = 0;              // average slack time per time slice, ms
+    this.procRunAvg = 0;                // average elapsed time per time slice, ms
+
+    this.delayDeltaAvg = 0;             // average difference between requested and actual setCallback() delays, ms
+    this.delayLastStamp = 0;            // timestamp of last setCallback() delay, ms
+    this.delayRequested = 0;            // last requested setCallback() delay, ms
 
     // Primary Registers
     this.A = new B220Processor.Register(11*4, this, false);
@@ -105,7 +116,7 @@ function B220Processor(config, devices) {
     this.computerNotReady.set(1);       // initial state after power-up
 
     // Control Console Switches
-    this.PC1SW = 0;                     // Program control switches 1-10
+    this.PC1SW = 0;                     // program control switches 1-10
     this.PC2SW = 0;
     this.PC3SW = 0;
     this.PC4SW = 0;
@@ -139,8 +150,8 @@ function B220Processor(config, devices) {
     this.DC = new B220Processor.Register(6, this, false);       // digit counter (modulo 20)
     this.SC = new B220Processor.Register(4, this, false);       // sequence counter
     this.SI = new B220Processor.Register(4, this, false);       // sum inverters
-    this.X =  new B220Processor.Register(4, this, false);       // adder X input
-    this.Y =  new B220Processor.Register(4, this, false);       // adder Y input
+    this.X =  new B220Processor.Register(4, this, false);       // adder X (augend) input
+    this.Y =  new B220Processor.Register(4, this, false);       // adder Y (addend) input
     this.Z =  new B220Processor.Register(4, this, false);       // decimal sum inverters, adder output
 
     this.C10 = new B220Processor.FlipFlop(this, false);         // decimal carry toggle
@@ -183,7 +194,7 @@ function B220Processor(config, devices) {
     this.EWT = new B220Processor.FlipFlop(this, false);         // end of word toggle
     this.EXT = new B220Processor.FlipFlop(this, false);         // fetch(0)/execute(1) toggle
     this.HAT = new B220Processor.FlipFlop(this, false);         // ?? toggle
-    this.HCT = new B220Processor.FlipFlop(this, false);         // ?? toggle
+    this.HCT = new B220Processor.FlipFlop(this, false);         // halt control toggle, for SOR, SOH, IOM (I think)
     this.HIT = new B220Processor.FlipFlop(this, false);         // high comparison toggle
     this.MAT = new B220Processor.FlipFlop(this, false);         // multiple access toggle
     this.MET = new B220Processor.FlipFlop(this, false);         // memory (storage) alarm toggle
@@ -202,7 +213,6 @@ function B220Processor(config, devices) {
     this.tswSuppressB = 0;              // Suppress B-register modification on input
 
     // Context-bound routines
-    this.boundExecuteComplete = B220Processor.bindMethod(this, B220Processor.prototype.executeComplete);
     this.boundUpdateLampGlow = B220Processor.bindMethod(this, B220Processor.prototype.updateLampGlow);
 
     this.boundConsoleOutputSignDigit = B220Processor.bindMethod(this, B220Processor.prototype.consoleOutputSignDigit);
@@ -228,10 +238,21 @@ function B220Processor(config, devices) {
     //this.loadDefaultProgram();          // Preload a default program
 }
 
-/**************************************/
 
-/* Global constants */
+/***********************************************************************
+*   Global Constants                                                   *
+***********************************************************************/
+
 B220Processor.version = "0.00b";
+
+B220Processor.tick = 0.005;             // milliseconds per clock cycle (5MHz)
+B220Processor.cyclesPerMilli = 1/B220Processor.tick;
+                                        // clock cycles per millisecond (200 => 5MHz)
+B220Processor.timeSlice = 10;           // maximum processor time slice, ms
+B220Processor.delayAlpha = 0.001;       // decay factor for exponential weighted average delay
+B220Processor.delayAlpha1 = 1-B220Processor.delayAlpha;
+B220Processor.slackAlpha = 0.0001;      // decay factor for exponential weighted average slack
+B220Processor.slackAlpha1 = 1-B220Processor.slackAlpha;
 
 B220Processor.neonPersistence = 1000/30;
                                         // persistence of neon bulb glow [ms]
@@ -241,13 +262,6 @@ B220Processor.lampGlowInterval = 50;    // background lamp sampling interval (ms
 B220Processor.adderGlowAlpha = B220Processor.neonPersistence/12;
                                         // adder and carry toggle glow decay factor,
                                         // based on one digit (1/12 word) time [ms]
-
-B220Processor.cyclesPerMilli = 1000;    // clock cycles per millisecond (1000 => 1.0 MHz)
-B220Processor.timeSlice = 4000;         // this.run() time-slice, clocks
-B220Processor.delayAlpha = 0.001;       // decay factor for exponential weighted average delay
-B220Processor.delayAlpha1 = 1-B220Processor.delayAlpha;
-B220Processor.slackAlpha = 0.0001;      // decay factor for exponential weighted average slack
-B220Processor.slackAlpha1 = 1-B220Processor.slackAlpha;
 
 B220Processor.pow2 = [ // powers of 2 from 0 to 52
                      0x1,              0x2,              0x4,              0x8,
@@ -281,6 +295,186 @@ B220Processor.mask2 = [ // (2**n)-1 for n from 0 to 52
          0x0FFFFFFFFFFFF,  0x1FFFFFFFFFFFF,  0x3FFFFFFFFFFFF,  0x7FFFFFFFFFFFF,
         0x0FFFFFFFFFFFFF] ;
 
+B220Processor.operandRequired = [       // true if op code requires a memory operand
+    //  0   1   2   3   4   5   6   7   8   9   A   B   C   D   E   F
+        0,  0,  0,  1,  1,  1,  0,  0,  0,  1,  0,  0,  0,  0,  0,  0,  // 00-0F
+        1,  1,  1,  1,  1,  1,  0,  1,  1,  1,  0,  0,  0,  0,  0,  0,  // 01-1F
+        0,  0,  1,  1,  1,  1,  1,  1,  1,  1,  0,  0,  0,  0,  0,  0,  // 02-2F
+        0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  // 03-3F
+        0,  1,  1,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  // 04-4F
+        0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  // 05-5F
+        0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  // 06-6F
+        0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  // 07-7F
+        0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  // 08-8F
+        0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0]; // 09-9F
+
+
+/***********************************************************************
+*   Utility Functions                                                  *
+***********************************************************************/
+
+/**************************************/
+B220Processor.bindMethod = function bindMethod(context, f) {
+    /* Returns a new function that binds the function "f" to the object "context".
+    Note that this is a static constructor property function, NOT an instance
+    method of the CC object */
+
+    return function bindMethodAnon() {return f.apply(context, arguments)};
+};
+
+/**************************************/
+B220Processor.bcdBinary = function bcdBinary(v) {
+    /* Converts the BCD value "v" to a binary number and returns it. If the
+    BCD value is not decimal, returns NaN instead */
+    var d;
+    var power = 1;
+    var result = 0;
+
+    while(v) {
+        d = v % 0x10;
+        if (d > 9) {
+            result = Number.NaN;
+            break;
+        } else {
+            result += d*power;
+            power *= 10;
+            v = (v-d)/0x10;
+        }
+    }
+    return result;
+};
+
+/**************************************/
+B220Processor.binaryBCD = function binaryBCD(v) {
+    /* Converts the binary value "v" to a BCD number and returns it */
+    var d;
+    var power = 1;
+    var result = 0;
+
+    while(v) {
+        d = v % 10;
+        result += d*power;
+        power *= 0x10;
+        v = (v-d)/10;
+    }
+    return result;
+};
+
+
+/***********************************************************************
+*   Bit and Field Manipulation Functions                               *
+***********************************************************************/
+
+/**************************************/
+B220Processor.bitTest = function bitTest(word, bit) {
+    /* Extracts and returns the specified bit from the word */
+    var p;                              // bottom portion of word power of 2
+
+    if (bit > 0) {
+        return ((word - word % (p = B220Processor.pow2[bit]))/p) % 2;
+    } else {
+        return word % 2;
+    }
+};
+
+/**************************************/
+B220Processor.bitSet = function bitSet(word, bit) {
+    /* Sets the specified bit in word and returns the updated word */
+    var ue = bit+1;                     // word upper power exponent
+    var bpower =                        // bottom portion of word power of 2
+        B220Processor.pow2[bit];
+    var bottom =                        // unaffected bottom portion of word
+        (bit <= 0 ? 0 : (word % bpower));
+    var top =                           // unaffected top portion of word
+        word - (word % B220Processor.pow2[ue]);
+
+    return bpower + top + bottom;
+};
+
+/**************************************/
+B220Processor.bitReset = function bitReset(word, bit) {
+    /* Resets the specified bit in word and returns the updated word */
+    var ue = bit+1;                     // word upper power exponent
+    var bottom =                        // unaffected bottom portion of word
+        (bit <= 0 ? 0 : (word % B220Processor.pow2[bit]));
+    var top =                           // unaffected top portion of word
+        word - (word % B220Processor.pow2[ue]);
+
+    return top + bottom;
+};
+
+/**************************************/
+B220Processor.bitFlip = function bitFlip(word, bit) {
+    /* Complements the specified bit in word and returns the updated word */
+    var ue = bit+1;                     // word upper power exponent
+    var bpower =                        // bottom portion of word power of 2
+        B220Processor.pow2[bit];
+    var bottom =                        // unaffected bottom portion of word
+        (bit <= 0 ? 0 : (word % bpower));
+    var middle =                        // bottom portion of word starting with affected bit
+        word % B220Processor.pow2[ue];
+    var top = word - middle;            // unaffected top portion of word
+
+    if (middle >= bpower) {             // if the affected bit is a one
+        return top + bottom;                // return the result with it set to zero
+    } else {                            // otherwise
+        return bpower + top + bottom;       // return the result with it set to one
+    }
+};
+
+/**************************************/
+B220Processor.fieldIsolate = function fieldIsolate(word, start, width) {
+    /* Extracts a bit field [start:width] from word and returns the field */
+    var le = start-width+1;             // lower power exponent
+    var p;                              // bottom portion of word power of 2
+
+    return (le <= 0 ? word :
+                      (word - word % (p = B220Processor.pow2[le]))/p
+            ) % B220Processor.pow2[width];
+};
+
+/**************************************/
+B220Processor.fieldInsert = function fieldInsert(word, start, width, value) {
+    /* Inserts a bit field from the low-order bits of value ([48-width:width])
+    into word.[start:width] and returns the updated word */
+    var ue = start+1;                   // word upper power exponent
+    var le = ue-width;                  // word lower power exponent
+    var bpower =                        // bottom portion of word power of 2
+        B220Processor.pow2[le];
+    var bottom =                        // unaffected bottom portion of word
+        (le <= 0 ? 0 : (word % bpower));
+    var top =                           // unaffected top portion of word
+        (ue <= 0 ? 0 : (word - (word % B220Processor.pow2[ue])));
+
+    return (value % B220Processor.pow2[width])*bpower + top + bottom;
+};
+
+/**************************************/
+B220Processor.fieldTransfer = function fieldTransfer(word, wstart, width, value, vstart) {
+    /* Inserts a bit field from value.[vstart:width] into word.[wstart:width] and
+    returns the updated word */
+    var ue = wstart+1;                  // word upper power exponent
+    var le = ue-width;                  // word lower power exponent
+    var ve = vstart-width+1;            // value lower power exponent
+    var vpower;                         // bottom port of value power of 2
+    var bpower =                        // bottom portion of word power of 2
+        B220Processor.pow2[le];
+    var bottom =                        // unaffected bottom portion of word
+        (le <= 0 ? 0 : (word % bpower));
+    var top =                           // unaffected top portion of word
+        (ue <= 0 ? 0 : (word - (word % B220Processor.pow2[ue])));
+
+    return ((ve <= 0 ? value :
+                       (value - value % (vpower = B220Processor.pow2[ve]))/vpower
+                ) % B220Processor.pow2[width]
+            )*bpower + top + bottom;
+};
+
+
+/***********************************************************************
+*   System Clear                                                       *
+***********************************************************************/
+
 /**************************************/
 B220Processor.prototype.clear = function clear() {
     /* Initializes (and if necessary, creates) the processor state */
@@ -296,6 +490,7 @@ B220Processor.prototype.clear = function clear() {
     this.P.set(0);
     this.R.set(0);
     this.S.set(0);
+    this.IB.set(0);
 
     // Control Console Lamps
     this.digitCheckAlarm.set(0);
@@ -342,7 +537,7 @@ B220Processor.prototype.clear = function clear() {
     this.CRT.set(0);
     this.DPT.set(0);
     this.EWT.set(0);
-    this.EXT.set(1);                    // clear to fetch state
+    this.EXT.set(this.FETCHEXECUTELOCKSW == 2 ? 1 : 0);
     this.HAT.set(0);
     this.HCT.set(0);
     this.HIT.set(0);
@@ -359,25 +554,9 @@ B220Processor.prototype.clear = function clear() {
     this.TAT.set(0);
     this.UET.set(0);
 
+    this.CCONTROL = 0;                  // copy of C register control digits (4 digits)
     this.COP = 0;                       // copy of C register op code (2 digits)
     this.CADDR = 0;                     // copy of C register operand address (4 digits)
-    this.CCONTROL = 0;                  // copy of C register control address (4 digits)
-    this.CEXTRA = 0;                    // high-order four digits of instruction word + sign
-
-    // Timing control and statistics
-    this.cycleCount = 0;                // Cycle count for current instruction
-    this.cycleLimit = 0;                // Cycle limit for this.run()
-    this.normalCycles = 0;              // Current normal-state cycle count (for UI display)
-    this.runCycles = 0;                 // Current cycle count for this.run()
-    this.totalCycles = 0;               // Total cycles executed on this processor
-    this.procStart = 0;                 // Javascript time that the processor started running, ms
-    this.procTime = 0.001;              // Total processor running time, ms
-    this.procSlack = 0;                 // Total processor throttling delay, ms
-    this.procSlackAvg = 0;              // Average slack time per time slice, ms
-    this.procRunAvg = 0;                // Average run time per time slice, ms
-
-    //this.setTimingToggle(0);            // set to Execute initially
-    //this.sampleLamps(1.0, 1.0);         // initialize the lamp-glow averages
 
     // Kill any pending action that may be in process
     if (this.scheduler) {
@@ -391,63 +570,6 @@ B220Processor.prototype.clear = function clear() {
     }
 };
 
-/**************************************/
-B220Processor.prototype.clearControlToggles = function clearControlToggles() {
-    /* Clears the processor control toggles at end of an execution cycle.
-    The adder and carry toggles should also be cleared as part of this, but
-    they are often zero anyway, and we are only doing this for display purposes,
-    so leave them as is */
-
-    this.togADDER =                     // Adder toggle
-    this.togBTOAIN = 0;                 // B-to-A, Input toggle
-    this.togDPCTR =                     // Digit-pulse toggle: on during decimal-correct, off during complement
-    this.togDELTABDIV =                 // Delta-B, divide toggle
-    this.togCOMPL =                     // Complement toggle
-    this.togADDAB =                     // Add-A/add-B toggle
-    this.togCLEAR =                     // Clear toggle
-    this.togMULDIV =                    // Multiply-divide toggle
-    this.togSIGN =                      // Sign toggle
-    this.togCOUNT =                     // Count toggle
-    this.togDIVALARM =                  // Divide alarm
-    this.togSTEP = 0;                   // Step toggle
-};
-
-/**************************************/
-B220Processor.prototype.clearControl = function clearControl() {
-    /* Initializes (and if necessary, creates) the processor control registers
-    and toggles */
-
-    this.SHIFT = 0;                     // Shift counter
-    this.SHIFTCONTROL = 0;              // Shift control register
-    this.SPECIAL = 0;                   // Special counter
-
-    // Toggles (flip-flops)
-    this.clearControlToggles();         // the standard set
-    this.togSTART = 0;                  // Input control: Start toggle
-    this.togTF = 0;                     // Input control: FINISH pulse toggle
-    this.togTC1 = 0;                    // Input control: clock pulse toggle (from input device)
-    this.togTC2 = 0;                    // Input control: clock pulse toggle (shift input digit to D sign)
-    this.togOK = 0;                     // Output control: OK toggle (output device ready for next digit)
-    this.togPO1 = 0;                    // Output control: PO1 toggle (actual print-out to begin)
-    this.togPO2 = 0;                    // Output control: PO2 toggle (on at start of digit output)
-    this.togDELAY = 0;                  // Output control: Delay toggle
-    this.togT0 = 0;                     // Central control: T0 toggle
-    this.togBKPT = 0;                   // Central control: breakpoint toggle
-    this.togZCT = 0;                    // Central control: zero check toggle
-    this.togASYNC = 0;                  // Central control: async toggle
-    this.togMT3P = 0;                   // Magnetic tape: 3P toggle
-    this.togMT1BV4 = 0;                 // Magnetic tape: 1BV4 toggle
-    this.togMT1BV5 = 0;                 // Magnetic tape: 1BV5 toggle
-
-    // Cardatron toggles
-    this.togTWA = 0;                    // Cardatron: TWA toggle
-    this.tog3IO = 0;                    // Cardatron: 3IO toggle
-
-    // I/O globals
-    this.kDigit = 0;                    // variant/format digits from upper part of instruction
-    this.selectedUnit = 0;              // currently-selected unit number
-};
-
 
 /***********************************************************************
 *   Generic Register Class                                             *
@@ -458,11 +580,14 @@ B220Processor.Register = function Register(bits, p, invisible) {
     of "bits" bits. "p" is a reference to the Processor object, used to access
     the timing members. "invisible" should be true if the register does not
     have a visible presence in the UI -- this will inhibit computing average
-    lamp glow values for the register */
+    lamp glow values for the register.
+    Note that it is important to increment this.realTime AFTER setting new values
+    in registers and flip-flops. This allows the average intensity to be computed
+    based on the amount of time a bit was actually in that state */
 
     this.bits = bits;                   // number of bits in register
     this.visible = (invisible ? false : true);
-    this.lastRunTime = 0;               // time register was last set
+    this.lastRealTime = 0;              // time register was last set
     this.p = p;                         // processor instance
     this.value = 0;                     // binary value of register: read-only externally
 
@@ -470,11 +595,33 @@ B220Processor.Register = function Register(bits, p, invisible) {
 };
 
 /**************************************/
+B220Processor.Register.prototype.checkFC = function checkFC() {
+    /* Checks the register for a Forbidden Combination (hex A-F) digit. If at
+    least one exists, sets the Digit Check alarm and returns true. The bit mask
+    operations are done 28 bits at a time to avoid problems with the 32-bit
+    2s-complement arithmetic used by Javascript for bit operations */
+    var v1 = this.value;                // high-order digits (eventually)
+    var v2 = v1%0x10000000;             // low-order 7 digits
+
+    v1 = (v1-v2)/0x10000000;
+
+    if (    (((v1 & 0x8888888) >>> 3) & (((v1 & 0x4444444) >>> 2) | ((v1 & 0x2222222) >>> 1))) |
+            (((v2 & 0x8888888) >>> 3) & (((v2 & 0x4444444) >>> 2) | ((v2 & 0x2222222) >>> 1)))    ) {
+        this.setDigitCheck(1);
+        return 1;
+    } else {
+        return 0;
+    }
+};
+
+/**************************************/
 B220Processor.Register.prototype.set = function set(value) {
     /* Set a binary value into the register. Use this rather than setting
     the value member directly so that average lamp glow can be computed.
-    Returns the new value */
-    var alpha = Math.max(Math.max(this.p.runTime-this.lastRunTime, 1)/B220Processor.maxGlowTime, 1.0);
+    Returns the new value. Note that the glow is always aged by at least one
+    clock tick */
+    var alpha = Math.max(Math.max(this.p.realTime-this.lastRealTime, B220Processor.tick)/
+                         B220Processor.maxGlowTime, 1.0);
     var alpha1 = 1.0-alpha;
     var b = 0;
     var bit;
@@ -497,8 +644,77 @@ B220Processor.Register.prototype.set = function set(value) {
 
     // Set the new state.
     this.value = value;
-    this.lastRunTime = this.p.runTime;
+    this.lastRealTime = this.p.realTime;
+    this.checkFC(value);
     return this.value;
+};
+
+/**************************************/
+B220Processor.Register.prototype.getDigit = function setBit(digitNr) {
+    /* Returns the value of a 4-bit digit in the register. Digits are numbered
+    from 0 starting at the low end (not the way the 220 numbers them) */
+
+    return B220Processor.fieldIsolate(this.value, digitNr*4-1, 4);
+};
+
+/**************************************/
+B220Processor.Register.prototype.getBit = function setBit(bitNr) {
+    /* Returns the value of a bit in the register */
+
+    return (bitNr < this.bits ? B220Processor.bitTest(this.value, bitNr) : 0);
+};
+
+/**************************************/
+B220Processor.Register.prototype.setBit = function setBit(bitNr, value) {
+    /* Set a bit on or off in the register. Returns the new register value.
+    Note that the glow is always aged by at least one clock tick */
+    var alpha = Math.max(Math.max(this.p.realTime-this.lastRealTime, B220Processor.tick)/
+                         B220Processor.maxGlowTime, 1.0);
+    var bit = value%2;
+
+    if (bitNr < this.bits) {
+        // Update the lamp glow for the former state.
+        if (this.visible) {
+            this.glow[bitNr] = this.glow[bitNr]*(1.0-alpha) + bit*alpha;
+
+        // Set the new state.
+        this.value = (bit ? B220Processor.setBit(this.value, bitNr) : B220Processor.resetBit(this.value, bitNr));
+    }
+
+    this.checkFC(value);
+    return this.value;
+};
+
+/**************************************/
+B220Processor.Register.prototype.flipBit = function setBit(bitNr) {
+    /* Complements a bit in the register. Returns the new register value. Note
+    that the glow is always aged by at least one clock tick */
+    var alpha = Math.max(Math.max(this.p.realTime-this.lastRealTime, B220Processor.tick)/
+                B220Processor.maxGlowTime, 1.0);
+    var bit;
+
+    if (bitNr < this.bits) {
+        bit = 1 - B220Processor.bitTest(this.value, bitNr);
+
+        // Update the lamp glow for the former state.
+        if (this.visible) {
+            this.glow[bitNr] = this.glow[bitNr]*(1.0-alpha) + bit*alpha;
+
+        // Set the new state.
+        this.value = B220Processor.flipBit(this.value, bitNr);
+    }
+
+    this.checkFC(value);
+    return this.value;
+};
+
+/**************************************/
+B220Processor.Register.prototype.add = function add(addend) {
+    /* Adds "addend" to the current register value withoug regard to sign,
+    discarding any overflow beyond the number of bits defined for the register.
+    Returns the new register value. NOTE THAT THE ADDEND IS IN BCD, NOT BINARY */
+
+    return this.set(this.bcdAdd(this.value, addend) % B220Processor.pow2[this.bits]);
 };
 
 
@@ -510,10 +726,13 @@ B220Processor.FlipFlop = function FlopFlop(p, invisible) {
     /* Constructor for the generaic FlipFlop class. "p" is a reference to the
     Processor object, used to access the timing members. "invisible" should be
     true if the FF does not have a visible presence in the UI -- this will
-    inhibit computing the average lamp glow value for it */
+    inhibit computing the average lamp glow value for it.
+    Note that it is important to increment this.realTime AFTER setting new values
+    in registers and flip-flops. This allows the average intensity to be computed
+    based on the amount of time a bit was actually in that state */
 
     this.visible = (invisible ? false : true);
-    this.lastRunTime = 0;               // time register was last set
+    this.lastRealTime = 0;              // time register was last set
     this.p = p;                         // processor instance
     this.value = 0;                     // binary value of register: read-only externally
     this.glow = 0;                      // average lamp glow value
@@ -522,19 +741,20 @@ B220Processor.FlipFlop = function FlopFlop(p, invisible) {
 /**************************************/
 B220Processor.FlipFlop.prototype.set = function set(value) {
     /* Set the value of the FF. Use this rather than setting the value member
-    directly so that average lamp glow can be computed. Returns the new value */
-    var alpha = Math.min(Math.max(this.p.runTime-this.lastRunTime, 1)/B220Processor.maxGlowTime, 1.0);
-    var alpha1 = 1.0-alpha;
-    var v = this.value;
+    directly so that average lamp glow can be computed. Returns the new value.
+    Note that the glow is always aged by at least one clock tick */
+    var alpha = Math.max(Math.max(this.p.realTime-this.lastRealTime, B220Processor.tick)/
+                         B220Processor.maxGlowTime, 1.0);
+    var v = (value ? 1 : 0);
 
     // Update the lamp glow for the former state.
     if (this.visible) {
-        this.glow = this.glow*alpha1 + value*alpha;
+        this.glow = this.glow*(1.0-alpha) + v*alpha;
     }
 
     // Set the new state.
-    this.value = (value ? 1 : 0);
-    this.lastRunTime = this.p.runTime;
+    this.value = v;
+    this.lastRealTime = this.p.realTime;
     return this.value;
 };
 
@@ -547,364 +767,96 @@ B220Processor.FlipFlop.prototype.flip = function flip() {
 
 
 /***********************************************************************
-*   Utility Functions                                                  *
-***********************************************************************/
-
-/**************************************/
-B220Processor.bindMethod = function bindMethod(context, f) {
-    /* Returns a new function that binds the function "f" to the object "context".
-    Note that this is a static constructor property function, NOT an instance
-    method of the CC object */
-
-    return function bindMethodAnon() {return f.apply(context, arguments)};
-};
-
-/**************************************/
-B220Processor.bcdBinary = function bcdBinary(v) {
-    /* Converts the BCD value "v" to a binary number and returns it */
-    var d;
-    var power = 1;
-    var result = 0;
-
-    while(v) {
-        d = v % 0x10;
-        result += d*power;
-        power *= 10;
-        v = (v-d)/0x10;
-    }
-    return result;
-};
-
-/**************************************/
-B220Processor.binaryBCD = function binaryBCD(v) {
-    /* Converts the binary value "v" to a BCD number and returns it */
-    var d;
-    var power = 1;
-    var result = 0;
-
-    while(v) {
-        d = v % 10;
-        result += d*power;
-        power *= 0x10;
-        v = (v-d)/10;
-    }
-    return result;
-};
-
-
-/***********************************************************************
 * Timing and Statistics Functions                                      *
 ***********************************************************************/
 
-/**************************************/
-B220Processor.prototype.setTimingToggle = function setTimingToggle(cycle) {
-    /* Sets the timing toggle to the value of "cycle": 0=Execute, !0=Fetch */
-
-    this.togTiming = (cycle ? 1 : 0);
-};
-
-/**************************************/
-B220Processor.prototype.setOverflow = function setOverflow(overflow) {
-    /* Sets the overflow toggle to the value of "overflow" */
-
-    this.stopOverflow = (overflow ? 1 : 0);
-};
-
-/**************************************/
-B220Processor.prototype.feelTheGlow = function feelTheGlow(alpha, alpha1, glow, bits, r) {
-    /* Computes the running exponential average of lamp intensities for register
-    "r" in the low-order "bits" bits, using the "alpha" decay factor into the array
-    "glow". alpha1 must be 1.0 - alpha */
-    var b = 0;
-    var bit;
-
-    while (r) {
-        bit = r % 2;
-        r = (r-bit)/2;
-        glow[b] = glow[b]*alpha1 + bit*alpha;
-        ++b;
-    }
-
-    while (b < bits) {
-        glow[b] *= alpha1;
-        ++b;
-    }
-};
-
-/**************************************/
-B220Processor.prototype.updateAdderGlow = function updateAdderGlow(adder, ct) {
-    /* Computes the exponential running average of adder and carry toggle bit
-    intensities. This is called for every digit passing through the adder, and
-    serves only to compute a range of bit-by-bit intensities (0,1) for display */
-    var alpha = B220Processor.adderGlowAlpha;
-    var alpha1 = 1.0 - alpha;
-    var b = 0;
-    var bit;
-    var glowA = this.toggleGlow.glowADDER;
-    var glowC = this.toggleGlow.glowCT;
-
-    while (b < 4) {
-        bit = adder % 2;
-        adder = (adder-bit)/2;
-        glowA[b] = glowA[b]*alpha1 + bit*alpha;
-        ++b;
-    }
-
-    b = 0;
-    while (b < 5) {
-        bit = ct % 2;
-        ct = (ct-bit)/2;
-        glowC[b] = glowC[b]*alpha1 + bit*alpha;
-        ++b;
-    }
-};
-
-/**************************************/
-B220Processor.prototype.sampleLamps = function sampleLamps(alpha, memAlpha) {
-    /* Updates the lamp intensity arrays for all registers. "alpha" and "memAlpha"
-    must be in the range (0-,1) and indicate the relative significance for the current
-    register settings to the running exponential average algorithm */
-    var alpha1 = 1.0 - alpha;
-    var tg = this.toggleGlow;
-
-    tg.glowTiming =   tg.glowTiming*alpha1 +   this.togTiming*alpha;
-    tg.glowOverflow = tg.glowOverflow*alpha1 + this.stopOverflow*alpha;
-    tg.glowTWA =      tg.glowTWA*alpha1 +      this.togTWA*alpha;
-    tg.glow3IO =      tg.glow3IO*alpha1 +      this.tog3IO*alpha;
-
-    this.feelTheGlow(alpha, alpha1, tg.glowA, 44, this.A);
-    this.feelTheGlow(alpha, alpha1, tg.glowB, 16, this.B);
-    this.feelTheGlow(alpha, alpha1, tg.glowC, 40, this.C);
-    this.feelTheGlow(alpha, alpha1, tg.glowD, 44, this.D);
-    this.feelTheGlow(alpha, alpha1, tg.glowR, 40, this.R);
-
-    this.feelTheGlow(alpha, alpha1, tg.glowADDER, 4, this.ADDER);
-    this.feelTheGlow(alpha, alpha1, tg.glowCT, 5, this.CT);
-
-    this.feelTheGlow(alpha, alpha1, tg.glowCtl, 40, ((((((((((((((((((((((((((((
-                this.SPECIAL*2 +
-                this.togBTOAIN)*2 +
-                this.togADDER)*2 +
-                this.togDPCTR)*2 +
-                this.togDELTABDIV)*2 +
-                this.togCOMPL)*2 +
-                this.togADDAB)*2 +
-                this.togCLEAR)*2 +
-                this.togMULDIV)*2 +
-                this.togSIGN)*2 +
-                this.togCOUNT)*2 +
-                this.togDIVALARM)*2 +
-                this.togSTEP)*2 +
-                this.togSTART)*2 +
-                this.togTF)*2 +
-                this.togTC1)*2 +
-                this.togTC2)*2 +
-                this.togOK)*2 +
-                this.togPO1)*2 +
-                this.togPO2)*2 +
-                this.togDELAY)*2 +
-                this.togT0)*2 +
-                this.togBKPT)*2 +
-                this.togZCT)*2 +
-                this.togASYNC)*16 +
-                this.SHIFTCONTROL)*2 +
-                this.togMT3P)*2 +
-                this.togMT1BV4)*2 +
-                this.togMT1BV5)*32 +
-                this.SHIFT);
-
-    // Decay the memory toggles if no memory access is in progress
-    if (this.memoryStartTime == 0) {
-        alpha1 = 1.0 - memAlpha;
-        tg.glowMAIN =   tg.glowMAIN*alpha1;
-        tg.glowRWM =    tg.glowRWM*alpha1;
-        tg.glowRWL =    tg.glowRWL*alpha1;
-        tg.glowWDBL =   tg.glowWDBL*alpha1;
-        tg.glowACTION = tg.glowACTION*alpha1;
-        tg.glowACCESS = tg.glowACCESS*alpha1;
-        tg.glowLM =     tg.glowLM*alpha1;
-        tg.glowL4 =     tg.glowL4*alpha1;
-        tg.glowL5 =     tg.glowL5*alpha1;
-        tg.glowL6 =     tg.glowL6*alpha1;
-        tg.glowL7 =     tg.glowL7*alpha1;
-
-        if (isNaN(tg.glowMAIN)) {debugger}
-    }
-};
-
-/**************************************/
-B220Processor.prototype.updateLampGlow = function updateLampGlow(drumTime) {
-    /* Computes an alpha factor based on the elapsed time since the last sampling,
-    then calls sampleLamps() to update the running averages. drumTime is the
-    current time in word-time units, 0.084ms. If drumTime is zero or undefined,
-    the current time is used */
-    var clock = drumTime || performance.now()*B220Processor.wordsPerMilli;
-    var alpha = Math.min((clock - this.lastGlowTime)/B220Processor.maxGlowTime, 1.0);
-    var memAlpha = Math.min((clock - this.memoryStopTime)/B220Processor.maxGlowTime, 1.0);
-
-    this.sampleLamps(alpha, memAlpha);
-    this.lastGlowTime = clock;
-};
-
-/**************************************/
-B220Processor.prototype.startMemoryTiming = function startMemoryTiming(drumTime) {
-    /* Starts the necessary timers for the memory toggles to aid in their
-    display on the panels. Note that "drumTime" is in units of word-times */
-
-    this.updateLampGlow(drumTime);
-    this.memoryStartTime = drumTime;
-};
-
-/**************************************/
-B220Processor.prototype.stopMemoryTiming = function stopMemoryTiming() {
-    /* Stops the active timers for the memory toggles to aid in their
-    display on the panels and reset the corresponding toggle */
-    var drumTime = performance.now()*B220Processor.wordsPerMilli;
-    var alpha = Math.min((drumTime - this.memoryStartTime)/B220Processor.maxGlowTime, 1.0);
-    var alpha1 = 1.0 - alpha;
-    var tg = this.toggleGlow;
-
-    tg.glowMAIN =   tg.glowMAIN*alpha1 +   this.memMAIN*alpha;
-    tg.glowRWM =    tg.glowRWM*alpha1 +    this.memRWM*alpha;
-    tg.glowRWL =    tg.glowRWL*alpha1 +    this.memRWL*alpha;
-    tg.glowWDBL =   tg.glowWDBL*alpha1 +   this.memWDBL*alpha;
-    tg.glowACTION = tg.glowACTION*alpha1 + this.memACTION*alpha;
-    tg.glowACCESS = tg.glowACCESS*alpha1 + this.memACCESS*alpha;
-    tg.glowLM =     tg.glowLM*alpha1 +     this.memLM*alpha;
-    tg.glowL4 =     tg.glowL4*alpha1 +     this.memL4*alpha;
-    tg.glowL5 =     tg.glowL5*alpha1 +     this.memL5*alpha;
-    tg.glowL6 =     tg.glowL6*alpha1 +     this.memL6*alpha;
-    tg.glowL7 =     tg.glowL7*alpha1 +     this.memL7*alpha;
-
-    if (isNaN(tg.glowMAIN)) {debugger}
-
-    this.memoryStopTime = drumTime;
-    this.memoryStartTime =
-            this.memMAIN =
-            this.memRWM =
-            this.memRWL =
-            this.memWDBL =
-            this.memACTION =
-            this.memACCESS =
-            this.memLM =
-            this.memL4 =
-            this.memL5 =
-            this.memL6 =
-            this.memL7 = 0;
-};
+// TBD
 
 
 /***********************************************************************
-*   Bit and Field Manipulation Functions                               *
+*   System Alarms                                                      *
 ***********************************************************************/
 
 /**************************************/
-B220Processor.prototype.bitTest = function bitTest(word, bit) {
-    /* Extracts and returns the specified bit from the word */
-    var p;                              // bottom portion of word power of 2
+B220Processor.prototype.setDigitCheck = function setDigitCheck(value) {
+    /* Sets the Digit Check alarm */
 
-    if (bit > 0) {
-        return ((word - word % (p = B220Processor.pow2[bit]))/p) % 2;
-    } else {
-        return word % 2;
+    if (!this.ALARMSW && !this.DIGITCHECKSW) {
+        this.digitCheckAlarm.set(value);
+        if (value) {
+            this.RUT.set(0);
+        }
     }
 };
 
 /**************************************/
-B220Processor.prototype.bitSet = function bitSet(word, bit) {
-    /* Sets the specified bit in word and returns the updated word */
-    var ue = bit+1;                     // word upper power exponent
-    var bpower =                        // bottom portion of word power of 2
-        B220Processor.pow2[bit];
-    var bottom =                        // unaffected bottom portion of word
-        (bit <= 0 ? 0 : (word % bpower));
-    var top =                           // unaffected top portion of word
-        word - (word % B220Processor.pow2[ue]);
+B220Processor.prototype.setProgramCheck = function setProgramCheck(value) {
+    /* Sets the Program Check alarm */
 
-    return bpower + top + bottom;
-};
-
-/**************************************/
-B220Processor.prototype.bitReset = function bitReset(word, bit) {
-    /* Resets the specified bit in word and returns the updated word */
-    var ue = bit+1;                     // word upper power exponent
-    var bottom =                        // unaffected bottom portion of word
-        (bit <= 0 ? 0 : (word % B220Processor.pow2[bit]));
-    var top =                           // unaffected top portion of word
-        word - (word % B220Processor.pow2[ue]);
-
-    return top + bottom;
-};
-
-/**************************************/
-B220Processor.prototype.bitFlip = function bitFlip(word, bit) {
-    /* Complements the specified bit in word and returns the updated word */
-    var ue = bit+1;                     // word upper power exponent
-    var bpower =                        // bottom portion of word power of 2
-        B220Processor.pow2[bit];
-    var bottom =                        // unaffected bottom portion of word
-        (bit <= 0 ? 0 : (word % bpower));
-    var middle =                        // bottom portion of word starting with affected bit
-        word % B220Processor.pow2[ue];
-    var top = word - middle;            // unaffected top portion of word
-
-    if (middle >= bpower) {             // if the affected bit is a one
-        return top + bottom;                // return the result with it set to zero
-    } else {                            // otherwise
-        return bpower + top + bottom;       // return the result with it set to one
+    if (!this.ALARMSW) {
+        this.programCheckAlarm.set(value);
+        this.ALT.set(value);
+        if (value) {
+            this.RUT.set(0);
+        }
     }
 };
 
 /**************************************/
-B220Processor.prototype.fieldIsolate = function fieldIsolate(word, start, width) {
-    /* Extracts a bit field [start:width] from word and returns the field */
-    var le = start-width+1;             // lower power exponent
-    var p;                              // bottom portion of word power of 2
+B220Processor.prototype.setStorageCheck = function setStorageCheck(value) {
+    /* Sets the Storage Check alarm */
 
-    return (le <= 0 ? word :
-                      (word - word % (p = B220Processor.pow2[le]))/p
-            ) % B220Processor.pow2[width];
+    if (!this.ALARMSW) {
+        this.storageCheckAlarm.set(value);
+        this.MET.set(value);
+        if (value) {
+            this.RUT.set(0);
+        }
+    }
 };
 
 /**************************************/
-B220Processor.prototype.fieldInsert = function fieldInsert(word, start, width, value) {
-    /* Inserts a bit field from the low-order bits of value ([48-width:width])
-    into word.[start:width] and returns the updated word */
-    var ue = start+1;                   // word upper power exponent
-    var le = ue-width;                  // word lower power exponent
-    var bpower =                        // bottom portion of word power of 2
-        B220Processor.pow2[le];
-    var bottom =                        // unaffected bottom portion of word
-        (le <= 0 ? 0 : (word % bpower));
-    var top =                           // unaffected top portion of word
-        (ue <= 0 ? 0 : (word - (word % B220Processor.pow2[ue])));
+B220Processor.prototype.setMagneticTapeCheck = function setMagneticTapeCheck(value) {
+    /* Sets the Magnetic Tape Check alarm */
 
-    return (value % B220Processor.pow2[width])*bpower + top + bottom;
+    if (!this.ALARMSW) {
+        this.magneticTapeAlarm.set(value);
+        this.TAT.set(value);
+        if (value) {
+            this.RUT.set(0);
+        }
+    }
 };
 
 /**************************************/
-B220Processor.prototype.fieldTransfer = function fieldTransfer(word, wstart, width, value, vstart) {
-    /* Inserts a bit field from value.[vstart:width] into word.[wstart:width] and
-    returns the updated word */
-    var ue = wstart+1;                  // word upper power exponent
-    var le = ue-width;                  // word lower power exponent
-    var ve = vstart-width+1;            // value lower power exponent
-    var vpower;                         // bottom port of value power of 2
-    var bpower =                        // bottom portion of word power of 2
-        B220Processor.pow2[le];
-    var bottom =                        // unaffected bottom portion of word
-        (le <= 0 ? 0 : (word % bpower));
-    var top =                           // unaffected top portion of word
-        (ue <= 0 ? 0 : (word - (word % B220Processor.pow2[ue])));
+B220Processor.prototype.setPaperTapeCheck = function setPaperTapeCheck(value) {
+    /* Sets the Paper Tape Check alarm */
 
-    return ((ve <= 0 ? value :
-                       (value - value % (vpower = B220Processor.pow2[ve]))/vpower
-                ) % B220Processor.pow2[width]
-            )*bpower + top + bottom;
+    if (!this.ALARMSW) {
+        this.paperTapeAlarm.set(value);
+        this.PAT.set(value);
+        if (value) {
+            this.RUT.set(0);
+        }
+    }
 };
+
+/**************************************/
+B220Processor.prototype.setCardatronCheck = function setCardatronCheck(value) {
+    /* Sets the Cardatron Check alarm */
+
+    if (!this.ALARMSW) {
+        this.cardatronAlarm.set(value);
+        this.CRT.set(value);
+        if (value) {
+            this.RUT.set(0);
+        }
+    }
+};
+
 
 /***********************************************************************
-*   The 205 Adder and Arithmetic Operations                            *
+*   The 220 Adder and Arithmetic Operations                            *
 ***********************************************************************/
 
 /**************************************/
@@ -912,23 +864,21 @@ B220Processor.prototype.bcdAdd = function bcdAdd(a, d, complement, initialCarry)
     /* Performs an unsigned, BCD addition of "a" and "d", producing an 11-digit
     BCD result. On input, "complement" indicates whether 9s-complement addition
     should be performed; "initialCarry" indicates whether an initial carry of 1
-    should be applied to the adder. On output, this.togCOMPL will be set from
-    "complement" and this.CT is set from the final carry toggles of the addition.
-    Further, this.ADDER will still have a copy of the sign (11th) digit. Sets
-    the Forbidden-Combination stop if non-decimal digits are encountered, but
-    does not set the Overflow stop. */
+    should be applied to the adder. On output, this.CI is set from the final
+    carry toggles of the addition. Further, this.Z will still have a copy of the
+    sign (11th) digit. Sets the Program Check alarm if non-decimal digits are
+    encountered, but does not set the Overflow toggle */
     var ad;                             // current augend (a) digit;
     var adder;                          // local copy of adder digit
     var am = a % 0x100000000000;        // augend mantissa
-    var carry = (initialCarry || 0) & 1;// local copy of carry toggle (CT 1)
+    var carry = (initialCarry || 0) & 1;// local copy of carry toggle (CI1, CAT)
     var compl = complement || 0;        // local copy of complement toggle
-    var ct = carry;                     // local copy of carry register (CT 1-16)
+    var ct = carry;                     // local copy of carry register (CI1-16)
     var dd;                             // current addend (d) digit;
     var dm = d % 0x100000000000;        // addend mantissa
     var x;                              // digit counter
 
-    this.togADDER = 1;                  // for display only
-    this.togDPCTR = 1;                  // for display only
+    this.DC.set(0x09);                  // 20-11: for display only
 
     // Loop through the 11 digits including sign digits
     for (x=0; x<11; ++x) {
@@ -936,22 +886,20 @@ B220Processor.prototype.bcdAdd = function bcdAdd(a, d, complement, initialCarry)
         ad = am % 0x10;
         am = (am - ad)/0x10;
         if (ad > 9) {
-            this.stopForbidden = 1;
-            this.togCST = 1;            // halt the processor
-        }
-
-        // add the digits plus carry, complementing as necessary
-        dd = dm % 0x10;
-        if (dd > 9) {
-            this.stopForbidden = 1;
-            this.togCST = 1;            // halt the processor
-        }
-        if (compl) {
+            this.setDigitCheck(1);
+        } else if (compl) {
             ad = 9-ad;
         }
+
+        // Add the digits plus carry, complementing as necessary
+        dd = dm % 0x10;
+        if (dd > 9) {
+            this.setDigitCheck(1);
+        }
+
         adder = ad + dd + carry;
 
-        // decimal-correct the adder
+        // Decimal-correct the adder
         if (adder < 10) {
             carry = 0;
         } else {
@@ -959,9 +907,16 @@ B220Processor.prototype.bcdAdd = function bcdAdd(a, d, complement, initialCarry)
             carry = 1;
         }
 
-        // compute the carry toggle register (just for display)
+        // Compute the carry toggle register (just for display)
         ct = (((ad & dd) | (ad & ct) | (dd & ct)) << 1) + carry;
-        //this.updateAdderGlow(adder, ct);
+
+        // Update the visible registers (for display only)
+        this.X.set(ad);
+        this.Y.set(dd);
+        this.Z.set(adder);
+        this.C10.set(carry);
+        this.CI.set(ct);
+        this.SI.set(0x0F - ct);         // just a guess as to the sum inverters
 
         // rotate the adder into the sign digit
         am += adder*0x10000000000;
@@ -970,9 +925,6 @@ B220Processor.prototype.bcdAdd = function bcdAdd(a, d, complement, initialCarry)
     } // for x
 
     // Set toggles for display purposes and return the result
-    this.togCOMPL = compl;
-    this.CT = ct;
-    this.ADDER = adder;
     return am;
 };
 
@@ -1201,7 +1153,7 @@ B220Processor.prototype.integerDivide = function integerDivide() {
         am = am*0x10 + rd;
 
         // Now repeatedly subtract D from A until we would get underflow.
-        // Unlike the 205, we don't do one subtraction too many.
+        // Unlike the 220, we don't do one subtraction too many.
         rd = 0;
         while (am >= dm && rd < 10) {
             am = this.bcdAdd(dm, am, 1, 1);
@@ -1322,7 +1274,7 @@ B220Processor.prototype.floatingAdd = function floatingAdd() {
             // below, we need to set up the mantissa and exponent so the reconstruct
             // will effectively do nothing.
             this.setOverflow(1);
-            sign = 0;                   // per 205 FP Handbook
+            sign = 0;                   // per 220 FP Handbook
             ae = (am - am%0x100000000)/0x100000000;
             am %= 0x100000000;
         }
@@ -1341,7 +1293,7 @@ B220Processor.prototype.floatingAdd = function floatingAdd() {
             }
         }
     } else {                            // mantissa is zero
-        ae = 0;                         // per example in 205 FP Handbook
+        ae = 0;                         // per example in 220 FP Handbook
     }
 
     // Set toggles for display purposes and set the result.
@@ -1536,7 +1488,7 @@ B220Processor.prototype.floatingDivide = function floatingDivide() {
 
                 for (x=0; x<10; ++x) {
                     // Repeatedly subtract D from A until we would get underflow.
-                    // Unlike the 205, we don't do one subtraction too many.
+                    // Unlike the 220, we don't do one subtraction too many.
                     rd = 0;
                     while (am >= dm) {
                         am = this.bcdAdd(dm, am, 1, 1);
@@ -1589,343 +1541,43 @@ B220Processor.prototype.floatingDivide = function floatingDivide() {
 ***********************************************************************/
 
 /**************************************/
-B220Processor.prototype.readMemoryFinish = function readMemoryFinish() {
-    /* Completes a read of the memory drum after an appropriate delay for drum
-    latency. Clears the memory control toggles and calls the current successor
-    function. Note: the word has already been stored in D by readMemory() */
+B220Processor.prototype.readMemory = function readMemory() {
+    /* Reads the contents of one word of memory into the IB register from the
+    address in the E register. Sets the Storage Check alarm if the address is
+    not valid. Returns the word fetched, or the current value of IB if invalid
+    address */
+    var addr = B220Processor.bcdBinary(this.E.value);
 
-    this.scheduler = 0;
-    //this.stopMemoryTiming();
-    this.successor();
-};
-
-/**************************************/
-B220Processor.prototype.readMemory = function readMemory(successor) {
-    /* Initiates a read of the memory drum at the BCD address specified by
-    C3-C6. The memory word is placed in the D register, and an appropriate
-    delay for drum latency, the successor function is called. Sets the memory
-    access toggles as necessary.
-    Note: the D register SHOULD be loaded after the latency delay, but we do
-    it here so that the word will show on the panels during the drum latency */
-    var addr;                           // binary target address, mod 8000
-    var cbCategory;                     // setCallback delay-averaging category
-    var drumTime =                      // current drum position [word-times]
-            performance.now()*B220Processor.wordsPerMilli;
-    var latency;                        // drum latency in word-times
-    var trackSize;                      // words/track in target band of drum
-
-    addr = B220Processor.bcdBinary(this.CADDR % 0x8000);
-    this.memACCESS = 1;
-    if (addr < 4000) {
-        trackSize = B220Processor.trackSize;
-        cbCategory = "MEMM";
-        this.memMAIN = this.memLM = 1;
-        this.D = this.MM[addr];
+    if (isNaN(addr)) {
+        this.setStorageCheck(1);
+        return this.IB.value;
+    } else if (addr >= this.memorySize) {
+        this.setStorageCheck(1);
+        return this.IB.value;
+    } else if (this.MEMORYLOCKOUTSW) {
+        return this.IB.set(this.D.value);
     } else {
-        trackSize = B220Processor.loopSize;
-        cbCategory = "MEML";
-        if (addr < 5000) {
-            this.memL4 = 1;
-            this.D = this.L4[addr%trackSize];
-        } else if (addr < 6000) {
-            this.memL5 = 1;
-            this.D = this.L5[addr%trackSize];
-        } else if (addr < 7000) {
-            this.memL6 = 1;
-            this.D = this.L6[addr%trackSize];
-        } else {
-            this.memL7 = 1;
-            this.D = this.L7[addr%trackSize];
-        }
+        return this.IB.set(this.MM[addr]);
     }
-
-    latency = (addr%trackSize - drumTime%trackSize + trackSize)%trackSize;
-    this.procTime += latency+1;         // emulated time at end of drum access
-    this.memACTION = 1;
-    //this.startMemoryTiming(drumTime);
-    this.successor = successor;
-    this.scheduler = setCallback(cbCategory, this,
-            (this.procTime-drumTime)/B220Processor.wordsPerMilli, this.readMemoryFinish);
 };
 
 /**************************************/
-B220Processor.prototype.writeMemoryFinish = function writeMemoryFinish(clearA) {
-    /* Completes a write of the memory drum after an appropriate delay for drum
-    latency. A has already been moved to the memory word, so just clears the
-    memory control toggles, and calls the current successor function */
+B220Processor.prototype.writeMemory = function writeMemory() {
+    /* Stores one word of memory from the IB register to the address in the E
+    register. Sets the Storage Check alarm if the address is not valid */
+    var addr = B220Processor.bcdBinary(this.E.value);
 
-    this.scheduler = 0;
-    //this.stopMemoryTiming();
-    if (clearA) {
-        this.A = 0;
-    }
-    this.successor();
-};
-
-/**************************************/
-B220Processor.prototype.writeMemory = function writeMemory(successor, clearA) {
-    /* Initiates a write of the memory drum at the BCD address specified by C3-C6.
-    After an appropriate delay for drum latency, the word in A is stored on the drum
-    and the successor function is called. Sets the memory access toggles as necessary.
-    If clearA is truthy, the A register is cleared at the completion of the write.
-    Note: the word should be stored after the latency delay, but we do it here
-    so that the word will show in the panels during the drum latency */
-    var addr;                           // binary target address, mod 8000
-    var cbCategory;                     // setCallback delay-averaging category
-    var drumTime =                      // current drum position [word-times]
-            performance.now()*B220Processor.wordsPerMilli;
-    var latency;                        // drum latency in word-times
-    var trackSize;                      // words/track in target band of drum
-
-    addr = B220Processor.bcdBinary(this.CADDR % 0x8000);
-    this.memACCESS = 1;
-    if (addr < 4000) {
-        trackSize = B220Processor.trackSize;
-        cbCategory = "MEMM";
-        this.memMAIN = this.memLM = this.memRWM = 1;
-        this.MM[addr] = this.A;
+    if (isNaN(addr)) {
+        this.setStorageCheck(1);
+    } else if (addr >= this.memorySize) {
+        this.setStorageCheck(1);
+    } else if (this.MEMORYLOCKOUTSW) {
+        this.D.set(this.IB.value);
     } else {
-        trackSize = B220Processor.loopSize;
-        cbCategory = "MEML";
-        this.memRWL = 1;
-        if (addr < 5000) {
-            this.memL4 = 1;
-            this.L4[addr%trackSize] = this.A;
-        } else if (addr < 6000) {
-            this.memL5 = 1;
-            this.L5[addr%trackSize] = this.A;
-        } else if (addr < 7000) {
-            this.memL6 = 1;
-            this.L6[addr%trackSize] = this.A;
-        } else {
-            this.memL7 = 1;
-            this.L7[addr%trackSize] = this.A;
-        }
+        this.MM[addr] = this.IB.value;
     }
-
-    latency = (addr%trackSize - drumTime%trackSize + trackSize)%trackSize;
-    this.procTime += latency+1;         // emulated time at end of drum access
-    this.memACTION = 1;
-    //this.startMemoryTiming(drumTime);
-    this.successor = successor;
-    this.scheduler = setCallback(cbCategory, this,
-            (this.procTime-drumTime)/B220Processor.wordsPerMilli, this.writeMemoryFinish, clearA);
 };
 
-/**************************************/
-B220Processor.prototype.blockFromLoop = function blockFromLoop(loop, successor) {
-    /* Copies 20 words from the designated loop to main memory at the BCD
-    address specified by C3-C6. After an appropriate delay for drum latency,
-    the successor function is called. Sets the memory access toggles as
-    necessary.
-    Note: the words SHOULD be copied at the END of the drum latency delay,
-    but we do it here, so that the updated registers will show on the panels
-    during the delay for drum latency */
-    var addr;                           // main binary address, mod 4000
-    var drumTime =                      // current drum position [word-times]
-            performance.now()*B220Processor.wordsPerMilli;
-    var latency;                        // drum latency in word-times
-    var loopMem;                        // reference to the loop memory array
-    var x;                              // iteration control
-
-    addr = B220Processor.bcdBinary(this.CADDR % 0x4000);
-    this.memACCESS = 1;
-    this.memMAIN = this.memLM = this.memRWM = this.memWDBL = 1;
-    switch (loop) {
-    case 4:
-        this.memL4 = 1;
-        loopMem = this.L4;
-        break;
-    case 5:
-        this.memL5 = 1;
-        loopMem = this.L5;
-        break;
-    case 6:
-        this.memL6 = 1;
-        loopMem = this.L6;
-        break;
-    case 7:
-        this.memL7 = 1;
-        loopMem = this.L7;
-        break;
-    } // switch loop
-
-    for (x=B220Processor.loopSize; x>0; --x) {
-        this.MM[addr] = loopMem[addr%B220Processor.loopSize];
-        addr = (addr+1) % 4000;         // handle main memory address wraparound
-    }
-
-    /* According to TM4001, the memory control circuits added 200 to the C-register
-    address, but only if the blocking operation crossed a main-memory track boundary.
-    The Burroughs 205 Handbook of Operating Procedures (Bulletin 2034-A, Rev June 1960),
-    however, indicates that for systems equipped with magnetic tape, blocking operations
-    added 20 to the address field in C (see paragraph 3-19 on page 3-2). We implement
-    the magnetic tape variant */
-
-    this.CADDR = this.bcdAdd(this.CADDR, 0x20)%0x10000;
-    this.C = (this.COP*0x10000 + this.CADDR)*0x10000 + this.CCONTROL;
-
-    latency = (addr%B220Processor.trackSize - drumTime%B220Processor.trackSize +
-                B220Processor.trackSize)%B220Processor.trackSize;
-    this.procTime += latency+B220Processor.loopSize; // emulated time at end of drum access
-    this.memACTION = 1;
-    //this.startMemoryTiming(drumTime);
-    this.successor = successor;
-    this.scheduler = setCallback("MEMM", this,
-            (this.procTime-drumTime)/B220Processor.wordsPerMilli, this.writeMemoryFinish, false);
-};
-
-/**************************************/
-B220Processor.prototype.blockToLoop = function blockToLoop(loop, successor) {
-    /* Copies 20 words from the main memory at the BCD address specified by
-    C3-C6 to the designated loop. After an appropriate delay for drum latency,
-    the successor function is called. Sets the memory access toggles as
-    necessary.
-    Note 1: Knuth's MEASY assembler and the Shell assembler both use instructions
-    of the form BTn 8000. Normally, this would mean an effective address of 0000,
-    but considering the special use of addresses >= 8000 for magnetic tape
-    instructions, and the apparent intention of this use in both assemblers,
-    we conclude that BTn with the high-order bit of the address set causes 20
-    words of zeroes to be written to the designated loop.
-    Note 2: the words SHOULD be copied at the END of the drum latency delay,
-    but we do it here, so that the updated registers will show on the panels
-    during the delay for drum latency */
-    var addr;                           // main binary address, mod 4000
-    var drumTime =                      // current drum position [word-times]
-            performance.now()*B220Processor.wordsPerMilli;
-    var latency;                        // drum latency in word-times
-    var loopMem;                        // reference to the loop memory array
-    var x;                              // iteration control
-
-    addr = B220Processor.bcdBinary(this.CADDR);
-    this.memACCESS = 1;
-    this.memLM = this.memRWL = this.memWDBL = 1;
-    if (addr < 8000) {
-        addr %= 4000;
-        this.memMAIN = 1;
-    }
-    switch (loop) {
-    case 4:
-        this.memL4 = 1;
-        loopMem = this.L4;
-        break;
-    case 5:
-        this.memL5 = 1;
-        loopMem = this.L5;
-        break;
-    case 6:
-        this.memL6 = 1;
-        loopMem = this.L6;
-        break;
-    case 7:
-        this.memL7 = 1;
-        loopMem = this.L7;
-        break;
-    } // switch loop
-
-    if (addr >= 8000) {
-        for (x=B220Processor.loopSize; x>0; --x) {
-            loopMem[x] = 0;
-        }
-    } else {
-        for (x=B220Processor.loopSize; x>0; --x) {
-            loopMem[addr%B220Processor.loopSize] = this.MM[addr];
-            addr = (addr+1) % 4000;     // handle main memory address wraparound
-        }
-    }
-
-    // See the comment on C address field adjustment at this point in blockFromLoop()
-    this.CADDR = this.bcdAdd(this.CADDR, 0x20)%0x10000;
-    this.C = (this.COP*0x10000 + this.CADDR)*0x10000 + this.CCONTROL;
-
-    latency = (addr%B220Processor.trackSize - drumTime%B220Processor.trackSize +
-                B220Processor.trackSize)%B220Processor.trackSize;
-    this.procTime += latency+B220Processor.loopSize; // emulated time at end of drum access
-    this.memACTION = 1;
-    //this.startMemoryTiming(drumTime);
-    this.successor = successor;
-    this.scheduler = setCallback("MEMM", this,
-            (this.procTime-drumTime)/B220Processor.wordsPerMilli, this.writeMemoryFinish, false);
-};
-
-/**************************************/
-B220Processor.prototype.searchMemoryFinish = function searchMemoryFinish() {
-    /* Handles completion of a search memory operation and resets the memory
-    toggle and timing state */
-
-    //this.stopMemoryTiming();
-    this.executionComplete();
-};
-
-/**************************************/
-B220Processor.prototype.searchMemory = function searchMemory(high) {
-    /* Searches memory from the current operand address in this.CADDR for a
-    word equal to the value in the A register (high=false) or greater than or
-    equal to the value in the A register (high=true). Comparisons are based on
-    the absolute values of both the word in A and the word in memory, ignoring
-    the sign. If a match is found, load the memory word into the A register and
-    set the upper 4 digits of R to the memory address where found. If address
-    3999 is reached and the word is still not found, terminate with Overflow set.
-
-    This instruction searches one word per word-time, so total execution time is
-    drum latency to the initial address plus the number of words searched.
-    This function is called after the initial memory word has been fetched into
-    the D register by executeWithOperand(), so the latency delay is already
-    accounted for. It will proceed to search up to 200 words (one drum track) at
-    a time, then if no match is found, perform a catch-up delay. A final partial
-    delay is performed at the end of the search.
-
-    Note: the MSH (85) and MSE (88) instructions apparently were a custom
-    modification in 1959 for a 205 to be delivered to the Eaton Manufacturing
-    Company. A description of these two instructions was found in the back of
-    the 205 Central Computer Handbook included with Donald Knuth's papers donated
-    to the Computer History Museum in Mountain View, California */
-    var addr;                           // main binary address, mod 4000
-    var aWord = this.A % 0x10000000000; // search target word
-    var drumTime;                       // current drum position [word-times]
-    var dWord;                          // result of comparison D:A
-    var found = false;                  // true if matching word found
-    var x = 0;                          // iteration control
-
-    if (!this.memACCESS) {
-        this.memACCESS = this.memACTION = this.memMAIN = this.memLM = 1;
-        //this.startMemoryTiming(performance.now()*B220Processor.wordsPerMilli);
-    }
-
-    addr = B220Processor.bcdBinary(this.CADDR % 0x4000);
-    do {
-        dWord = this.bcdAdd(aWord, this.D % 0x10000000000, 1, 1); // effectively abs(D)-abs(A)
-        if (dWord == 0) {
-            found = true;
-            break;                      // out of do loop -- match equal
-        } else if (high && dWord < 0x10000000000) {
-            found = true;
-            break;                      // out of do loop -- match high
-        } else if (addr < 3999) {
-            this.D = this.MM[++addr];
-        } else {
-            this.setOverflow(1);
-            break;                      // out of do loop -- end of main memory
-        }
-    } while (++x < B220Processor.trackSize);
-
-    this.CADDR = B220Processor.binaryBCD(addr);
-    this.C = (this.COP*0x10000 + this.CADDR)*0x10000 + this.CCONTROL;
-    if (found) {
-        this.A = this.D;
-        this.R = this.CADDR*0x1000000 + this.R%0x1000000;
-        this.successor = this.searchMemoryFinish;
-    } else if (this.stopOverflow) {
-        this.successor = this.searchMemoryFinish;
-    } else {
-        this.successor = searchMemory;
-    }
-
-    this.procTime += x;
-    drumTime = performance.now()*B220Processor.wordsPerMilli;
-    this.scheduler = setCallback("MEML", this,
-            (this.procTime-drumTime)/B220Processor.wordsPerMilli, this.successor, high);
-};
 
 /***********************************************************************
 *   Console I/O Module                                                 *
@@ -1988,7 +1640,7 @@ B220Processor.prototype.consoleOutputFinished = function consoleOutputFinished()
         this.togDELAY = 0;              // for display only
         this.stopIdle = 0;              // turn IDLE lamp back off now that we're done
         this.procTime += performance.now()*B220Processor.wordsPerMilli;
-        this.executeComplete();
+        this.schedule();
     }
 };
 
@@ -2116,7 +1768,7 @@ B220Processor.prototype.consoleReceiveSingleDigit = function consoleReceiveSingl
         this.togSTART = 0;
         this.D = digit;
         this.integerAdd();
-        this.executeComplete();
+        this.schedule();
     }
 };
 
@@ -2167,7 +1819,7 @@ B220Processor.prototype.cardatronOutputFinished = function cardatronOutputFinish
         this.tog3IO = 0;
         this.togTWA = 0;                // for display only
         this.procTime += performance.now()*B220Processor.wordsPerMilli;
-        this.executeComplete();
+        this.schedule();
     }
 };
 
@@ -2198,7 +1850,7 @@ B220Processor.prototype.cardatronReceiveWord = function cardatronReceiveWord(wor
         this.togTF = 0;                 // for display only
         this.togTWA = 0;                // for display only
         this.D = word-900000000000;     // remove the finished signal; for display only, not stored
-        this.executeComplete();
+        this.schedule();
     } else {
         // Full word accumulated -- process it and initialize for the next word
         this.SHIFT = 0x19;              // for display only
@@ -2388,7 +2040,7 @@ B220Processor.prototype.magTapeTerminateSend = function magTapeTerminateSend() {
         this.togMT3P = 0;
         this.togMT1BV4 = this.togMT1BV5 = 0;
         this.procTime += performance.now()*B220Processor.wordsPerMilli; // restore time after I/O
-        this.executeComplete();
+        this.schedule();
     }
 };
 
@@ -2401,7 +2053,7 @@ B220Processor.prototype.magTapeReceiveBlock = function magTapeReceiveBlock(block
     togMT1BV4 and togMT1BV5 control toggles. Sign digit adjustment and B-register
     modification take place at this time. If the C-register operand address is
     less than 8000, the loop is then stored at the current operand address, which
-    is incremented by blockFromLoop(). If this is the last block, executeComplete()
+    is incremented by blockFromLoop(). If this is the last block, schedule()
     is called after the loop is stored to terminate the read instruction. Since
     tape block reads take 46 ms, they are much longer than any loop-to-memory
     transfer, so this routine simply exits after the blockFromLoop is initiated,
@@ -2421,7 +2073,7 @@ B220Processor.prototype.magTapeReceiveBlock = function magTapeReceiveBlock(block
                 that.A = that.D = 0;    // for display only
                 that.togMT3P = 0;
                 that.togMT1BV4 = that.togMT1BV5 = 0;
-                that.executeComplete();
+                that.schedule();
             }
         } else {
             // Flip the loop buffer toggles
@@ -2493,163 +2145,61 @@ B220Processor.prototype.magTapeReceiveBlock = function magTapeReceiveBlock(block
     return aborted;
 };
 
-/***********************************************************************
-*   External Control Module                                            *
-***********************************************************************/
-
-/**************************************/
-B220Processor.prototype.setExternalSwitches = function setExternalSwitches() {
-    /* Sets the eight external switches from the most-significant digits of
-    the D register */
-    var d;                              // current D-register digit
-    var w = this.D % 0x10000000000;     // working copy of D word
-    var x;                              // digit index
-
-    for (x=7; x>=0; --x) {
-        d = (w - w%0x1000000000)/0x1000000000;
-        w = (w%0x1000000000)*0x10;
-        switch (d%0x04) {
-        case 1:                         // open the switch
-            this.externalSwitch[x] = 0;
-            break;
-        case 2:                         // close the switch
-            this.externalSwitch[x] = 1;
-            break;
-        case 3:                         // complement the switch
-            this.externalSwitch[x] = 1 - (this.externalSwitch[x] % 0x01);
-            break;
-        } // switch
-    } // for x
-};
-
 
 /***********************************************************************
 *   Fetch Module                                                       *
 ***********************************************************************/
 
 /**************************************/
-B220Processor.prototype.transferDtoC = function transferDtoC() {
-    /* Implements the D-to-C portion of the fetch cycle. Shifts the operand
-    address in C3-C6 to C7-C10, incrementing that address by one. Shifts the
-    low-order six digits of D into C1-C6, applying B register modification if
-    the D sign bit is 1. Leaves D shifted six digits to the right.
-    Note that during B modification, overflow may occur from the operand address
-    into the opcode digits coming from D, which on the 205 could be either a
-    feature or a bug, depending on how well you were paying attention */
-    var addr = this.C % 0x100000000;    // operand address digits from C
-    var ctl = addr % 0x10000;           // control address digits from C
-
-    this.SHIFTCONTROL = 0x07;           // for display only
-    this.togADDAB = 1;                  // for display only
-    this.togCLEAR =                     // determine D sign for B modification
-            1-(((this.D - this.D%0x10000000000)/0x10000000000) & 0x01);
-
-    addr = (addr-ctl)/0x10000;                          // extract the actual address digits
-    this.CCONTROL = this.bcdAdd(addr, 0x0001) % 0x10000;// bump the control address modulo 10000
-
-    addr = this.D % 0x1000000;                          // get the opcode and address digits from D
-    this.CEXTRA = this.D = (this.D - addr)/0x1000000;   // shift D right six digits & save what's left
-    if (this.togCLEAR) {                                // check for B modification
-        addr = this.bcdAdd(addr, 0);                    // if no B mod, add 0 (this is actually the way it worked)
-    } else {
-        addr = this.bcdAdd(addr, this.B) % 0x1000000;   // otherwise, add B to the operand address
-    }
-
-    this.SHIFT = 0x19;                                  // for display only
-    this.C = addr*0x10000 + this.CCONTROL;              // put C back together
-    this.CADDR = addr % 0x10000;
-    this.COP = (addr - this.CADDR)/0x10000;
-};
-
-/**************************************/
-B220Processor.prototype.fetchComplete = function fetchComplete() {
-    /* Second phase of the Fetch cycle, called after the word is read from
-    memory into D */
-    var breakDigit;                     // breakpoint digit from D4
-
-    this.togSIGN = ((this.A - this.A%0x10000000000)/0x10000000000) & 0x01;
-    this.transferDtoC();
-    this.procTime += 4;                 // minimum alpha for all orders is 4
-    breakDigit = this.CEXTRA % 0x10;
-    if (this.cswBreakpoint & breakDigit) { // check for breakpoint stop
-        this.togBKPT = 1;               // prepare to halt after this instruction
-    }
-
-    if (this.cswSkip && (breakDigit & 0x08)) {
-        if (!this.sswLockNormal) {
-            this.setTimingToggle(1);    // stay in Fetch to skip this instruction
-        }
-        if (breakDigit & 0x01) {
-            this.togCST = 1;            // halt the processor
-        }
-    }
-
-    // If we're not halted and either console has started in Continuous mode, continue
-    if (this.togCST || !(this.sswStepContinuous || this.cctContinuous)) {
-        this.stop();
-    } else if (this.togTiming) {
-        this.fetch();                   // once more with feeling
-    } else {
-        this.execute();                 // execute the instruction just fetched
-    }
-};
-
-/**************************************/
 B220Processor.prototype.fetch = function fetch() {
-    /* Implements the Fetch cycle of the 205 processor. This is initiated either
-    by pressing START on one of the consoles with the Timing Toggle=1 (Fetch),
-    or by the prior operation complete if the processor is in continuous mode */
+    /* Implements the Fetch cycle of the 220 processor. This is initiated either
+    by pressing START on one of the consoles with EXT=0 (Fetch), during I/O when
+    a control word (sign>3) is received from a peripheral device, or by the
+    prior Operation Complete if the processor is in continuous mode */
+    var dSign;                          // sign bit of IB register
+    var word;                           // instruction word
 
-    this.CADDR = this.C % 0x100000000;  // C operand and control addresses
-    this.CCONTROL = this.CADDR % 0x10000; // C control address
-    this.COP = (this.C - this.CADDR)/0x100000000; // C operation code
-    this.CADDR = (this.CADDR - this.CCONTROL)/0x10000;
+    if (this.AST.value) {               // if doing I/O
+        word = this.IB.value;
+    } else {                            // if doing normal fetch
+        this.E.set(this.P.value);
+        word = this.readMemory();
+    }
 
-    this.togT0 = 0;                     // for display only, leave it off for fetch cycle
-    if (this.togSTART) {
-        if (this.tog3IO) {
-            this.cardatronInputWord(); // we're still executing a Cardatron input command
-        } else {
-            this.consoleInputDigit();   // we're still executing a Console input command
+    if (!this.MET.value) {
+        // if we're not locked in Fetch, switch to Execute phase next.
+        if (this.FETCHEXECUTELOCKSW != 1) {
+            this.EXT.set(1);
         }
-    } else {
-        this.setTimingToggle(0);        // next cycle will be Execute by default
-        this.SHIFT = 0x15;              // for display only
-        this.SHIFTCONTROL = 0x05;       // for display only
-        // shift control address into operand address and initiate read
-        this.CADDR = this.CCONTROL;
-        this.C = (this.COP*0x10000 + this.CADDR)*0x10000 + this.CCONTROL;
-        this.readMemory(this.fetchComplete);  // load D from the operand address
+
+        dSign = ((word - word%0x10000000000)/0x10000000000) & 0x01;
+        this.DST.set(dSign);
+        // (should set IB sign bit 1=0 here, but to reduce overhead we don't bother)
+
+        this.CADDR = word%0x10000;                                      // C address
+        this.COP = (word%0x1000000 - this.CADDR)/0x10000;               // C op code
+        this.CCONTROL = (word%10000000000 - word%1000000)/0x1000000;    // C control digits
+        if (dSign) {
+            this.CADDR = this.bcdAdd(this.CADDR, this.B.value) % 0x10000;
+            this.C10.set(0);                                            // reset carry toggle
+            this.C.set((this.CCONTROL*100 + this.COP)*10000 + this.CADDR);
+        } else {
+            this.C.set(word%0x10000000000);
+        }
+
+        this.D.set(word);               // D contains a copy of memory word
+        if (!this.AST.value && !this.PCOUNTSW) {
+            this.P.add(0x01);           // if not doing I/O, bump the program counter
+        }
+
+        this.realTime += 0.090;         // fetch uniformly requires 90 us
     }
 };
+
 
 /***********************************************************************
 *   Execute Module                                                     *
 ***********************************************************************/
-
-/**************************************/
-B220Processor.prototype.executeComplete = function executeComplete() {
-    /* Implements Operation Complete (O.C.) for the Execute cycle. Determines
-    if there is a stop or alarm condition, otherwise determines whether to
-    do a Fetch or Execute cycle next. We should clear the control toggles here,
-    but leave them so they'll display during the fetch latency delay. They
-    will be cleared in the next call to execute() */
-
-    if (this.togBKPT) {
-        this.togCST = 1;
-        this.stopBreakpoint = 1;        // turn on BKPT lamp
-    }
-
-    if (this.togCST) {
-        this.stop();
-    } else if (!(this.sswStepContinuous || this.cctContinuous)) {
-        this.stop();
-    } else if (this.togTiming) {
-        this.fetch();                   // once more with feeling
-    } else {
-        this.execute();                 // execute the instruction currently in C
-    }
-};
 
 /**************************************/
 B220Processor.prototype.executeWithOperand = function executeWithOperand() {
@@ -2682,19 +2232,19 @@ B220Processor.prototype.executeWithOperand = function executeWithOperand() {
     case 0x65:          //---------------- CSU  Clear and Subtract A
         this.procTime += 3;
         // Complement the D sign -- any sign overflow will be ignored by integerAdd
-        this.A = this.bcdAdd(0, this.bitFlip(this.D, 40));
+        this.A = this.bcdAdd(0, B220Processor.bitFlip(this.D, 40));
         this.D = 0;
         break;
 
     case 0x66:          //---------------- CADA Clear and Add Absolute
         this.procTime += 3;
-        this.A = this.bcdAdd(0, this.bitReset(this.D, 40));
+        this.A = this.bcdAdd(0, B220Processor.bitReset(this.D, 40));
         this.D = 0;
         break;
 
     case 0x67:          //---------------- CSUA Clear and Subtract Absolute
         this.procTime += 3;
-        this.A = this.bcdAdd(0, this.bitSet(this.D, 40));
+        this.A = this.bcdAdd(0, B220Processor.bitSet(this.D, 40));
         this.D = 0;
         break;
 
@@ -2735,19 +2285,19 @@ B220Processor.prototype.executeWithOperand = function executeWithOperand() {
 
     case 0x75:          //---------------- SU   Subtract
         this.procTime += 3;
-        this.D = this.bitFlip(this.D, 40);              // complement the D sign
+        this.D = B220Processor.bitFlip(this.D, 40);     // complement the D sign
         this.integerAdd();
         break;
 
     case 0x76:          //---------------- ADA  Add Absolute
         this.procTime += 3;
-        this.D = this.bitReset(this.D, 40);             // clear the D sign
+        this.D = B220Processor.bitReset(this.D, 40);    // clear the D sign
         this.integerAdd();
         break;
 
     case 0x77:          //---------------- SUA  Subtract Absolute
         this.procTime += 3;
-        this.D = this.bitSet(this.D, 40);               // set the D sign
+        this.D = B220Processor.bitSet(this.D, 40);     // set the D sign
         this.integerAdd();
         break;
 
@@ -2779,14 +2329,14 @@ B220Processor.prototype.executeWithOperand = function executeWithOperand() {
 
     case 0x85:          //---------------- MSH  Memory Search High (Eaton CER)
         this.searchMemory(true);
-        return;                         // avoid the executeComplete()
+        return;                         // avoid the schedule()
         break;
 
     // 0x86:            //---------------- (no op)
 
     case 0x87:          //---------------- MSE  Memory Search Equal (Eaton CER)
         this.searchMemory(false);
-        return;                         // avoid the executeComplete()
+        return;                         // avoid the schedule()
         break;
 
     // 0x88-0x89:       //---------------- (no op)
@@ -2818,47 +2368,313 @@ B220Processor.prototype.executeWithOperand = function executeWithOperand() {
     // 0x94-0x99:       //---------------- (no op)
 
     } // switch this.COP
-
-    this.executeComplete();
 };
 
 /**************************************/
 B220Processor.prototype.execute = function execute() {
-    /* Implements the Execute cycle of the 205 processor. This is initiated either
-    by pressing START on one of the consoles with the Timing Toggle=0 (Execute),
+    /* Implements the Execute cycle of the 220 processor. This is initiated either
+    by pressing START on one of the consoles with the EXT=1 (Execute),
     or by the prior operation complete if the processor is in continuous mode */
     var d;                              // scratch digit
     var w;                              // scratch word
     var x;                              // scratch variable or counter
 
-    w = this.C % 0x100000000;           // C register operand and control addresses
-    this.CCONTROL = w % 0x10000;        // C register control address
-    this.COP = (this.C - w)/0x100000000; // C register operation code
-    this.CADDR = (w - this.CCONTROL)/0x10000; // C register operand address
+    w = this.C;
+    this.CCONTROL = (w - w%0x1000000)/0x1000000;        // C register control digits
+    this.COP = (w%0x1000000 - w%0x10000)/0x10000;       // C register operation code
+    this.CADDR = w%0x10000;                             // C register operand address
 
-    this.togZCT = 0;                    // for display only
-    this.togT0 = 1;                     // for display only, leave it on for execute cycle
-    if (!this.sswLockNormal) {
-        this.setTimingToggle(1);        // next cycle will be Fetch by default
+    // If we're not locked in Execute, switch to Fetch phase next.
+    if (this.FETCHEXECUTELOCKSW != 1) {
+        this.EXT.set(0);
     }
 
-    if ((this.COP & 0xF8) == 0x08) {    // if STOP (08) operator or
-        this.togCST = 1;                        // halt the processor
-        this.stopControl = 1;                   // turn on CONTROL lamp
-        this.executeComplete();
-    } else if (this.stopOverflow && (this.COP & 0x08) == 0) {  // overflow and op is not a CC
-        this.togCST = 1;                        // halt the processor
-        this.stopControl = 1;                   // turn on CONTROL lamp
-        this.executeComplete();
-    } else if (this.COP >= 0x60) {      // if operator requires an operand
-        ++this.procTime;                        // minimum alpha for Class II is 5 word-times
-        this.clearControlToggles();
-        this.readMemory(this.executeWithOperand);
-    } else {                            // otherwise execute a non-operand instruction
-        this.clearControlToggles();
-        this.procTime += 3;                     // minimum Class I execution is 3 word-times
+    if (this.OFT.value && this.HCT.value && this.COP != 0x31) {
+        this.stop();                    // if overflow and SOH and instruction is not BOF, stop
+        return;
+    }
 
-        switch (this.COP) {
+    if (B220Processor.operandRequired[this.COP]) {
+        this.E.set(this.CADDR);
+        this.readMemory();
+        if (this.MET.value) {           // invalid address
+            this.setStorageCheck(1);
+            return;
+        }
+    }
+
+    switch (this.COP) {
+    case 0x00:      //--------------------- HLT     Halt
+        this.RUT.set(0);
+        this.realTime += 0.100;
+        break;
+
+    case 0x01:      //--------------------- NOP     No operation
+        // do nothing
+        this.realTime += 0.100;
+        break;
+
+    case 0x03:      //--------------------- PRD     Paper tape read
+        this.setProgramCheck(1);
+        break;
+
+    case 0x04:      //--------------------- PRB     Paper tape read, branch
+        this.setProgramCheck(1);
+        break;
+
+    case 0x05:      //--------------------- PRI     Paper tape read, inverse format
+        this.setProgramCheck(1);
+        break;
+
+    case 0x06:      //--------------------- PWR     Paper tape write
+        this.setProgramCheck(1);
+        break;
+
+    case 0x08:      //--------------------- KAD     Keyboard add
+        this.setProgramCheck(1);
+        break;
+
+    case 0x09:      //--------------------- SPO     Supervisory print-out
+        this.setProgramCheck(1);
+        break;
+
+    case 0x10:      //--------------------- CAD/CAA Clear add/add absolute
+        this.setProgramCheck(1);
+        break;
+
+    case 0x11:      //--------------------- CSU/CSA Clear subtract/subtract absolute
+        this.setProgramCheck(1);
+        break;
+
+    case 0x12:      //--------------------- ADD/ADA Add/add absolute
+        this.setProgramCheck(1);
+        break;
+
+    case 0x13:      //--------------------- SUB/SUA Subtract/subtract absolute
+        this.setProgramCheck(1);
+        break;
+
+    case 0x14:      //--------------------- MUL     Multiply
+        this.setProgramCheck(1);
+        break;
+
+    case 0x15:      //--------------------- DIV     Divide
+        this.setProgramCheck(1);
+        break;
+
+    case 0x16:      //--------------------- RND     Round
+        this.setProgramCheck(1);
+        break;
+
+    case 0x17:      //--------------------- EXT     Extract
+        this.setProgramCheck(1);
+        break;
+
+    case 0x18:      //--------------------- CFA/CFR Compare field A/R
+        this.setProgramCheck(1);
+        break;
+
+    case 0x19:      //--------------------- ADL     Add to location
+        this.setProgramCheck(1);
+        break;
+
+    case 0x20:      //--------------------- IBB     Increase B, branch
+        this.setProgramCheck(1);
+        break;
+
+    case 0x21:      //--------------------- DBB     Decrease B, branch
+        this.setProgramCheck(1);
+        break;
+
+    case 0x22:      //--------------------- FAD/FAA Floating add/add absolute
+        this.setProgramCheck(1);
+        break;
+
+    case 0x23:      //--------------------- FSU/FSA Floating subtract/subtract absolute
+        this.setProgramCheck(1);
+        break;
+
+    case 0x24:      //--------------------- FMU     Floating multiply
+        this.setProgramCheck(1);
+        break;
+
+    case 0x25:      //--------------------- FDV     Floating divide
+        this.setProgramCheck(1);
+        break;
+
+    case 0x26:      //--------------------- IFL     Increase field location
+        this.setProgramCheck(1);
+        break;
+
+    case 0x27:      //--------------------- DFL     Decrease field location
+        this.setProgramCheck(1);
+        break;
+
+    case 0x28:      //--------------------- DLB     Decrease field location, load B
+        this.setProgramCheck(1);
+        break;
+
+    case 0x29:      //--------------------- RTF     Record transfer
+        this.setProgramCheck(1);
+        break;
+
+    case 0x30:      //--------------------- BUN     Branch, unconditionally
+        this.P.set(this.CADDR);
+        break;
+
+    case 0x31:      //--------------------- BOF     Branch, overflow
+        this.setProgramCheck(1);
+        break;
+
+    case 0x32:      //--------------------- BRP     Branch, repeat
+        this.setProgramCheck(1);
+        break;
+
+    case 0x33:      //--------------------- BSA     Branch, sign A
+        this.setProgramCheck(1);
+        break;
+
+    case 0x34:      //--------------------- BCH/BCL Branch, comparison high/low
+        this.setProgramCheck(1);
+        break;
+
+    case 0x35:      //--------------------- BCE/BCU Branch, comparison equal/unequal
+        this.setProgramCheck(1);
+        break;
+
+    case 0x36:      //--------------------- BFA     Branch, field A
+        this.setProgramCheck(1);
+        break;
+
+    case 0x37:      //--------------------- BFR     Branch, field R
+        this.setProgramCheck(1);
+        break;
+
+    case 0x38:      //--------------------- BCS     Branch, control switch
+        this.setProgramCheck(1);
+        break;
+
+    case 0x39:      //--------------------- SO*/IOM Set overflow remember/halt, Interrogate overflow mode
+        this.setProgramCheck(1);
+        break;
+
+    case 0x40:      //--------------------- ST*     Store A/R/B
+        this.setProgramCheck(1);
+        break;
+
+    case 0x41:      //--------------------- LDR     Load R
+        this.setProgramCheck(1);
+        break;
+
+    case 0x42:      //--------------------- LDB/LBC Load B/B complement
+        this.setProgramCheck(1);
+        break;
+
+    case 0x43:      //--------------------- LSA     Load sign A
+        this.setProgramCheck(1);
+        break;
+
+    case 0x44:      //--------------------- STP     Store P
+        this.setProgramCheck(1);
+        break;
+
+    case 0x45:      //--------------------- CL*     Clear A/R/B
+        this.setProgramCheck(1);
+        break;
+
+    case 0x46:      //--------------------- CLL     Clear location
+        this.setProgramCheck(1);
+        break;
+
+    case 0x48:      //--------------------- SR*     Shift right A/A and R/A with sign
+        this.setProgramCheck(1);
+        break;
+
+    case 0x49:      //--------------------- SL*     Shift left A/A and R/A with sign
+        this.setProgramCheck(1);
+        break;
+
+    case 0x50:      //--------------------- MT*     Magnetic tape search/field search/lane select/rewind
+        this.setProgramCheck(1);
+        break;
+
+    case 0x51:      //--------------------- MTC/MFC Magnetic tape scan/field scan
+        this.setProgramCheck(1);
+        break;
+
+    case 0x52:      //--------------------- MRD     Magnetic tape read
+        this.setProgramCheck(1);
+        break;
+
+    case 0x53:      //--------------------- MRR     Magnetic tape read, record
+        this.setProgramCheck(1);
+        break;
+
+    case 0x54:      //--------------------- MIW     Magnetic tape initial write
+        this.setProgramCheck(1);
+        break;
+
+    case 0x55:      //--------------------- MIR     Magnetic tape initial write, record
+        this.setProgramCheck(1);
+        break;
+
+    case 0x56:      //--------------------- MOW     Magnetic tape overwrite
+        this.setProgramCheck(1);
+        break;
+
+    case 0x57:      //--------------------- MOR     Magnetic tape overwrite, record
+        this.setProgramCheck(1);
+        break;
+
+    case 0x58:      //--------------------- MPF/MPB Magnetic tape position forward/backward/at end
+        this.setProgramCheck(1);
+        break;
+
+    case 0x59:      //--------------------- MIB/MIE Magnetic tape interrogate, branch/end of tape, branch
+        this.setProgramCheck(1);
+        break;
+
+    case 0x60:      //--------------------- CRD     Card read
+        this.setProgramCheck(1);
+        break;
+
+    case 0x61:      //--------------------- CWR     Card write
+        this.setProgramCheck(1);
+        break;
+
+    case 0x62:      //--------------------- CRF     Card read, format load
+        this.setProgramCheck(1);
+        break;
+
+    case 0x63:      //--------------------- CWF     Card write, format load
+        this.setProgramCheck(1);
+        break;
+
+    case 0x64:      //--------------------- CRI     Card read interrogate, branch
+        this.setProgramCheck(1);
+        break;
+
+    case 0x65:      //--------------------- CWI     Card write interrogate, branch
+        this.setProgramCheck(1);
+        break;
+
+    case 0x66:      //--------------------- HPW     High speed printer write
+        this.setProgramCheck(1);
+        break;
+
+    case 0x67:      //--------------------- HPI     High speed printer interrogate, branch
+        this.setProgramCheck(1);
+        break;
+
+    default:        //--------------------- Invalid op code -- set Program Check alarm
+        this.setProgramCheck(1);
+        break;
+    } // switch this.COP
+
+    return; ///////////////// for now //////////////////
+
+
+        switch (-1) {
         case 0x00:      //---------------- PTR  Paper-tape/keyboard read
             this.D = 0;
             this.togSTART = 1;
@@ -2877,20 +2693,18 @@ B220Processor.prototype.execute = function execute() {
                 w = (w%0x10000000000)*0x10 + d;
             }
             this.A = w;
-            this.executeComplete();
             break;
 
         case 0x02:      //---------------- STC  Store and Clear A
             this.procTime += 1;
-            this.writeMemory(this.executeComplete, true);
             break;
 
         case 0x03:      //---------------- PTW  Paper-tape/Flexowriter write
             if (this.cswPOSuppress) {
-                this.executeComplete();                 // ignore printout commands
+                //this.schedule();                 // ignore printout commands
             } else if (this.cswOutput == 0) {
                 this.togCST = 1;                        // halt if Output switch is OFF
-                this.executeComplete();
+                //this.schedule();
             } else {
                 this.togPO1 = 1;                        // for display only
                 this.SHIFT = this.bcdAdd(this.CADDR%0x20, 0x19, 1, 1);  // 19-n
@@ -2915,9 +2729,8 @@ B220Processor.prototype.execute = function execute() {
                 this.setTimingToggle(0);                // stay in Execute
                 this.setOverflow(1);                    // set overflow
                 this.COP = 0x28;                        // make into a CC
-                this.C = (this.COP*0x10000 + this.CADDR)*0x10000 + this.CCONTROL;
+                this.C = (this.CCONTROL*0x100 + this.COP)*0x10000 + this.CADDR;
             }
-            this.executeComplete();
             break;
 
         // 0x05:        //---------------- (no op)
@@ -2927,15 +2740,14 @@ B220Processor.prototype.execute = function execute() {
             if (this.A % 2 == 0) {
                 ++this.A;
             }
-            this.executeComplete();
             break;
 
         case 0x07:      //---------------- PTWF Paper-tape Write Format
             if (this.cswPOSuppress) {
-                this.executeComplete();                 // ignore printout commands
+                //this.schedule();                 // ignore printout commands
             } else if (this.cswOutput == 0) {
                 this.togCST = 1;                        // halt if Output switch is OFF
-                this.executeComplete();
+                //this.schedule();
             } else {
                 this.procTime -= performance.now()*B220Processor.wordsPerMilli; // mark time during I/O
                 this.stopIdle = 1;                      // turn IDLE lamp on in case Output Knob is OFF
@@ -2966,12 +2778,12 @@ B220Processor.prototype.execute = function execute() {
             this.togDELTABDIV = 1;                      // for display only
             this.SHIFT = 0x15;                          // for display only
             this.A = this.bcdAdd(0, this.B);
-            this.executeComplete();
+            //this.schedule();
             break;
 
         case 0x12:      //---------------- ST   Store A
             this.procTime += 1;
-            this.writeMemory(this.executeComplete, false);
+            this.writeMemory(this.schedule, false);
             break;
 
         case 0x13:      //---------------- SR   Shift Right A & R
@@ -2987,7 +2799,6 @@ B220Processor.prototype.execute = function execute() {
                 this.R = (this.R - this.R % 0x10)/0x10 + d*0x1000000000;
             }
             this.A += w - this.A%0x10000000000;         // restore the sign
-            this.executeComplete();
             break;
 
         case 0x14:      //---------------- SL   Shift Left A & R
@@ -3004,7 +2815,6 @@ B220Processor.prototype.execute = function execute() {
                 this.R += d*0x1000000000;
             }
             this.A += w - this.A%0x10000000000;         // restore the sign
-            this.executeComplete();
             break;
 
         case 0x15:      //---------------- NOR  Normalize A & R
@@ -3034,23 +2844,20 @@ B220Processor.prototype.execute = function execute() {
                 this.setTimingToggle(0);                // stay in Execute
                 this.setOverflow(1);                    // set overflow
                 this.COP = 0x28;                        // make into a CC
-                this.C = (this.COP*0x10000 + this.CADDR)*0x10000 + this.CCONTROL;
+                this.C = (this.CCONTROL*0x100 + this.COP)*0x10000 + this.CADDR;
             }
-            this.executeComplete();
             break;
 
         case 0x16:      //---------------- ADSC Add Special Counter to A
             this.procTime += 3;
             this.D = this.SPECIAL;
             this.integerAdd();
-            this.executeComplete();
             break;
 
         case 0x17:      //---------------- SUSC Subtract Special Counter from A
             this.procTime += 3;
             this.D = this.SPECIAL + 0x10000000000;      // set to negative
             this.integerAdd();
-            this.executeComplete();
             break;
 
         // 0x18-0x19:   //---------------- (no op)
@@ -3059,9 +2866,7 @@ B220Processor.prototype.execute = function execute() {
             this.procTime += 2;
             this.SHIFT = 0x15;                          // for display only
             this.SHIFTCONTROL = 0x07;                   // for display only
-            this.CCONTROL = this.CADDR;                 // copy address to control counter
-            this.C = (this.COP*0x10000 + this.CADDR)*0x10000 + this.CCONTROL;
-            this.executeComplete();
+            this.P = this.CADDR;                 // copy address to control counter
             break;
 
         case 0x21:      //---------------- CUR  Change Unconditionally, Record
@@ -3071,7 +2876,6 @@ B220Processor.prototype.execute = function execute() {
             this.R = this.CCONTROL*0x1000000;           // save current control counter
             this.CCONTROL = this.CADDR;                 // copy address to control counter
             this.C = (this.COP*0x10000 + this.CADDR)*0x10000 + this.CCONTROL;
-            this.executeComplete();
             break;
 
         case 0x22:      //---------------- DB   Decrease B and Change on Negative
@@ -3091,7 +2895,6 @@ B220Processor.prototype.execute = function execute() {
             }
             this.togSIGN = ((this.A - this.A%0x10000000000)/0x10000000000) & 0x01; // display only
             this.D = 0;
-            this.executeComplete();
             break;
 
         case 0x23:      //---------------- RO   Round A, Clear R
@@ -3105,7 +2908,6 @@ B220Processor.prototype.execute = function execute() {
             }
             this.A += this.togSIGN*0x10000000000;       // restore the sign bit in A
             this.D = this.R = 0;                        // clear D & R
-            this.executeComplete();
             break;
 
         case 0x24:      //---------------- BF4  Block from 4000 Loop
@@ -3113,7 +2915,7 @@ B220Processor.prototype.execute = function execute() {
         case 0x26:      //---------------- BF6  Block from 6000 loop
         case 0x27:      //---------------- BF7  Block from 7000 loop
             this.procTime +=2;
-            this.blockFromLoop(this.COP-0x20, this.executeComplete);
+            this.blockFromLoop(this.COP-0x20, this.schedule);
             break;
 
         case 0x28:      //---------------- CC   Change Conditionally
@@ -3128,7 +2930,6 @@ B220Processor.prototype.execute = function execute() {
                 this.CCONTROL = this.CADDR;             // copy address to control counter
                 this.C = (this.COP*0x10000 + this.CADDR)*0x10000 + this.CCONTROL;
             }
-            this.executeComplete();
             break;
 
         case 0x29:      //---------------- CCR  Change Conditionally, Record
@@ -3144,7 +2945,6 @@ B220Processor.prototype.execute = function execute() {
                 this.CCONTROL = this.CADDR;             // copy address to control counter
                 this.C = (this.COP*0x10000 + this.CADDR)*0x10000 + this.CCONTROL;
             }
-            this.executeComplete();
             break;
 
         case 0x30:      //---------------- CUB  Change Unconditionally, Block to 7000 Loop
@@ -3153,7 +2953,7 @@ B220Processor.prototype.execute = function execute() {
             this.SHIFTCONTROL = 0x0F;                   // for display only
             this.CCONTROL = this.CADDR%0x100 + 0x7000;  // set control to loop-7 address
             this.C = (this.COP*0x10000 + this.CADDR)*0x10000 + this.CCONTROL;
-            this.blockToLoop(7, this.executeComplete);
+            this.blockToLoop(7, this.schedule);
             break;
 
         case 0x31:      //---------------- CUBR Change Unconditionally, Block to 7000 Loop, Record
@@ -3163,7 +2963,7 @@ B220Processor.prototype.execute = function execute() {
             this.R = this.CCONTROL*0x1000000;           // save current control counter
             this.CCONTROL = this.CADDR%0x100 + 0x7000;  // set control to loop-7 address
             this.C = (this.COP*0x10000 + this.CADDR)*0x10000 + this.CCONTROL;
-            this.blockToLoop(7, this.executeComplete);
+            this.blockToLoop(7, this.schedule);
             break;
 
         case 0x32:      //---------------- IB   Increase B
@@ -3175,14 +2975,12 @@ B220Processor.prototype.execute = function execute() {
             this.B = this.bcdAdd(this.B, 1) % 0x10000;  // discard any overflow in B
             this.togSIGN = ((this.A - this.A%0x10000000000)/0x10000000000) & 0x01; // display only
             this.D = 0;
-            this.executeComplete();
             break;
 
         case 0x33:      //---------------- CR   Clear R
             this.procTime += 2;
             this.SHIFTCONTROL = 0x04;                   // for display only
             this.R = 0;
-            this.executeComplete();
             break;
 
         case 0x34:      //---------------- BT4  Block to 4000 Loop
@@ -3190,14 +2988,13 @@ B220Processor.prototype.execute = function execute() {
         case 0x36:      //---------------- BT6  Block to 6000 Loop
         case 0x37:      //---------------- BT7  Block to 7000 Loop
             this.procTime +=2;
-            this.blockToLoop(this.COP-0x30, this.executeComplete);
+            this.blockToLoop(this.COP-0x30, this.schedule);
             break;
 
         case 0x38:      //---------------- CCB  Change Conditionally, Block to 7000 Loop
             if (!this.stopOverflow) {                   // check if branch should occur
                 this.procTime += 3;
                 this.SHIFTCONTROL = 0x04;               // for display only
-                this.executeComplete();
             } else {
                 this.procTime += 4;
                 this.setOverflow(0);                    // reset overflow and do the branch
@@ -3205,7 +3002,7 @@ B220Processor.prototype.execute = function execute() {
                 this.SHIFTCONTROL = 0x0F;               // for display only
                 this.CCONTROL = this.CADDR%0x100 + 0x7000;  // set control to loop-7 address
                 this.C = (this.COP*0x10000 + this.CADDR)*0x10000 + this.CCONTROL;
-                this.blockToLoop(7, this.executeComplete);
+                this.blockToLoop(7, this.schedule);
             }
             break;
 
@@ -3213,7 +3010,6 @@ B220Processor.prototype.execute = function execute() {
             if (!this.stopOverflow) {                   // check if branch should occur
                 this.procTime += 3;
                 this.SHIFTCONTROL = 0x04;               // for display only
-                this.executeComplete();
             } else {
                 this.procTime += 4;
                 this.setOverflow(0);                    // reset overflow and do the branch
@@ -3222,13 +3018,13 @@ B220Processor.prototype.execute = function execute() {
                 this.R = this.CCONTROL*0x1000000;       // save current control counter
                 this.CCONTROL = this.CADDR%0x100 + 0x7000;  // set control to loop-7 address
                 this.C = (this.COP*0x10000 + this.CADDR)*0x10000 + this.CCONTROL;
-                this.blockToLoop(7, this.executeComplete);
+                this.blockToLoop(7, this.schedule);
             }
             break;
 
         case 0x40:      //---------------- MTR  Magnetic Tape Read
             if (!this.magTape) {
-                this.executeComplete();
+                //this.schedule();
             } else {
                 this.selectedUnit = (this.CEXTRA >>> 4) & 0x0F;
                 d = (this.CEXTRA >>> 8) & 0xFF;         // number of blocks
@@ -3239,7 +3035,7 @@ B220Processor.prototype.execute = function execute() {
                 if (this.magTape.read(this.selectedUnit, d, this.boundMagTapeReceiveBlock)) {
                     this.setOverflow(1);                // control or tape unit busy/not-ready
                     this.togMT3P = this.togMT1BV4 = this.togMT1BV5 = 0;
-                    this.executeComplete();
+                    //this.schedule();
                 }
             }
             break;
@@ -3254,7 +3050,7 @@ B220Processor.prototype.execute = function execute() {
                     this.setOverflow(1);                // control or tape unit busy/not-ready
                 }
             }
-            this.executeComplete();
+            //this.schedule();
             break;
 
         // 0x43:        //---------------- (no op)
@@ -3262,7 +3058,7 @@ B220Processor.prototype.execute = function execute() {
         case 0x44:      //---------------- CDR  Card Read (Cardatron)
             this.D = 0;
             if (!this.cardatron) {
-                this.executeComplete();
+                //this.schedule();
             } else {
                 this.tog3IO = 1;
                 this.kDigit = (this.CEXTRA >>> 8) & 0x0F;
@@ -3282,14 +3078,14 @@ B220Processor.prototype.execute = function execute() {
                 this.COP = 0x28;                        // make into a CC
                 this.C = (this.COP*0x10000 + this.CADDR)*0x10000 + this.CCONTROL;
             }
-            this.executeComplete();
+            //this.schedule();
             break;
 
         // 0x46-0x47:   //---------------- (no op)
 
         case 0x48:      //---------------- CDRF Card Read Format
             if (!this.cardatron) {
-                this.executeComplete();
+                //this.schedule();
             } else {
                 this.tog3IO = 1;
                 this.kDigit = (this.CEXTRA >>> 8) & 0x0F;
@@ -3305,7 +3101,7 @@ B220Processor.prototype.execute = function execute() {
 
         case 0x50:      //---------------- MTW  Magnetic Tape Write
             if (!this.magTape) {
-                this.executeComplete();
+                //this.schedule();
             } else {
                 this.selectedUnit = (this.CEXTRA >>> 4) & 0x0F;
                 d = (this.CEXTRA >>> 8) & 0xFF;         // number of blocks
@@ -3316,7 +3112,7 @@ B220Processor.prototype.execute = function execute() {
                 if (this.magTape.write(this.selectedUnit, d, this.boundMagTapeInitiateSend)) {
                     this.setOverflow(1);                // control or tape unit busy/not-ready
                     this.togMT3P = this.togMT1BV4 = this.togMT1BV5 = 0;
-                    this.executeComplete();
+                    //this.schedule();
                 }
             }
             break;
@@ -3330,14 +3126,13 @@ B220Processor.prototype.execute = function execute() {
                     this.setOverflow(1);                // control or tape unit busy/not-ready
                 }
             }
-            this.executeComplete();
             break;
 
         // 0x53:        //---------------- (no op)
 
         case 0x54:      //---------------- CDW  Card Write (Cardatron)
             if (!this.cardatron) {
-                this.executeComplete();
+                //this.schedule();
             } else {
                 this.tog3IO = 1;
                 this.kDigit = (this.CEXTRA >>> 8) & 0x0F;
@@ -3358,14 +3153,13 @@ B220Processor.prototype.execute = function execute() {
                 this.COP = 0x28;                        // make into a CC
                 this.C = (this.COP*0x10000 + this.CADDR)*0x10000 + this.CCONTROL;
             }
-            this.executeComplete();
             break;
 
         // 0x56-0x57:   //---------------- (no op)
 
         case 0x58:      //---------------- CDWF Card Write Format
             if (!this.cardatron) {
-                this.executeComplete();
+                //this.schedule();
             } else {
                 this.tog3IO = 1;
                 this.kDigit = (this.CEXTRA >>> 8) & 0x0F;
@@ -3379,35 +3173,177 @@ B220Processor.prototype.execute = function execute() {
 
         // 0x59:        //---------------- (no op)
 
-        default:        //---------------- (unimplemented instruction -- no op)
-            this.executeComplete();
+        default:        //---------------- (unimplemented instruction -- alarm)
+            this.setProgramCheck(1);
             break;
         } // switch this.COP
     }
 };
 
+
+/***********************************************************************
+*   Processor Run Control                                              *
+***********************************************************************/
+
+/**************************************/
+B220Processor.prototype.run = function run() {
+    /* Main execution control loop for the processor. Called from this.schedule()
+    to initiate a time slice. Will continue fetch/execute phases until the time
+    slice expires, a stop condition is detected, or AST (asynchronous toggle)
+    is set indicating the processor has been suspended during an I/O. This
+    routine effectively implements Operation Complete (O.C.) for the Fetch and
+    Execute cycles, although it is more of a "ready for next operation" function,
+    determining if there is a stop condition, or whether to do a Fetch or
+    Execute cycle next. The fetch() and execute() methods exit back here, and
+    in most cases we simply step to the next phase/instruction. In the case of
+    asynchronous operation, however, we simply exit, and the I/O interface will
+    call this.schedule() to restart execution again once memory transfers have
+    completed */
+
+    this.runLimit = this.realTime + B220Processor.timeSlice;
+
+    do {
+        switch (true) {
+        case this.AST.value:            // doing I/O -- just exit
+            this.runLimit = 0;
+            break;
+
+        case !this.RUT.value:           // halted
+        case this.SST.value:            // single-stepped
+            this.stop();                        // sets this.runLimit = zero, kills loop
+            break;
+
+        case this.EXT.value:            // enter execute phase
+            this.execute();
+            if (this.ORDERCOMPLEMENTSW) {
+                this.C.flipBit(16);             // complement low order bit of op code
+                this.COP ^= 0x01;
+            }
+
+            if (this.SONSW) {                   // check for post-execute S-to-C stop
+                if (this.STOCSW) {
+                    if (this.SUNITSSW) {
+                        if (this.C.value%0x10 == this.S%0x10) {
+                            this.RUT.set(0);
+                        }
+                    } else if (this.C.value%0x1000 == this.S%0x1000) {
+                        this.RUT.set(0);
+                    }
+                }
+            }
+            break;
+
+        default:                        // enter fetch phase
+            if (this.SONSW) {                   // check for post-fetch S-to-P stop
+                if (this.STOPSW) {              // must check before P is incremented in fetch()
+                    if (this.SUNITSSW) {
+                        if (this.P.value%0x10 == this.S%0x10) {
+                            this.RUT.set(0);
+                        }
+                    } else if (this.C.value == this.S) {
+                        this.RUT.set(0);
+                    }
+                }
+            }
+
+            this.fetch();
+            break;
+        }
+    } while (this.realTime < this.runLimit);
+};
+
+/**************************************/
+B220Processor.prototype.schedule = function schedule() {
+    /* Schedules the next processor time slice and attempts to throttle
+    performance to approximate that of a real B220. It establishes a time slice
+    in terms of a number milliseconds each and calls run() to execute for at
+    most that amount of time. run() counts up instruction times until it reaches
+    this limit or some terminating event (such as a stop), then exits back here.
+    If the processor remains active, this routine will reschedule itself after
+    an appropriate delay, thereby throttling the performance and allowing other
+    modules to share the single Javascript execution thread */
+    var delayTime;                      // delay from/until next run() for this processor, ms
+    var runStamp;                       // real-world time at start of time slice, ms
+    var stamp = performance.now();      // ending time for the delay and the run() call, ms
+
+    this.scheduler = 0;
+
+    // If run() has been called by a throttling delay, compute the delay stats.
+    if (this.lastDelayStamp > 0) {
+        delayTime = stamp - this.delayLastStamp;
+        this.procSlack += delayTime;
+
+        // Compute the exponential weighted average of scheduling delay.
+        this.delayDeltaAvg = (delayTime - this.delayRequested)*B220Processor.delayAlpha +
+                             this.delayDeltaAvg*B220Processor.delayAlpha1;
+        this.procSlackAvg = delayTime*B220Processor.slackAlpha +
+                            this.procSlackAvg*B220Processor.slackAlpha1;
+    }
+
+    // Accumulate internal processor run time if it's been idle due to I/O.
+    while (this.procTime < 0) {
+        this.procTime += stamp;
+    }
+
+    // Execute the time slice.
+    runStamp = stamp;                   // starting clock time for time slice
+    this.procTime -= this.realTime;     // prepare to accumulate internal processor time
+
+    this.run();
+
+    stamp = performance.now();
+    this.procTime += this.realTime;     // accumulate internal processor time for the slice
+    this.procRunAvg = (stamp - runStamp)*B220Processor.slackAlpha +
+                      this.procRunAvg*B220Processor.slackAlpha1;
+
+    // Determine what to do next.
+    if (!this.RUT.value) {
+        // Processor is stopped, just inhibit delay averaging on next call and exit.
+        this.lastDelayStamp = 0;
+    } else if (this.AST.value) {
+        // Processor is still running, but idle during I/O.
+        this.lastDelayStamp = 0;
+        while (this.procTime >= 0) {
+            this.procTime -= stamp;     // keep the internal processor timer running
+        }
+    } else {
+        // Processor is still running, so schedule next time slice after a throttling delay.
+        // delayTime is the number of milliseconds the processor is running ahead of
+        // real-world time. Web browsers have a certain minimum setTimeout() delay. If the
+        // delay is less than our estimate of that minimum, setCallback will yield to
+        // the event loop but otherwise continue (real time should eventually catch up --
+        // we hope). If the delay is greater than the minimum, setCallback will reschedule
+        // us after that delay.
+
+        delayTime = this.realTime - stamp;
+        this.delayRequested = delayTime;
+        this.delayLastStamp = stamp;
+        this.scheduler = setCallback(this.mnemonic, this, delayTime, this.schedule);
+    }
+};
+
 /**************************************/
 B220Processor.prototype.start = function start() {
-    /* Initiates the processor according to the current Timing Toggle state */
-    var drumTime = performance.now()*B220Processor.wordsPerMilli;
+    /* Initiates a time slice for the processor according to the EXT state */
+    var stamp = performance.now();
 
-    if (this.togCST && this.poweredOn) {
-        this.procStart = drumTime;
-        this.procTime = drumTime;
-        this.memoryStopTime = drumTime;
+    if (this.poweredOn && !this.RUT.value && !this.AST.value &&
+                          !this.systemNotReady.value && !this.computerNotReady.value) {
+        this.procStart = stamp;
+        this.realTime = stamp;
+        this.delayLastStamp = stamp;
+        this.delayRequested = 0;
+        this.RUT.set(1);
 
-        this.stopIdle = 0;
-        this.stopControl = 0;
-        this.stopBreakpoint = this.togBKPT = 0;
-        // stopOverflow, stopSector, and stopForbidden are not reset by the START button
-
-        this.togCST = 0;
-        if (this.togTiming && !this.sswLockNormal) {
-            this.fetch();
-        } else {
-            this.setTimingToggle(0);
-            this.execute();
+        // Start the timers
+        while (this.runTime >= 0) {
+            this.runTime -= stamp;
         }
+        while (this.timerTime >= 0) {
+            this.timerTime -= stamp;
+        }
+
+        this.schedule();
     }
 };
 
@@ -3416,9 +3352,18 @@ B220Processor.prototype.stop = function stop() {
     /* Stops running the processor on the Javascript thread */
 
     if (this.poweredOn) {
-        this.togCST = 1;
-        this.cctContinuous = 0;
-        this.stopIdle = 1;              // turn on the IDLE lamp
+        this.runLimit = 0;              // kill the time slice
+        this.SST.set(0);
+        this.RUT.set(0);
+
+        // Stop the timers
+        while (this.runTime < 0) {
+            this.runTime += stamp;
+        }
+        while (this.timerTime < 0) {
+            this.timerTime += stamp;
+        }
+
         if (this.scheduler) {
             clearCallback(this.scheduler);
             this.scheduler = 0;
@@ -3427,16 +3372,38 @@ B220Processor.prototype.stop = function stop() {
 };
 
 /**************************************/
+B220Processor.prototype.step = function step() {
+    /* Single-steps the processor. This will execute the next Fetch or Execute
+    phase only, then stop the processor */
+
+    if (this.poweredOn) {
+        this.SST.set(1);
+        this.start();
+    }
+};
+
+/**************************************/
+B220Processor.prototype.resetRunTimer = function resetRunTimer() {
+    /* Resets the elapsed run-time timer to zero */
+
+    if (this.timerTime < 0) {           // it's running, adjust its bias
+        this.timerTime = -performance.now();
+    } else {                            // it's stopped, just zero it
+        this.timerTime = 0;
+    }
+};
+
+/**************************************/
 B220Processor.prototype.inputSetup = function inputSetup(unitNr) {
     /* Called from the Cardatron Control Unit. If the Processor is stopped,
-    loads a CDR (44) instruction into C for unit "unitNr" */
+    loads a CDR (60) instruction into C for unit "unitNr" and sets Execute phase */
 
-    if (this.togCST && this.poweredOn) {
-        this.CEXTRA = unitNr*0x10;
-        this.COP = 0x44;
+    if (this.poweredOn && !this.RUT.value) {
+        this.CONTROL = unitNr*0x1000;   // recognize control words, no lockout
+        this.COP = 0x60;                // CDR
         this.CADDR = 0;
-        this.C = (this.COP*0x10000 + this.CADDR)*0x10000 + this.CCONTROL;
-        this.setTimingToggle(0);
+        this.C = (this.CCONTROL*0x100 + this.COP)*0x10000 + this.CADDR;
+        this.EXT.set(1);
     }
 };
 
@@ -3447,11 +3414,13 @@ B220Processor.prototype.powerUp = function powerUp() {
     if (!this.poweredOn) {
         this.clear();
         this.poweredOn = 1;
+        this.runTime = this.timerTime = 0;
+        this.procSlack = this.procSlackAvg = this.procRunAvg = 0;
+        this.delayDeltaAvg = this.delayRequested = 0;
+
         this.console = this.devices.ControlConsole;
         this.cardatron = this.devices.CardatronControl;
         this.magTape = this.devices.MagTapeControl;
-        this.lastGlowTime = performance.now()*B220Processor.wordsPerMilli;
-        //this.glowTimer = setInterval(this.boundUpdateLampGlow, B220Processor.lampGlowInterval);
     }
 };
 
@@ -3463,6 +3432,7 @@ B220Processor.prototype.powerDown = function powerDown() {
         this.stop();
         this.clear();
         this.poweredOn = 0;
+
         this.cardatron = null;
         this.console = null;
         this.magTape = null;
@@ -3471,73 +3441,6 @@ B220Processor.prototype.powerDown = function powerDown() {
             this.glowTimer = null;
         }
     }
-};
-/**************************************/
-B220Processor.prototype.schedule = function schedule() {
-    /* Schedules the processor running time and attempts to throttle performance
-    to approximate that of a real B220. It establishes
-    a timeslice in terms of a number of processor "cycles" of 5 microseconds
-    each and calls run() to execute at most that number of cycles. run()
-    counts up cycles until it reaches this limit or some terminating event
-    (such as a halt), then exits back here. If the processor remains active,
-    this routine will reschedule itself after an appropriate delay, thereby
-    throttling the performance and allowing other modules a chance at the
-    single Javascript execution thread */
-    var clockOff = performance.now();   // ending time for the delay and the run() call, ms
-    var delayTime;                      // delay from/until next run() for this processor, ms
-    var runTime;                        // real-world processor running time, ms
-
-    this.scheduler = 0;
-    delayTime = clockOff - this.delayLastStamp;
-    this.procSlack += delayTime;
-
-    // Compute the exponential weighted average of scheduling delay
-    this.delayDeltaAvg = (delayTime - this.delayRequested)*B220Processor.delayAlpha +
-                         this.delayDeltaAvg*B220Processor.delayAlpha1;
-    this.procSlackAvg = B220Processor.slackAlpha*delayTime +
-                        this.procSlackAvg*B220Processor.slackAlpha1;
-
-    if (this.busy) {
-        this.cycleLimit = B220Processor.timeSlice;
-
-        this.run();                     // execute instructions for the timeslice
-
-        clockOff = performance.now();
-        this.procRunAvg = (clockOff - this.delayLastStamp)*B220Processor.slackAlpha +
-                     this.procRunAvg*B220Processor.slackAlpha1;
-        this.delayLastStamp = clockOff;
-        this.totalCycles += this.runCycles;
-        if (!this.busy) {
-            this.delayRequested = 0;
-        } else {
-            runTime = this.procTime;
-            while (runTime < 0) {
-                runTime += clockOff;
-            }
-
-            delayTime = this.totalCycles/B220Processor.cyclesPerMilli - runTime;
-            // delayTime is the number of milliseconds the processor is running ahead of
-            // real-world time. Web browsers have a certain minimum setTimeout() delay. If the
-            // delay is less than our estimate of that minimum, setCallback will yield to
-            // the event loop but otherwise continue (real time should eventually catch up --
-            // we hope). If the delay is greater than the minimum, setCallback will reschedule
-            // us after that delay.
-
-            this.delayRequested = delayTime;
-            this.scheduler = setCallback(this.mnemonic, this, delayTime, this.schedule);
-        }
-    }
-};
-
-/**************************************/
-B220Processor.prototype.step = function step() {
-    /* Single-steps the processor. Normally this will cause one instruction to
-    be executed, but note that in the case of an interrupt or char-mode CRF, one
-    or two injected instructions (e.g., SFI followed by ITI) could also be executed */
-
-    this.cycleLimit = 1;
-    this.run();
-    this.totalCycles += this.runCycles;
 };
 
 /**************************************/

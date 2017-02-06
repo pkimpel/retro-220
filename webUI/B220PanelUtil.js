@@ -363,7 +363,7 @@ function ThreeWaySwitch(parent, x, y, id, offImage, onImage1, onImage2) {
     x & y are the coordinates of the switch within its containing element;
     id is the DOM id */
 
-    this.state = 0;                     // current switch state, 0=off
+    this.state = 0;                     // current switch state, 0=off, 1=down, 2=up)
     this.topCaptionDiv = null;          // optional top caption element
     this.bottomCaptionDiv = null;       // optional bottom caption element
     this.offImage = offImage;           // image used for the off state
@@ -405,15 +405,15 @@ ThreeWaySwitch.prototype.set = function set(state) {
 
     if (this.state != state) {          // the state has changed
         switch (state) {
-        case 1:
+        case 1:                         // down position
             this.state = 1;
             this.element.src = this.onImage1;
             break;
-        case 2:
+        case 2:                         // up position
             this.state = 2;
             this.element.src = this.onImage2;
             break;
-        default:
+        default:                        // middle position
             this.state = 0;
             this.element.src = this.offImage;
             break;
