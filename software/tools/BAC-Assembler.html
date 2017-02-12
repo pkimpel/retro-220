@@ -682,8 +682,8 @@ window.addEventListener("load", function() {
                 c = text.charAt(x);
                 if (c == "$") {
                     ++x;                // bypass the second "$"
-                    doubleDollar = true;// don't know what this means yet
-                    appendCode(16);     // but for now we'll treat it as a carriage return
+                    doubleDollar = true;
+                    appendCode(16);     // carriage return prints as $ on Cardatron
                 }
             }
         }
