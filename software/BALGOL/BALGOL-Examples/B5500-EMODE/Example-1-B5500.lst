@@ -1,0 +1,397 @@
+ LABEL  000000000LINE   00187053?COMPILE EXAMPLE/BALGOL1 ALGOL GO                                        ALGOL  /EXAMPLE
+
+
+
+
+
+                      BURROUGHS B-5700 ALGOL COMPILER MARK XIII.0     SUNDAY, 02/22/87,   9:56 AM.
+
+
+
+
+
+                BEGIN                                                                           00001000    0000
+                                                                                        START OF SEGMENT **********    2
+                COMMENT                                                                         00001100    0000
+                  BAC-EXAMPLE-1 CONVERTED FROM BALGOL TO BURROUGHS B5500 EXTENDED ALGOL.        00001200    0000
+                  2017-02-13  P.KIMPEL                                                          00001300    0000
+                  ;                                                                             00001400    0000
+                                                                                                00010000    0000
+                FILE IN INPUT (1,10);                                                           00010100    0000
+                FILE OUT OUTPUT 17 (2,15);                                                      00010200    0003
+                                                                                                00011000    0007
+                DEFINE                                                                          00011100    0007
+                  DEGREE1 =             0.017453293 #,  % PI/180 = 1 DEGREE                     00011200    0007
+                  DEGREE2 =             0.034906585 #,  % PI/90 = 2 DEGREES                     00011300    0007
+                  DEGREE5 =             0.087266463 #,  % PI/36 = 5 DEGREES                     00011400    0007
+                  DEGREE34 =            0.59341195 #,   % 34PI/180 = 34 DEGREES                 00011500    0007
+                  DEGREE45 =            0.78539816 #;   % PI/4 = 45 DEGREES                     00011600    0007
+                                                                                                00020000    0007
+                REAL                                                                            00050000    0007
+                  AVT,                                                                          00050100    0007
+                  CONST,                                                                        00050200    0007
+                  SUM;                                                                          00050300    0007
+                LABEL                                                                           00080000    0007
+                  FINISH,                                                                       00080100    0007
+                  RDIM,                                                                         00080200    0007
+                  START;                                                                        00080300    0007
+                                                                                                00200000    0007
+                  COMMENT FIRST EXAMPLE PROGRAM FROM BALGOL MANUAL, MARCH 1963.                 00200100    0007
+                  J.G. HERRIOT, OF STANFORD UNIVERSITY, HAS WRITTEN THE FOLLOWING               00200200    0007
+                  PROGRAM TO DETERMINE AN APROXIMATION OF HARMONIC-BOUNDARY VALUES,             00200300    0007
+                  USING ORTHONORMAL FUNCTIONS;                                                  00200400    0007
+                                                                                                00200500    0007
+                  COMMENT THIS PROGRAM FIRST CONSTRUCTS A SET OF ORTHONORMAL FUNCTIONS          00200600    0007
+                  AND THEN USES THEM TO FIND AN APPROXIMATION TO THE SOLUTION OF A              00200700    0007
+                  HARMONIC BOUNDARY-VALUE PROBLEM;                                              00200800    0007
+                                                                                                00200900    0007
+                  COMMENT WE FIRST CONSTRUCT THE ORTHONORMAL FUNCTIONS;                         00201000    0007
+                                                                                                00201100    0007
+                  INTEGER I, J, K, L, M, N, NU, TH;                                             00201200    0007
+                  ARRAY R[1:29], HFN[1:29], DSUM[1:24], HFCN[1:5], HFCEN[1:6],                  00201300    0007
+                        FA[1:25,1:25], A[1:25,1:25], B[1:25,1:25], HA[1:47], HAA[1:24];         00201400    0016
+                  LIST DATA (FOR I←1 STEP 1 UNTIL 29 DO R[I]), DIMEN(N);                        00201500    0025
+                  LIST FRESULTS (FOR I←1 STEP 1 UNTIL N DO                                      00201600    0040
+                                     FOR J←1 STEP 1 UNTIL N DO FA[I,J]),                        00201700    0043
+                         ARESULTS (FOR I←1 STEP 1 UNTIL N DO                                    00201800    0054
+                                     FOR J←1 STEP 1 UNTIL N DO A[I,J]),                         00201900    0057
+                         BRESULTS (FOR I←1 STEP 1 UNTIL N DO                                    00202000    0068
+                                     FOR J←1 STEP 1 UNTIL N DO B[I,J]),                         00202100    0071
+                         COEFFS (FOR NU←4 STEP 4 UNTIL N-1 DO HA[2×NU-1]),                      00202200    0082
+                         HFNRES (FOR K←1 STEP 1 UNTIL 29 DO HFN[K]),                            00202300    0094
+                         CRES(CONST), HFCNRES (TH, FOR K←1 STEP 1 UNTIL 5 DO HFCN[K]),          00202400    0104
+                         HFCENRES(TH, FOR K←1 STEP 1 UNTIL 6 DO HFCEN[K]);                      00202500    0120
+                  FORMAT VECTOR (X8,6F16.8),                                                    00202600    0131
+                                                                                        START OF SEGMENT **********    3
+                         FTITLE (/,X48,"FRESULTS,FA[I,J]"),                                     00202700    0131
+                         BTITLE (/,X48,"BRESULTS,B[I,J]"),                                      00202800    0131
+                         ATITLE (/,X48,"ARESULTS,A[I,J]"),                                      00202900    0131
+                         COEFTITLE (/,X30,"HA[8NU-1]"),                                         00203000    0131
+                         BDYVALUES (/,X42,"PRELIMINARY BOUNDARY VALUES"),                       00203100    0131
+                         CBDYVALUES (/,X43,"CORRECTED BOUNDARY VALUES"),                        00203200    0131
+                         CONTITLE (/,X50,"CONSTANT"),                                           00203300    0131
+                         TABLE (X8,I2,X6,6F16.8),                                               00203400    0131
+                         TABLEHEAD (/,X40, "THE VALUES OF H(RHO,TH) IN B"),                     00203500    0131
+                         TABLELINE (X13,"RHO",X6,"0.5",X13,"1.0",X13,"1.5",X13,                 00203600    0131
+                                    "2.0",X13,"2.5",X13,"3.0"),                                 00203700    0131
+                         TABLETH (X8,"TH");                                                     00203800    0131
+                                                                                           3 IS  102 LONG, NEXT SEG    2
+                  START:                                                                        00800100    0131
+                    READ (INPUT, /, DATA);                                                      00800200    0132
+                    WRITE (OUTPUT, <"INPUT DATA:",/,6(5F16.4,/)>, DATA);                        00800250    0135
+                                                                                           4 IS   10 LONG, NEXT SEG    2
+                  RDIM:                                                                         00800300    0138
+                    READ (INPUT, /, DIMEN) [FINISH];                                            00800400    0139
+                    WRITE (OUTPUT, <"NUMBER OF DIMENSIONS:",I3>, DIMEN);                        00800450    0143
+                                                                                           5 IS    8 LONG, NEXT SEG    2
+                    FOR I←1 STEP 1 UNTIL N DO                                                   00800500    0146
+                      FOR J←I STEP 4 UNTIL N DO                                                 00800600    0148
+                        BEGIN                                                                   00800700    0149
+                        L ← I-J; K ← I+J;                                                       00800800    0149
+                        SUM ← R[1]*K + 1.5×R[18]*K×COS(DEGREE34×L)                              00800900    0151
+                             + 0.5×R[29]*K×COS(DEGREE45×L);                                     00801000    0158
+                        FOR M←2 STEP 1 UNTIL 17 DO                                              00801100    0165
+                          SUM ← SUM + 2.0×R[M]*K×COS((M-1)×DEGREE2×L);                          00801200    0171
+                        FOR M←19 STEP 1 UNTIL 28 DO                                             00801300    0180
+                          SUM ← SUM + R[M]*K×COS((DEGREE34 + (M-18)×DEGREE1)×L);                00801400    0183
+                        FA[I,J] ← (8.0/K)×DEGREE1×SUM                                           00801500    0192
+                        END;                                                                    00801600    0195
+                    WRITE (OUTPUT[DBL]);                                                        00801700    0201
+                    WRITE (OUTPUT, FTITLE);                                                     00801800    0205
+                    WRITE (OUTPUT, VECTOR, FRESULTS);                                           00801900    0208
+                    FOR J←1 STEP 1 UNTIL N DO                                                   00802000    0211
+                      B[1,J] ← FA[1,J];                                                         00802100    0216
+                    FOR I←2 STEP 1 UNTIL N DO                                                   00802200    0223
+                      BEGIN                                                                     00802300    0224
+                      FOR J←1 STEP 1 UNTIL I-1 DO                                               00802400    0224
+                        B[I,J] ← -B[J,I]/B[J,J];                                                00802500    0228
+                      FOR J←I STEP 1 UNTIL N DO                                                 00802600    0236
+                        BEGIN                                                                   00802700    0238
+                        B[I,J] ← FA[I,J];                                                       00802800    0238
+                        FOR K←1 STEP 1 UNTIL I-1 DO                                             00802900    0243
+                          B[I,J] ← B[I,J] + B[I,K]×B[K,J]                                       00803000    0247
+                        END;                                                                    00803100    0256
+                      FOR J←1 STEP 1 UNTIL I-1 DO                                               00803200    0260
+                        B[I,J] ← B[I,J]×SQRT(B[J,J]/B[I,I])                                     00803300    0264
+                      END;                                                                      00803400    0273
+                    FOR I←1 STEP 1 UNTIL N DO                                                   00803500    0278
+                      B[I,I] ← 1.0/(SQRT(B[I,I])×I);                                            00803600    0279
+                    WRITE (OUTPUT, BTITLE);                                                     00803700    0287
+                    WRITE (OUTPUT, VECTOR, BRESULTS);                                           00803800    0290
+                    FOR I←1 STEP 1 UNTIL N DO                                                   00803900    0294
+                      FOR J←1 STEP 1 UNTIL N DO                                                 00804000    0296
+                        A[I,J] ← 0;                                                             00804100    0297
+                    A[1,1] ← B[1,1];                                                            00804200    0304
+                    FOR I←2 STEP 1 UNTIL N DO                                                   00804300    0309
+                      BEGIN                                                                     00804400    0311
+                      FOR J←1 STEP 1 UNTIL I-1 DO                                               00804500    0311
+                        BEGIN                                                                   00804600    0315
+                        A[I,J] ← 0;                                                             00804700    0315
+                        FOR K←J STEP 1 UNTIL I-1 DO                                             00804800    0318
+                          A[I,J] ← A[I,J] + B[I,K]×A[K,J]                                       00804900    0323
+                        END;                                                                    00805000    0331
+                        A[I,I] ← B[I,I]                                                         00805100    0334
+                      END;                                                                      00805200    0338
+                    WRITE (OUTPUT[DBL]);                                                        00805300    0341
+                    WRITE (OUTPUT, ATITLE);                                                     00805400    0345
+                    WRITE (OUTPUT, VECTOR, ARESULTS);                                           00805500    0348
+                                                                                                00805600    0351
+                    COMMENT NOW CONSTRUCT THE APROXIMATION TO THE SOLUTION;                     00805700    0351
+                                                                                                00805800    0351
+                    FOR J←4 STEP 4 UNTIL N-1 DO                                                 00805900    0351
+                      BEGIN                                                                     00806000    0356
+                      DSUM[J] ← 0;                                                              00806100    0356
+                      FOR M←1 STEP 1 UNTIL 17 DO                                                00806200    0357
+                        DSUM[J] ← DSUM[J] + (R[M]*2 + R[M+1]*2)×                                00806300    0359
+                                            (R[M+1]*J×SIN(M×DEGREE2×J)                          00806400    0364
+                                            - R[M]*J×SIN((M-1)×DEGREE2×J));                     00806500    0369
+                      FOR M←18 STEP 1 UNTIL 28 DO                                               00806600    0379
+                        DSUM[J] ← DSUM[J] + (R[M]*2 + R[M+1]*2×(R[M+1]*J×                       00806700    0381
+                                            SIN((DEGREE34 + (M-17)×DEGREE1)×J)                  00806800    0390
+                                            - R[M]*J×SIN((DEGREE34                              00806900    0392
+                                                          + (M-18)×DEGREE1)×J)))                00807000    0396
+                      END;                                                                      00807100    0399
+                    FOR NU←4 STEP 4 UNTIL N-1 DO                                                00807200    0406
+                      BEGIN                                                                     00807300    0410
+                      HA[2×NU-1] ← 0;                                                           00807400    0410
+                      FOR J←4 STEP 4 UNTIL NU DO                                                00807500    0413
+                        HA[2×NU-1] ← HA[2×NU-1] + A[NU,J]×DSUM[J];                              00807600    0414
+                        HA[2×NU-1] ← 4.0×HA[2×NU-1]                                             00807700    0424
+                      END;                                                                      00807800    0428
+                    WRITE (OUTPUT, COEFTITLE);                                                  00807900    0431
+                    WRITE (OUTPUT, VECTOR, COEFFS);                                             00808000    0434
+                    FOR J←4 STEP 4 UNTIL N-1 DO                                                 00808100    0437
+                      BEGIN                                                                     00808200    0441
+                      HAA[J] ← 0;                                                               00808300    0441
+                      FOR NU←J STEP 4 UNTIL N-1 DO                                              00808400    0443
+                        HAA[J] ← HAA[J] + HA[2×NU-1]×A[NU,J]                                    00808500    0448
+                      END;                                                                      00808600    0454
+                    FOR M←1 STEP 1 UNTIL 18 DO                                                  00808700    0456
+                      BEGIN                                                                     00808800    0457
+                      HFN[M] ← 0;                                                               00808900    0457
+                      FOR J←4 STEP 4 UNTIL N-1 DO                                               00809000    0458
+                        HFN[M] ← HFN[M] + HAA[J]×R[M]*J×COS((M-1)×DEGREE2×J)                    00809100    0463
+                      END;                                                                      00809200    0471
+                    FOR M←19 STEP 1 UNTIL 29 DO                                                 00809300    0477
+                      BEGIN                                                                     00809400    0478
+                      HFN[M] ← 0;                                                               00809500    0478
+                      FOR J←4 STEP 4 UNTIL N-1 DO                                               00809600    0479
+                        HFN[M] ← HFN[M] + HAA[J]×R[M]*J×                                        00809700    0484
+                                          COS((DEGREE34 + (M-18)×DEGREE1)×J)                    00809800    0490
+                      END;                                                                      00809900    0492
+                    WRITE (OUTPUT[DBL]);                                                        00810000    0499
+                    WRITE (OUTPUT, BDYVALUES);                                                  00810100    0503
+                    WRITE (OUTPUT, VECTOR, HFNRES);                                             00810200    0506
+                    AVT ← 0;                                                                    00810300    0509
+                    FOR M←1 STEP 1 UNTIL 29 DO                                                  00810400    0510
+                      AVT ← AVT + R[M]*2 - HFN[M];                                              00810500    0511
+                    CONST ← AVT/29.0;                                                           00810600    0517
+                    WRITE (OUTPUT, CONTITLE);                                                   00810700    0518
+                    WRITE (OUTPUT, VECTOR, CRES);                                               00810800    0521
+                    FOR M←1 STEP 1 UNTIL 29 DO                                                  00810900    0524
+                      HFN[M] ← CONST + HFN[M];                                                  00811000    0527
+                    WRITE (OUTPUT, CBDYVALUES);                                                 00811100    0532
+                    WRITE (OUTPUT, VECTOR, HFNRES);                                             00811200    0535
+                    FOR I←1 STEP 1 UNTIL 5 DO                                                   00811300    0538
+                      BEGIN                                                                     00811400    0540
+                      TH ← 5×(I-1);                                                             00811500    0540
+                      FOR J←1 STEP 1 UNTIL 5 DO                                                 00811600    0541
+                        BEGIN                                                                   00811700    0543
+                        HFCN[J] ← CONST;                                                        00811800    0543
+                        FOR M←4 STEP 4 UNTIL N-1 DO                                             00811900    0544
+                          HFCN[J] ← HFCN[J] + HAA[M]×(0.5×J)*M×COS((I-1)×DEGREE5×M)             00812000    0549
+                        END;                                                                    00812100    0556
+                      WRITE (OUTPUT[DBL]);                                                      00812200    0563
+                      WRITE (OUTPUT, TABLEHEAD);                                                00812300    0567
+                      WRITE (OUTPUT, TABLELINE);                                                00812400    0570
+                      WRITE (OUTPUT, TABLETH);                                                  00812500    0573
+                      WRITE (OUTPUT, TABLE, HFCNRES)                                            00812600    0576
+                      END;                                                                      00812700    0579
+                    FOR I←6 STEP 1 UNTIL 10 DO                                                  00812800    0581
+                      BEGIN                                                                     00812900    0583
+                      TH ← 5×(I-1);                                                             00813000    0583
+                      FOR J←1 STEP 1 UNTIL 6 DO                                                 00813100    0584
+                        BEGIN                                                                   00813200    0586
+                        HFCEN[J] ← CONST;                                                       00813300    0586
+                        FOR M←4 STEP 4 UNTIL N-1 DO                                             00813400    0587
+                          HFCEN[J] ← HFCEN[J] + HAA[M]×(0.5×J)*M×                               00813500    0592
+                                                COS((I-1)×DEGREE5×M)                            00813550    0598
+                        END;                                                                    00813600    0599
+                      WRITE (OUTPUT, TABLE, HFCNRES)                                            00813700    0606
+                      END;                                                                      00813800    0609
+                    GO TO RDIM;                                                                 00813900    0611
+                                                                                                00899000    0612
+                FINISH:                                                                         00899100    0612
+                END.                                                                            00899800    0613
+                                                                                           2 IS  616 LONG, NEXT SEG    1
+PRT(101) = COS INTRINSIC, SEGMENT NUMBER =    6.
+PRT(77) = EXP INTRINSIC, SEGMENT NUMBER =    7.
+PRT(76) = LN INTRINSIC, SEGMENT NUMBER =    8.
+PRT(103) = SIN INTRINSIC, SEGMENT NUMBER =    9.
+PRT(102) = SQRT INTRINSIC, SEGMENT NUMBER =   10.
+PRT(72) = OUTPUT(W) INTRINSIC, SEGMENT NUMBER =   11.
+PRT(5) = BLOCK CONTROL INTRINSIC, SEGMENT NUMBER =   12.
+PRT(70) = INPUT(W) INTRINSIC, SEGMENT NUMBER =   13.
+PRT(100) = X TO THE I INTRINSIC, SEGMENT NUMBER =   14.
+PRT(74) = GO TO SOLVER  INTRINSIC, SEGMENT NUMBER =   15.
+PRT(14) = ALGOL WRITE   INTRINSIC, SEGMENT NUMBER =   16.
+PRT(15) = ALGOL READ    INTRINSIC, SEGMENT NUMBER =   17.
+PRT(16) = ALGOL SELECT  INTRINSIC, SEGMENT NUMBER =   18.
+                                                                                           1 IS    2 LONG, NEXT SEG    0
+                                                                                          19 IS   69 LONG, NEXT SEG    0
+NUMBER OF ERRORS DETECTED =   0.  COMPILATION TIME =   14 SECONDS.
+
+PRT SIZE =  68; TOTAL SEGMENT SIZE =   807 WORDS; DISK SIZE =  37 SEGS; NO. PGM. SEGS =  19
+
+ESTIMATED CORE STORAGE REQUIRED =  6526 WORDS.
+
+ESTIMATED AUXILIARY MEMORY REQUIRED =     0 WORDS.
+
+
+
+
+ LABEL  000000000LINE   00187053?COMPILE EXAMPLE/BALGOL1 ALGOL GO                                        ALGOL  /EXAMPLE
+
+
+
+
+
+ LABEL  000000000OUTPUT 00187053?COMPILE EXAMPLE/BALGOL1 ALGOL GO                                        EXAMPLE/BALGOL1
+
+
+
+
+
+INPUT DATA:
+          0.1000          0.2000          0.3000          0.4000          0.5000
+          0.6000          0.7000          0.8000          0.9000          0.1000
+          0.1100          0.1200          0.1300          0.1400          0.1500
+          0.1600          0.1700          0.1800          0.1900          0.2000
+          0.2100          0.2200          0.2300          0.2400          0.2500
+          0.2600          0.2700          0.2800          0.2900
+NUMBER OF DIMENSIONS: 10
+
+
+
+                                                FRESULTS,FA[I,J]
+              0.46363975      0.00000000      0.00000000      0.00000000      0.02376409      0.00000000
+              0.00000000      0.00000000     -0.00715683      0.00000000      0.00000000      0.10859772
+              0.00000000      0.00000000      0.00000000      0.01179355      0.00000000      0.00000000
+              0.00000000     -0.00466756      0.00000000      0.00000000      0.04559661      0.00000000
+              0.00000000      0.00000000      0.00662809      0.00000000      0.00000000      0.00000000
+              0.00000000      0.00000000      0.00000000      0.02364557      0.00000000      0.00000000
+              0.00000000      0.00403492      0.00000000      0.00000000      0.00000000      0.00000000
+              0.00000000      0.00000000      0.01372359      0.00000000      0.00000000      0.00000000
+              0.00259449      0.00000000      0.00000000      0.00000000      0.00000000      0.00000000
+              0.00000000      0.00855046      0.00000000      0.00000000      0.00000000      0.00173528
+              0.00000000      0.00000000      0.00000000      0.00000000      0.00000000      0.00000000
+              0.00559259      0.00000000      0.00000000      0.00000000      0.00000000      0.00000000
+              0.00000000      0.00000000      0.00000000      0.00000000      0.00000000      0.00378860
+              0.00000000      0.00000000      0.00000000      0.00000000      0.00000000      0.00000000
+              0.00000000      0.00000000      0.00000000      0.00000000      0.00263495      0.00000000
+              0.00000000      0.00000000      0.00000000      0.00000000      0.00000000      0.00000000
+              0.00000000      0.00000000      0.00000000      0.00187017
+
+                                                BRESULTS,B[I,J]
+              1.46862078      0.00000000      0.00000000      0.00000000      0.02376409      0.00000000
+              0.00000000      0.00000000     -0.00715683      0.00000000      0.00000000      1.51725873
+              0.00000000      0.00000000      0.00000000      0.01179355      0.00000000      0.00000000
+              0.00000000     -0.00466756      0.00000000      0.00000000      1.56103436      0.00000000
+              0.00000000      0.00000000      0.00662809      0.00000000      0.00000000      0.00000000
+              0.00000000      0.00000000      0.00000000      1.62579256      0.00000000      0.00000000
+              0.00000000      0.00403492      0.00000000      0.00000000     -0.31208978      0.00000000
+              0.00000000      0.00000000      1.78845750      0.00000000      0.00000000      0.00000000
+              0.00296132      0.00000000      0.00000000     -0.41973584      0.00000000      0.00000000
+              0.00000000      1.95474707      0.00000000      0.00000000      0.00000000      0.00224217
+              0.00000000      0.00000000     -0.45621891      0.00000000      0.00000000      0.00000000
+              2.09968015      0.00000000      0.00000000      0.00000000      0.00000000      0.00000000
+              0.00000000     -0.47127520      0.00000000      0.00000000      0.00000000      2.24504077
+              0.00000000      0.00000000      0.24615534      0.00000000      0.00000000      0.00000000
+             -0.62017166      0.00000000      0.00000000      0.00000000      2.60217293      0.00000000
+              0.00000000      0.45290397      0.00000000      0.00000000      0.00000000     -0.84088528
+              0.00000000      0.00000000      0.00000000      3.19761985
+
+
+
+                                                ARESULTS,A[I,J]
+              1.46862078      0.00000000      0.00000000      0.00000000      0.00000000      0.00000000
+              0.00000000      0.00000000      0.00000000      0.00000000      0.00000000      1.51725873
+              0.00000000      0.00000000      0.00000000      0.00000000      0.00000000      0.00000000
+              0.00000000      0.00000000      0.00000000      0.00000000      1.56103436      0.00000000
+              0.00000000      0.00000000      0.00000000      0.00000000      0.00000000      0.00000000
+              0.00000000      0.00000000      0.00000000      1.62579256      0.00000000      0.00000000
+              0.00000000      0.00000000      0.00000000      0.00000000     -0.45834154      0.00000000
+              0.00000000      0.00000000      1.78845750      0.00000000      0.00000000      0.00000000
+              0.00000000      0.00000000      0.00000000     -0.63684787      0.00000000      0.00000000
+              0.00000000      1.95474707      0.00000000      0.00000000      0.00000000      0.00000000
+              0.00000000      0.00000000     -0.71217339      0.00000000      0.00000000      0.00000000
+              2.09968015      0.00000000      0.00000000      0.00000000      0.00000000      0.00000000
+              0.00000000     -0.76619571      0.00000000      0.00000000      0.00000000      2.24504077
+              0.00000000      0.00000000      0.64575929      0.00000000      0.00000000      0.00000000
+             -1.10915066      0.00000000      0.00000000      0.00000000      2.60217293      0.00000000
+              0.00000000      1.22268850      0.00000000      0.00000000      0.00000000     -1.64371805
+              0.00000000      0.00000000      0.00000000      3.19761985
+
+                              HA[8NU-1]
+              5.05459676      4.22746744
+
+
+
+                                          PRELIMINARY BOUNDARY VALUES
+              0.00049796      0.00791169      0.03929300      0.12059664      0.28013585      0.52195921
+              0.74267215      0.54385348     -1.08334289      0.00015377      0.00012639      0.00003562
+             -0.00014939     -0.00046394     -0.00094592     -0.00163344     -0.00256166     -0.00375919
+             -0.00496748     -0.00643700     -0.00819553     -0.01026852     -0.01267808     -0.01544181
+             -0.01857169     -0.02207304     -0.02594347     -0.03017200     -0.03473833
+
+                                                  CONSTANT
+              0.09317613
+
+                                           CORRECTED BOUNDARY VALUES
+              0.09367409      0.10108781      0.13246913      0.21377277      0.37331197      0.61513533
+              0.83584828      0.63702960     -0.99016676      0.09332990      0.09330251      0.09321175
+              0.09302673      0.09271219      0.09223020      0.09154268      0.09061446      0.08941694
+              0.08820865      0.08673912      0.08498060      0.08290760      0.08049804      0.07773432
+              0.07460443      0.07110308      0.06723265      0.06300412      0.05843780
+
+
+
+                                        THE VALUES OF H(RHO,TH) IN B
+             RHO      0.5             1.0             1.5             2.0             2.5             3.0
+        TH
+         0            0.44141586     14.56267126    268.53739949   2509.40591810  14676.43961760
+
+
+
+                                        THE VALUES OF H(RHO,TH) IN B
+             RHO      0.5             1.0             1.5             2.0             2.5             3.0
+        TH
+         5            0.41397667     12.04198740    210.11008942   1936.17081241  11276.59767970
+
+
+
+                                        THE VALUES OF H(RHO,TH) IN B
+             RHO      0.5             1.0             1.5             2.0             2.5             3.0
+        TH
+        10            0.33798098      5.55511615     61.63905157    483.02016362   2663.82243904
+
+
+
+                                        THE VALUES OF H(RHO,TH) IN B
+             RHO      0.5             1.0             1.5             2.0             2.5             3.0
+        TH
+        15            0.23022241     -2.16291315   -108.92447960  -1174.90468123  -7143.60132270
+
+
+
+                                        THE VALUES OF H(RHO,TH) IN B
+             RHO      0.5             1.0             1.5             2.0             2.5             3.0
+        TH
+        20            0.11237179     -7.96075825   -224.10072940  -2269.20240586 -13574.64010920
+        25            0.11237179     -7.96075825   -224.10072940  -2269.20240586 -13574.64010920
+        30            0.11237179     -7.96075825   -224.10072940  -2269.20240586 -13574.64010920
+        35            0.11237179     -7.96075825   -224.10072940  -2269.20240586 -13574.64010920
+        40            0.11237179     -7.96075825   -224.10072940  -2269.20240586 -13574.64010920
+        45            0.11237179     -7.96075825   -224.10072940  -2269.20240586 -13574.64010920
+
+ LABEL  000000000OUTPUT 00187053?COMPILE EXAMPLE/BALGOL1 ALGOL GO                                        EXAMPLE/BALGOL1

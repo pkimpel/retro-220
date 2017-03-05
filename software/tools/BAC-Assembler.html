@@ -70,6 +70,11 @@ DIV.heading {
     padding:            0;
     vertical-align:     top}
 
+#OptionsPanel {
+    position:           relative;
+    margin-top:         4px;
+    margin-bottom:      4px}
+
 #CRFileSelector {
     position:           absolute;
     top:                8px;
@@ -79,7 +84,7 @@ DIV.heading {
 
 #TextPanel {
     position:           absolute;
-    top:                80px;
+    top:                90px;
     left:               0;
     bottom:             200px;
     width:              640px;
@@ -109,6 +114,14 @@ DIV.heading {
     <input id=CRFileSelector type=file size=90>
 </div>
 
+<div id=OptionsPanel>
+    <input id=Pass1ListCheck type=checkbox value=1>
+    <label for=Pass1ListCheck>Pass 1 Listing</label>
+    &nbsp;&nbsp;
+    <input id=Pass2ListCheck type=checkbox value=1 CHECKED>
+    <label for=Pass2ListCheck>Pass 2 Listing</label>
+</div>
+
 <div id=TextDiv>
     <pre id=TextPanel></pre>
 </div>
@@ -124,6 +137,9 @@ window.addEventListener("load", function() {
     var bufferLength = 0;
     var bufferOffset = 0;
     var eolRex = /([^\n\r\f]*)((:?\r[\n\f]?)|\n|\f)?/g;
+
+    var pass1List = false;
+    var pass2List = true;
 
     var panel = $$("TextPanel");
     var rTrimRex = /\s*$/;
@@ -1703,16 +1719,19 @@ window.addEventListener("load", function() {
         /* Prints a line of output from Pass 1 of the assembly to the text panel */
         var text;                       // formatted line image
 
-        if (opCode === null) {
-            text = padRight(" ", 8+5+4+3, " ");
-        } else {
-            text = padLeft(seq, 8, " ") + "     " + padLeft(location, 4, "0") + "   ";
-        }
+        if (pass1List) {
+            if (opCode === null) {
+                text = padRight(" ", 8+5+4+3, " ");
+            } else {
+                text = padLeft(seq, 8, " ") + "     " + padLeft(location, 4, "0") + "   ";
+            }
 
-        text += padRight(label, 6) + padRight(opCode || " ", 4) + padRight(sign, 2, " ") + rTrim(operand);
-        printLine(text);
-        if (errorTank.length > 0) {
-            dumpErrorTank();
+            text += padRight(label, 6) + padRight(opCode || " ", 4) +
+                    padRight(sign, 2, " ") + rTrim(operand);
+            printLine(text);
+            if (errorTank.length > 0) {
+                dumpErrorTank();
+            }
         }
     }
 
@@ -1894,7 +1913,9 @@ window.addEventListener("load", function() {
 
             dumpErrorTank();
             printLine("END OF PASS 1, ERRORS = " + errorCount);
-            dumpSymbolTable();
+            if (pass1List || pass2List) {
+                dumpSymbolTable();
+            }
 
             if (errorCount == 0) {      // advance to Pass 2
                 setTimeout(initializePass2, 100);
@@ -1960,31 +1981,34 @@ window.addEventListener("load", function() {
         var w;                          // scratch variable for word field partitioning
         var wordText;                   // instruction word as text "9 9999 99 9999"
 
-        if (opCode === null) {
-            text = padRight(" ", 8+6+6+4+16+3, " ");
-        } else {
-            if (word === null) {
-                wordText = padRight(" ", 16, " ");
+        if (pass2List) {
+            if (opCode === null) {
+                text = padRight(" ", 8+6+6+4+16+3, " ");
             } else {
-                w = word;
-                addr = w % 10000;
-                w = (w-addr)/10000;
-                op = w % 100;
-                w = (w-op)/100;
-                variant = w % 10000;
-                w = (w-variant)/10000;          // should be just the sign digit left
-                wordText = padLeft(w, 3, " ") + " " + padLeft(variant, 4, "0") + " " +
-                           padLeft(op, 2, "0") + " " + padLeft(addr, 4, "0");
+                if (word === null) {
+                    wordText = padRight(" ", 16, " ");
+                } else {
+                    w = word;
+                    addr = w % 10000;
+                    w = (w-addr)/10000;
+                    op = w % 100;
+                    w = (w-op)/100;
+                    variant = w % 10000;
+                    w = (w-variant)/10000;          // should be just the sign digit left
+                    wordText = padLeft(w, 3, " ") + " " + padLeft(variant, 4, "0") + " " +
+                               padLeft(op, 2, "0") + " " + padLeft(addr, 4, "0");
+                }
+
+                text = padLeft(seq, 8, " ") + padLeft(serial || " ", 6, " ") +
+                       "      " + padLeft(location, 4, "0") + wordText + "   ";
             }
 
-            text = padLeft(seq, 8, " ") + padLeft(serial || " ", 6, " ") +
-                   "      " + padLeft(location, 4, "0") + wordText + "   ";
-        }
-
-        text += padRight(label, 6) + padRight(opCode || " ", 4) + padRight(sign, 2, " ") + rTrim(operand);
-        printLine(text);
-        if (errorTank.length > 0) {
-            dumpErrorTank();
+            text += padRight(label, 6) + padRight(opCode || " ", 4) +
+                    padRight(sign, 2, " ") + rTrim(operand);
+            printLine(text);
+            if (errorTank.length > 0) {
+                dumpErrorTank();
+            }
         }
     }
 
@@ -2210,6 +2234,7 @@ window.addEventListener("load", function() {
             }
 
             buffer = "";                // release the card buffer area
+            dumpErrorTank();
             printLine("");
             printLine("END OF PASS 2, ERRORS = " + errorCount);
             $$("TextDiv").removeChild($$("Spinner"));   // remove the spinner image
@@ -2244,6 +2269,10 @@ window.addEventListener("load", function() {
 
     $$("CRFileSelector").value = null;  // clear any prior file selection
     $$("CRFileSelector").addEventListener("change", fileSelector_onChange, false);
+    pass1List = $$("Pass1ListCheck").checked;
+    $$("Pass1ListCheck").addEventListener("click", function(ev) {pass1List = ev.target.checked});
+    pass2List = $$("Pass2ListCheck").checked;
+    $$("Pass2ListCheck").addEventListener("click", function(ev) {pass2List = ev.target.checked});
 }, false);
 </script>
 

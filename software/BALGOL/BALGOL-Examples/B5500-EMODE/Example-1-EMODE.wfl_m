@@ -1,0 +1,12 @@
+?BEGIN JOB BALGOL/EXAMPLE1;                                                       00100100
+JOBSUMMARY=UNCONDITIONAL;                                                         00100200
+PRINTDEFAULTS=(PRINTDISPOSITION=EOJ);                                             00100250
+                                                                                  00100300
+COMPILE OBJECT/BALGOL/EXAMPLE1 ALGOL GO;                                          00100400
+    ALGOL FILE CARD=SRCE/DEMO/BALGOL/EXAMPLE1 ON OPS;                             00100500
+    OPTION=(FAULT,DSED,ARRAY);                                                    00100600
+DATA INPUT                                                                        00100700
+.1, .2, .3, .4, .5, .6, .7, .8, .9, .10, .11, .12, .13, .14, .15, /               00100800
+.16,  .17, .18, .19, .20, .21, .22, .23, .24, .25, .26, .27, .28, .29, /          00100900
+10, / NUMBER OF DIMENSIONS <= 25                                                  00101000
+? END JOB                                                                         00999900
