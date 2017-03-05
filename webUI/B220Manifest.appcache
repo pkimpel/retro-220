@@ -1,6 +1,5 @@
 CACHE MANIFEST
-# retro-220 emulator 0.00a, 2016-12-29 10:30
-
+# retro-220 emulator 0.00b, 2017-03-04 17:40
 CACHE:
 ../emulator/B220Processor.js
 B220.css
@@ -45,7 +44,10 @@ B220SystemConfig.css
 B220SystemConfig.html
 B220SystemConfig.js
 B220Util.js
+resources/B220-Logo.jpg
 resources/B220-Site.jpg
+resources/Burroughs-Logo.png
+resources/Burroughs-Meatball.png
 #resources/DataFileTapeHead.png
 resources/DejaVuSans-Bold-webfont.ttf
 resources/DejaVuSans-Bold-webfont.woff
@@ -54,6 +56,8 @@ resources/DejaVuSans-webfont.woff
 resources/DejaVuSansMono-webfont.ttf
 resources/DejaVuSansMono-webfont.woff
 #resources/MagTapeReel.jpg
+resources/Organ-Switch-Down.png
+resources/Organ-Switch-Up.png
 resources/retro-220-Logo.png
 resources/retro-Logo.png
 resources/ToggleDown.png

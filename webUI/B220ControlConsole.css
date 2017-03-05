@@ -25,7 +25,7 @@
 
 #B220Logo {
     position:           absolute;
-    top:                6px;
+    top:                4px;
     right:              12px;
     height:             36px;
     line-height:        36px;
@@ -34,19 +34,20 @@
     font-weight:        bold}
 
 #IntervalTimerResetCaption {
-    top:                21px;
-    left:               calc(50% - 30px);
+    bottom:             21px;
+    left:               calc(50% - 206px);
     width:              120px;
     text-align:         right}
 #IntervalTimerResetBtn {
     position:           absolute;
-    top:                12px;
-    left:               calc(50% + 96px)}
+    box-shadow:         3px 3px 2px #999;
+    bottom:             12px;
+    left:               calc(50% - 80px)}
 
 #IntervalTimer {
     position:           absolute;
-    top:                12px;
-    left:               calc(50% + 134px);
+    bottom:             12px;
+    left:               calc(50% - 42px);
     width:              84px;
     height:             18px;
     font-size:          18px;
@@ -63,16 +64,26 @@
     background-color:   black}
 
 #PowerOffBtn {
-    left:               calc(50% + 240px);
-    top:                12px}
+    box-shadow:         3px 3px 2px #999;
+    left:               calc(50% + 64px);
+    bottom:             12px}
 #PowerOffCaption {
-    left:               calc(50% + 268px);
-    top:                21px}
+    left:               calc(50% + 92px);
+    bottom:             21px}
 
 #VersionDiv {
-    right:              12px;
-    bottom:             4px;
+    right:              150px;
+    bottom:             18px;
     color:              black}
+
+#LeftPanelBtn {
+    width:              100px;
+    left:               12px;
+    bottom:             12px}
+#RightPanelBtn {
+    width:              100px;
+    right:              12px;
+    bottom:             12px}
 
 #PanelSurface {
     height:             100%;

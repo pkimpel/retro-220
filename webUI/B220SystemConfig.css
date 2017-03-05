@@ -57,6 +57,11 @@
     vertical-align:     bottom;
     margin:             4px}
 
+#SystemMemorySize {
+    height:             1em;
+    width:              1.25em;
+    text-align:         right}
+
 #ConsoleTable,
 #CardatronTable,
 #MagTapeOptionsTable,

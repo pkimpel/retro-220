@@ -57,18 +57,8 @@ B220SystemConfig.prototype.createConfigData = function createConfigData() {
         version: this.configVersion,
         memorySize: 5000,               // 11-digit words
 
-        SupervisoryPanel: {
-            pulseSourceSwitch: 0,
-            wordContSwitch: 0,
-            frequencyKnob: 0,
-            audibleAlarmSwitch: 0,
-            lockNormalSwitch: 0,
-            stepContinuousSwitch: 0},
-
         ControlConsole: {
-            hasFlexowriter: true,
-            hasPaperTapeReader: true,
-            hasPaperTapePunch: true,
+            hasSPO: true,
             poSuppressSwitch: 0,
             skipSwitch: 0,
             audibleAlarmSwitch: 0,
@@ -320,9 +310,10 @@ B220SystemConfig.prototype.loadConfigDialog = function loadConfigDialog() {
     var unit;                           // unit configuration object
     var x;                              // unit index
 
-    this.$$("ConsoleFlex").checked = cd.ControlConsole.hasFlexowriter;
-    this.$$("ConsoleTapeReader").checked = cd.ControlConsole.hasPaperTapeReader;
-    this.$$("ConsoleTapePunch").checked = cd.ControlConsole.hasPaperTapePunch;
+    this.$$("SystemMemorySize").value = Math.floor(cd.memorySize/1000).toString();
+
+    // Console units
+    this.$$("SPO").checked = cd.ControlConsole.hasSPO;
 
     // Cardatron units
     for (x=1; x<=7; ++x) {
@@ -376,9 +367,31 @@ B220SystemConfig.prototype.saveConfigDialog = function saveConfigDialog() {
     var unit;                           // unit configuration object
     var x;                              // unit index
 
-    cd.ControlConsole.hasFlexowriter = this.$$("ConsoleFlex").checked;
-    cd.ControlConsole.hasPaperTapeReader = this.$$("ConsoleTapeReader").checked;
-    cd.ControlConsole.hasPaperTapePunch = this.$$("ConsoleTapePunch").checked;
+    function getNumber(id, caption, min, max) {
+        var n;
+        var text = this.$$(id).value;
+
+        n = parseInt(text, 10);
+        if (isNaN(n)) {
+            alert(caption + " must be numeric");
+        } else if (n < min || n > max) {
+            alert(caption + " must be in the range (" + min + ", " + max + ")");
+            n = Number.NaN;
+        }
+
+        return n;
+    }
+
+    x = getNumber.call(this, "SystemMemorySize", "Memory Size", 1, 10);
+    if (isNaN(x)) {
+        return;
+    } else {
+        cd.memorySize = x*1000;
+    }
+
+    // Console units
+
+    cd.ControlConsole.hasSPO = this.$$("SPO").checked;
 
     // Cardatron units
 

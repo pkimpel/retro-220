@@ -15,20 +15,17 @@
 /**************************************/
 function B220ControlConsole(p, systemShutdown) {
     /* Constructor for the ControlConsole object */
-    var h = 568;
+    var h = 600;
     var w = 1064;
     var mnemonic = "ControlConsole";
 
     this.config = p.config;             // System Configuration object
     this.intervalToken = 0;             // setInterval() token for panel refresh
-    this.timerBase = performance.now(); // starting value of Interval Timer
-    this.timerValue = 0;                // current value of Interval Timer
     this.p = p;                         // B220Processor object
     this.systemShutdown = systemShutdown; // system shut-down callback
 
     this.boundLamp_Click = B220Util.bindMethod(this, B220ControlConsole.prototype.lamp_Click);
     this.boundPowerBtn_Click = B220Util.bindMethod(this, B220ControlConsole.prototype.powerBtn_Click);
-    this.boundClear_Click = B220Util.bindMethod(this, B220ControlConsole.prototype.clear_Click);
     this.boundFlipSwitch = B220Util.bindMethod(this, B220ControlConsole.prototype.flipSwitch);
     this.boundStartBtn_Click = B220Util.bindMethod(this, B220ControlConsole.prototype.startBtn_Click);
     this.boundResetTimer = B220Util.bindMethod(this, B220ControlConsole.prototype.resetTimer);
@@ -60,7 +57,6 @@ B220ControlConsole.prototype.powerOnSystem = function powerOnSystem() {
 
     if (!this.p.poweredOn) {
         this.p.powerUp();
-        //this.powerLamp.set(1);
         this.window.focus();
         if (!this.intervalToken) {
             this.intervalToken = this.window.setInterval(this.boundUpdatePanel, B220ControlConsole.displayRefreshPeriod);
@@ -74,7 +70,6 @@ B220ControlConsole.prototype.powerOffSystem = function powerOffSystem() {
 
     if (this.p.poweredOn) {
         this.systemShutdown();
-        //this.powerLamp.set(0);
         if (this.intervalToken) {       // if the display auto-update is running
             this.window.clearInterval(this.intervalToken);  // kill it
             this.intervalToken = 0;
@@ -156,50 +151,57 @@ B220ControlConsole.prototype.updatePanel = function updatePanel() {
     var p = this.p;                     // local copy of Processor object
     var stamp = performance.now();
     var text;
-    var tg = p.toggleGlow;
+    var timer = p.runTimer;
 
-    // This needs to be done only if the Processor is in RUN status.
-    this.timerValue = stamp - this.timerBase;
-    text = (this.timerValue/1000 + 10000).toFixed(1);
+    // Update the interval timer
+    while (timer < 0) {
+        timer += stamp;
+    }
+    text = (timer/1000 + 10000).toFixed(1);
     this.intervalTimer.textContent = text.substring(text.length-6);
 
-    return;     /////////////////// DEBUG ///////////////////////////////////////////////////////
+    eLevel = (p.RUT.value ? p.EXT.glow : p.EXT.value);
 
-    eLevel = (p.stopIdle ? p.togTiming : tg.glowTiming);
+    // Primary Registers
+    p.A.updateGlow();
+    this.regA.updateGlow(p.A.glow);
+    p.B.updateGlow();
+    this.regB.updateGlow(p.B.glow);
+    p.C.updateGlow();
+    this.regC.updateGlow(p.C.glow);
+    p.D.updateGlow();
+    this.regD.updateGlow(p.D.glow);
+    p.E.updateGlow();
+    this.regE.updateGlow(p.E.glow);
+    p.P.updateGlow();
+    this.regP.updateGlow(p.P.glow);
+    p.R.updateGlow();
+    this.regR.updateGlow(p.R.glow);
+    p.S.updateGlow();
+    this.regS.updateGlow(p.S.glow);
 
-    this.regA.updateGlow(tg.glowA);
-    this.regB.updateGlow(tg.glowB);
-    this.regC.updateGlow(tg.glowC);
-    this.regD.updateGlow(tg.glowD);
-    this.regR.updateGlow(tg.glowR);
-    this.control.updateGlow(tg.glowCtl);
+    // Alarm Panel
+    this.digitCheckLamp.set(p.digitCheckAlarm.updateGlow());
+    this.programCheckLamp.set(p.programCheckAlarm.updateGlow());
+    this.storageLamp.set(p.storageAlarm.updateGlow());
+    this.magneticTapeLamp.set(p.magneticTapeAlarm.updateGlow());
+    this.cardatronLamp.set(p.paperTapeAlarm.updateGlow());
+    this.paperTapeLamp.set(p.cardatronAlarm.updateGlow());
+    this.highSpeedPrinterLamp.set(p.highSpeedPrinterAlarm.updateGlow());
+    this.systemNotReadyLamp.set(p.systemNotReady.updateGlow());
+    this.computerNotReadyLamp.set(p.computerNotReady.updateGlow());
 
-    this.regAdder.updateGlow(tg.glowADDER);
-    this.regCarry.updateGlow(tg.glowCT);
+    // Operation Panel
+    this.runLamp.set(p.RUT.updateGlow());
+    this.fetchLamp.set(1-eLevel);
+    this.executeLamp.set(eLevel);
 
-    this.cardatronTWA.set(tg.glowTWA);
-    this.cardatron3IO.set(tg.glow3IO);
-
-    this.overflowLamp.set(p.poweredOn && tg.glowOverflow);
-    this.sectorLamp.set(p.stopSector);
-    this.fcLamp.set(p.stopForbidden);
-    this.controlLamp.set(p.stopControl);
-    this.idleLamp.set(p.poweredOn && p.stopIdle);
-
-    this.executeLamp.set(p.poweredOn && (1-eLevel));
-    this.fetchLamp.set(p.poweredOn && eLevel);
-
-    this.mainLamp.set(tg.glowMAIN);
-    this.rwmLamp.set(tg.glowRWM);
-    this.rwlLamp.set(tg.glowRWL);
-    this.wdblLamp.set(tg.glowWDBL);
-    this.actLamp.set(tg.glowACTION);
-    this.accessLamp.set(tg.glowACCESS);
-    this.lmLamp.set(tg.glowLM);
-    this.l4Lamp.set(tg.glowL4);
-    this.l5Lamp.set(tg.glowL5);
-    this.l6Lamp.set(tg.glowL6);
-    this.l7Lamp.set(tg.glowL7);
+    // Status Panel
+    this.overflowLamp.set(p.OFT.updateGlow());
+    this.repeatLamp.set(p.RPT.updateGlow());
+    this.lowLamp.set(p.compareLowLamp.updateGlow());
+    this.equalLamp.set(p.compareEqualLamp.updateGlow());
+    this.highLamp.set(p.compareHighLamp.updateGlow());
 
     /********** DEBUG **********
     this.$$("ProcDelta").value = p.procSlackAvg.toFixed(2);
@@ -225,153 +227,33 @@ B220ControlConsole.prototype.lamp_Click = function lamp_Click(ev) {
             bit = 0;
         } else if (ix > 0) {
             reg = id.substring(0, ix);
-            bit = parseInt(id.substring(ix+1));
-            if (isNaN(bit)) {
-                bit = 0;
-            }
+            bit = parseInt(id.substring(ix+1), 10) || 0;
         }
 
         switch (reg) {
         case "A":
-            p.A = p.bitFlip(p.A, bit);
-            this.regA.update(p.A);
+            p.A.flipBit(bit);
             break;
         case "B":
-            p.B = p.bitFlip(p.B, bit);
-            this.regB.update(p.B);
+            p.B.flipBit(bit);
             break;
         case "C":
-            p.C = p.bitFlip(p.C, bit);
-            this.regC.update(p.C);
+            p.C.flipBit(bit);
             break;
         case "D":
-            p.D = p.bitFlip(p.D, bit);
-            this.regD.update(p.D);
+            p.D.flipBit(bit);
+            break;
+        case "E":
+            p.E.flipBit(bit);
+            break;
+        case "P":
+            p.P.flipBit(bit);
             break;
         case "R":
-            p.R = p.bitFlip(p.R, bit);
-            this.regR.update(p.R);
+            p.R.flipBit(bit);
             break;
-        case "ADD":
-            p.ADDER = p.bitFlip(p.ADDER, bit);
-            this.regAdder.update(p.ADDER);
-            break;
-        case "CT":
-            p.CT = p.bitFlip(p.CT, bit);
-            this.regCarry.update(p.CT);
-            break;
-        case "TWA":
-            p.togTWA ^= 1;
-            this.cardatronTWA.set(p.togTWA);
-            break;
-        case "3IO":
-            p.tog3IO ^= 1;
-            this.cardatron3IO.set(p.tog3IO);
-            break;
-        case "CTL":
-            switch (bit) {
-            case 0:
-            case 1:
-            case 2:
-            case 3:
-            case 4:
-                p.SHIFT = p.bitFlip(p.SHIFT, bit);
-                break;
-            case 5:
-                p.togMT1BV5 ^= 1;
-                break;
-            case 6:
-                p.togMT1BV4 ^= 1;
-                break;
-            case 7:
-                p.togMT3P ^= 1;
-                break;
-            case 8:
-            case 9:
-            case 10:
-            case 11:
-                p.SHIFTCONTROL = p.bitFlip(p.SHIFTCONTROL, bit-8);
-                break;
-            case 12:
-                p.togASYNC ^= 1;
-                break;
-            case 13:
-                p.togZCT ^= 1;
-                break;
-            case 14:
-                p.togBKPT ^= 1;
-                break;
-            case 15:
-                p.togT0 ^= 1;
-                break;
-            case 16:
-                p.togDELAY ^= 1;
-                break;
-            case 17:
-                p.togPO2 ^= 1;
-                break;
-            case 18:
-                p.togPO1 ^= 1;
-                break;
-            case 19:
-                p.togOK ^= 1;
-                break;
-            case 20:
-                p.togTC2 ^= 1;
-                break;
-            case 21:
-                p.togTC1 ^= 1;
-                break;
-            case 22:
-                p.togTF ^= 1;
-                break;
-            case 23:
-                p.togSTART ^= 1;
-                break;
-            case 24:
-                p.togSTEP ^= 1;
-                break;
-            case 25:
-                p.togDIVALARM ^= 1;
-                break;
-            case 26:
-                p.togCOUNT ^= 1;
-                break;
-            case 27:
-                p.togSIGN ^= 1;
-                break;
-            case 28:
-                p.togMULDIV ^= 1;
-                break;
-            case 29:
-                p.togCLEAR ^= 1;
-                break;
-            case 30:
-                p.togPLUSAB ^= 1;
-                break;
-            case 31:
-                p.togCOMPL ^= 1;
-                break;
-            case 32:
-                p.togDELTABDIV ^= 1;
-                break;
-            case 33:
-                p.togDPCTR ^= 1;
-                break;
-            case 34:
-                p.togADDER ^= 1;
-                break;
-            case 35:
-                p.togBTOAIN ^= 1;
-                break;
-            case 36:
-            case 37:
-            case 38:
-            case 39:
-                p.SPECIAL = p.bitFlip(p.SPECIAL, bit-36);
-                break;
-            } // switch bit
-
+        case "S":
+            p.S.flipBit(bit);
             break;
         } // switch reg
     }
@@ -382,62 +264,10 @@ B220ControlConsole.prototype.lamp_Click = function lamp_Click(ev) {
 };
 
 /**************************************/
-B220ControlConsole.prototype.clear_Click = function Clear_Click(ev) {
-    /* Event handler for the various clear/reset buttons on the panel */
-
-    if (this.p.poweredOn) {
-        switch (ev.target.id) {
-        case "ClearBtn":
-            this.p.clear();
-            break;
-        case "ClearARegBtn":
-            this.p.A = 0;
-            break;
-        case "ClearBRegBtn":
-            this.p.B = 0;
-            break;
-        case "ClearCRegBtn":
-            this.p.C = 0;
-            break;
-        case "ClearDRegBtn":
-            this.p.D = 0;
-            break;
-        case "ClearRRegBtn":
-            this.p.R = 0;
-            break;
-        case "ClearControlBtn":
-            this.p.clearControl();
-            break;
-        case "ResetOverflowBtn":
-            this.p.setOverflow(0);
-            break;
-        case "ResetSectorBtn":
-            this.p.stopSector = 0;
-            break;
-        case "ResetControlBtn":
-            this.p.stopControl = 0;
-            break;
-        case "ExecuteBtn":
-            this.p.setTimingToggle(0);
-            break;
-        case "FetchBtn":
-            this.p.setTimingToggle(1 - this.p.sswLockNormal);
-            break;
-        }
-        this.updatePanel();
-    }
-    ev.preventDefault();
-    return false;
-};
-
-/**************************************/
 B220ControlConsole.prototype.powerBtn_Click = function powerBtn_Click(ev) {
     /* Handler for the START button: begins execution for the current cycle */
 
     switch(ev.target.id) {
-    case "PowerOnBtn":
-        this.powerOnSystem();
-        break;
     case "PowerOffBtn":
         this.powerOffSystem();
         break;
@@ -448,58 +278,175 @@ B220ControlConsole.prototype.powerBtn_Click = function powerBtn_Click(ev) {
 };
 
 /**************************************/
-B220ControlConsole.prototype.startBtn_Click = function startBtn_Click(ev) {
-    /* Handler for the START button: begins execution for the current cycle */
-
-    this.p.start();
-    this.timerBase = performance.now() - this.timerValue;
-    this.updatePanel();
-    ev.preventDefault();
-    return false;
-};
-
-/**************************************/
 B220ControlConsole.prototype.resetTimer = function resetTimer(ev) {
     /* Resets the Interval Timer display to 0000.0 */
 
-    this.timerBase = performance.now();
-    this.timerValue = 0;
+    this.p.resetRunTimer();
 };
 
 /**************************************/
 B220ControlConsole.prototype.flipSwitch = function flipSwitch(ev) {
     /* Handler for switch & knob clicks */
+    var p = this.p;                     // local copy of processor object
 
-    switch (ev.target.id) {
-    case "AudibleAlarmSwitch":
-        this.audibleAlarmSwitch.flip();
-        this.config.putNode("ControlConsole.audibleAlarmSwitch",
-                this.p.sswAudibleAlarm = this.audibleAlarmSwitch.state);
-        break;
-    case "LockNormalSwitch":
-        this.lockNormalSwitch.flip();
-        this.config.putNode("ControlConsole.lockNormalSwitch",
-                this.p.sswLockNormal = this.lockNormalSwitch.state);
-        break;
-    case "StepContinuousSwitch":
-        this.stepContinuousSwitch.flip();
-        this.config.putNode("ControlConsole.stepContinuousSwitch",
-                this.p.sswStepContinuous = this.stepContinuousSwitch.state);
-        break;
-    case "PulseSourceSwitch":           // non-functional, just turn it back off
-        this.pulseSourceSwitch.flip();
-        this.config.putNode("ControlConsole.pulseSourceSwitch", 0);
-        setCallback(null, this.pulseSourceSwitch, 250, this.pulseSourceSwitch.set, 0);
-        break;
-    case "WordContSwitch":              // non-functional, just turn it back off
-        this.wordContSwitch.flip();
-        this.config.putNode("ControlConsole.wordContSwitch", 0);
-        setCallback(null, this.wordContSwitch, 250, this.wordContSwitch.set, 0);
-        break;
-    case "FrequencyKnob":               // non-function knob -- just step it
-        this.frequencyKnob.step();
-        this.config.putNode("ControlConsole.frequencyKnob", this.frequencyKnob.position);
-        break;
+    if (p.poweredOn) {
+        switch (ev.target.id) {
+        case "StopSwitch":
+            this.stopSwitch.flip();
+            p.setStop();
+            break;
+        case "StartSwitch":
+            this.startSwitch.flip();
+            p.start();
+            break;
+        case "StepSwitch":
+            this.stepSwitch.flip();
+            p.step();
+            break;
+        case "ClearSwitch":
+            this.clearSwitch.flip();
+            p.stop();
+            p.clear();
+            break;
+
+        case "ControlSwitch1":
+            this.controlSwitch1.flip();
+            this.config.putNode("ControlConsole.controlSwitch1", this.controlSwitch1.state);
+            p.PC1SW = this.controlSwitch1.state;
+            break;
+        case "ControlSwitch2":
+            this.controlSwitch2.flip();
+            this.config.putNode("ControlConsole.controlSwitch2", this.controlSwitch2.state);
+            p.PC2SW = this.controlSwitch2.state;
+            break;
+        case "ControlSwitch3":
+            this.controlSwitch3.flip();
+            this.config.putNode("ControlConsole.controlSwitch3", this.controlSwitch3.state);
+            p.PC3SW = this.controlSwitch3.state;
+            break;
+        case "ControlSwitch4":
+            this.controlSwitch4.flip();
+            this.config.putNode("ControlConsole.controlSwitch4", this.controlSwitch4.state);
+            p.PC4SW = this.controlSwitch4.state;
+            break;
+        case "ControlSwitch5":
+            this.controlSwitch5.flip();
+            this.config.putNode("ControlConsole.controlSwitch5", this.controlSwitch5.state);
+            p.PC5SW = this.controlSwitch5.state;
+            break;
+        case "ControlSwitch6":
+            this.controlSwitch6.flip();
+            this.config.putNode("ControlConsole.controlSwitch6", this.controlSwitch6.state);
+            p.PC6SW = this.controlSwitch6.state;
+            break;
+        case "ControlSwitch7":
+            this.controlSwitch7.flip();
+            this.config.putNode("ControlConsole.controlSwitch7", this.controlSwitch7.state);
+            p.PC7SW = this.controlSwitch7.state;
+            break;
+        case "ControlSwitch8":
+            this.controlSwitch8.flip();
+            this.config.putNode("ControlConsole.controlSwitch8", this.controlSwitch8.state);
+            p.PC8SW = this.controlSwitch8.state;
+            break;
+        case "ControlSwitch9":
+            this.controlSwitch9.flip();
+            this.config.putNode("ControlConsole.controlSwitch9", this.controlSwitch9.state);
+            p.PC9SW = this.controlSwitch9.state;
+            break;
+        case "ControlSwitch10":
+            this.controlSwitch10.flip();
+            this.config.putNode("ControlConsole.controlSwitch10", this.controlSwitch10.state);
+            p.PC0SW = this.controlSwitch10.state;
+            break;
+
+        case "KeyboardSwitch":
+            this.keyboardSwitch.flip();
+            //??                                    << Action TBD >>
+            break;
+        case "SOnSwitch":
+            this.sOnSwitch.flip();
+            this.config.putNode("ControlConsole.sOnSwitch", this.sOnSwitch.state);
+            p.SONSW = this.sOnSwitch.state;
+            break;
+        case "UnitsSwitch":
+            this.unitsSwitch.flip();
+            this.config.putNode("ControlConsole.unitsSwitch", this.unitsSwitch.state);
+            p.SUNITSSW = this.unitsSwitch.state;
+            break;
+        case "SToPSwitch":
+            this.sToPSwitch.flip();
+            this.config.putNode("ControlConsole.sToPSwitch", this.sToPSwitch.state);
+            p.STOPSW = this.sToPSwitch.state;
+            break;
+        case "SToCSwitch":
+            this.sToCSwitch.flip();
+            this.config.putNode("ControlConsole.sToCSwitch", this.sToCSwitch.state);
+            p.STOCSW = this.sToCSwitch.state;
+            break;
+        case "ResetTransferSwitch":
+            this.resetTransferSwitch.flip();
+            p.resetTransfer();
+            break;
+        case "TCUClearSwitch":
+            this.tcuClearSwitch.flip();
+            p.tcuClear();
+            break;
+
+        case "ProgramCheckLamp":
+            p.setProgramCheck(0);
+            break;
+        case "StorageLamp":
+            p.setStorageCheck(0);
+            break;
+        case "MagneticTapeLamp":
+            p.setMagneticTapeCheck(0);
+            break;
+        case "CardatronLamp":
+            p.setCardatronCheck(0);
+            break;
+        case "PaperTapeLamp":
+            p.setPaperTapeCheck(0);
+            break;
+        case "HighSpeedPrinterLamp":
+            p.setHighSpeedPrinterCheck(0);
+            break;
+
+        case "FetchLamp":
+            p.setPhase(0);
+            break;
+        case "ExecuteLamp":
+            p.setPhase(1);
+            break;
+
+        case "OverflowLamp":
+            p.OFT.flip();
+            break;
+        case "RepeatLamp":
+            p.RPT.flip()
+            break;
+        case "LowLamp":
+            p.compareLowLamp.set(1);
+            p.compareEqualLamp.set(0);
+            p.compareHighLamp.set(0);
+            p.UET.set(1);
+            p.HIT.set(0);
+            break;
+        case "EqualLamp":
+            p.compareLowLamp.set(0);
+            p.compareEqualLamp.set(1);
+            p.compareHighLamp.set(0);
+            p.UET.set(0);
+            p.HIT.set(1);
+            break;
+        case "HighLamp":
+            p.compareLowLamp.set(0);
+            p.compareEqualLamp.set(0);
+            p.compareHighLamp.set(1);
+            p.UET.set(1);
+            p.HIT.set(1);
+            break;
+        } // switch ev.target.id
     }
 
     this.updatePanel();
@@ -511,6 +458,7 @@ B220ControlConsole.prototype.flipSwitch = function flipSwitch(ev) {
 B220ControlConsole.prototype.consoleOnLoad = function consoleOnLoad() {
     /* Initializes the Supervisory Panel window and user interface */
     var body;
+    var p = this.p;                     // local copy of processor object
     var panel;
     var prefs = this.config.getNode("ControlConsole");
     var x;
@@ -535,7 +483,7 @@ B220ControlConsole.prototype.consoleOnLoad = function consoleOnLoad() {
 
     panel = this.$$("AlarmPanel");
     this.digitCheckLamp =       new ColoredLamp(panel, null, null, "DigitCheckLamp", "redLamp lampCollar", "redLit");
-    this.programCheck =         new ColoredLamp(panel, null, null, "ProgramCheckLamp", "redLamp lampCollar", "redLit");
+    this.programCheckLamp =     new ColoredLamp(panel, null, null, "ProgramCheckLamp", "redLamp lampCollar", "redLit");
     this.storageLamp =          new ColoredLamp(panel, null, null, "StorageLamp", "redLamp lampCollar", "redLit");
     this.magneticTapeLamp =     new ColoredLamp(panel, null, null, "MagneticTapeLamp", "redLamp lampCollar", "redLit");
     this.cardatronLamp =        new ColoredLamp(panel, null, null, "CardatronLamp", "redLamp lampCollar", "redLit");
@@ -561,24 +509,53 @@ B220ControlConsole.prototype.consoleOnLoad = function consoleOnLoad() {
     panel = this.$$("ControlSwitchPanel");
     this.controlSwitch1 = new OrganSwitch(panel, null, null, "ControlSwitch1",
             B220ControlConsole.offOrganSwitchImage, B220ControlConsole.onOrganSwitchImage, false);
+    this.controlSwitch1.set(this.config.getNode("ControlConsole.controlSwitch1"));
+    p.PC1SW = this.controlSwitch1.state;
+
     this.controlSwitch2 = new OrganSwitch(panel, null, null, "ControlSwitch2",
             B220ControlConsole.offOrganSwitchImage, B220ControlConsole.onOrganSwitchImage, false);
+    this.controlSwitch2.set(this.config.getNode("ControlConsole.controlSwitch2"));
+    p.PC2SW = this.controlSwitch2.state;
+
     this.controlSwitch3 = new OrganSwitch(panel, null, null, "ControlSwitch3",
             B220ControlConsole.offOrganSwitchImage, B220ControlConsole.onOrganSwitchImage, false);
+    this.controlSwitch3.set(this.config.getNode("ControlConsole.controlSwitch3"));
+    p.PC3SW = this.controlSwitch3.state;
+
     this.controlSwitch4 = new OrganSwitch(panel, null, null, "ControlSwitch4",
             B220ControlConsole.offOrganSwitchImage, B220ControlConsole.onOrganSwitchImage, false);
+    this.controlSwitch4.set(this.config.getNode("ControlConsole.controlSwitch4"));
+    p.PC4SW = this.controlSwitch4.state;
+
     this.controlSwitch5 = new OrganSwitch(panel, null, null, "ControlSwitch5",
             B220ControlConsole.offOrganSwitchImage, B220ControlConsole.onOrganSwitchImage, false);
+    this.controlSwitch5.set(this.config.getNode("ControlConsole.controlSwitch5"));
+    p.PC5SW = this.controlSwitch5.state;
+
     this.controlSwitch6 = new OrganSwitch(panel, null, null, "ControlSwitch6",
             B220ControlConsole.offOrganSwitchImage, B220ControlConsole.onOrganSwitchImage, false);
+    this.controlSwitch6.set(this.config.getNode("ControlConsole.controlSwitch6"));
+    p.PC6SW = this.controlSwitch6.state;
+
     this.controlSwitch7 = new OrganSwitch(panel, null, null, "ControlSwitch7",
             B220ControlConsole.offOrganSwitchImage, B220ControlConsole.onOrganSwitchImage, false);
+    this.controlSwitch7.set(this.config.getNode("ControlConsole.controlSwitch7"));
+    p.PC7SW = this.controlSwitch7.state;
+
     this.controlSwitch8 = new OrganSwitch(panel, null, null, "ControlSwitch8",
             B220ControlConsole.offOrganSwitchImage, B220ControlConsole.onOrganSwitchImage, false);
+    this.controlSwitch8.set(this.config.getNode("ControlConsole.controlSwitch8"));
+    p.PC8SW = this.controlSwitch8.state;
+
     this.controlSwitch9 = new OrganSwitch(panel, null, null, "ControlSwitch9",
             B220ControlConsole.offOrganSwitchImage, B220ControlConsole.onOrganSwitchImage, false);
+    this.controlSwitch9.set(this.config.getNode("ControlConsole.controlSwitch9"));
+    p.PC9SW = this.controlSwitch9.state;
+
     this.controlSwitch10 = new OrganSwitch(panel, null, null, "ControlSwitch10",
             B220ControlConsole.offOrganSwitchImage, B220ControlConsole.onOrganSwitchImage, false);
+    this.controlSwitch10.set(this.config.getNode("ControlConsole.controlSwitch10"));
+    p.PC0SW = this.controlSwitch10.state;
 
     panel = this.$$("OperationSwitchPanel");
     this.stopSwitch = new OrganSwitch(panel, null, null, "StopSwitch",
@@ -592,57 +569,87 @@ B220ControlConsole.prototype.consoleOnLoad = function consoleOnLoad() {
 
     panel = this.$$("MiscellaneousSwitchPanel");
     this.keyboardSwitch = new OrganSwitch(panel, null, null, "KeyboardSwitch",
-            B220ControlConsole.offOrganSwitchImage, B220ControlConsole.onOrganSwitchImage, false);
+            B220ControlConsole.offOrganSwitchImage, B220ControlConsole.onOrganSwitchImage, true);
+
     this.sOnSwitch = new OrganSwitch(panel, null, null, "SOnSwitch",
             B220ControlConsole.offOrganSwitchImage, B220ControlConsole.onOrganSwitchImage, false);
+    this.sOnSwitch.set(this.config.getNode("ControlConsole.sOnSwitch"));
+    p.SONSW = this.sOnSwitch.state;
+
     this.unitsSwitch = new OrganSwitch(panel, null, null, "UnitsSwitch",
             B220ControlConsole.offOrganSwitchImage, B220ControlConsole.onOrganSwitchImage, false);
+    this.unitsSwitch.set(this.config.getNode("ControlConsole.unitsSwitch"));
+    p.SUNITSSW = this.unitsSwitch.state;
+
     this.sToPSwitch = new OrganSwitch(panel, null, null, "SToPSwitch",
             B220ControlConsole.offOrganSwitchImage, B220ControlConsole.onOrganSwitchImage, false);
+    this.sToPSwitch.set(this.config.getNode("ControlConsole.sToPSwitch"));
+    p.STOPSW = this.sToPSwitch.state;
+
     this.sToCSwitch = new OrganSwitch(panel, null, null, "SToCSwitch",
             B220ControlConsole.offOrganSwitchImage, B220ControlConsole.onOrganSwitchImage, false);
-    this.resetTransferSwitch = new OrganSwitch(panel, null, null, "ResetTransferSwitch",
-            B220ControlConsole.offOrganSwitchImage, B220ControlConsole.onOrganSwitchImage, false);
-    this.tcuClearSwitch = new OrganSwitch(panel, null, null, "TCUClearSwitch",
-            B220ControlConsole.offOrganSwitchImage, B220ControlConsole.onOrganSwitchImage, false);
+    this.sToCSwitch.set(this.config.getNode("ControlConsole.sToCSwitch"));
+    p.STOCSW = this.sToCSwitch.state;
 
-    /********** DEBUG **********/
-    var that = this;
-    this.controlSwitch1.addEventListener("click", function setCS1(ev) {
-        that.controlSwitch1.flip();
-    });
-    this.stopSwitch.addEventListener("click", function setStop(ev) {
-        that.stopSwitch.set(1);
-    });
-    /***************************/
+    this.resetTransferSwitch = new OrganSwitch(panel, null, null, "ResetTransferSwitch",
+            B220ControlConsole.offOrganSwitchImage, B220ControlConsole.onOrganSwitchImage, true);
+    this.tcuClearSwitch = new OrganSwitch(panel, null, null, "TCUClearSwitch",
+            B220ControlConsole.offOrganSwitchImage, B220ControlConsole.onOrganSwitchImage, true);
 
     // Events
+    this.regA.addEventListener("click", this.boundLamp_Click);
+    this.regB.addEventListener("click", this.boundLamp_Click);
+    this.regC.addEventListener("click", this.boundLamp_Click);
+    this.regD.addEventListener("click", this.boundLamp_Click);
+    this.regE.addEventListener("click", this.boundLamp_Click);
+    this.regP.addEventListener("click", this.boundLamp_Click);
+    this.regR.addEventListener("click", this.boundLamp_Click);
+    this.regS.addEventListener("click", this.boundLamp_Click);
+
+    this.programCheckLamp.addEventListener("click", this.boundFlipSwitch);
+    this.storageLamp.addEventListener("click", this.boundFlipSwitch);
+    this.magneticTapeLamp.addEventListener("click", this.boundFlipSwitch);
+    this.cardatronLamp.addEventListener("click", this.boundFlipSwitch);
+    this.paperTapeLamp.addEventListener("click", this.boundFlipSwitch);
+    this.highSpeedPrinterLamp.addEventListener("click", this.boundFlipSwitch);
+
+    this.fetchLamp.addEventListener("click", this.boundFlipSwitch);
+    this.executeLamp.addEventListener("click", this.boundFlipSwitch);
+
+    this.overflowLamp.addEventListener("click", this.boundFlipSwitch);
+    this.repeatLamp.addEventListener("click", this.boundFlipSwitch);
+    this.lowLamp.addEventListener("click", this.boundFlipSwitch);
+    this.equalLamp.addEventListener("click", this.boundFlipSwitch);
+    this.highLamp.addEventListener("click", this.boundFlipSwitch);
+
+    this.controlSwitch1.addEventListener("click", this.boundFlipSwitch);
+    this.controlSwitch2.addEventListener("click", this.boundFlipSwitch);
+    this.controlSwitch3.addEventListener("click", this.boundFlipSwitch);
+    this.controlSwitch4.addEventListener("click", this.boundFlipSwitch);
+    this.controlSwitch5.addEventListener("click", this.boundFlipSwitch);
+    this.controlSwitch6.addEventListener("click", this.boundFlipSwitch);
+    this.controlSwitch7.addEventListener("click", this.boundFlipSwitch);
+    this.controlSwitch8.addEventListener("click", this.boundFlipSwitch);
+    this.controlSwitch9.addEventListener("click", this.boundFlipSwitch);
+    this.controlSwitch10.addEventListener("click", this.boundFlipSwitch);
+
+    this.stopSwitch.addEventListener("click", this.boundFlipSwitch);
+    this.startSwitch.addEventListener("click", this.boundFlipSwitch);
+    this.stepSwitch.addEventListener("click", this.boundFlipSwitch);
+    this.clearSwitch.addEventListener("click", this.boundFlipSwitch);
+
+    this.keyboardSwitch.addEventListener("click", this.boundFlipSwitch);
+    this.sOnSwitch.addEventListener("click", this.boundFlipSwitch);
+    this.unitsSwitch.addEventListener("click", this.boundFlipSwitch);
+    this.sToPSwitch.addEventListener("click", this.boundFlipSwitch);
+    this.sToCSwitch.addEventListener("click", this.boundFlipSwitch);
+    this.resetTransferSwitch.addEventListener("click", this.boundFlipSwitch);
+    this.tcuClearSwitch.addEventListener("click", this.boundFlipSwitch);
+
     this.$$("IntervalTimerResetBtn").addEventListener("click", this.boundResetTimer);
-    /*****
-    this.$$("ResetOverflowBtn").addEventListener("click", this.boundClear_Click);
-    this.$$("ResetSectorBtn").addEventListener("click", this.boundClear_Click);
-    this.$$("ResetControlBtn").addEventListener("click", this.boundClear_Click);
-    this.$$("ExecuteBtn").addEventListener("click", this.boundClear_Click);
-    this.$$("FetchBtn").addEventListener("click", this.boundClear_Click);
-    this.$$("PowerOnBtn").addEventListener("click", this.boundPowerBtn_Click);
-    *****/
     this.$$("PowerOffBtn").addEventListener("click", this.boundPowerBtn_Click);
 
     this.window.addEventListener("beforeunload", B220ControlConsole.prototype.beforeUnload);
-
-    /*****
-    this.$$("AudibleAlarmSwitch").addEventListener("click", this.boundFlipSwitch);
-    this.$$("LockNormalSwitch").addEventListener("click", this.boundFlipSwitch);
-    this.$$("StepContinuousSwitch").addEventListener("click", this.boundFlipSwitch);
-
-    this.$$("StartBtn").addEventListener("click", this.boundStartBtn_Click);
-
-    this.$$("ARegPanel").addEventListener("click", this.boundLamp_Click);
-    this.$$("BRegPanel").addEventListener("click", this.boundLamp_Click);
-    this.$$("CRegPanel").addEventListener("click", this.boundLamp_Click);
-    this.$$("DRegPanel").addEventListener("click", this.boundLamp_Click);
-    this.$$("RRegPanel").addEventListener("click", this.boundLamp_Click);
-    *****/
 
     this.$$("EmulatorVersion").textContent = B220Processor.version;
 

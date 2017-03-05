@@ -499,6 +499,18 @@ BUTTON {
     border:             1px solid #DDD;
     border-radius:      4px}
 
+BUTTON.plainButton {
+    position:           absolute;
+    font-weight:        bold;
+    width:              auto;
+    height:             24px;
+    padding:            2px;
+    color:              #D8C5BC;
+    background-color:   #999;
+    box-shadow:         3px 3px 2px #999;
+    border:             1px solid #DDD;
+    border-radius:      4px}
+
 BUTTON.panelLabel {
     position:           absolute;
     width:              32px;
