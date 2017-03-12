@@ -1,10 +1,10 @@
-                          ASMBL 1
-                          REORD 1.00
-
-                                              THE BURROUGHS ALGEBRAIC COMPILER
-                                          ERDWINN, MERNER, CROWDER, SPERONI, KNUTH
-                                          DAHM, OLIPHINT, LOGEMANN, SCHUMAN
-                                                        FEBRUARY 1,1962
+    01 0                  ASMBL 1
+    02 0                  REORD 1.00
+    10 0
+    11 0                                      THE BURROUGHS ALGEBRAIC COMPILER
+    12 0                                  ERDWINN, MERNER, CROWDER, SPERONI, KNUTH
+    13 0                                  DAHM, OLIPHINT, LOGEMANN, SCHUMAN
+    14 0                                                FEBRUARY 1,1962
     15 0     0000   OT    DEFN  1              OUTPUT TAPE UNIT
     16 0     0000   T     DEFN  2              PROGRAM TAPE UNIT
     17 0     0000   PNTR  DEFN  2              PRINTER UNIT

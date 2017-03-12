@@ -1,5 +1,5 @@
-                          ASMBL 2
-                          REORD 100.0
+    01 0                  ASMBL 2
+    02 0                  REORD 100.0
  01 00 0     0000   BUF   DEFN  0002            TAPE OUTPUT BUFFER
  01 01 0     0000   OT    DEFN  1               OUTPUT TAPE
  01 02 0     0000   T     DEFN  2               COMPILER TAPE UNIT
@@ -15,7 +15,7 @@
 001 12 0     0000   HALT1 DEFN  208             ERROR FLAG(SIGN IS 8 IF NO ERRORS)
 001 13 0     0000   VARB  DEFN  251             LAST LOCATION USED FOR VARIABLES, ECT
  01 14 0     0000   EPSLN DEFN  258             NUMBER OF EXTERNAL PROGRAMS
- 01 15 0     0000   AVAIL DEFN  275             FREED-UP LOCATIONS
+ 01 15 0     0000   AVAIL DEFN  273             FREED-UP LOCATIONS
  01 16 0     0000   OP    DEFN  275             OPERATOR STACK
  01 17 0     0000   DUMBS DEFN  292             DUMP STACK
  01 18 0     0000   SX    DEFN  400             MAG TAPE BUFFER
@@ -126,12 +126,12 @@
  02 23 0     0078         EXT   V-
  02 24 0     0079         SLA   4
  02 25 0     0080         STA   SECT,00         GET SEGMENT NUMBER
- 02 26 0     0081         IFL   LODOX,04,I      ADVANCE EXIT LINE BY ONE
+ 02 26 0     0081         IFL   LODOX,04,1      ADVANCE EXIT LINE BY ONE
  02 27 0     0082         CLB
  02 28 0     0083   *B    MTS 4 SECT,OT         SEARCH FOR SEGMENT
  02 29 0     0084         MRD 4 100,OT,1
  02 30 0     0085         CAD   100
- 02 31 0     0086         CFA   SECT,100        DID THE MACHINE WORK
+ 02 31 0     0086         CFA   SECT,00         DID THE MACHINE WORK
  02 32 0     0087         BCE   LOADP+1         IF YES,LOAD THE SEGMENT
  02 33 0     0088         SPO   Q2+,3           IF NOT PRINT THE MESSAGE
  02 34 0     0089         F424  9669,0,9669         SEGMENT ERROR
@@ -393,7 +393,7 @@
  04 90 0     0892         BUN   *-1
  04 91 0     0893         MRW 4 T
  04 92 0     0894         CLA                   EMIT AN END OF
-004 93 0     0895         LSA   8
+004 93 0     0895         LSA   8               PROGRAM SIGNAL FOR LOADER
  04 94 0     0896         STP   FXUPX
  04 95 0     0897         BUN   FXUP
  04 96 0     0898         CAD   BUF+98
@@ -598,7 +598,7 @@
  06 95 0     1072         SRA   7
  06 96 0     1073         ADD   T+
  06 97 0     1074         SLA   4
- 06 98 0     1075         CFA   HOLD,64         IS THE FIX-UP IN THE GROUP
+ 06 98 0     1075         CFA   HOLD,64         IS THE FIX-UP IN THIS GROUP
  06 99 0     1076         BCH   F+
  07 00 0     1077         BUN   W-              NO
 
@@ -771,7 +771,7 @@
  08 68 0     1235         SLA   4               IT WAS -- SO ENTER
  08 69 0     1236         ADD   LOCN            LL XXXX YYYY
  08 70 0     1237         SLA   6               WHERE     LL= SEGMENT NUMBER
-008 71 0     1238         STA   HOLD                  XXXX= LOCATIN TO BE FIXED UP
+008 71 0     1238         STA   HOLD                  XXXX= LOCATION TO BE FIXED UP
  08 72 0     1239         LDB   AVALE                 YYYY= FIX-UP
  08 73 0     1240         STP   INSX
  08 74 0     1241         BUN   INS
@@ -790,7 +790,7 @@
  08 87 0     1254         DLB   L,64,0
  08 88 0     1255         BUN   E-
  08 89 0     1256   *T    STA   HOLD
- 08 90 0     1257         DLB   L,74,0
+ 08 90 0     1257         DLB   L,64,0
  08 91 0     1258         STP   REMX
  08 92 0     1259         BUN   REM
  08 93 0     1260         HLT
@@ -918,7 +918,7 @@
 010 15 0     1375         BFA   R+,91,6
 010 16 0     1376         BUN   B+              IGNORE ALL OTHER CHARACTERS
 010 17 0     1377   *C    IFL   SYMBL,12,20
-010 18 0     1378   *B    IBB   A-,9840
+010 18 0     1378   *B    IBB   A-,9840         DID WE FINISH THE CARD
 010 19 0     1379   *D    STP   WEMX
 010 20 0     1380         BUN   WEM
 010 21 0     1381         CNST  30628295809     MISSING FIELD ON SYMBOLIC CARD
@@ -1113,7 +1113,7 @@
 012 10 0     1550         BSA   Z+,5            SCAN AND SCEARCH(90,91 SPECIAL OPS)
 012 11 0     1551         DFL   INSTR,12,20     S=4,5    ADDRESS ABSOLUTE
 012 12 0     1552         BSA   K-,6            S=6,7    ADDRESS RELATIVE TO IDENTIFIER
-012 13 0     1553         BSA   K-,7            S-8,9    ADDRESS RELATIVE TO PROGRAM
+012 13 0     1553         BSA   K-,7            S=8,9    ADDRESS RELATIVE TO PROGRAM
 012 14 0     1554         DFL   INSTR,12,20
 012 15 0     1555         BUN   L-
 
@@ -1142,7 +1142,7 @@
 012 39 0     1575         ADA   MADIT
 012 40 0     1576         STA   INSTR,44
 012 41 0     1577         CLL   MADIT
-012 42 0     1578         STP   WRITX         OUTPUT PROCESSED INSTRUCTOIN
+012 42 0     1578         STP   WRITX         OUTPUT PROCESSED INSTRUCTION
 012 43 0     1579         BUN   WRIT2
 012 44 0     1580   *X    LDB   LBSBX           INCREMENTED EXIT
 012 45 0     1581         BUN - 1               INDICATES NO FINISH PSEUDO-OP WAS HERE
@@ -1417,7 +1417,7 @@
 015 14 0     1829   *C    CLA   MSG+1
 015 15 0     1830         LBC   TEMP
 015 16 0     1831         SLT   2               TRANSFER CHARACTERS
-015 17 0     1832         BFA   B+,00,00
+015 17 0     1832         BFA   B+,00,00        ONE AT A TIME INTO
 015 18 0     1833         SLA - 8               BUFFER AREA
 015 19 0     1834         DLB   TEMP,94,00
 015 20 0     1835         LSA   0
@@ -1747,7 +1747,7 @@
 018 44 0     2673         BUN   YES
 
 
-018 47 0     2674   NUMLB BZA   A+              CONVERT PUBLIC NUMERIC LABELS
+018 47 0     2674   NUMLB BZA   A+              CONVERT NUMERIC LABELS
 018 48 0     2675         SRT   10              TO ALFANUMERIC FORM
 018 49 0     2676         CLL   VECTR+1         WITH LEADING ZEROES
 018 50 0     2677         BFR   B+,55,0         SUPPRESSED
@@ -1920,7 +1920,7 @@
 020 17 0     2854         NOP 8 I++6                   -                -
 020 18 0     2855         LDB 8 *-1
 020 19 0     2856   ASSGZ RTF 8 NONE,4          VARIABLE IN PROGRAM           VALUE
-020 20 0     2857         CAD 8 I++6
+020 20 0     2857         CAA 8 I++6
 020 21 0     2858         ADA 8 I++7                     V                      N
 020 22 0     2859         BOF 8 *+1                      -                      -
 020 23 0     2860         BZA 8 *+2                      -                      -
@@ -2075,7 +2075,7 @@
 021 72 0     3080         BFA   *+2,04,0        IF IT IS NOT EMPTY
 021 73 0     3081         MOW 4 0,OT,1
 021 74 0     3082         CLR
-021 75 0     3083         STR   STOX,04         INITIALIZE  STORE ROUTINE
+021 75 0     3083         STR   STOX,04         INITIALIZE STORE ROUTINE
 021 76 0     3084         MOW 4 Q+,OT,3
 021 77 0     3085         LDB   IDEX
 021 78 0     3086         CAD - TBL+100
@@ -2314,7 +2314,7 @@
 024 11 0     3394         BUN   LDBG
 
 
-024 14 0     3395   LOD4  DEFN  4
+024 14 0     3395   LOD4  DEFN  *
 024 15 0     3395   *Q    MRW 4 OT+10
 024 16 0     3396         BCS   *+3-LOD4+100,9
 024 17 0     3397   *Z25  STP   *,2418
@@ -2365,7 +2365,7 @@
 024 62 0     3499   IDEX  CNST  0               LEVEL OF PROCEDURE
 024 63 0     3500   DIM   CNST  0               NUMBER OF DIMENSIONS
 024 64 0     3501   J     CNST  0               COUNTER USED IN CONNECTION WITH LBRT
-024 65 0     3502   TST   CNST  0               COUNT OF ROUTINES ASSIGNED INDIRECTLY
+024 65 0     3502   TST   CNST  0               COUNT OF ROUTINES ASSIGNED INDIREDTLY
 024 66 0     3503   ADDIT CNST  0
 024 67 0     3504   MADIT CNST  0
 024 68 0     3505   DIMS  LOCN  *+20            DIMENSION LIST

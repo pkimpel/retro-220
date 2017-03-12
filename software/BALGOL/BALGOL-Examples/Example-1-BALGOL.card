@@ -18,11 +18,11 @@
 2        BRESULTS (FOR I=(1,1,N); FOR J=(1,1,N); B(I,J)),
 2        COEFFS (FOR NU=(4,4,N-1); HA(2NU-1)),
 2        HFNRES (FOR K=(1,1,29); HFN(K)),
-2        CRES(CONST), HFCNRES (TH, FOR K=(1,1,5); HFCN(K)),
+2        CRES(CONST), HFCNRES (TH, FOR K=(1,1,5); HFCN(K)),                     *WAS HFNC*
 2        HFCENRES(TH, FOR K=(1,1,6); HFCEN(K));
 2 FORMAT VECTOR (B8,6F16.8,W0),
 2        FTITLE (B48,*FRESULTS,FA(I,J)*,W3,W2),
-2        BTITLE (B48,*BRESULTS,B(I,J)*,W3,W2),                          *ADDED*
+2        BTITLE (B48,*BRESULTS,B(I,J)*,W3,W2),                                  *ADDED*
 2        ATITLE (B48,*ARESULTS,A(I,J)*,W3,W2),
 2        COEFTITLE (B30,*HA(8NU-1)*,W2),
 2        BDYVALUES (B42,*PRELIMINARY BOUNDARY VALUES*,W3,W2),
@@ -170,4 +170,4 @@
 2     END;
 2   STOP 1234;
 2   GO TO RDIM;
-2   FINISH;
+2 FINISH;

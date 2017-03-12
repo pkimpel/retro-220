@@ -15,33 +15,31 @@ Option Explicit
 ' VBScript to extract source from the BALGOL assembly listing transcriptions.
 ' It reads an assembly transcription file and outputs a BAC-Assembler
 ' card deck.
-'   2. An assembler card deck for the second movement's source.
-'   3. A tape image containing the loadable object code for the assembler.
-'      Note that the assembler object code is placed on lane 1 of the tape
-'      starting at block 120.
 '
 ' This script should be executed in the current path of the transcription
 ' files. Output files will be written to that path as well.
 '
 ' Uses Scripting Runtime FileSystemObject.
 ' Parameters:
-'   None.
+'   1. Name of the transcription file.
+'   2. Optional started card sequence string.
+'   3. Optional /Q = quiet mode (no MsgBox at end), can be in any position.
 '-----------------------------------------------------------------------
 ' Modification Log.
 ' 2017-01-06  P.Kimpel
 '   Original version, cloned from retro-205/software/tools/
 '   Shell-Xscript-Reformatter.wsf.
+' 2017-03-05  P.Kimpel
+'   Add /Q switch and more flexible parameter ordering; correct EOF problem
+'   on last card.
 '-----------------------------------------------------------------------
-
-Const xScript1 = "BALGOL-Main.baca"
-Const xScript2 = "BALGOL-Overlay.baca"
-Const xFloat =   "BALGOL-FLOAT.baca"
 
 Dim args
 Dim deckName
 Dim fileName
 Dim fso
 Dim lastSeq
+Dim quietMode
 
 '---------------------------------------
 Function PicZn(ByVal s, ByVal chars)
@@ -125,6 +123,7 @@ Sub ExtractCode(byVal xScriptName, byVal deckName)
   Dim address
   Dim card
   Dim cardFile
+  Dim eof
   Dim label
   Dim lastAddr
   Dim line
@@ -156,7 +155,8 @@ Sub ExtractCode(byVal xScriptName, byVal deckName)
     End If
   End If
 
-  Do While Not xFile.AtEndOfStream
+  eof = xFile.AtEndOfStream
+  Do While Not eof
     lineNr = lineNr+1
     address = RTrim(Mid(line, addrCol, 4))
     label = RTrim(Mid(line, labelCol, 5))
@@ -174,7 +174,11 @@ Sub ExtractCode(byVal xScriptName, byVal deckName)
              PicXn(label, 6) & PicXn(opCode, 6) & operand
     End If
 
-    line = xFile.ReadLine
+    If xFile.AtEndOfStream Then
+      eof = True
+    Else
+      line = xFile.ReadLine
+    End If
   Loop
 
   cardFile.Close
@@ -186,35 +190,42 @@ End Sub
 '---------------------------------------------------------------
 
 Set fso = WScript.CreateObject("Scripting.FileSystemObject")
+quietMode = False
+lastSeq = "01 0"
 
 
 Set args = WScript.Arguments
-If args.Count < 1 Then
+For Each deckName In args
+If UCase(Trim(deckName)) = "/Q" Then
+  quietMode = True
+ElseIf Len(fileName) = 0 Then
+  fileName = Trim(deckName)
+Else
+  lastSeq = Trim(deckName)
+End If
+Next
+
+Set args = Nothing
+If Len(fileName) = 0 Then
   MsgBox "Must supply the name of the transcription file."
   WScript.Quit 9
 Else
-  fileName = Trim(args.Item(0))
-  If args.Count > 1 Then
-    lastSeq = Trim(args.Item(1))
+  '-- Main Line --
+  If Not fso.FileExists(fileName) Then
+    MsgBox "Transcription file does not exist: " & vbCrLf & fileName
+    WScript.Quit 8
   Else
-    lastSeq = "09 0"
+    deckName = fso.BuildPath(fso.GetParentFolderName(fileName), fso.GetBaseName(fileName)) & ".card"
+    ExtractCode fileName, deckName
+    If not quietMode Then
+      MsgBox "BAC Assembler card deck created: " & vbCrLf & deckName
+    End If
+
+    WScript.Quit 0
   End If
 End If
 
-Set args = Nothing
-
-'-- Main Line --
-If Not fso.FileExists(fileName) Then
-  MsgBox "Transcription file does not exist: " & vbCrLf & fileName
-Else
-  deckName = fso.BuildPath(fso.GetParentFolderName(fileName), fso.GetBaseName(fileName)) & ".card"
-  ExtractCode fileName, deckName
-  MsgBox "BAC Assembler card deck created: " & vbCrLf & deckName
-End If
-
 Set fso = Nothing
-
-WScript.Quit 0
 
 ]]>
 </script>

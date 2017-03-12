@@ -18,5 +18,10 @@ BAC-XScript-Reformatter.wsf
     assembly listing transcriptions and reformat them into card decks
     for use by BAC-Assembler.html
 
+BAC-DeckGen.cmd
+    Windows command-line script to generate card decks for BAC-Assembler
+    from the transcribed *.baca files for the BALGOL compiler.
+
 Paul Kimpel
-January 2017
+March 2017
+
