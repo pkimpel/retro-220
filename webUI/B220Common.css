@@ -238,19 +238,19 @@ DIV.blueLamp {
     height:             24px;
     font-size:          4px;
     border-radius:      50%;
-    background-image:   radial-gradient(circle, #039, #003)}
+    background-image:   radial-gradient(circle, #009, #003)}
 DIV.blueLit1 {
-    background-image:   radial-gradient(circle, #03A, #039, #004)}
+    background-image:   radial-gradient(circle, #11A, #006)}
 DIV.blueLit2 {
-    background-image:   radial-gradient(circle, #03B, #03A, #005)}
+    background-image:   radial-gradient(circle, #22B, #009)}
 DIV.blueLit3 {
-    background-image:   radial-gradient(circle, #04C, #04C, #006)}
+    background-image:   radial-gradient(circle, #33C, #00A)}
 DIV.blueLit4 {
-    background-image:   radial-gradient(circle, #05D, #05D, #007)}
+    background-image:   radial-gradient(circle, #55D, #00C)}
 DIV.blueLit5 {
-    background-image:   radial-gradient(circle, #06E, #06E, #008)}
+    background-image:   radial-gradient(circle, #77E, #00D)}
 DIV.blueLit {
-    background-image:   radial-gradient(circle, #07F, #07F, #009)}
+    background-image:   radial-gradient(circle, #99F, #00F)}
 
 DIV.coloredLampTopCaption {
     position:           absolute;
@@ -308,7 +308,7 @@ DIV.blackControlKnobBottomCaption {
 
 DIV.panelSurface {
     position:           absolute;
-    background-color:   #D8C5BC;        /* putty #EDEAE8; */
+    background-color:   #E4DDCD;        /* was #D8C5BC; putty #EDEAE8; */
     color:              black}
 
 DIV.panelRegister {

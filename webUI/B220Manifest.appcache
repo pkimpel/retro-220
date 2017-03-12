@@ -1,5 +1,5 @@
 CACHE MANIFEST
-# retro-220 emulator 0.00b, 2017-03-04 17:40
+# retro-220 emulator 0.00c, 2017-03-12 12:15
 CACHE:
 ../emulator/B220Processor.js
 B220.css
@@ -18,6 +18,9 @@ B220.js
 B220Common.css
 #B220ConsoleInput.css
 #B220ConsoleInput.js
+B220ConsoleKeyboard.css
+B220ConsoleKeyboard.html
+B220ConsoleKeyboard.js
 #B220ConsoleOutput.css
 #B220ConsoleOutput.js
 B220ControlConsole.css

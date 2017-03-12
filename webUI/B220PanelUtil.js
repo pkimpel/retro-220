@@ -737,11 +737,13 @@ function PanelRegister(parent, bits, rows, idPrefix, caption) {
     parent.appendChild(this.captionDiv);
 
     this.leftClearBar = document.createElement("div");
+    this.leftClearBar.id = idPrefix + "LeftClear";
     this.leftClearBar.className = PanelRegister.regClearBarClass;
     this.leftClearBar.style.left = "0";
     parent.appendChild(this.leftClearBar);
 
     this.rightClearBar = document.createElement("div");
+    this.rightClearBar.id = idPrefix + "RightClear";
     this.rightClearBar.className = PanelRegister.regClearBarClass;
     this.rightClearBar.style.right = "0";
     parent.appendChild(this.rightClearBar);

@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<title>retro-220 Console Keyboard</title>
+<!--
+/***********************************************************************
+* retro-220/webUI B220ConsoleKeyboard.html
+************************************************************************
+* Copyright (c) 2017, Paul Kimpel.
+* Licensed under the MIT License, see
+*       http://www.opensource.org/licenses/mit-license.php
+************************************************************************
+* Burroughs 220 Console Keyboard page.
+************************************************************************
+* 2017-03-08  P.Kimpel
+*   Original version, from retro-205 D205ControlConsole.html.
+***********************************************************************/
+-->
+<meta name="Author" content="Paul Kimpel">
+<meta http-equiv="Content-Script-Type" content="text/javascript">
+<meta http-equiv="Content-Style-Type" content="text/css">
+<link id=defaultStyleSheet rel=stylesheet type="text/css" href="B220Common.css">
+<link id=consoleStyleSheet rel=stylesheet type="text/css" href="B220ConsoleKeyboard.css">
+</head>
+
+<body class=panelBody>
+<div id=KeyboardCase>
+    <div id=InnerCase>
+        <button id=AddBtn  title="Also + keypress"
+                           class=keyboardBtn>ADD</button>
+        <button id=CBtn    title="Also C keypress"
+                           class=keyboardBtn>C</button>
+        <button id=EBtn    title="Also E keypress"
+                           class=keyboardBtn>E</button>
+        <button id=ExamBtn title "Also Enter keypress"
+                           class=keyboardBtn>EXAM</button>
+        <button id=EntBtn  title="No alternate keypress"
+                           class=keyboardBtn>ENT</button>
+        <button id=StepBtn title="No alternate keypress"
+                           class=keyboardBtn>STEP</button>
+
+        <button id=Btn9    class=keyboardBtn>9</button>
+        <button id=Btn8    class=keyboardBtn>8</button>
+        <button id=Btn7    class=keyboardBtn>7</button>
+        <button id=Btn6    class=keyboardBtn>6</button>
+        <button id=Btn5    class=keyboardBtn>5</button>
+        <button id=Btn4    class=keyboardBtn>4</button>
+        <button id=Btn3    class=keyboardBtn>3</button>
+        <button id=Btn2    class=keyboardBtn>2</button>
+        <button id=Btn1    class=keyboardBtn>1</button>
+        <button id=Btn0    class=keyboardBtn>0</button>
+    </div>
+
+    <div id=EnabledLamp class="redLamp"></div>
+
+</div>
+</body>
+</html>

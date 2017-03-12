@@ -1,0 +1,119 @@
+/***********************************************************************
+* retro-220/webUI B220ConsoleKeyboard.css
+************************************************************************
+* Copyright (c) 2017, Paul Kimpel.
+* Licensed under the MIT License, see
+*       http://www.opensource.org/licenses/mit-license.php
+************************************************************************
+* Burroughs 220 emulator Console Keyboard style sheet.
+************************************************************************
+* 2017-03-08  P.Kimpel
+*   Original version, from retro-205 D205ControlConsole.css
+***********************************************************************/
+
+BUTTON.keyboardBtn {
+    position:           absolute;
+    width:              40px;
+    height:             32px;
+    background-color:   black;
+    color:              white;
+    font-family:        DejaVuSansWeb, sans-serif;
+    font-size:          10pt;
+    border:             1px solid #666;
+    box-shadow:         2px 2px 1px #999}
+
+BUTTON.keyboardBtnDown {
+    background-color:   #333;
+    color:              #CCC;
+    border:             1px solid black;
+    box-shadow:         2px 2px 1px #000 inset}
+
+#KeyboardCase {
+    position:           relative;
+    height:             264px;
+    width:              240px;
+    margin:             0;
+    background-color:   #FBFBF3;
+    box-shadow:         3px 3px 2px #999}
+
+#InnerCase {
+    position:           absolute;
+    left:               16px;
+    right:              16px;
+    top:                16px;
+    bottom:             40px;
+    border:             1px solid #CCC;
+    box-shadow:         2px 2px 1px #CCC inset}
+
+#AddBtn {
+    left:               8px;
+    top:                8px}
+
+#CBtn {
+    left:               8px;
+    top:                48px}
+
+#EBtn {
+    left:               8px;
+    top:                88px}
+
+#ExamBtn {
+    left:               8px;
+    top:                128px}
+
+#EntBtn {
+    left:               8px;
+    top:                168px}
+
+#StepBtn {
+    width:              136px;
+    left:               64px;
+    top:                8px}
+
+#Btn9 {
+    left:               160px;
+    top:                48px}
+
+#Btn8 {
+    left:               112px;
+    top:                48px}
+
+#Btn7 {
+    left:               64px;
+    top:                48px}
+
+#Btn6 {
+    left:               160px;
+    top:                88px}
+
+#Btn5 {
+    left:               112px;
+    top:                88px}
+
+#Btn4 {
+    left:               64px;
+    top:                88px}
+
+#Btn3 {
+    left:               160px;
+    top:                128px}
+
+#Btn2 {
+    left:               112px;
+    top:                128px}
+
+#Btn1 {
+    left:               64px;
+    top:                128px}
+
+#Btn0 {
+    width:              136px;
+    left:               64px;
+    top:                168px}
+
+#EnabledLamp {
+    position:           absolute;
+    bottom:             8px;
+    left:               calc(50% - 14px);
+    box-shadow:         3px 3px 2px #999;
+    border:             2px solid #DDD}

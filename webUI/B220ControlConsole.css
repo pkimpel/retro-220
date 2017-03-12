@@ -162,49 +162,56 @@
     top:                12px}
 #DigitCheckLamp {
     left:               6px;
-    top:                32px}
+    top:                32px;
+    box-shadow:         3px 3px 2px #000}
 
 #ProgramCheckLampLabel {
     left:               42px;
     top:                12px}
 #ProgramCheckLamp {
     left:               44px;
-    top:                32px}
+    top:                32px;
+    box-shadow:         3px 3px 2px #000}
 
 #StorageLampLabel {
     left:               80px;
     top:                12px}
 #StorageLamp {
     left:               82px;
-    top:                32px}
+    top:                32px;
+    box-shadow:         3px 3px 2px #000}
 
 #MagneticTapeLampLabel {
     left:               118px;
     top:                12px}
 #MagneticTapeLamp {
     left:               120px;
-    top:                32px}
+    top:                32px;
+    box-shadow:         3px 3px 2px #000}
 
 #CardatronLampLabel {
     left:               156px;
     top:                12px}
 #CardatronLamp {
     left:               158px;
-    top:                32px}
+    top:                32px;
+    box-shadow:         3px 3px 2px #000}
 
 #PaperTapeLampLabel {
     left:               194px;
     top:                12px}
 #PaperTapeLamp {
     left:               196px;
-    top:                32px}
+    top:                32px;
+    box-shadow:         3px 3px 2px #000}
 
 #HighSpeedPrinterLampLabel {
     left:               232px;
     top:                12px}
 #HighSpeedPrinterLamp {
     left:               234px;
-    top:                32px}
+    top:                32px;
+    box-shadow:         3px 3px 2px #000}
 
 #Blank1LampLabel {
     left:               270px;
@@ -215,14 +222,16 @@
     top:                12px}
 #SystemNotReadyLamp {
     left:               310px;
-    top:                32px}
+    top:                32px;
+    box-shadow:         3px 3px 2px #000}
 
 #ComputerNotReadyLampLabel {
     left:               346px;
     top:                12px}
 #ComputerNotReadyLamp {
     left:               348px;
-    top:                32px}
+    top:                32px;
+    box-shadow:         3px 3px 2px #000}
 
 /***** Operation Panel *****/
 
@@ -242,21 +251,24 @@
     top:                12px}
 #RunLamp {
     left:               6px;
-    top:                32px}
+    top:                32px;
+    box-shadow:         3px 3px 2px #000}
 
 #FetchLampLabel {
     left:               42px;
     top:                12px}
 #FetchLamp {
     left:               44px;
-    top:                32px}
+    top:                32px;
+    box-shadow:         3px 3px 2px #000}
 
 #ExecuteLampLabel {
     left:               80px;
     top:                12px}
 #ExecuteLamp {
     left:               82px;
-    top:                32px}
+    top:                32px;
+    box-shadow:         3px 3px 2px #000}
 
 #Blank2LampLabel {
     left:               118px;
@@ -280,14 +292,16 @@
     top:                12px}
 #OverflowLamp {
     left:               6px;
-    top:                32px}
+    top:                32px;
+    box-shadow:         3px 3px 2px #000}
 
 #RepeatLampLabel {
     left:               42px;
     top:                12px}
 #RepeatLamp {
     left:               44px;
-    top:                32px}
+    top:                32px;
+    box-shadow:         3px 3px 2px #000}
 
 #Blank3LampLabel {
     left:               80px;
@@ -298,21 +312,24 @@
     top:                12px}
 #LowLamp {
     left:               120px;
-    top:                32px}
+    top:                32px;
+    box-shadow:         3px 3px 2px #000}
 
 #EqualLampLabel {
     left:               156px;
     top:                12px}
 #EqualLamp {
     left:               158px;
-    top:                32px}
+    top:                32px;
+    box-shadow:         3px 3px 2px #000}
 
 #HighLampLabel {
     left:               194px;
     top:                12px}
 #HighLamp {
     left:               196px;
-    top:                32px}
+    top:                32px;
+    box-shadow:         3px 3px 2px #000}
 
 #Blank4LampLabel {
     left:               232px;
@@ -593,14 +610,3 @@
     visibility:         visible;
     border-collapse:    collapse;
     border-spacing:     0}
-
-
-/***** Old Stuff *****/
-
-#PowerOnBtn {
-    left:               600px;
-    top:                330px}
-#PowerOnCaption {
-    left:               600px;
-    top:                360px;
-    width:              24px}
