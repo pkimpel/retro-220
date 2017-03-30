@@ -11,7 +11,7 @@
    .00.0     0007         CAD 8 X
    .00.0     0008         STP 6 SIN
    .00.0     0009         BUN 6 SIN
-   .00.0     0010         FDV 6 COSX
+   .00.0     0010         FDV 8 COSX
    .00.0     0011         LDB 8 TAN
    .00.0     0012         BUN - 0
    .00.0     0013   *A    LDR 8 X
@@ -23,7 +23,7 @@
    .00.0     0019   X     CNST  0
    .00.0     0020   COSX  CNST  0
    .00.0     0021   TAN1  CNST  $TAN$
-   .00.0     0022   TAN2  HLT   TAN1
+   .00.0     0022   TAN2  HLT 8 TAN1
    .00.0     0023         CNST  40000990000
    .00.0     0024         CNST  $TAN,REAL(REAL) SIN=1 COS=2 ERROR=3 $
    .00.0     0031         CNST  90000000000

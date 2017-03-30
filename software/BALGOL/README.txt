@@ -1,6 +1,6 @@
 Index of folder retro-220/software/BALGOL:
 Source, object, and assembly listings for the Burroughs Algebraic
-Compiler, an implementation of Algol-58 for the Burroughs 205, as
+Compiler, an implementation of Algol-58 for the Burroughs 220, as
 prepared for the retro-220 emulator.
 
 Unless otherwise specified, all files are in standard Windows text
@@ -51,15 +51,7 @@ BALGOL-Intrinsics/
     coded on the listings.
 
 BALGOL-Examples/
-    Sample BALGOL programs transcribed from Section 11 of the BAC-220
-    Burroughs Algebraic Compiler manual, revised edition, March 1963,
-    Burroughs document 220-21017, available at:
-    http://bitsavers.org/pdf/burroughs/electrodata/220/
-    220-21017_B220_BALGOL_Mar63.pdf.
-    A sub-folder contains copies of these programs converted to run on
-    the Burroughs B5500 (retro-b5500 emulator) and modern Unisys
-    ClearPath MCP (E-mode) systems.
+    Source code and listings for sample BALGOL programs.
 
 Paul Kimpel
 March 2017
-

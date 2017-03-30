@@ -8,7 +8,7 @@
    .00.0     0005         BZA 8 A+
    .00.0     0006         STA 6 ERROR+52
    .00.0     0007         CAD 6 ERROR+51      =1.0=
-   .00.0     0008         FDB 6 ERROR+52
+   .00.0     0008         FDV 6 ERROR+52
    .00.0     0009         FAD 6 ERROR+52
    .00.0     0010         FMU 8 +5050000000
    .00.0     0011   *A    LDB 8 COSH

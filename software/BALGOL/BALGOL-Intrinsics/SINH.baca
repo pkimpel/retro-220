@@ -22,7 +22,7 @@
    .00.0     0019         FMU 6 ERROR+49      B
    .00.0     0020         FAD 8 +5016666667
    .00.0     0021         FMU 6 ERROR+49      B
-   .00.0     0022         FMU 6 ERROR+12
+   .00.0     0022         FMU 6 ERROR+52
    .00.0     0023         FAD 6 ERROR+52
    .00.0     0024         BUN 8 B-
    .00.0     0025   *C    LDB 8 SINH
