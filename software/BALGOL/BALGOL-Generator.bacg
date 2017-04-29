@@ -220,7 +220,7 @@ SEQ  PLAC ADDR  WORD                   LABEL       OPCODE  OPERAND      ' IS A 4
  210      0155  0 4410 40 2449                     STA     TBL+1/44
  211      0156  0 4204 27 2451                     DFL     TBL+3/42,4
  212      0157  0 0000 30 0134                     BUN     COMMENT
- 213      0158  0 0000 10 2449         SETSCAN.1   CRD     TBL+1
+ 213      0158  0 0000 10 2449         SETSCAN.1   CAD     TBL+1
  214      0159  1 4410 40 1677                    -STA     IA/44
  215      0160  0 0000 30 0514                     BUN     RETURN
  216

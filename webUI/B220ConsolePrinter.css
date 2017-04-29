@@ -1,0 +1,294 @@
+/***********************************************************************
+* retro-220/webUI B220PaperTapePunch.css
+************************************************************************
+* Copyright (c) 2017, Paul Kimpel.
+* Licensed under the MIT License, see
+*       http://www.opensource.org/licenses/mit-license.php
+************************************************************************
+* Burroughs 220 Console Printer Unit.
+************************************************************************
+* 2017-03-17  P.Kimpel
+*   Original version, from retro-205 D205ConsoleOutput.css.
+***********************************************************************/
+
+#PrinterBody {
+    height:             100%;
+    min-height:         100%;
+    overflow:           hidden;
+    padding:            0}
+
+#Printer {
+    position:           absolute;
+    top:                0;
+    bottom:             0;
+    left:               0;
+    right:              0;
+    margin:             4px;
+    border-radius:      16px}
+
+#LineFeedBtn {
+    left:               16px;
+    top:                8px;
+    box-shadow:         3px 3px 2px #999}
+#LineFeedBtnCaption {
+    left:               48px;
+    top:                18px}
+
+#CarriageReturnBtn {
+    right:              16px;
+    top:                8px;
+    box-shadow:         3px 3px 2px #999}
+#CarriageReturnBtnCaption {
+    right:              48px;
+    top:                18px}
+
+#OpenPanelBtn {
+    position:           absolute;
+    top:                8px;
+    left:               calc(50% - 50px);
+    width:              100px}
+
+#ClosePanelBtn {
+    position:           absolute;
+    top:                8px;
+    left:               calc(50% - 50px);
+    width:              100px}
+
+#PrinterPlaten {
+    position:           absolute;
+    left:               16px;
+    right:              16px;
+    top:                48px;
+    bottom:             16px;
+    min-height:         64px;
+    min-width:          120px;
+    overflow-x:         hidden;
+    overflow-y:         scroll;
+    color:              black;
+    background-color:   white;
+    padding:            4px;
+    border:             1px solid gray}
+
+#Paper {
+    margin-left:        0;
+    margin-right:       0;
+    margin-top:         2000px;
+    margin-bottom:      0;
+    padding:            0}
+
+#EndOfPaper {
+    display:            block;
+    margin:             0;
+    padding:            0;
+    opacity:            0}
+#EndOfPaper.hidden {
+    display:            none}
+
+#FormatControlsDiv {
+    position:           absolute;
+    overflow:           visible;
+    display:            none;
+    left:               calc(50% - 312px);
+    top:                48px;
+    z-index:            10;
+    height:             216px;
+    width:              624px;
+    border-radius:      8px;
+    border:             2px solid black;
+    box-shadow:         3px 3px 2px #999;
+    color:              black;
+    background-color:   #E4DDCD}
+
+#RemoteKnob {
+    position:           absolute;
+    left:               36px;
+    top:                60px}
+#RemoteKnobRemoteCaption {
+    left:               36px;
+    top:                48px;
+    width:              36px;
+    text-align:         left}
+#RemoteKnobLocalCaption {
+    left:               62px;
+    top:                48px;
+    width:              38px;
+    text-align:         right}
+
+#FormatKnob {
+    position:           absolute;
+    right:              36px;
+    top:                60px}
+#FormatKnobCaption {
+    right:              36px;
+    top:                128px;
+    width:              64px}
+#FormatKnobSpaceCaption {
+    right:              88px;
+    top:                48px;
+    text-align:         right}
+#FormatKnobTabCaption {
+    right:              36px;
+    top:                48px;
+    width:              64px}
+#FormatKnobCarRetCaption {
+    right:              12px;
+    top:                48px;
+    text-align:         right}
+
+#ZeroSuppressSwitch {
+    position:           absolute;
+    left:               134px;
+    top:                80px;
+    width:              24px}
+#ZeroSuppressOn {
+    left:               122px;
+    top:                66px;
+    width:              48px}
+#ZeroSuppressOff {
+    left:               122px;
+    top:                110px;
+    width:              48px}
+
+#MapMemorySwitch {
+    position:           absolute;
+    left:               184px;
+    top:                80px;
+    width:              24px}
+#MapMemoryOn {
+    left:               172px;
+    top:                66px;
+    width:              48px}
+#MapMemoryNormal {
+    left:               172px;
+    top:                110px;
+    width:              48px}
+
+#Columns {
+    position:           absolute;
+    right:              356px;
+    top:                80px;
+    width:              16px}
+#ColumnsCaption {
+    right:              338px;
+    top:                66px;
+    width:              60px}
+
+#TabStops {
+    position:           absolute;
+    right:              124px;
+    top:                80px;
+    width:              220px}
+#TabStopsCaption {
+    right:              124px;
+    top:                66px;
+    width:              220px}
+
+#UnitSwitch0 {
+    position:           absolute;
+    left:               134px;
+    top:                160px;
+    width:              24px}
+#UnitSwitch0Caption {
+    left:               122px;
+    top:                146px;
+    width:              48px}
+
+#UnitSwitch1 {
+    position:           absolute;
+    left:               170px;
+    top:                160px;
+    width:              24px}
+#UnitSwitch1Caption {
+    left:               158px;
+    top:                146px;
+    width:              48px}
+
+#UnitSwitch2 {
+    position:           absolute;
+    left:               206px;
+    top:                160px;
+    width:              24px}
+#UnitSwitch2Caption {
+    left:               194px;
+    top:                146px;
+    width:              48px}
+
+#UnitSwitch3 {
+    position:           absolute;
+    left:               242px;
+    top:                160px;
+    width:              24px}
+#UnitSwitch3Caption {
+    left:               230px;
+    top:                146px;
+    width:              48px}
+
+#UnitSwitch4 {
+    position:           absolute;
+    left:               278px;
+    top:                160px;
+    width:              24px}
+#UnitSwitch4Caption {
+    left:               266px;
+    top:                146px;
+    width:              48px}
+
+#UnitSwitch5 {
+    position:           absolute;
+    left:               314px;
+    top:                160px;
+    width:              24px}
+#UnitSwitch5Caption {
+    left:               302px;
+    top:                146px;
+    width:              48px}
+
+#UnitSwitch6 {
+    position:           absolute;
+    left:               350px;
+    top:                160px;
+    width:              24px}
+#UnitSwitch6Caption {
+    left:               338px;
+    top:                146px;
+    width:              48px}
+
+#UnitSwitch7 {
+    position:           absolute;
+    left:               386px;
+    top:                160px;
+    width:              24px}
+#UnitSwitch7Caption {
+    left:               374px;
+    top:                146px;
+    width:              48px}
+
+#UnitSwitch8 {
+    position:           absolute;
+    left:               422px;
+    top:                160px;
+    width:              24px}
+#UnitSwitch8Caption {
+    left:               410px;
+    top:                146px;
+    width:              48px}
+
+#UnitSwitch9 {
+    position:           absolute;
+    left:               458px;
+    top:                160px;
+    width:              24px}
+#UnitSwitch9Caption {
+    left:               446px;
+    top:                146px;
+    width:              48px}
+
+#UnitSwitch10 {
+    position:           absolute;
+    left:               494px;
+    top:                160px;
+    width:              24px}
+#UnitSwitch10Caption {
+    left:               482px;
+    top:                146px;
+    width:              48px}

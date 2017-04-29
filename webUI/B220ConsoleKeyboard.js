@@ -23,7 +23,7 @@ function B220ConsoleKeyboard(p) {
     this.window = null;                 // window object, null if not displayed
     this.enabled = false;               // true if keyboard is active
 
-    this.boundKeypress = B220Processor.bindMethod(this, B220ConsoleKeyboard.prototype.keypress);
+    this.boundKeypress = B220Util.bindMethod(this, B220ConsoleKeyboard.prototype.keypress);
     this.boundButton_Click = B220Util.bindMethod(this, B220ConsoleKeyboard.prototype.button_Click);
     this.boundKeyboard_OnLoad = B220Util.bindMethod(this, B220ConsoleKeyboard.prototype.keyboardOnLoad);
     this.boundKeyboard_Unload = B220Util.bindMethod(this, B220ConsoleKeyboard.prototype.keyboardUnload);
@@ -150,14 +150,22 @@ B220ConsoleKeyboard.prototype.keypress = function keypress(ev) {
             this.animateClick(this.$$("EBtn"));
             this.p.keyboardAction(-3);
             break;
-        case 0x0D:                      // Enter key = EXAM
+        case 0x58: case 0x78:           // "X", "x"
             this.animateClick(this.$$("ExamBtn"));
             this.p.keyboardAction(-4);
             break;
+        case 0x0D:                      // Enter key = ENT
+            this.animateClick(this.$$("EntBtn"));
+            this.p.keyboardAction(-5);
+            break;
+        case 0x53: case 0x73:           // "S", "s"
+            this.animateClick(this.$$("StepBtn"));
+            this.p.keyboardAction(-6);
+            break;
         case 0:                         // Firefox reports only graphic charCodes for keypress
             if (ev.keyCode == 0x0D) {   // check keyCode instead
-                this.animateClick(this.$$("ExamBtn"));
-                this.p.keyboardAction(-4);
+                this.animateClick(this.$$("EntBtn"));
+                this.p.keyboardAction(-5);
             }
             break;
         } // switch c
@@ -175,7 +183,7 @@ B220ConsoleKeyboard.prototype.keyboardOpen = function keyboardOpen() {
 
     if (!this.window) {
         this.window = window.open("../webUI/B220ConsoleKeyboard.html", this.mnemonic,
-                "location=no,scrollbars=no,resizable,width=" + w + ",height=" + h +
+                "resizable,width=" + w + ",height=" + h +
                 ",left=" + (screen.availWidth - w) + ",top=" + (screen.availHeight - h));
         this.window.addEventListener("load", this.boundKeyboard_OnLoad, false);
     }

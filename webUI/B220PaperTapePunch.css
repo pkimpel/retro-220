@@ -1,0 +1,94 @@
+/***********************************************************************
+* retro-220/webUI B220PaperTapePunch.css
+************************************************************************
+* Copyright (c) 2017, Paul Kimpel.
+* Licensed under the MIT License, see
+*       http://www.opensource.org/licenses/mit-license.php
+************************************************************************
+* Burroughs 220 Paper Tape Punch Unit.
+************************************************************************
+* 2017-04-28  P.Kimpel
+*   Original version, from retro-205 D205ConsoleOutput.css.
+***********************************************************************/
+
+#PunchBody {
+    height:             100%;
+    min-height:         100%;
+    overflow:           hidden;
+    padding:            0}
+
+#PaperTapePunch {
+    position:           absolute;
+    top:                0;
+    bottom:             0;
+    left:               0;
+    right:              0;
+    margin:             4px;
+    border-radius:      8px}
+
+#PunchTape {
+    position:           absolute;
+    left:               8px;
+    right:              8px;
+    top:                60px;
+    bottom:             8px;
+    min-height:         32px;
+    min-width:          120px;
+    overflow-x:         hidden;
+    overflow-y:         scroll;
+    color:              black;
+    background-color:   white;
+    padding:            4px;
+    border:             1px solid gray}
+
+#Paper {
+    margin-left:        0;
+    margin-right:       0;
+    margin-top:         0;
+    margin-bottom:      0;
+    padding:            0}
+
+#EndOfPaper {
+    display:            block;
+    margin:             0;
+    padding:            0;
+    opacity:            0}
+#EndOfPaper.hidden {
+    display:            none}
+
+#RemoteSwitch {
+    position:           absolute;
+    width:              24px;
+    left:               18px;
+    top:                12px}
+#RemoteSwitchOn {
+    width:              36px;
+    left:               12px;
+    top:                6px}
+#RemoteSwitchOff {
+    width:              36px;
+    left:               12px;
+    top:                42px}
+
+#ReadyLamp {
+    position:           absolute;
+    width:              24px;
+    left:               56px;
+    top:                14px}
+#ReadyLampCaption {
+    width:              36px;
+    left:               52px;
+    top:                6px}
+
+#UnitDesignateKnob {
+    position:           absolute;
+    text-align:         center;
+    width:              64px;
+    right:              8px;
+    top:                18px;
+    color:              white;
+    background-color:   #333}
+#UnitDesignateKnobCaption {
+    width:              64px;
+    right:              8px;
+    top:                6px}

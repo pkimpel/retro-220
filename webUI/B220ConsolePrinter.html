@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<title>retro-220 Emulator Console Printer</title>
+<!--
+/***********************************************************************
+* retro-220/webUI B220ConsolePrinter.html
+************************************************************************
+* Copyright (c) 2017, Paul Kimpel.
+* Licensed under the MIT License, see
+*       http://www.opensource.org/licenses/mit-license.php
+************************************************************************
+* Burroughs 220 Console printer (teletype) window.
+************************************************************************
+* 2017-03-17  P.Kimpel
+*   Original version, from retro-205 D205Flexowriter.html.
+***********************************************************************/
+-->
+<meta name="Author" content="Paul Kimpel">
+<meta http-equiv="Content-Script-Type" content="text/javascript">
+<meta http-equiv="Content-Style-Type" content="text/css">
+<link id=defaultStyleSheet rel=stylesheet type="text/css" href="B220Common.css">
+<link id=printerStyleSheet rel=stylesheet type="text/css" href="B220ConsolePrinter.css">
+</head>
+
+<body id=PrinterBody class=deviceBody>
+
+<div id=Printer class=panelSurface>
+    <div id=LineFeedBtn class=blackButton3></div>
+    <div id=LineFeedBtnCaption class=caption>LINE FEED</div>
+
+    <button id=OpenPanelBtn class=plainButton title="Click to open the printer control panel">Open Panel</button>
+
+    <div id=CarriageReturnBtnCaption class=caption>CAR. RET.</div>
+    <div id=CarriageReturnBtn class=blackButton3></div>
+
+    <div id=PrinterPlaten>
+        <pre id=Paper class=paper title="Double-click to copy all text">&nbsp;</pre>
+        <div id=EndOfPaper>&nbsp;</div>
+    </div>
+
+    <div id=FormatControlsDiv>
+        <button id=ClosePanelBtn class=plainButton title="Click to close the printer control panel">Close Panel</button>
+
+        <div id=RemoteKnobRemoteCaption class=caption>REMOTE</div>
+        <div id=RemoteKnobLocalCaption class=caption>LOCAL</div>
+
+        <div id=ZeroSuppressOn class=caption>ZERO<br>SUPPRESS</div>
+        <div id=ZeroSuppressOff class=caption>NORMAL</div>
+
+        <div id=MapMemoryOn class=caption>MAP<br>MEMORY</div>
+        <div id=MapMemoryNormal class=caption>NORMAL</div>
+
+        <div id=FormatKnobSpaceCaption class=caption>SPACE</div>
+        <div id=FormatKnobTabCaption class=caption>TAB</div>
+        <div id=FormatKnobCarRetCaption class=caption>CAR.RET.</div>
+        <div id=FormatKnobCaption class=caption>FORMAT</div>
+
+        <div id=ColumnsCaption class=caption>COLUMNS</div>
+        <input id=Columns class=center type=text maxlength=2 value=72 title="Auto-return column, 1-80">
+
+        <div id=TabStopsCaption class=caption>TAB STOPS</div>
+        <input id=TabStops class=data type=text maxlength=80 title="comma-delimited list of 1-relative tab stops">
+
+        <div id=UnitSwitch0Caption class=caption>SPO</div>
+        <div id=UnitSwitch1Caption class=caption>1</div>
+        <div id=UnitSwitch2Caption class=caption>2</div>
+        <div id=UnitSwitch3Caption class=caption>3</div>
+        <div id=UnitSwitch4Caption class=caption>4</div>
+        <div id=UnitSwitch5Caption class=caption>5</div>
+        <div id=UnitSwitch6Caption class=caption>6</div>
+        <div id=UnitSwitch7Caption class=caption>7</div>
+        <div id=UnitSwitch8Caption class=caption>8</div>
+        <div id=UnitSwitch9Caption class=caption>9</div>
+        <div id=UnitSwitch10Caption class=caption>0</div>
+    </div>
+</div>
+
+</body>
+</html>

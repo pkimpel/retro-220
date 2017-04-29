@@ -38,19 +38,483 @@
     </div>
     <hr>
 
+    <div id=MessageArea></div>
+    <button id=CancelBtn class="redButton">CANCEL</button>
+    <button id=SaveBtn class="greenButton">SAVE</button>
+    <button id=DefaultsBtn class="redButton" title="Set configurartion to original defaults">DEFAULTS</button>
+
     <div class=heading>System Properties:</div>
 
-    <table id=ConsoleTable>
+
+    <select id=SystemMemorySize>
+        <option          value=1000>1000
+        <option          value=2000>2000
+        <option          value=3000>3000
+        <option          value=4000>4000
+        <option selected value=5000>5000
+        <option          value=6000>6000
+        <option          value=7000>7000
+        <option          value=8000>8000
+        <option          value=9000>9000
+        <option          value=10000>10000
+    </select> Word Memory Size
+
+    <div class=heading>Console Output:</div>
+
+    <table id=ConsoleOutputTable>
+    <thead>
+        <th>Position<th>Type<th>SPO<th>1<th>2<th>3<th>4<th>5<th>6<th>7<th>8<th>9<th>10<th>Format<th>Cols<th>Tabs
     <tbody>
     <tr>
+        <td class=center>0
         <td class=center>
-            <input id=SystemMemorySize type=text size=2 maxLength=2>
-        <td>&times; 1000 Word Memory
+            <select id=ConsoleOut0Type>
+                <option selected value=NONE>(not used)
+                <option          value=TTYA>Printer
+                <option          value=PTPA>Punch
+            <select>
+        <td class=center>
+            <input id=ConsoleOut0_SPO type=checkbox value=1>
+        <td class=center>
+            <input id=ConsoleOut0_1 type=checkbox value=1>
+        <td class=center>
+            <input id=ConsoleOut0_2 type=checkbox value=1>
+        <td class=center>
+            <input id=ConsoleOut0_3 type=checkbox value=1>
+        <td class=center>
+            <input id=ConsoleOut0_4 type=checkbox value=1>
+        <td class=center>
+            <input id=ConsoleOut0_5 type=checkbox value=1>
+        <td class=center>
+            <input id=ConsoleOut0_6 type=checkbox value=1>
+        <td class=center>
+            <input id=ConsoleOut0_7 type=checkbox value=1>
+        <td class=center>
+            <input id=ConsoleOut0_8 type=checkbox value=1>
+        <td class=center>
+            <input id=ConsoleOut0_9 type=checkbox value=1>
+        <td class=center>
+            <input id=ConsoleOut0_10 type=checkbox value=1>
+        <td class=center>
+            <select id=ConsoleOut0Format>
+                <option selected value=S>Space
+                <option          value=T>Tab
+                <option          value=R>Car. Ret.
+            </select>
+        <td class=center id=ConsoleOut0Columns>
+            &nbsp;
+        <td id=ConsoleOut0Tabs>
+            &nbsp;
+
     <tr>
+        <td class=center>1
         <td class=center>
-            <input id=SPO type=checkbox value=1 checked>
-        <td>
-            <label for=SPO>Supervisory Printer (SPO)
+            <select id=ConsoleOut1Type>
+                <option selected value=NONE>(not used)
+                <option          value=TTYB>Printer
+                <option          value=PTPB>Punch
+            <select>
+        <td class=center>
+            <input id=ConsoleOut1_SPO type=checkbox value=1>
+        <td class=center>
+            <input id=ConsoleOut1_1 type=checkbox value=1>
+        <td class=center>
+            <input id=ConsoleOut1_2 type=checkbox value=1>
+        <td class=center>
+            <input id=ConsoleOut1_3 type=checkbox value=1>
+        <td class=center>
+            <input id=ConsoleOut1_4 type=checkbox value=1>
+        <td class=center>
+            <input id=ConsoleOut1_5 type=checkbox value=1>
+        <td class=center>
+            <input id=ConsoleOut1_6 type=checkbox value=1>
+        <td class=center>
+            <input id=ConsoleOut1_7 type=checkbox value=1>
+        <td class=center>
+            <input id=ConsoleOut1_8 type=checkbox value=1>
+        <td class=center>
+            <input id=ConsoleOut1_9 type=checkbox value=1>
+        <td class=center>
+            <input id=ConsoleOut1_10 type=checkbox value=1>
+        <td class=center>
+            <select id=ConsoleOut1Format>
+                <option selected value=S>Space
+                <option          value=T>Tab
+                <option          value=R>Car. Ret.
+            </select>
+        <td class=center id=ConsoleOut1Columns>
+            &nbsp;
+        <td id=ConsoleOut1Tabs>
+            &nbsp;
+
+    <tr>
+        <td class=center>2
+        <td class=center>
+            <select id=ConsoleOut2Type>
+                <option selected value=NONE>(not used)
+                <option          value=TTYC>Printer
+                <option          value=PTPC>Punch
+            <select>
+        <td class=center>
+            <input id=ConsoleOut2_SPO type=checkbox value=1>
+        <td class=center>
+            <input id=ConsoleOut2_1 type=checkbox value=1>
+        <td class=center>
+            <input id=ConsoleOut2_2 type=checkbox value=1>
+        <td class=center>
+            <input id=ConsoleOut2_3 type=checkbox value=1>
+        <td class=center>
+            <input id=ConsoleOut2_4 type=checkbox value=1>
+        <td class=center>
+            <input id=ConsoleOut2_5 type=checkbox value=1>
+        <td class=center>
+            <input id=ConsoleOut2_6 type=checkbox value=1>
+        <td class=center>
+            <input id=ConsoleOut2_7 type=checkbox value=1>
+        <td class=center>
+            <input id=ConsoleOut2_8 type=checkbox value=1>
+        <td class=center>
+            <input id=ConsoleOut2_9 type=checkbox value=1>
+        <td class=center>
+            <input id=ConsoleOut2_10 type=checkbox value=1>
+        <td class=center>
+            <select id=ConsoleOut2Format>
+                <option selected value=S>Space
+                <option          value=T>Tab
+                <option          value=R>Car. Ret.
+            </select>
+        <td class=center id=ConsoleOut2Columns>
+            &nbsp;
+        <td id=ConsoleOut2Tabs>
+            &nbsp;
+
+    <tr>
+        <td class=center>3
+        <td class=center>
+            <select id=ConsoleOut3Type>
+                <option selected value=NONE>(not used)
+                <option          value=TTYD>Printer
+                <option          value=PTPD>Punch
+            <select>
+        <td class=center>
+            <input id=ConsoleOut3_SPO type=checkbox value=1>
+        <td class=center>
+            <input id=ConsoleOut3_1 type=checkbox value=1>
+        <td class=center>
+            <input id=ConsoleOut3_2 type=checkbox value=1>
+        <td class=center>
+            <input id=ConsoleOut3_3 type=checkbox value=1>
+        <td class=center>
+            <input id=ConsoleOut3_4 type=checkbox value=1>
+        <td class=center>
+            <input id=ConsoleOut3_5 type=checkbox value=1>
+        <td class=center>
+            <input id=ConsoleOut3_6 type=checkbox value=1>
+        <td class=center>
+            <input id=ConsoleOut3_7 type=checkbox value=1>
+        <td class=center>
+            <input id=ConsoleOut3_8 type=checkbox value=1>
+        <td class=center>
+            <input id=ConsoleOut3_9 type=checkbox value=1>
+        <td class=center>
+            <input id=ConsoleOut3_10 type=checkbox value=1>
+        <td class=center>
+            <select id=ConsoleOut3Format>
+                <option selected value=S>Space
+                <option          value=T>Tab
+                <option          value=R>Car. Ret.
+            </select>
+        <td class=center id=ConsoleOut3Columns>
+            &nbsp;
+        <td id=ConsoleOut3Tabs>
+            &nbsp;
+
+    <tr>
+        <td class=center>4
+        <td class=center>
+            <select id=ConsoleOut4Type>
+                <option selected value=NONE>(not used)
+                <option          value=TTYE>Printer
+                <option          value=PTPE>Punch
+            <select>
+        <td class=center>
+            <input id=ConsoleOut4_SPO type=checkbox value=1>
+        <td class=center>
+            <input id=ConsoleOut4_1 type=checkbox value=1>
+        <td class=center>
+            <input id=ConsoleOut4_2 type=checkbox value=1>
+        <td class=center>
+            <input id=ConsoleOut4_3 type=checkbox value=1>
+        <td class=center>
+            <input id=ConsoleOut4_4 type=checkbox value=1>
+        <td class=center>
+            <input id=ConsoleOut4_5 type=checkbox value=1>
+        <td class=center>
+            <input id=ConsoleOut4_6 type=checkbox value=1>
+        <td class=center>
+            <input id=ConsoleOut4_7 type=checkbox value=1>
+        <td class=center>
+            <input id=ConsoleOut4_8 type=checkbox value=1>
+        <td class=center>
+            <input id=ConsoleOut4_9 type=checkbox value=1>
+        <td class=center>
+            <input id=ConsoleOut4_10 type=checkbox value=1>
+        <td class=center>
+            <select id=ConsoleOut4Format>
+                <option selected value=S>Space
+                <option          value=T>Tab
+                <option          value=R>Car. Ret.
+            </select>
+        <td class=center id=ConsoleOut4Columns>
+            &nbsp;
+        <td id=ConsoleOut4Tabs>
+            &nbsp;
+
+    <tr>
+        <td class=center>5
+        <td class=center>
+            <select id=ConsoleOut5Type>
+                <option selected value=NONE>(not used)
+                <option          value=TTYF>Printer
+                <option          value=PTPF>Punch
+            <select>
+        <td class=center>
+            <input id=ConsoleOut5_SPO type=checkbox value=1>
+        <td class=center>
+            <input id=ConsoleOut5_1 type=checkbox value=1>
+        <td class=center>
+            <input id=ConsoleOut5_2 type=checkbox value=1>
+        <td class=center>
+            <input id=ConsoleOut5_3 type=checkbox value=1>
+        <td class=center>
+            <input id=ConsoleOut5_4 type=checkbox value=1>
+        <td class=center>
+            <input id=ConsoleOut5_5 type=checkbox value=1>
+        <td class=center>
+            <input id=ConsoleOut5_6 type=checkbox value=1>
+        <td class=center>
+            <input id=ConsoleOut5_7 type=checkbox value=1>
+        <td class=center>
+            <input id=ConsoleOut5_8 type=checkbox value=1>
+        <td class=center>
+            <input id=ConsoleOut5_9 type=checkbox value=1>
+        <td class=center>
+            <input id=ConsoleOut5_10 type=checkbox value=1>
+        <td class=center>
+            <select id=ConsoleOut5Format>
+                <option selected value=S>Space
+                <option          value=T>Tab
+                <option          value=R>Car. Ret.
+            </select>
+        <td class=center id=ConsoleOut5Columns>
+            &nbsp;
+        <td id=ConsoleOut5Tabs>
+            &nbsp;
+
+    <tr>
+        <td class=center>6
+        <td class=center>
+            <select id=ConsoleOut6Type>
+                <option selected value=NONE>(not used)
+                <option          value=TTYG>Printer
+                <option          value=PTPG>Punch
+            <select>
+        <td class=center>
+            <input id=ConsoleOut6_SPO type=checkbox value=1>
+        <td class=center>
+            <input id=ConsoleOut6_1 type=checkbox value=1>
+        <td class=center>
+            <input id=ConsoleOut6_2 type=checkbox value=1>
+        <td class=center>
+            <input id=ConsoleOut6_3 type=checkbox value=1>
+        <td class=center>
+            <input id=ConsoleOut6_4 type=checkbox value=1>
+        <td class=center>
+            <input id=ConsoleOut6_5 type=checkbox value=1>
+        <td class=center>
+            <input id=ConsoleOut6_6 type=checkbox value=1>
+        <td class=center>
+            <input id=ConsoleOut6_7 type=checkbox value=1>
+        <td class=center>
+            <input id=ConsoleOut6_8 type=checkbox value=1>
+        <td class=center>
+            <input id=ConsoleOut6_9 type=checkbox value=1>
+        <td class=center>
+            <input id=ConsoleOut6_10 type=checkbox value=1>
+        <td class=center>
+            <select id=ConsoleOut6Format>
+                <option selected value=S>Space
+                <option          value=T>Tab
+                <option          value=R>Car. Ret.
+            </select>
+        <td class=center id=ConsoleOut6Columns>
+            &nbsp;
+        <td id=ConsoleOut6Tabs>
+            &nbsp;
+
+    <tr>
+        <td class=center>7
+        <td class=center>
+            <select id=ConsoleOut7Type>
+                <option selected value=NONE>(not used)
+                <option          value=TTYH>Printer
+                <option          value=PTPH>Punch
+            <select>
+        <td class=center>
+            <input id=ConsoleOut7_SPO type=checkbox value=1>
+        <td class=center>
+            <input id=ConsoleOut7_1 type=checkbox value=1>
+        <td class=center>
+            <input id=ConsoleOut7_2 type=checkbox value=1>
+        <td class=center>
+            <input id=ConsoleOut7_3 type=checkbox value=1>
+        <td class=center>
+            <input id=ConsoleOut7_4 type=checkbox value=1>
+        <td class=center>
+            <input id=ConsoleOut7_5 type=checkbox value=1>
+        <td class=center>
+            <input id=ConsoleOut7_6 type=checkbox value=1>
+        <td class=center>
+            <input id=ConsoleOut7_7 type=checkbox value=1>
+        <td class=center>
+            <input id=ConsoleOut7_8 type=checkbox value=1>
+        <td class=center>
+            <input id=ConsoleOut7_9 type=checkbox value=1>
+        <td class=center>
+            <input id=ConsoleOut7_10 type=checkbox value=1>
+        <td class=center>
+            <select id=ConsoleOut7Format>
+                <option selected value=S>Space
+                <option          value=T>Tab
+                <option          value=R>Car. Ret.
+            </select>
+        <td class=center id=ConsoleOut7Columns>
+            &nbsp;
+        <td id=ConsoleOut7Tabs>
+            &nbsp;
+
+    <tr>
+        <td class=center>8
+        <td class=center>
+            <select id=ConsoleOut8Type>
+                <option selected value=NONE>(not used)
+                <option          value=TTYI>Printer
+                <option          value=PTPI>Punch
+            <select>
+        <td class=center>
+            <input id=ConsoleOut8_SPO type=checkbox value=1>
+        <td class=center>
+            <input id=ConsoleOut8_1 type=checkbox value=1>
+        <td class=center>
+            <input id=ConsoleOut8_2 type=checkbox value=1>
+        <td class=center>
+            <input id=ConsoleOut8_3 type=checkbox value=1>
+        <td class=center>
+            <input id=ConsoleOut8_4 type=checkbox value=1>
+        <td class=center>
+            <input id=ConsoleOut8_5 type=checkbox value=1>
+        <td class=center>
+            <input id=ConsoleOut8_6 type=checkbox value=1>
+        <td class=center>
+            <input id=ConsoleOut8_7 type=checkbox value=1>
+        <td class=center>
+            <input id=ConsoleOut8_8 type=checkbox value=1>
+        <td class=center>
+            <input id=ConsoleOut8_9 type=checkbox value=1>
+        <td class=center>
+            <input id=ConsoleOut8_10 type=checkbox value=1>
+        <td class=center>
+            <select id=ConsoleOut8Format>
+                <option selected value=S>Space
+                <option          value=T>Tab
+                <option          value=R>Car. Ret.
+            </select>
+        <td class=center id=ConsoleOut8Columns>
+            &nbsp;
+        <td id=ConsoleOut8Tabs>
+            &nbsp;
+
+    <tr>
+        <td class=center>9
+        <td class=center>
+            <select id=ConsoleOut9Type>
+                <option selected value=NONE>(not used)
+                <option          value=TTYJ>Printer
+                <option          value=PTPJ>Punch
+            <select>
+        <td class=center>
+            <input id=ConsoleOut9_SPO type=checkbox value=1>
+        <td class=center>
+            <input id=ConsoleOut9_1 type=checkbox value=1>
+        <td class=center>
+            <input id=ConsoleOut9_2 type=checkbox value=1>
+        <td class=center>
+            <input id=ConsoleOut9_3 type=checkbox value=1>
+        <td class=center>
+            <input id=ConsoleOut9_4 type=checkbox value=1>
+        <td class=center>
+            <input id=ConsoleOut9_5 type=checkbox value=1>
+        <td class=center>
+            <input id=ConsoleOut9_6 type=checkbox value=1>
+        <td class=center>
+            <input id=ConsoleOut9_7 type=checkbox value=1>
+        <td class=center>
+            <input id=ConsoleOut9_8 type=checkbox value=1>
+        <td class=center>
+            <input id=ConsoleOut9_9 type=checkbox value=1>
+        <td class=center>
+            <input id=ConsoleOut9_10 type=checkbox value=1>
+        <td class=center>
+            <select id=ConsoleOut9Format>
+                <option selected value=S>Space
+                <option          value=T>Tab
+                <option          value=R>Car. Ret.
+            </select>
+        <td class=center id=ConsoleOut9Columns>
+            &nbsp;
+        <td id=ConsoleOut9Tabs>
+            &nbsp;
+
+    <tr>
+        <td class=center>10
+        <td class=center>
+            <select id=ConsoleOut10Type>
+                <option selected value=NONE>(not used)
+                <option          value=TTYK>Printer
+                <option          value=PTPK>Punch
+            <select>
+        <td class=center>
+            <input id=ConsoleOut10_SPO type=checkbox value=1>
+        <td class=center>
+            <input id=ConsoleOut10_1 type=checkbox value=1>
+        <td class=center>
+            <input id=ConsoleOut10_2 type=checkbox value=1>
+        <td class=center>
+            <input id=ConsoleOut10_3 type=checkbox value=1>
+        <td class=center>
+            <input id=ConsoleOut10_4 type=checkbox value=1>
+        <td class=center>
+            <input id=ConsoleOut10_5 type=checkbox value=1>
+        <td class=center>
+            <input id=ConsoleOut10_6 type=checkbox value=1>
+        <td class=center>
+            <input id=ConsoleOut10_7 type=checkbox value=1>
+        <td class=center>
+            <input id=ConsoleOut10_8 type=checkbox value=1>
+        <td class=center>
+            <input id=ConsoleOut10_9 type=checkbox value=1>
+        <td class=center>
+            <input id=ConsoleOut10_10 type=checkbox value=1>
+        <td class=center>
+            <select id=ConsoleOut10Format>
+                <option selected value=S>Space
+                <option          value=T>Tab
+                <option          value=R>Car. Ret.
+            </select>
+        <td class=center id=ConsoleOut10Columns>
+            &nbsp;
+        <td id=ConsoleOut10Tabs>
+            &nbsp;
     </table>
 
     <div class=heading>Cardatron Unit Selection:</div>
@@ -446,11 +910,6 @@
         <td class=center>
             <input id=MagTape10NotWrite type=checkbox value=1>
     </table>
-
-
-    <div id=MessageArea></div>
-    <button id=CancelBtn class="redButton">CANCEL</button>
-    <button id=SaveBtn class="greenButton">SAVE</button>
 </div>
 
 </body>

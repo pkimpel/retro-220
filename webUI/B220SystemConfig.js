@@ -58,23 +58,35 @@ B220SystemConfig.prototype.createConfigData = function createConfigData() {
         memorySize: 5000,               // 11-digit words
 
         ControlConsole: {
-            hasSPO: true,
-            poSuppressSwitch: 0,
-            skipSwitch: 0,
-            audibleAlarmSwitch: 0,
-            outputKnob: 2,
-            breakpointKnob: 0,
-            inputKnob: 1},
+            PCS1SW: 0,                  // Program Control Switches 1-0
+            PCS2SW: 0,
+            PCS3SW: 0,
+            PCS4SW: 0,
+            PCS5SW: 0,
+            PCW6SW: 0,
+            PCS7SW: 0,
+            PCS8SW: 0,
+            PCS9SW: 0,
+            PCS0SW: 0,
+            SONSW: 0,                   // S-register on
+            SUNITSSW: 0,                // S-register units
+            STOCSW: 0,                  // S-to-C stop
+            STOPSW: 0},                 // S-to-P stop
 
-        Flexowriter: {
-            zeroSuppressSwitch: 0,
-            tabSpaceSwitch: 2,
-            groupingCountersSwitch: 0,
-            autoStopSwitch: 0,
-            powerSwitch: 1,
-            wordsKnob: 0,
-            linesKnob: 0,
-            groupsKnob: 0},
+        ConsoleOutput: {
+            units: [
+                {type: "TTYA", zeroSuppress: 0, mapMemory: 0, unitMask: 0x001, remote: 1, format: 0, columns: 72, tabs: "9,17,25,33,41,49,57,65,73,81"},
+                {type: "NONE"},
+                {type: "NONE"},
+                {type: "NONE"},
+                {type: "NONE"},
+                {type: "NONE"},
+                {type: "NONE"},
+                {type: "NONE"},
+                {type: "NONE"},
+                {type: "NONE"},
+                {type: "NONE"}
+                ]},
 
         Cardatron: {
             hasCardatron: true,
@@ -108,54 +120,6 @@ B220SystemConfig.prototype.createConfigData = function createConfigData() {
         };
 
     this.flushHandler();
-
-    // Convert old Supervisory Panel prefs
-    s = localStorage.getItem("retro-205-SupervisoryPanel-Prefs");
-    if (s) {
-        try {
-            prefs = JSON.parse(s);
-        } finally {
-            // nothing
-        }
-
-        for (pref in prefs) {
-            this.configData.SupervisoryPanel[pref] = prefs[pref];
-        }
-        this.flushHandler();
-        localStorage.removeItem("retro-205-SupervisoryPanel-Prefs");
-    }
-
-    // Convert old Control Console prefs
-    s = localStorage.getItem("retro-205-ControlConsole-Prefs");
-    if (s) {
-        try {
-            prefs = JSON.parse(s);
-        } finally {
-            // nothing
-        }
-
-        for (pref in prefs) {
-            this.configData.ControlConsole[pref] = prefs[pref];
-        }
-        this.flushHandler();
-        localStorage.removeItem("retro-205-ControlConsole-Prefs");
-    }
-
-    // Convert old Flexowriter prefs
-    s = localStorage.getItem("retro-205-Flexowriter-Prefs");
-    if (s) {
-        try {
-            prefs = JSON.parse(s);
-        } finally {
-            // nothing
-        }
-
-        for (pref in prefs) {
-            this.configData.Flexowriter[pref] = prefs[pref];
-        }
-        this.flushHandler();
-        localStorage.removeItem("retro-205-Flexowriter-Prefs");
-    }
 };
 
 /**************************************/
@@ -306,14 +270,31 @@ B220SystemConfig.prototype.setListValue = function setListValue(id, value) {
 B220SystemConfig.prototype.loadConfigDialog = function loadConfigDialog() {
     /* Loads the configuration UI window with the settings from this.configData */
     var cd = this.configData;           // local configuration reference
+    var mask;                           // unit mask bits
     var prefix;                         // unit id prefix
     var unit;                           // unit configuration object
     var x;                              // unit index
+    var y;                              // secondary index
 
-    this.$$("SystemMemorySize").value = Math.floor(cd.memorySize/1000).toString();
+    // System Properties
+    this.setListValue("SystemMemorySize", cd.memorySize.toString());
 
-    // Console units
-    this.$$("SPO").checked = cd.ControlConsole.hasSPO;
+    // Console Output units
+    for (x=0; x<=10; ++x) {
+        unit = cd.ConsoleOutput.units[x];
+        prefix = "ConsoleOut" + x;
+        this.setListValue(prefix + "Type", unit.type);
+        mask = 0x001;
+        this.$$(prefix + "_SPO").checked = (unit.unitMask & mask ? true : false);
+        for (y=1; y<=10; ++y) {
+            mask <<= 1;
+            this.$$(prefix + "_" + y).checked = (unit.unitMask & mask ? true : false);
+        } // for y
+
+        this.setListValue(prefix + "Format", unit.format);
+        this.$$(prefix + "Columns").textContent = (unit.columns ? unit.columns : 72);
+        this.$$(prefix + "Tabs").textContent = (unit.tabs ? unit.tabs : "");
+    } // for x
 
     // Cardatron units
     for (x=1; x<=7; ++x) {
@@ -363,9 +344,11 @@ B220SystemConfig.prototype.saveConfigDialog = function saveConfigDialog() {
     the updated configuration to localStorage */
     var cd = this.configData;           // local configuration reference
     var e;                              // local element reference
+    var mask;                           // unit mask
     var prefix;                         // unit id prefix
     var unit;                           // unit configuration object
     var x;                              // unit index
+    var y;                              // secondary index
 
     function getNumber(id, caption, min, max) {
         var n;
@@ -382,16 +365,36 @@ B220SystemConfig.prototype.saveConfigDialog = function saveConfigDialog() {
         return n;
     }
 
-    x = getNumber.call(this, "SystemMemorySize", "Memory Size", 1, 10);
-    if (isNaN(x)) {
-        return;
-    } else {
-        cd.memorySize = x*1000;
-    }
+    // System Properties
 
-    // Console units
+    e = this.$$("SystemMemorySize");
+    x = parseInt(e.options[e.selectedIndex], 10);
+    cd.memorySize = (isNaN(x) ? 5000 : x);
 
-    cd.ControlConsole.hasSPO = this.$$("SPO").checked;
+    // Console Output units
+
+    for (x=0; x<=10; ++x) {
+        unit = cd.ConsoleOutput.units[x];
+        prefix = "ConsoleOut" + x;
+        e = this.$$(prefix + "Type");
+        unit.type = (e.selectedIndex < 0 ? "NONE" : e.options[e.selectedIndex].value);
+        mask = 0x001;
+        unit.unitMask = 0;
+        if (this.$$(prefix + "_SPO").checked) {
+            unit.unitMask |= mask;
+        }
+        for (y=1; y<=10; ++y) {
+            mask <<= 1;
+            if (this.$$(prefix + "_" + y).checked) {
+                unit.unitMask |= mask;
+            }
+        } // for y
+
+        e = this.$$(prefix + "Format");
+        unit.format = (e.selectedIndex < 0 ? "NONE" : e.options[e.selectedIndex].value);
+        unit.columns = (unit.columns ? unit.columns : 72);
+        unit.tabs = (unit.tabs ? unit.tabs : "1,9,17,25,33,41,49,57,65,73");
+    } // for x
 
     // Cardatron units
 
@@ -472,6 +475,11 @@ B220SystemConfig.prototype.openConfigUI = function openConfigUI() {
                 B220Util.bindMethod(this, this.saveConfigDialog));
         this.$$("CancelBtn").addEventListener("click",
                 B220Util.bindMethod(this, function(ev) {this.window.close()}));
+        this.$$("DefaultsBtn").addEventListener("click",
+                B220Util.bindMethod(this, function(ev) {
+                    this.createConfigData();
+                    this.loadConfigDialog();
+        }));
         this.window.addEventListener("unload",
                 B220Util.bindMethod(this, this.closeConfigUI), false);
         this.loadConfigDialog();
@@ -479,7 +487,7 @@ B220SystemConfig.prototype.openConfigUI = function openConfigUI() {
 
     this.doc = null;
     this.window = window.open("../webUI/B220SystemConfig.html", this.configStorageName,
-            "location=no,scrollbars,resizable,width=640,height=800");
+            "location=no,scrollbars,resizable,width=800,height=800");
     this.window.moveTo(screen.availWidth-this.window.outerWidth-40,
             (screen.availHeight-this.window.outerHeight)/2);
     this.window.focus();

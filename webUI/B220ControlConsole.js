@@ -18,11 +18,15 @@ function B220ControlConsole(p, systemShutdown) {
     var h = 600;
     var w = 1064;
     var mnemonic = "ControlConsole";
+    var outputConfig = p.config.getNode("ConsoleOutput");
+    var u;
+    var x;
 
     this.config = p.config;             // System Configuration object
     this.intervalToken = 0;             // setInterval() token for panel refresh
     this.p = p;                         // B220Processor object
     this.systemShutdown = systemShutdown; // system shut-down callback
+
     this.keyboard = new B220ConsoleKeyboard(p);
 
     this.boundLamp_Click = B220Util.bindMethod(this, B220ControlConsole.prototype.lamp_Click);
@@ -32,6 +36,37 @@ function B220ControlConsole(p, systemShutdown) {
     this.boundResetTimer = B220Util.bindMethod(this, B220ControlConsole.prototype.resetTimer);
     this.boundUpdatePanel = B220Util.bindMethod(this, B220ControlConsole.prototype.updatePanel);
 
+    // Configure the console output unit objects. These can be any combination
+    // of paper tape punches and teletype printers.
+    this.outputUnit = [
+            null,                       // 0=unit A (usually the SPO)
+            null,                       // 1=unit B
+            null,                       // 2=unit C
+            null,                       // 3=unit D
+            null,                       // 4=unit E
+            null,                       // 5=unit F
+            null,                       // 6=unit G
+            null,                       // 7=unit H
+            null,                       // 8=unit I
+            null,                       // 9=unit J
+            null];                      //10=unit K
+
+    for (x=0; x<outputConfig.units.length; ++x) {
+        u = outputConfig.units[x];
+        switch (u.type.substring(0, 3)) {
+        case "TTY":
+            this.outputUnit[x] = new B220ConsolePrinter(u.type, x, this.config);
+            break;
+        case "PTP":
+            this.outputUnit[x] = new B220PaperTapePunch(u.type, x, this.config);
+            break;
+        default:
+            this.outputUnit[x] = null;
+            break;
+        } // switch u.type
+    }
+
+    // Create the Console window
     this.doc = null;
     this.window = window.open("../webUI/B220ControlConsole.html", mnemonic,
             "location=no,scrollbars,resizable,width=" + w + ",height=" + h +
@@ -148,10 +183,10 @@ B220ControlConsole.prototype.displayCallbackState = function displayCallbackStat
 /**************************************/
 B220ControlConsole.prototype.updatePanel = function updatePanel() {
     /* Updates the panel from the current Processor state */
-    var eLevel;
+    var eLevel;                         // EXECUTE lamp glow level
     var p = this.p;                     // local copy of Processor object
     var stamp = performance.now();
-    var text;
+    var text;                           // run timer display text
     var timer = p.runTimer;
 
     // Update the interval timer
@@ -176,12 +211,12 @@ B220ControlConsole.prototype.updatePanel = function updatePanel() {
 
     // Alarm Panel
     this.digitCheckLamp.set(p.digitCheckAlarm.glow);
-    this.programCheckLamp.set(p.programCheckAlarm.glow);
-    this.storageLamp.set(p.storageAlarm.glow);
-    this.magneticTapeLamp.set(p.magneticTapeAlarm.glow);
-    this.cardatronLamp.set(p.paperTapeAlarm.glow);
-    this.paperTapeLamp.set(p.cardatronAlarm.glow);
-    this.highSpeedPrinterLamp.set(p.highSpeedPrinterAlarm.glow);
+    this.programCheckLamp.set(p.ALT.glow);
+    this.storageLamp.set(p.MET.glow);
+    this.magneticTapeLamp.set(p.TAT.glow);
+    this.paperTapeLamp.set(p.PAT.glow);
+    this.cardatronLamp.set(p.CRT.glow);
+    this.highSpeedPrinterLamp.set(p.HAT.glow);
     this.systemNotReadyLamp.set(p.systemNotReady.glow);
     this.computerNotReadyLamp.set(p.computerNotReady.glow);
 
@@ -335,52 +370,52 @@ B220ControlConsole.prototype.switch_Click = function switch_Click(ev) {
 
         case "ControlSwitch1":
             this.controlSwitch1.flip();
-            this.config.putNode("ControlConsole.controlSwitch1", this.controlSwitch1.state);
+            this.config.putNode("ControlConsole.PCS1SW", this.controlSwitch1.state);
             p.PC1SW = this.controlSwitch1.state;
             break;
         case "ControlSwitch2":
             this.controlSwitch2.flip();
-            this.config.putNode("ControlConsole.controlSwitch2", this.controlSwitch2.state);
+            this.config.putNode("ControlConsole.PCS2SW", this.controlSwitch2.state);
             p.PC2SW = this.controlSwitch2.state;
             break;
         case "ControlSwitch3":
             this.controlSwitch3.flip();
-            this.config.putNode("ControlConsole.controlSwitch3", this.controlSwitch3.state);
+            this.config.putNode("ControlConsole.PCS3SW", this.controlSwitch3.state);
             p.PC3SW = this.controlSwitch3.state;
             break;
         case "ControlSwitch4":
             this.controlSwitch4.flip();
-            this.config.putNode("ControlConsole.controlSwitch4", this.controlSwitch4.state);
+            this.config.putNode("ControlConsole.PCS4SW", this.controlSwitch4.state);
             p.PC4SW = this.controlSwitch4.state;
             break;
         case "ControlSwitch5":
             this.controlSwitch5.flip();
-            this.config.putNode("ControlConsole.controlSwitch5", this.controlSwitch5.state);
+            this.config.putNode("ControlConsole.PCS5SW", this.controlSwitch5.state);
             p.PC5SW = this.controlSwitch5.state;
             break;
         case "ControlSwitch6":
             this.controlSwitch6.flip();
-            this.config.putNode("ControlConsole.controlSwitch6", this.controlSwitch6.state);
+            this.config.putNode("ControlConsole.PCS6SW", this.controlSwitch6.state);
             p.PC6SW = this.controlSwitch6.state;
             break;
         case "ControlSwitch7":
             this.controlSwitch7.flip();
-            this.config.putNode("ControlConsole.controlSwitch7", this.controlSwitch7.state);
+            this.config.putNode("ControlConsole.PCS7SW", this.controlSwitch7.state);
             p.PC7SW = this.controlSwitch7.state;
             break;
         case "ControlSwitch8":
             this.controlSwitch8.flip();
-            this.config.putNode("ControlConsole.controlSwitch8", this.controlSwitch8.state);
+            this.config.putNode("ControlConsole.PCS8SW", this.controlSwitch8.state);
             p.PC8SW = this.controlSwitch8.state;
             break;
         case "ControlSwitch9":
             this.controlSwitch9.flip();
-            this.config.putNode("ControlConsole.controlSwitch9", this.controlSwitch9.state);
+            this.config.putNode("ControlConsole.PCS9SW", this.controlSwitch9.state);
             p.PC9SW = this.controlSwitch9.state;
             break;
         case "ControlSwitch10":
             this.controlSwitch10.flip();
-            this.config.putNode("ControlConsole.controlSwitch10", this.controlSwitch10.state);
+            this.config.putNode("ControlConsole.PCS0SW", this.controlSwitch10.state);
             p.PC0SW = this.controlSwitch10.state;
             break;
 
@@ -392,22 +427,22 @@ B220ControlConsole.prototype.switch_Click = function switch_Click(ev) {
             break;
         case "SOnSwitch":
             this.sOnSwitch.flip();
-            this.config.putNode("ControlConsole.sOnSwitch", this.sOnSwitch.state);
+            this.config.putNode("ControlConsole.SONSW", this.sOnSwitch.state);
             p.SONSW = this.sOnSwitch.state;
             break;
         case "UnitsSwitch":
             this.unitsSwitch.flip();
-            this.config.putNode("ControlConsole.unitsSwitch", this.unitsSwitch.state);
+            this.config.putNode("ControlConsole.SUNITSSW", this.unitsSwitch.state);
             p.SUNITSSW = this.unitsSwitch.state;
             break;
         case "SToPSwitch":
             this.sToPSwitch.flip();
-            this.config.putNode("ControlConsole.sToPSwitch", this.sToPSwitch.state);
+            this.config.putNode("ControlConsole.STOPSW", this.sToPSwitch.state);
             p.STOPSW = this.sToPSwitch.state;
             break;
         case "SToCSwitch":
             this.sToCSwitch.flip();
-            this.config.putNode("ControlConsole.sToCSwitch", this.sToCSwitch.state);
+            this.config.putNode("ControlConsole.STOCSW", this.sToCSwitch.state);
             p.STOCSW = this.sToCSwitch.state;
             break;
         case "ResetTransferSwitch":
@@ -536,52 +571,52 @@ B220ControlConsole.prototype.consoleOnLoad = function consoleOnLoad() {
     panel = this.$$("ControlSwitchPanel");
     this.controlSwitch1 = new OrganSwitch(panel, null, null, "ControlSwitch1",
             B220ControlConsole.offOrganSwitchImage, B220ControlConsole.onOrganSwitchImage, false);
-    this.controlSwitch1.set(this.config.getNode("ControlConsole.controlSwitch1"));
+    this.controlSwitch1.set(this.config.getNode("ControlConsole.PCS1SW"));
     p.PC1SW = this.controlSwitch1.state;
 
     this.controlSwitch2 = new OrganSwitch(panel, null, null, "ControlSwitch2",
             B220ControlConsole.offOrganSwitchImage, B220ControlConsole.onOrganSwitchImage, false);
-    this.controlSwitch2.set(this.config.getNode("ControlConsole.controlSwitch2"));
+    this.controlSwitch2.set(this.config.getNode("ControlConsole.PCS2SW"));
     p.PC2SW = this.controlSwitch2.state;
 
     this.controlSwitch3 = new OrganSwitch(panel, null, null, "ControlSwitch3",
             B220ControlConsole.offOrganSwitchImage, B220ControlConsole.onOrganSwitchImage, false);
-    this.controlSwitch3.set(this.config.getNode("ControlConsole.controlSwitch3"));
+    this.controlSwitch3.set(this.config.getNode("ControlConsole.PCS3SW"));
     p.PC3SW = this.controlSwitch3.state;
 
     this.controlSwitch4 = new OrganSwitch(panel, null, null, "ControlSwitch4",
             B220ControlConsole.offOrganSwitchImage, B220ControlConsole.onOrganSwitchImage, false);
-    this.controlSwitch4.set(this.config.getNode("ControlConsole.controlSwitch4"));
+    this.controlSwitch4.set(this.config.getNode("ControlConsole.PCS4SW"));
     p.PC4SW = this.controlSwitch4.state;
 
     this.controlSwitch5 = new OrganSwitch(panel, null, null, "ControlSwitch5",
             B220ControlConsole.offOrganSwitchImage, B220ControlConsole.onOrganSwitchImage, false);
-    this.controlSwitch5.set(this.config.getNode("ControlConsole.controlSwitch5"));
+    this.controlSwitch5.set(this.config.getNode("ControlConsole.PCS5SW"));
     p.PC5SW = this.controlSwitch5.state;
 
     this.controlSwitch6 = new OrganSwitch(panel, null, null, "ControlSwitch6",
             B220ControlConsole.offOrganSwitchImage, B220ControlConsole.onOrganSwitchImage, false);
-    this.controlSwitch6.set(this.config.getNode("ControlConsole.controlSwitch6"));
+    this.controlSwitch6.set(this.config.getNode("ControlConsole.PCS6SW"));
     p.PC6SW = this.controlSwitch6.state;
 
     this.controlSwitch7 = new OrganSwitch(panel, null, null, "ControlSwitch7",
             B220ControlConsole.offOrganSwitchImage, B220ControlConsole.onOrganSwitchImage, false);
-    this.controlSwitch7.set(this.config.getNode("ControlConsole.controlSwitch7"));
+    this.controlSwitch7.set(this.config.getNode("ControlConsole.PCS7SW"));
     p.PC7SW = this.controlSwitch7.state;
 
     this.controlSwitch8 = new OrganSwitch(panel, null, null, "ControlSwitch8",
             B220ControlConsole.offOrganSwitchImage, B220ControlConsole.onOrganSwitchImage, false);
-    this.controlSwitch8.set(this.config.getNode("ControlConsole.controlSwitch8"));
+    this.controlSwitch8.set(this.config.getNode("ControlConsole.PCS8SW"));
     p.PC8SW = this.controlSwitch8.state;
 
     this.controlSwitch9 = new OrganSwitch(panel, null, null, "ControlSwitch9",
             B220ControlConsole.offOrganSwitchImage, B220ControlConsole.onOrganSwitchImage, false);
-    this.controlSwitch9.set(this.config.getNode("ControlConsole.controlSwitch9"));
+    this.controlSwitch9.set(this.config.getNode("ControlConsole.PCS9SW"));
     p.PC9SW = this.controlSwitch9.state;
 
     this.controlSwitch10 = new OrganSwitch(panel, null, null, "ControlSwitch10",
             B220ControlConsole.offOrganSwitchImage, B220ControlConsole.onOrganSwitchImage, false);
-    this.controlSwitch10.set(this.config.getNode("ControlConsole.controlSwitch10"));
+    this.controlSwitch10.set(this.config.getNode("ControlConsole.PCS0SW"));
     p.PC0SW = this.controlSwitch10.state;
 
     panel = this.$$("OperationSwitchPanel");
@@ -600,22 +635,22 @@ B220ControlConsole.prototype.consoleOnLoad = function consoleOnLoad() {
 
     this.sOnSwitch = new OrganSwitch(panel, null, null, "SOnSwitch",
             B220ControlConsole.offOrganSwitchImage, B220ControlConsole.onOrganSwitchImage, false);
-    this.sOnSwitch.set(this.config.getNode("ControlConsole.sOnSwitch"));
+    this.sOnSwitch.set(this.config.getNode("ControlConsole.SONSW"));
     p.SONSW = this.sOnSwitch.state;
 
     this.unitsSwitch = new OrganSwitch(panel, null, null, "UnitsSwitch",
             B220ControlConsole.offOrganSwitchImage, B220ControlConsole.onOrganSwitchImage, false);
-    this.unitsSwitch.set(this.config.getNode("ControlConsole.unitsSwitch"));
+    this.unitsSwitch.set(this.config.getNode("ControlConsole.SUNITSSW"));
     p.SUNITSSW = this.unitsSwitch.state;
 
     this.sToPSwitch = new OrganSwitch(panel, null, null, "SToPSwitch",
             B220ControlConsole.offOrganSwitchImage, B220ControlConsole.onOrganSwitchImage, false);
-    this.sToPSwitch.set(this.config.getNode("ControlConsole.sToPSwitch"));
+    this.sToPSwitch.set(this.config.getNode("ControlConsole.STOPSW"));
     p.STOPSW = this.sToPSwitch.state;
 
     this.sToCSwitch = new OrganSwitch(panel, null, null, "SToCSwitch",
             B220ControlConsole.offOrganSwitchImage, B220ControlConsole.onOrganSwitchImage, false);
-    this.sToCSwitch.set(this.config.getNode("ControlConsole.sToCSwitch"));
+    this.sToCSwitch.set(this.config.getNode("ControlConsole.STOCSW"));
     p.STOCSW = this.sToCSwitch.state;
 
     this.resetTransferSwitch = new OrganSwitch(panel, null, null, "ResetTransferSwitch",
@@ -704,14 +739,47 @@ B220ControlConsole.prototype.keyboardOpen = function keyboardOpen() {
 };
 
 /**************************************/
+B220ControlConsole.prototype.outputUnitSelect = function outputUnitSelect(unitNr, successor) {
+    /* Prepares for paper-tape or SPO output by selecting the first ready device
+    having a unitMask matching the unitNr parameter. If one is found, returns
+    that index and calls initiateOutput() for the unit. If no such unit is found,
+    returns -1 */
+    var result = -1;                    // be pessimistic
+    var u = null;                       // output unit object
+    var x;                              // for loop index
+
+    for (x=0; x<this.outputUnit.length; ++x) {
+        u = this.outputUnit[x];
+        if (u && u.ready) {
+            if (u.unitMask & B220Processor.pow2[unitNr]) {
+                result = x;
+                u.initiateOutput(successor);
+                break;                  // out of for loop
+            }
+        }
+    }
+
+    return result;
+};
+
+/**************************************/
 B220ControlConsole.prototype.shutDown = function shutDown() {
     /* Shuts down the panel */
+    var x;
 
     this.window.removeEventListener("beforeunload", B220ControlConsole.prototype.beforeUnload);
     if (this.intervalToken) {
         this.window.clearInterval(this.intervalToken);
     }
+
     this.keyboard.shutDown();
     this.keyboard = null;
+    for (x=0; x<this.outputUnit.length; ++x) {
+        if (this.outputUnit[x]) {
+            this.outputUnit[x].shutDown();
+            this.outputUnit[x] = null;
+        }
+    }
+
     this.window.close();
 };

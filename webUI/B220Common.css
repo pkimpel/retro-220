@@ -308,7 +308,7 @@ DIV.blackControlKnobBottomCaption {
 
 DIV.panelSurface {
     position:           absolute;
-    background-color:   #E4DDCD;        /* was #D8C5BC; putty #EDEAE8; */
+    background-color:   #D8C5BC;        /* was #E4DDCD; putty #EDEAE8; */
     color:              black}
 
 DIV.panelRegister {
