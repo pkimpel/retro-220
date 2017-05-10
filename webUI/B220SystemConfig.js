@@ -334,7 +334,7 @@ B220SystemConfig.prototype.loadConfigDialog = function loadConfigDialog() {
         this.$$(prefix + "NotWrite").checked = unit.notWriteSwitch;
     } // for x
 
-    this.$$("MessageArea").textContent = "205 System Configuration loaded.";
+    this.$$("MessageArea").textContent = "220 System Configuration loaded.";
     this.window.focus();
 };
 
@@ -447,7 +447,7 @@ B220SystemConfig.prototype.saveConfigDialog = function saveConfigDialog() {
     } // for x
 
     this.flushHandler();                // store the configuration
-    this.$$("MessageArea").textContent = "205 System Configuration updated.";
+    this.$$("MessageArea").textContent = "220 System Configuration updated.";
     this.window.close();
 };
 

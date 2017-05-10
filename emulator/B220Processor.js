@@ -249,7 +249,7 @@ function B220Processor(config, devices) {
 *   Global Constants                                                   *
 ***********************************************************************/
 
-B220Processor.version = "0.00d";
+B220Processor.version = "0.00e";
 
 B220Processor.tick = 1000/200000;       // milliseconds per clock cycle (200KHz)
 B220Processor.cyclesPerMilli = 1/B220Processor.tick;
@@ -768,7 +768,14 @@ B220Processor.Register.prototype.getDigit = function getDigit(digitNr) {
     /* Returns the value of a 4-bit digit in the register. Digits are numbered
     from 0 starting at the low end (not the way the 220 numbers them) */
 
-    return B220Processor.fieldIsolate(this.value, digitNr*4-1, 4);
+    return B220Processor.fieldIsolate(this.value, digitNr*4+3, 4);
+};
+/**************************************/
+B220Processor.Register.prototype.setDigit = function setDigit(digitNr, value) {
+    /* Sets the value of a 4-bit digit in the register. Digits are numbered
+    from 0 starting at the low end (not the way the 220 numbers them) */
+
+    return this.set(B220Processor.fieldInsert(this.value, digitNr*4+3, 4, value));
 };
 
 /**************************************/
@@ -828,9 +835,74 @@ B220Processor.Register.prototype.flipBit = function flipBit(bitNr) {
 B220Processor.Register.prototype.add = function add(addend) {
     /* Adds "addend" to the current register value without regard to sign,
     discarding any overflow beyond the number of bits defined for the register.
-    Returns the new register value. NOTE THAT THE ADDEND IS IN BCD, NOT BINARY */
+    Returns the new register value. NOTE THAT THE ADDEND IS IN BCD, NOT BINARY.
+    Also note that this uses the 220 adder, so generally do not use this for
+    simple increment of address and counter registers -- use .inc() instead */
+    var digits = (this.bits+3) >> 2;
 
-    return this.set(this.p.bcdAdd(this.value, addend) % B220Processor.pow2[this.bits]);
+    return this.set(this.p.bcdAdd(this.value, addend, digits) %
+                    B220Processor.pow2[this.bits]);
+};
+
+/**************************************/
+B220Processor.Register.prototype.sub = function sub(subtrahend) {
+    /* Subtracts "subtrahend" from the current register value without regard to
+    sign, discarding any overflow beyond the number of bits defined for the register.
+    Returns the new register value. NOTE THAT THE ADDEND IS IN BCD, NOT BINARY.
+    Also note that this uses the 220 adder, so generally do not use this for
+    simple decrement of address and counter registers -- use .dec() instead */
+    var digits = (this.bits+3) >> 2;
+
+    return this.set(this.p.bcdAdd(subtrahend, this.value, digits, 1, 1) %
+                    B220Processor.pow2[this.bits]);
+};
+
+/**************************************/
+B220Processor.Register.prototype.inc = function inc() {
+    /* Increments the register by 1 using BCD arithmetic and returns the new
+    register value. This method does not use the 220 adder, so is safe to use
+    for incrementing address and counter registers during instructions. Any
+    overflow is discarded and the register wraps around to zero */
+    var d = this.value%0x10;            // current low-order digit
+    var maxPower = B220Processor.pow2[this.bits];
+    var power = 1;                      // factor for current digit position
+    var w = this.value;                 // working copy of register value
+
+    while (d == 9 && power < maxPower) {// while a carry would be generated
+        this.value -= 9*power;          // change this digit to a zero
+        power *= 0x10;                  // bump power for next digit
+        w = (w-d)/0x10;                 // shift working copy down
+        d = w%0x10;                     // isolate the next digit
+    }
+
+    if (d < 9) {
+        this.value += power;            // increment the first digit that will not generate carry
+    }
+    return this.set(this.value % B220Processor.pow2[this.bits]);
+};
+
+/**************************************/
+B220Processor.Register.prototype.dec = function dec() {
+    /* Decrements the register by 1 using BCD arithmetic and returns the new
+    register value. This method does not use the 220 adder, so is safe to use
+    for decrementing address and counter registers during instructions. Any
+    underflow is discarded and the register wraps around to all-nines */
+    var d = this.value%0x10;            // current low-order digit
+    var maxPower = B220Processor.pow2[this.bits];
+    var power = 1;                      // factor for current digit position
+    var w = this.value;                 // working copy of register value
+
+    while (d == 0 && power < maxPower) {// while a borrow would be generated
+        this.value += 9*power;          // change this digit to a 9
+        power *= 0x10;                  // bump power for next digit
+        w = (w-d)/0x10;                 // shift working copy down
+        d = w%0x10;                     // isolate the next digit
+    }
+
+    if (d > 0) {
+        this.value -= power;            // decrement the first digit that will not generate a borrow
+    }
+    return this.set(this.value % maxPower);
 };
 
 
@@ -937,7 +1009,7 @@ B220Processor.prototype.setDigitCheck = function setDigitCheck(value) {
     if (!this.ALARMSW && !this.DIGITCHECKSW) {
         this.digitCheckAlarm.set(value);
         if (value) {
-            this.RUT.set(0);
+            this.setStop();
             this.SST.set(1);            // stop at end of current cycle
         }
     }
@@ -950,7 +1022,7 @@ B220Processor.prototype.setProgramCheck = function setProgramCheck(value) {
     if (!this.ALARMSW) {
         this.ALT.set(value);
         if (value) {
-            this.RUT.set(0);
+            this.setStop();
         }
     }
 };
@@ -962,7 +1034,7 @@ B220Processor.prototype.setStorageCheck = function setStorageCheck(value) {
     if (!this.ALARMSW) {
         this.MET.set(value);
         if (value) {
-            this.RUT.set(0);
+            this.setStop();
             this.SST.set(1);            // stop at end of current cycle
         }
     }
@@ -975,7 +1047,7 @@ B220Processor.prototype.setMagneticTapeCheck = function setMagneticTapeCheck(val
     if (!this.ALARMSW) {
         this.TAT.set(value);
         if (value) {
-            this.RUT.set(0);
+            this.setStop();
         }
     }
 };
@@ -987,7 +1059,7 @@ B220Processor.prototype.setCardatronCheck = function setCardatronCheck(value) {
     if (!this.ALARMSW) {
         this.CRT.set(value);
         if (value) {
-            this.RUT.set(0);
+            this.setStop();
         }
     }
 };
@@ -999,7 +1071,7 @@ B220Processor.prototype.setPaperTapeCheck = function setPaperTapeCheck(value) {
     if (!this.ALARMSW) {
         this.PAT.set(value);
         if (value) {
-            this.RUT.set(0);
+            this.setStop();
         }
     }
 };
@@ -1011,7 +1083,7 @@ B220Processor.prototype.setHighSpeedPrinterCheck = function setHighSpeedPrinterC
     if (!this.ALARMSW) {
         this.HAT.set(value);
         if (value) {
-            this.RUT.set(0);
+            this.setStop();
         }
     }
 };
@@ -1022,28 +1094,30 @@ B220Processor.prototype.setHighSpeedPrinterCheck = function setHighSpeedPrinterC
 ***********************************************************************/
 
 /**************************************/
-B220Processor.prototype.bcdAdd = function bcdAdd(a, d, complement, initialCarry) {
-    /* Performs an unsigned, BCD addition of "a" and "d", producing an 11-digit
-    BCD result. On input, "complement" indicates whether 9s-complement addition
-    should be performed; "initialCarry" indicates whether an initial carry of 1
-    should be applied to the adder. On output, this.CI is set from the final
-    carry toggles of the addition. Further, this.Z will still have a copy of the
-    sign (11th) digit. Sets the Program Check alarm if non-decimal digits are
-    encountered, but does not set the Overflow toggle */
+B220Processor.prototype.bcdAdd = function bcdAdd(a, d, digits, complement, initialCarry) {
+    /* Returns an unsigned, BCD addition of "a" and "d", producing "digits" of
+    BCD result. Any higher-order digits and any overflow are discarded. Maximum
+    capacity in Javascript (using IEEE 64-bit floating point) is 14 digits.
+    On input, "complement" indicates whether 9s-complement addition should be
+    performed; "initialCarry" indicates whether an initial carry of 1 should be
+    applied to the adder. On output, this.CI is set from the final carry toggles
+    of the addition and this.C10 will have the carry toggle. Further, this.Z
+    will still have a copy of the sign (high-order) digit. Sets the Program
+    Check alarm if non-decimal digits are encountered, but does not set the
+    Overflow toggle */
     var ad;                             // current augend (a) digit;
     var adder;                          // local copy of adder digit
-    var am = a % 0x100000000000;        // augend mantissa
+    var am = a % B220Processor.pow2[digits*4]; // augend mantissa
     var carry = (initialCarry || 0) & 1;// local copy of carry toggle (CI1, CAT)
     var compl = complement || 0;        // local copy of complement toggle
     var ct = carry;                     // local copy of carry register (CI1-16)
     var dd;                             // current addend (d) digit;
-    var dm = d % 0x100000000000;        // addend mantissa
+    var dm = d % B220Processor.pow2[digits*4]; // addend mantissa
+    var shiftPower = B220Processor.pow2[(digits-1)*4]; // to position high-order digit
     var x;                              // digit counter
 
-    this.DC.set(0x09);                  // 20-11: for display only
-
-    // Loop through the 11 digits including sign digits
-    for (x=0; x<11; ++x) {
+    // Loop through the digits
+    for (x=0; x<digits; ++x) {
         // shift low-order augend digit right into the adder
         ad = am % 0x10;
         am = (am - ad)/0x10;
@@ -1073,24 +1147,28 @@ B220Processor.prototype.bcdAdd = function bcdAdd(a, d, complement, initialCarry)
         this.Z.set(adder);              // tests for FC
         this.C10.set(carry);
         this.CI.set(ct);
-        this.SI.set(0x0F - ct);         // just a guess as to the sum inverters
+        this.SI.set(0x0F ^ ct);         // just a guess as to the sum inverters
 
-        // rotate the adder into the sign digit
-        am += adder*0x10000000000;
+        // rotate the adder into the high-order digit
+        am += adder*shiftPower;
         // shift the addend right to the next digit
         dm = (dm - dd)/0x10;
     } // for x
 
-    // Set toggles for display purposes and return the result
     return am;
 };
 
 /**************************************/
-B220Processor.prototype.integerAdd = function integerAdd(absolute) {
-    /* Algebraically add the addend (IB) to the augend (A), returning the result
-    in A and storing IB in D. All values are BCD with the sign in the 11th digit
-    position. Sets the Overflow and Digit Check alarms as necessary. Note that
-    if the value of the result is zero, its sign will be the original sign of A */
+B220Processor.prototype.integerAdd = function integerAdd(absolute, toD) {
+    /* After accessing memory, algebraically add the addend (IB) to the augend (A).
+    If "absolute" is true, then the sign of the word from memory is forced to zero.
+    If "toD" is false, the result will be left in A, and D will contain a copy
+    of the word from memory with the three high-order bits of its sign set to
+    zero. If "toD" is true, the result will be left in D, and A will not be
+    altered, except than the three high-order bits of its sign digit will be
+    set to zero. Note that if the value of the result is zero, its sign will be
+    the original sign of A. All values are BCD with the sign in the 11th digit
+    position. Sets the Overflow and Digit Check alarms as necessary */
     var am = this.A.value % 0x10000000000;      // augend mantissa
     var aSign = ((this.A.value - am)/0x10000000000)%2;
     var compl;                                  // complement addition required
@@ -1114,7 +1192,7 @@ B220Processor.prototype.integerAdd = function integerAdd(absolute) {
     }
 
     compl = (aSign^sign);
-    am = this.bcdAdd(am, dm, compl, compl);
+    am = this.bcdAdd(am, dm, 11, compl, compl);
 
     // Now examine the resulting sign (still in the adder) to see if we have overflow
     // or need to recomplement the result
@@ -1129,7 +1207,7 @@ B220Processor.prototype.integerAdd = function integerAdd(absolute) {
     default: // sign is 9
         // reverse the sign toggle and recomplement the result (virtually adding to the zeroed dm)
         sign = 1-sign;
-        am = this.bcdAdd(am, 0, 1, 1);
+        am = this.bcdAdd(am, 0, 11, 1, 1);
         // after recomplementing, set the correct sign (adder still contains sign of result)
         am += (sign - this.Z.value)*0x10000000000;
         timing += 0.060;
@@ -1143,8 +1221,14 @@ B220Processor.prototype.integerAdd = function integerAdd(absolute) {
     // Set toggles for display purposes and return the result
     this.DST.set(dSign);
     this.SGT.set(sign);
-    this.D.set(dSign*0x10000000000 + dm);
-    this.A.set(am);
+    if (toD) {
+        this.D.set(am);
+        this.A.set(this.A.value%0x20000000000);
+    } else {
+        this.D.set(dSign*0x10000000000 + dm);
+        this.A.set(am);
+    }
+
     this.opTime = timing;
 };
 
@@ -1242,7 +1326,7 @@ B220Processor.prototype.integerMultiply = function integerMultiply() {
         rd = rm % 0x10;
         count += B220Processor.multiplyDigitCounts[rd];
         for (rc=rd; rc>0; --rc) {   // repeated addition
-            am = this.bcdAdd(am, dm, 0, 0);
+            am = this.bcdAdd(am, dm, 11, 0, 0);
         }
 
         ad = am % 0x10;
@@ -1303,7 +1387,7 @@ B220Processor.prototype.integerDivide = function integerDivide() {
     // digits (see the Operational Characteristics manual, 5020A, August 1960, p.212)
     // suggests that something clever was going on with the 220 divide implementation.
 
-    if (this.bcdAdd(dm, am, 1, 1) < 0x10000000000) {
+    if (this.bcdAdd(dm, am, 11, 1, 1) < 0x10000000000) {
         this.OFT.set(1);
         this.A.set(aSign*0x10000000000 + am);
         this.R.set(aSign*0x10000000000 + rm);
@@ -1319,7 +1403,7 @@ B220Processor.prototype.integerDivide = function integerDivide() {
             // Now repeatedly subtract D from A until we would get underflow.
             rd = 0;
             while (am >= dm) {
-                am = this.bcdAdd(dm, am, 1, 1);
+                am = this.bcdAdd(dm, am, 11, 1, 1);
                 ++rd;
             }
 
@@ -1380,7 +1464,7 @@ B220Processor.prototype.floatingAdd = function floatingAdd(absolute) {
         while (ax > dx) {
             if (++shifts < 8) {
                 timing += 0.010;
-                dx = this.bcdAdd(1, dx, 0, 0);  // ++dx
+                dx = this.bcdAdd(1, dx, 2, 0, 0);  // ++dx
                 d = dm % 0x10;
                 dm = (dm - d)/0x10;     // shift right
             } else {
@@ -1395,7 +1479,7 @@ B220Processor.prototype.floatingAdd = function floatingAdd(absolute) {
         while (ax < dx) {
             if (++shifts < 8) {
                 timing += 0.010;
-                ax = this.bcdAdd(1, ax, 0, 0);  // ++ax
+                ax = this.bcdAdd(1, ax, 3, 0, 0);  // ++ax
                 d = am % 0x10;
                 am = (am - d)/0x10;     // shift right
             } else {
@@ -1410,7 +1494,7 @@ B220Processor.prototype.floatingAdd = function floatingAdd(absolute) {
 
     if (am && dm) {                     // both mantissas are non-zero
         compl = (aSign^sign);
-        am = this.bcdAdd(am, dm, compl, compl);
+        am = this.bcdAdd(am, dm, 9, compl, compl);
         dm = dSign = 0;
         dx = 0x10;
 
@@ -1419,7 +1503,7 @@ B220Processor.prototype.floatingAdd = function floatingAdd(absolute) {
         if (this.Z.value) {
             // Reverse the sign toggle and recomplement the result.
             sign = 1-sign;
-            am = this.bcdAdd(am, 0, 1, 1);
+            am = this.bcdAdd(am, 0, 9, 1, 1);
             timing += 0.060;
         }
 
@@ -1431,7 +1515,7 @@ B220Processor.prototype.floatingAdd = function floatingAdd(absolute) {
             limiter = 0;
             if (ax < 0x99) {
                 timing += 0.005;
-                ax = this.bcdAdd(1, ax, 0, 0);  // ++ax
+                ax = this.bcdAdd(1, ax, 3, 0, 0);  // ++ax
                 d = am % 0x10;
                 am = (am - d)/0x10;     // shift right
             } else {
@@ -1452,7 +1536,7 @@ B220Processor.prototype.floatingAdd = function floatingAdd(absolute) {
                 if (ax > 0) {
                     ++shifts;
                     timing += 0.010;
-                    ax = this.bcdAdd(1, ax, 1, 1);  // --ax
+                    ax = this.bcdAdd(1, ax, 3, 1, 1);  // --ax
                     am *= 0x10;         // shift left
                 } else {
                     // Exponent underflow: set the reconstructed A to zero.
@@ -1538,8 +1622,8 @@ B220Processor.prototype.floatingMultiply = function floatingMultiply() {
         am = 0;                         // result of shifting A to R
         dm *= 0x100;                    // circulate D two places left (D:22 is 0, so a simple shift left will do)
 
-        x = this.bcdAdd(ax, dx);        // do exponent arithmetic into temp x
-        ax = this.bcdAdd(0x50, x, 1, 1);// subtract the exponent bias from the A exponent
+        x = this.bcdAdd(ax, dx, 3);     // do exponent arithmetic into temp x
+        ax = this.bcdAdd(0x50, x, 3, 1, 1);// subtract the exponent bias from the A exponent
         timing += 0.080;
         if (x >= 0x150) {               // exponent overflow
             this.OFT.set(1);
@@ -1560,7 +1644,7 @@ B220Processor.prototype.floatingMultiply = function floatingMultiply() {
                 rd = rm % 0x10;
                 count += B220Processor.multiplyDigitCounts[rd];
                 for (rc=rd; rc>0; --rc) {
-                    am = this.bcdAdd(am, dm, 0, 0);
+                    am = this.bcdAdd(am, dm, 9, 0, 0);
                 } // while rd
 
                 ad = am % 0x10;
@@ -1576,7 +1660,7 @@ B220Processor.prototype.floatingMultiply = function floatingMultiply() {
                 am = (am-ad)/0x100;
                 rd = rm % 0x100;
                 rm = (rm-rd)/0x100 + ad*0x100000000;
-                ax = this.bcdAdd(0x02, ax, 1, 1);       // decrement exponent
+                ax = this.bcdAdd(0x02, ax, 3, 1, 1);    // decrement exponent
             } else if (ax > 0) {
                 // Shift product one place right
                 timing += 0.010;
@@ -1584,7 +1668,7 @@ B220Processor.prototype.floatingMultiply = function floatingMultiply() {
                 am = (am-ad)/0x10;
                 rd = rm % 0x10;
                 rm = (rm-rd)/0x10 + ad*0x1000000000;
-                ax = this.bcdAdd(0x01, ax, 1, 1);       // decrement exponent
+                ax = this.bcdAdd(0x01, ax, 3, 1, 1);    // decrement exponent
             } else {
                 // Exponent underflow: set R and the reconstructed A to zero.
                 am = ax = rm = sign = 0;
@@ -1655,7 +1739,7 @@ B220Processor.prototype.floatingDivide = function floatingDivide() {
         this.A.set(am);
     } else {
         // Add the exponent bias to the dividend exponent and check for underflow
-        ax = this.bcdAdd(ax, 0x50);
+        ax = this.bcdAdd(ax, 0x50, 3);
         timing += 0.085;
         if (ax < dx) {
             // Exponents differ by more than 50 -- underflow
@@ -1665,10 +1749,10 @@ B220Processor.prototype.floatingDivide = function floatingDivide() {
         } else {
             // If dividend >= divisor, scale the exponent by 1
             if (am >= dm) {
-                ax = this.bcdAdd(ax, 1);
+                ax = this.bcdAdd(ax, 1, 3);
             }
             // Subtract the exponents and check for overflow
-            ax = this.bcdAdd(dx, ax, 1, 1);
+            ax = this.bcdAdd(dx, ax, 3, 1, 1);
             if (ax > 0x99) {
                 this.OFT.set(1);
                 sign = 0;
@@ -1687,7 +1771,7 @@ B220Processor.prototype.floatingDivide = function floatingDivide() {
                     // Repeatedly subtract D from A until we would get underflow.
                     rd = 0;
                     while (am >= dm) {
-                        am = this.bcdAdd(dm, am, 1, 1);
+                        am = this.bcdAdd(dm, am, 9, 1, 1);
                         ++rd;
                     }
 
@@ -1728,6 +1812,222 @@ B220Processor.prototype.floatingDivide = function floatingDivide() {
     this.SGT.set(sign);
     this.DST.set(dSign);
     this.opTime = timing;
+};
+
+
+/***********************************************************************
+*   Partial-Word Operations                                            *
+***********************************************************************/
+
+/**************************************/
+B220Processor.prototype.partialWordAction = function partialWordAction(source, dest, action) {
+    /* Common control mechanism for partial-word operations. On entry, "source"
+    contains the value of the source register and "dest" contains the value of
+    the destination register. The source word will be shifted right and the
+    destination word will be rotated right through three stages for a total of
+    11 digits, based on the "sL" partial-word designator in digits C/22:
+
+    Stage 1: both words will be shifted/rotated without other change until the
+             "s" digit is positioned in the low-order position of each word.
+             The return value of the action() parameter is ignored.
+    Stage 2: both words will be shifted/rotated through "L" digits. For each
+             digit, the action() parameter will be called, passing the current
+             stage, destination word, and current source and destination
+             low-order digits. The action() function must return an updated
+             destination DIGIT.
+    Stage 3: the destination word will be rotated for the remainder of the 11
+             digits, if any. The return value of action() is ignored.
+
+    Returns the final destination word after having been rotated 11 digis.
+    Sets the Program Check alarm if L is not reduced to zero (field overflow) */
+    var dd;                             // current destination digit
+    var dw = dest;                      // destination word (rotated right)
+    var L;                              // partial word digit counter
+    var s;                              // starting digit counter
+    var sd;                             // current source digit
+    var sw = source;                    // source word (shifted right)
+    var xd;                             // scratch destination
+
+    s = this.CCONTROL >>> 12;
+    L = (this.CCONTROL >>> 8) & 0x0F;
+    if (L == 0) {
+        L = 10;
+    }
+
+    this.DC.set(0x09);                  // set up to rotate 11 digits
+    while (this.DC.value < 0x20) {
+        sd = sw % 0x10;                 // get next source digit
+        dd = dw % 0x10;                 // get next destination digit
+        if (s > 0) {                    // rotate up to the "s" digit
+            s = (s+1)%10;               // count s up until it overflows to zero
+            xd = action.call(this, 1, sd, dd, dw);
+        } else if (L > 0) {             // rotate through the action digits
+            xd = dd;
+            dd = action.call(this, 2, sd, dd, dw);
+            dw += dd-xd;
+            --L;
+        } else {                        // rotate remaining digits
+            xd = action.call(this, 3, sd, dd, dw);
+        }
+
+        sw = (sw-sd)/0x10;              // shift source word
+        dw = (dw-dd)/0x10 + dd*0x10000000000; // rotate destination word
+        this.DC.inc();
+    } // while DC < 20
+
+    this.CCONTROL = (s*0x10 + L)*0x100 + this.CCONTROL%0x100;
+    this.C.set((this.CCONTROL*0x100 + this.COP)*0x10000 + this.CADDR);
+    if (L > 0) {
+        this.setProgramCheck(1);
+    }
+
+    return dw;
+};
+
+/**************************************/
+B220Processor.prototype.compareField = function compareField() {
+    /* Implements CFA/CFR (18). Compares the value in either the A or R register
+    to a word in memory, either whole word or a designated partial field, by
+    subtracting the respective memory digits from the register digits. Sets
+    the comparison indicators (UET, HIT) to indicate whether the register field
+    is LOW (UET=1, HIT=0), EQUAL (UET=0, HIT=1), or HIGH (UET=1, HIT=1) with
+    respect to the memory field. Note that the sign digit, if included in the
+    comparison is handled in a very strange fashion -- see the discussion in the
+    220 Operational Characteristics manual for the truly gruesome details */
+    var adder = 0;                      // current adder digit
+    var carry = 1;                      // carry flag defaults to 1, since we're subtracting
+    var compl = 1;                      // do complement addition by default, since we're subtracting
+    var dd;                             // current memory (D-register) digit
+    var dSign = 0;                      // memory (D-register) sign
+    var dw;                             // memory (D-register) word
+    var high = 1;                       // initialize compare toggles to EQUAL
+    var L;                              // partial-word length
+    var rSign;                          // register sign digit
+    var rd;                             // current register digit
+    var rw;                             // register word value
+    var s;                              // partial-word "s" digit
+    var sign = 1;                       // default sign is negative, since we're subtracting
+    var unequal = 0;                    // initialize compare toggles to EQUAL
+
+    this.opTime = 0.150;
+    this.E.set(this.CADDR);
+    this.UET.set(0);
+    this.HIT.set(0);
+    this.readMemory();
+    if (!this.MET.value) {
+        this.SUT.set(1);
+        this.D.set(this.IB.value);
+        dw = this.D.value;
+
+        if (this.CCONTROL%0x10 == 1) {
+            rw = this.R.value;          // CFR: Compare Field R
+        } else {
+            rw = this.A.value;          // CFA: Compare Field A
+        }
+
+        // Determine field lengths for partial- or whole-word comparison.
+        if (!(this.CCONTROL & 0x10)) {  // whole word
+            s = 10;
+            L = 11;
+        } else {                        // partial word
+            s = this.CCONTROL >>> 12;
+            if (s == 0) {
+                s = 10;
+            }
+            L = (this.CCONTROL >>> 8) & 0x0F;
+            if (L == 0) {
+                L = 10;
+            }
+        }
+
+        // If the sign digit is included in the comparison, set up for algebraic
+        // comparison and the strange sign ordering.
+        if (L > s) {                    // sign digit is included
+            rSign = (rw - rw%0x10000000000)/0x10000000000;
+            dSign = (dw - dw%0x10000000000)/0x10000000000;
+            sign = 1-dSign%2;
+            compl = (rSign^sign)%2;
+            carry = compl;
+            if (rSign < 8) {
+                rSign ^= 3;             // complement two low bits of sign
+            }
+            rw = rw%0x10000000000 + rSign*0x10000000000;
+
+            if (dSign < 8) {
+                dSign ^= 3;             // complement two low bits of sign
+            }
+            dw = dw%0x10000000000 + dSign*0x10000000000;
+        }
+
+        // Now go through a modified add cycle, subtracting the digit pairs using
+        // 9s-complement addition, and updating the comparison toggles for each digit.
+        this.DC.set(0x09);              // set up to rotate 11 digits
+        while (this.DC.value < 0x20) {
+            rd = rw%0x10;
+            dd = dw%0x10;
+            if (s < 10) {               // positition to the "s" digit
+                ++s;
+            } else if (L > 0) {
+                --L;
+                this.X.set(rd);         // for display only
+                this.Y.set(dd);
+                adder = (compl ? 9-rd : rd) + dd + carry;
+                if (adder < 10) {
+                    carry = 0;
+                } else {                // decimal correct the adder
+                    carry = 1;
+                    adder -= 10;
+                }
+
+                this.Z.set(adder);      // for display only
+                if (adder) {            // if the adder is not zero,
+                    unequal = 1;        // result will be unequal, determined by sign
+                }
+            } else {
+                // Ignore any digits after L is exhausted
+            }
+
+            // Shift both words right; increment digit counter
+            rw = (rw-rd)/0x10;
+            dw = (dw-dd)/0x10;
+            this.DC.inc();
+        } // while DC < 20
+
+        // If we are complementing and there is no final carry, we would normally
+        // decomplement the result and reverse the sign, but decomp is not needed.
+        // If we are not complementing and there is a final carry, we have overflow.
+        if (compl ^ carry) {
+            if (carry) {
+                unequal = 1;            // overflow, so force unequality
+            } else {
+                sign = 1-sign;          // reverse sign (pseudo decomplement)
+            }
+        }
+
+        // Set the console lamps and toggles to the result.
+        if (unequal) {                  // result is unequal, sign determines low/high
+            high = 1-sign;              // negative=low, positive=high
+            this.compareEqualLamp.set(0);
+            this.compareLowLamp.set(1-high);
+            this.compareHighLamp.set(high);
+        } else {
+            this.compareEqualLamp.set(1);
+            this.compareLowLamp.set(0);
+            this.compareHighLamp.set(0);
+        }
+
+        this.DST.set(dSign);
+        this.SGT.set(sign);
+        this.HIT.set(high);
+        this.UET.set(unequal);
+
+        this.CCONTROL = ((s%10)*0x10 + L)*0x100 + this.CCONTROL%0x100;
+        this.C.set((this.CCONTROL*0x100 + this.COP)*0x10000 + this.CADDR);
+        if (L > 0) {
+            this.setProgramCheck(1);
+        }
+
+    }
 };
 
 
@@ -1811,7 +2111,7 @@ B220Processor.prototype.keyboardAction = function keyboardAction(d) {
         case -4:                        // EXAM key pressed, memory -> D
             this.readMemory();
             if (!this.MET.value) {              // invalid address
-                this.E.add(1);
+                this.E.inc();
                 this.D.set(this.IB.value);
             }
             break;
@@ -1819,7 +2119,7 @@ B220Processor.prototype.keyboardAction = function keyboardAction(d) {
             this.IB.set(word);
             this.writeMemory();
             if (!this.MET.value) {
-                this.E.add(1);
+                this.E.inc();
             }
             break;
         case -6:                        // STEP key pressed
@@ -1847,7 +2147,7 @@ B220Processor.prototype.keyboardAdd = function keyboardAdd() {
     if (!this.RUT.value) {                      // we must be stopped
         this.SUT.set(0);
         compl = (aSign^sign);
-        am = this.bcdAdd(am, dm, compl, compl);
+        am = this.bcdAdd(am, dm, 11, compl, compl);
 
         // Now examine the resulting sign (still in the adder) to see if we
         // have overflow or need to recomplement the result.
@@ -1862,7 +2162,7 @@ B220Processor.prototype.keyboardAdd = function keyboardAdd() {
         default: // sign is 9
             // reverse the sign toggle and recomplement the result (virtually adding to the zeroed dm)
             sign = 1-sign;
-            am = this.bcdAdd(am, 0, 1, 1);
+            am = this.bcdAdd(am, 0, 11, 1, 1);
             // after recomplementing, set the correct sign (adder still contains sign of result)
             am += (sign - this.Z.value)*0x10000000000;
             break;
@@ -1889,8 +2189,8 @@ B220Processor.prototype.consoleOutputSign = function consoleOutputSign(printSign
 
     this.clockIn();
     if (this.AST.value) {               // if false, we've probably been cleared
-        d = this.bcdAdd(this.CCONTROL, 0x990); // decrement word count
-        this.CCONTROL += d%0x1000 - this.CCONTROL%0x1000;
+        d = this.bcdAdd(this.CCONTROL, 0x990, 3); // decrement word count
+        this.CCONTROL += d - this.CCONTROL%0x1000;
         this.C.set((this.CCONTROL*0x100 + this.COP)*0x10000 + this.CADDR);
         this.E.set(this.CADDR);
         this.readMemory();
@@ -1898,11 +2198,11 @@ B220Processor.prototype.consoleOutputSign = function consoleOutputSign(printSign
             this.ioComplete();
         } else {
             this.D.set(this.IB.value);
-            this.opTime += 0.700;       // estimate for memory access and rotation
+            this.opTime += 0.070;       // estimate for memory access and rotation
             w = this.D.value%0x10000000000;
             d = (this.D.value - w)/0x10000000000; // get the sign digit
             this.D.set(w*0x10 + d);     // rotate D+sign left one
-            this.DC.set(0x10);
+            this.DC.set(0x10);          // set up for 10 more digits
             this.DPT.set(this.CCONTROL%0x10 == 1 && this.COP == 0x09);
             this.LT1.set(this.LEADINGZEROESSW); // use LT1 for leading-zero suppression (probably not accurate)
             this.EWT.set(0);
@@ -1929,7 +2229,7 @@ B220Processor.prototype.consoleOutputChar = function consoleOutputChar(printChar
                 this.clockOut();
                 printChar(0x35, this.boundConsoleOutputFinished);
             } else {
-                this.C.add(1);
+                this.C.inc();
                 this.CADDR = this.C.value%0x10000;
                 this.clockOut();
                 printChar(0x35, this.boundConsoleOutputSign);
@@ -1940,7 +2240,8 @@ B220Processor.prototype.consoleOutputChar = function consoleOutputChar(printChar
             d = (this.D.value - w)/0x1000000000; // get next 2 digits
             this.D.set(w*0x100 + d);    // rotate D+sign left by two
             this.opTime += 0.060;       // estimate for rotation
-            this.DC.add(0x02);
+            this.DC.inc();              // increment DC for two digits
+            this.DC.inc();
             this.PA.set(d);
             if (this.DC.value >= 0x20) {
                 this.EWT.set(1);
@@ -1967,7 +2268,7 @@ B220Processor.prototype.consoleOutputChar = function consoleOutputChar(printChar
                 d = (this.D.value - w)/0x10000000000; // get a digit
                 this.D.value = w*0x10 + d;  // rotate D+sign left by one
                 this.opTime += 0.065;       // estimate for rotation
-                this.DC.add(0x01);
+                this.DC.inc();
             } while (d == 0 && this.LT1.value && this.DC.value < 0x20);
 
             this.LT1.set(0);
@@ -2044,7 +2345,7 @@ B220Processor.prototype.consoleReceiveDigit = function consoleReceiveDigit(digit
             this.SHIFTCONTROL = 0x01;   // for display only
             this.SHIFT = 0x13;          // for display only
             if (this.togCOUNT) {
-                this.CCONTROL = this.bcdAdd(this.CADDR, 1)%0x10000;
+                this.CCONTROL = this.bcdAdd(this.CADDR, 1, 4);
             }
 
             this.CEXTRA = (this.D.value - word%0x1000000)/0x1000000;
@@ -2054,9 +2355,9 @@ B220Processor.prototype.consoleReceiveDigit = function consoleReceiveDigit(digit
             // Shift D5-D10 into C1-C6, modify by B as necessary, and execute
             this.D.set(sign*0x100000 + (word - word%0x1000000)/0x1000000);
             if (this.togCLEAR) {
-                word = this.bcdAdd(word%0x1000000, 0);
+                word = this.bcdAdd(word%0x1000000, 0, 11);
             } else {
-                word = this.bcdAdd(word%0x1000000, this.B.value) % 0x1000000;
+                word = this.bcdAdd(word%0x1000000, this.B.value, 11) % 0x1000000;
             }
             this.SHIFT = 0x19;          // for display only
             this.C.set(word*0x10000 + this.CCONTROL); // put C back together
@@ -2079,7 +2380,7 @@ B220Processor.prototype.consoleReceiveDigit = function consoleReceiveDigit(digit
             this.SHIFTCONTROL = 0x01;   // for display only
             this.SHIFT = 0x15;          // for display only
             if (this.togCOUNT) {
-                this.CADDR = this.bcdAdd(this.CADDR, 1)%0x10000;
+                this.CADDR = this.bcdAdd(this.CADDR, 1, 4);
             }
             this.CCONTROL = this.CADDR;
             this.C.set((this.COP*0x10000 + this.CADDR)*0x10000 + this.CCONTROL);
@@ -2087,9 +2388,9 @@ B220Processor.prototype.consoleReceiveDigit = function consoleReceiveDigit(digit
             // Modify the word by B as necessary and store it
             this.D.set((sign & 0x0C)*0x10000000000 + word);
             if (this.togCLEAR) {
-                this.A.set(this.bcdAdd(this.D.value, 0));
+                this.A.set(this.bcdAdd(this.D.value, 0, 11));
             } else {
-                this.A.set(this.bcdAdd(this.D.value, this.B.value));
+                this.A.set(this.bcdAdd(this.D.value, this.B.value, 11));
             }
 
             this.D.set(0);
@@ -2117,7 +2418,7 @@ B220Processor.prototype.consoleReceiveSingleDigit = function consoleReceiveSingl
         this.execTime += performance.now()*B220Processor.wordsPerMilli + 4; // restore time after I/O
         this.togSTART = 0;
         this.D.set(digit);
-        this.integerAdd();
+        this.integerAdd(false, false);
         this.schedule();
     }
 };
@@ -2151,7 +2452,7 @@ B220Processor.prototype.cardatronOutputWord = function cardatronOutputWord(recei
         this.SHIFTCONTROL = 0x01;       // for display only
         this.SHIFT = 0x15;              // for display only
         if (this.togCOUNT) {
-            this.CADDR = this.bcdAdd(this.CADDR, 1)%0x10000;
+            this.CADDR = this.bcdAdd(this.CADDR, 1, 4);
         } else {
             this.togCOUNT = 1;
         }
@@ -2229,9 +2530,9 @@ B220Processor.prototype.cardatronReceiveWord = function cardatronReceiveWord(wor
 
             // Shift D5-D10 into C1-C6, modify by B as necessary, and execute
             if (this.togCLEAR) {
-                word = this.bcdAdd(word%0x1000000, 0);
+                word = this.bcdAdd(word%0x1000000, 0, 11);
             } else {
-                word = this.bcdAdd(word%0x1000000, this.B.value) % 0x1000000;
+                word = this.bcdAdd(word%0x1000000, this.B.value, 11) % 0x1000000;
             }
             this.C.set(word*0x10000 + this.CCONTROL); // put C back together
             this.CADDR = word % 0x10000;
@@ -2279,15 +2580,15 @@ B220Processor.prototype.cardatronReceiveWord = function cardatronReceiveWord(wor
             this.SHIFTCONTROL = 0x01;   // for display only
             this.SHIFT = 0x15;          // for display only
             if (this.togCOUNT) {
-                this.CADDR = this.bcdAdd(this.CADDR, 1)%0x10000;
+                this.CADDR = this.bcdAdd(this.CADDR, 1, 4);
             }
             this.C.set((this.COP*0x10000 + this.CADDR)*0x10000 + this.CCONTROL);
 
             // Modify the word by B as necessary and store it
             if (this.togCLEAR) {
-                word = this.bcdAdd(word, 0);
+                word = this.bcdAdd(word, 0, 11);
             } else {
-                word = this.bcdAdd(word, this.B.value);
+                word = this.bcdAdd(word, this.B.value, 11);
             }
 
             this.A.set(sign*0x10000000000 + word%0x10000000000);
@@ -2473,9 +2774,9 @@ B220Processor.prototype.magTapeReceiveBlock = function magTapeReceiveBlock(block
                 }
 
                 if (this.togCLEAR) {
-                    w = this.bcdAdd(w, 0);
+                    w = this.bcdAdd(w, 0, 11);
                 } else {
-                    w = this.bcdAdd(w, this.B.value);
+                    w = this.bcdAdd(w, this.B.value, 11);
                 }
 
                 loop[x] = w;
@@ -2513,7 +2814,7 @@ B220Processor.prototype.fetchWordToC = function fetchWordToC(word) {
     if (!dSign) {
         this.C.set(word%0x10000000000);
     } else {
-        this.CADDR = this.bcdAdd(this.CADDR, this.B.value) % 0x10000;
+        this.CADDR = this.bcdAdd(this.CADDR, this.B.value, 4);
         this.C10.set(0);                                            // reset carry toggle
         this.C.set((this.CCONTROL*0x100 + this.COP)*0x10000 + this.CADDR);
     }
@@ -2544,7 +2845,7 @@ B220Processor.prototype.fetch = function fetch() {
 
         this.D.set(word);               // D contains a copy of memory word
         if (!this.AST.value && !this.PCOUNTSW) {
-            this.P.add(0x01);           // if not doing I/O, bump the program counter
+            this.P.inc();               // if not doing I/O, bump the program counter
         }
     }
 
@@ -2586,7 +2887,7 @@ B220Processor.prototype.execute = function execute() {
 
     switch (this.COP) {
     case 0x00:      //--------------------- HLT     Halt
-        this.RUT.set(0);
+        this.setStop();
         this.opTime = 0.010;
         this.operationComplete();
         break;
@@ -2613,16 +2914,16 @@ B220Processor.prototype.execute = function execute() {
         break;
 
     case 0x06:      //--------------------- PWR     Paper tape write
-        this.opTime = 0.185;            // just a guess...
+        this.opTime = 0.185;                            // just a guess...
         this.AST.set(1);
-        d = this.CCONTROL >>> 12;       // get unit number
+        d = this.CCONTROL >>> 12;                       // get unit number
         if (d == 0) {
-            d = 10;                     // xlate unit 0 to unit 10
+            d = 10;                                     // xlate unit 0 to unit 10
         }
 
         this.clockOut();
         d = this.console.outputUnitSelect(d, this.boundConsoleOutputSign);
-        if (d < 0) {                    // no unit available -- set alarm and quit
+        if (d < 0) {                                    // no unit available -- set alarm and quit
             this.clockIn();
             this.AST.set(0);
             this.setPaperTapeCheck(1);
@@ -2631,14 +2932,14 @@ B220Processor.prototype.execute = function execute() {
         break;
 
     case 0x07:      //--------------------- PWI     Paper tape write interrogate, branch
-        d = this.CCONTROL >>> 12;       // get unit number
+        d = this.CCONTROL >>> 12;                       // get unit number
         if (d == 0) {
-            d = 10;                     // xlate unit 0 to unit 10
+            d = 10;                                     // xlate unit 0 to unit 10
         }
         d = this.console.outputUnitSelect(d, B220Processor.emptyFunction);
-        if (d < 0) {                    // if not ready, continue in sequence
+        if (d < 0) {                                    // if not ready, continue in sequence
             this.opTime = 0.015;
-        } else {                        // if ready, branch to operand address
+        } else {                                        // if ready, branch to operand address
             this.P.set(this.CADDR);
             this.opTime = 0.035;
         }
@@ -2652,11 +2953,11 @@ B220Processor.prototype.execute = function execute() {
         break;
 
     case 0x09:      //--------------------- SPO     Supervisory print-out
-        this.opTime = 0.185;            // just a guess...
+        this.opTime = 0.185;                            // just a guess...
         this.AST.set(1);
         this.clockOut();
         d = this.console.outputUnitSelect(0, this.boundConsoleOutputSign);
-        if (d < 0) {                    // no unit available -- set alarm and quit
+        if (d < 0) {                                    // no unit available -- set alarm and quit
             this.clockIn();
             this.AST.set(0);
             this.setPaperTapeCheck(1);
@@ -2667,26 +2968,26 @@ B220Processor.prototype.execute = function execute() {
     case 0x10:      //--------------------- CAD/CAA Clear add/add absolute
         this.SUT.set(0);
         this.A.value = this.IB.value - this.IB.value%0x10000000000;     // 0 with sign of IB
-        this.integerAdd(this.CCONTROL % 0x10 == 1);
+        this.integerAdd(this.CCONTROL % 0x10 == 1, false);
         this.operationComplete();
         break;
 
     case 0x11:      //--------------------- CSU/CSA Clear subtract/subtract absolute
         this.SUT.set(1);
         this.A.value = this.IB.value - this.IB.value%0x10000000000;     // 0 with sign of IB
-        this.integerAdd(this.CCONTROL % 0x10 == 1);
+        this.integerAdd(this.CCONTROL % 0x10 == 1, false);
         this.operationComplete();
         break;
 
     case 0x12:      //--------------------- ADD/ADA Add/add absolute
         this.SUT.set(0);
-        this.integerAdd(this.CCONTROL % 0x10 == 1);
+        this.integerAdd(this.CCONTROL % 0x10 == 1, false);
         this.operationComplete();
         break;
 
     case 0x13:      //--------------------- SUB/SUA Subtract/subtract absolute
         this.SUT.set(1);
-        this.integerAdd(this.CCONTROL % 0x10 == 1);
+        this.integerAdd(this.CCONTROL % 0x10 == 1, false);
         this.operationComplete();
         break;
 
@@ -2701,22 +3002,22 @@ B220Processor.prototype.execute = function execute() {
         break;
 
     case 0x16:      //--------------------- RND     Round
-        this.opTime = 0.015;                    // minimum instruction timing
+        this.opTime = 0.015;                            // minimum instruction timing
         this.SUT.set(0);
         w = this.A.value%0x10000000000;
         this.SGT.set(((this.A.value - w)/0x10000000000)%2);
         if (this.R.value%0x10000000000 >= 0x5000000000) {
             // Add round-off (as the carry bit) to absolute value of A.
-            this.A.value -= w;                  // preserve the A sign digit
-            w = this.bcdAdd(w, 0, 0, 1);
+            this.A.value -= w;                          // preserve the A sign digit
+            w = this.bcdAdd(w, 0, 11, 0, 1);
             if (w >= 0x10000000000) {
-                this.OFT.set(1);                // overflow occurred
-                w -= 0x10000000000;             // remove the overflow bit from A
+                this.OFT.set(1);                        // overflow occurred
+                w -= 0x10000000000;                     // remove the overflow bit from A
             }
-            this.A.set(this.A.value + w);       // restore the A sign digit
-            this.opTime += 0.060;               // account for add cycle
+            this.A.set(this.A.value + w);               // restore the A sign digit
+            this.opTime += 0.060;                       // account for add cycle
         }
-        this.R.set(0);                          // unconditionally clear R
+        this.R.set(0);                                  // unconditionally clear R
         this.operationComplete();
         break;
 
@@ -2726,22 +3027,40 @@ B220Processor.prototype.execute = function execute() {
         break;
 
     case 0x18:      //--------------------- CFA/CFR Compare field A/R
-        this.setProgramCheck(1);
+        this.compareField();
         this.operationComplete();
         break;
 
     case 0x19:      //--------------------- ADL     Add to location
-        this.setProgramCheck(1);
+        this.SUT.set(0);
+        this.integerAdd(false, true);                   // result to D register
+        this.IB.set(this.D.value);
+        this.writeMemory();                             // E still contains the operand address
+        this.opTime += 0.70;                            // additional time over standard ADD
         this.operationComplete();
         break;
 
     case 0x20:      //--------------------- IBB     Increase B, branch
-        this.setProgramCheck(1);
+        w = this.B.value;
+        this.B.add(this.CCONTROL);
+        if (this.B.value < w) {
+            this.opTime = 0.040;
+        } else {
+            this.P.set(this.CADDR);
+            this.opTime = 0.060;
+        }
         this.operationComplete();
         break;
 
     case 0x21:      //--------------------- DBB     Decrease B, branch
-        this.setProgramCheck(1);
+        w = this.B.value;
+        this.B.sub(this.CCONTROL);
+        if (this.B.value > w) {
+            this.opTime = 0.040;
+        } else {
+            this.P.set(this.CADDR);
+            this.opTime = 0.060;
+        }
         this.operationComplete();
         break;
 
@@ -2768,22 +3087,121 @@ B220Processor.prototype.execute = function execute() {
         break;
 
     case 0x26:      //--------------------- IFL     Increase field location
-        this.setProgramCheck(1);
+        this.opTime = 0.160;
+        this.SUT.set(0);
+        this.E.set(this.CADDR);
+        this.readMemory();
+        if (!this.MET.value) {
+            this.D.set(this.IB.value);
+            x = 0;                                      // use as the carry bit
+            w = this.CCONTROL%0x100;                    // increase value
+            d = this.partialWordAction(0, this.IB.value, function IFL(stage, sd, dd, dw) {
+                var d;
+                if (stage != 2) {
+                    d = dd;
+                } else {
+                    d = w%0x10;                         // get current increase digit
+                    w = (w-d)/0x10;
+                    this.X.set(d);                      // for display only
+                    this.Y.set(dd);                     // for display only
+                    d += dd + x;                        // generate digit sum
+                    if (d <= 9) {
+                        x = 0;                          // no carry
+                    } else {
+                        x = 1;                          // set carry bit
+                        d -= 10;                        // decimal adjust digit sum
+                    }
+                    this.Z.set(d);                      // for display only
+               }
+                return d;
+            });
+
+            this.D.set(d);
+            this.IB.set(d);
+            this.C10.set(x);                            // set carry toggle
+            this.OFT.set(x || w);                       // set overflow if carry or increase not exhausted
+            if (this.CCONTROL%0x1000 < 0x100) {         // check whether L was decremented to zero
+                this.writeMemory();
+            }
+        }
         this.operationComplete();
         break;
 
     case 0x27:      //--------------------- DFL     Decrease field location
-        this.setProgramCheck(1);
-        this.operationComplete();
-        break;
-
     case 0x28:      //--------------------- DLB     Decrease field location, load B
-        this.setProgramCheck(1);
+        this.opTime = 0.160;
+        this.SUT.set(1);
+        this.RPT.set(0);
+        if (this.COP == 0x28) {
+            this.B.set(0);
+        }
+        this.E.set(this.CADDR);
+        this.readMemory();
+        if (!this.MET.value) {
+            this.D.set(this.IB.value);
+            x = 0;                                      // use as the borrow bit
+            w = this.CCONTROL%0x100;                    // decrease value
+            d = this.partialWordAction(0, this.IB.value, function DFL_DLB(stage, sd, dd, dw) {
+                var d;
+                if (stage != 2) {
+                    d = dd;
+                } else {
+                    d = w%0x10;                         // get current decrease digit
+                    w = (w-d)/0x10;
+                    this.X.set(d);                      // for display only
+                    this.Y.set(dd);                     // for display only
+                    d = dd - x - d;                     // generate digit sum
+                    if (d >= 0) {
+                        x = 0;                          // no borrow
+                    } else {
+                        x = 1;                          // set borrow bit
+                        d += 10;                        // decimal adjust digit sum
+                    }
+                    this.Z.set(d);                      // for display only
+                    if (this.COP == 0x28) {
+                        this.B.value = (this.B.value - this.B.value%0x10)/0x10 + d*0x1000;
+                    }
+                }
+                return d;
+            });
+
+            this.D.set(d);
+            this.IB.set(d);
+            this.C10.set(x);                            // set carry/borrow toggle
+            if (x == 0 && w == 0) {
+                this.RPT.set(1);                        // set repeat toggle if no underflow
+            }
+            if (this.COP == 0x28) {
+                this.B.set(this.B.value);
+            }
+            if (this.CCONTROL%0x1000 < 0x100) {         // check whether L was decremented to zero
+                this.writeMemory();
+            }
+        }
         this.operationComplete();
         break;
 
     case 0x29:      //--------------------- RTF     Record transfer
-        this.setProgramCheck(1);
+        this.opTime = 0.040;
+        do {
+            d = this.bcdAdd(this.CCONTROL, 0x990, 3);   // decrement word count
+            this.CCONTROL += d - this.CCONTROL%0x1000;
+            this.E.set(this.CADDR);
+            this.CADDR = this.bcdAdd(this.CADDR, 1, 4); // increment source address
+            this.C.set((this.CCONTROL*0x100 + this.COP)*0x10000 + this.CADDR);
+            this.readMemory();
+            if (this.MET.value) {                       // invalid address
+                break; // out of do loop
+            } else {
+                this.E.set(this.B.value);
+                this.B.inc();                           // increment destination address
+                this.opTime += 0.060;
+                this.writeMemory();
+                if (this.MET.value) {
+                    break; // out of do loop
+                }
+            }
+        } while (this.CCONTROL%0x1000 > 0x00F);
         this.operationComplete();
         break;
 
@@ -2794,42 +3212,116 @@ B220Processor.prototype.execute = function execute() {
         break;
 
     case 0x31:      //--------------------- BOF     Branch, overflow
-        this.setProgramCheck(1);
+        this.opTime = 0.015;
+        if (this.OFT.value) {
+            this.P.set(this.CADDR);
+            this.OFT.set(0);
+            this.opTime += 0.020;
+        }
         this.operationComplete();
         break;
 
     case 0x32:      //--------------------- BRP     Branch, repeat
-        this.setProgramCheck(1);
+        this.opTime = 0.015;
+        if (this.RPT.value) {
+            this.P.set(this.CADDR);
+            this.RPT.set(0);
+            this.opTime += 0.020;
+        }
         this.operationComplete();
         break;
 
     case 0x33:      //--------------------- BSA     Branch, sign A
-        this.setProgramCheck(1);
+        this.opTime = 0.085;
+        this.SUT.set(1);
+        if ((this.A.value - this.A.value%0x10000000000)/0x10000000000 == this.CCONTROL%0x10) {
+            this.P.set(this.CADDR);
+            this.opTime += 0.020;
+        }
         this.operationComplete();
         break;
 
     case 0x34:      //--------------------- BCH/BCL Branch, comparison high/low
-        this.setProgramCheck(1);
+        this.opTime = 0.015;
+        if (this.UET.value) {
+            if (this.HIT.value) {                       // HIGH condition
+                if (this.CCONTROL%0x10 != 1) {          // BCH -- test for high condition
+                    this.P.set(this.CADDR);
+                    this.opTime += 0.020;
+                }
+            } else {                                    // LOW condition
+                if (this.CCONTROL%0x10 == 1) {          // BCL -- test for low condition
+                    this.P.set(this.CADDR);
+                    this.opTime += 0.020;
+                }
+            }
+        } else {
+            if (this.HIT.value) {                       // EQUAL condition
+                // continue in sequence
+            } else {                                    // no condition is set
+                this.setProgramCheck(1);
+            }
+        }
         this.operationComplete();
         break;
 
     case 0x35:      //--------------------- BCE/BCU Branch, comparison equal/unequal
-        this.setProgramCheck(1);
+        this.opTime = 0.015;
+        if (this.UET.value) {                           // UNEQUAL condition
+            if (this.CCONTROL%0x10 == 1) {              // BCU -- test for unequal condition
+                this.P.set(this.CADDR);
+                this.opTime += 0.020;
+            } else {
+                // continue in sequence
+            }
+        } else {
+            if (this.HIT.value) {                       // EQUAL condition
+                if (this.CCONTROL%0x10 != 1) {          // BCE -- test for equal condition
+                    this.P.set(this.CADDR);
+                    this.opTime += 0.020;
+                }
+            } else {                                    // no condition is set
+                this.setProgramCheck(1);
+            }
+        }
         this.operationComplete();
         break;
 
     case 0x36:      //--------------------- BFA     Branch, field A
-        this.setProgramCheck(1);
-        this.operationComplete();
-        break;
-
     case 0x37:      //--------------------- BFR     Branch, field R
-        this.setProgramCheck(1);
+        this.opTime = 0.075;
+        this.SUT.set(1);
+        x = 1;                                          // equality flag: initialize true
+        w = this.CCONTROL%0x100;                        // 2-digit pattern to compare
+        this.partialWordAction(0, (this.COP == 0x36 ? this.A.value : this.R.value),
+                               function CFA_CFR(stage, sd, dd, dw) {
+            var d;
+            if (stage == 2) {
+                d = w%0x10;                             // get current pattern digit
+                w = (w-d)/0x10 + d*0x10;                // rotate the 2-digit pattern
+                this.X.set(9-d);                        // for display only
+                this.Y.set(d);                          // for display only
+                if (d == dd) {
+                    this.Z.set(0);                      // for display only
+                    this.C10.set(0);
+                } else {
+                    x = 0;                              // inequality detected, reset flag
+                    this.Z.set((dd - d + 10)%10);       // for display only
+                    this.C10.set(d > dd);
+                }
+            }
+            return dd;
+        });
+
+        if (x) {                                        // if equality exists, branch
+            this.opTime += 0.020;
+            this.P.set(this.CADDR);
+        }
         this.operationComplete();
         break;
 
     case 0x38:      //--------------------- BCS     Branch, control switch
-        this.opTime = 0.015;                    // minimum instruction timing
+        this.opTime = 0.015;                            // minimum instruction timing
         d = (this.CCONTROL - this.CCONTROL%0x1000)/0x1000;
         if (this["PCS" + d.toString() + "SW"]) {
             this.opTime += 0.020;
@@ -2838,53 +3330,217 @@ B220Processor.prototype.execute = function execute() {
         this.operationComplete();
         break;
 
-    case 0x39:      //--------------------- SO*/IOM Set overflow remember/halt, Interrogate overflow mode
-        this.setProgramCheck(1);
+    case 0x39:      //--------------------- SOR/SOH/IOM Set overflow remember/halt, Interrogate overflow mode
+        // Note: it's not clear what should happen if the variant digit (41) is
+        // other than 0, 1, or 2. We assume the digit is used as a bit mask.
+        this.opTime = 0.015;
+        switch (true) {
+        case (this.CCONTROL & 0x02) == 0x02:            // IOM: Interrogate overflow mode
+            if (this.HCT.value) {
+                this.P.set(this.CADDR);
+                this.opTime += 0.020;
+            }
+            break;
+        case (this.CCONTROL & 0x01) == 0x01:            // SOH: Set overflow halt
+            this.HCT.set(1);
+            if (this.OFT.value) {
+                this.setStop();
+            }
+            break;
+        default:                                        // SOR: Set overflow remember
+            this.HCT.set(0);
+            break;
+        }
         this.operationComplete();
         break;
 
     case 0x40:      //--------------------- ST*     Store A/R/B
-        this.setProgramCheck(1);
+        this.opTime = 0.100;
+        this.E.set(this.CADDR);
+        this.readMemory();
+        if (!this.MET.value) {
+            switch (this.CCONTROL%0x10) {
+            case 1:         // STR: Store R
+                w = this.R.value;
+                break;
+            case 2:         // STB: Store B
+                w = this.B.value;
+                break;
+            default:        // STA: Store A
+                w = this.A.value;
+                break;
+            } // switch
+
+            if ((this.CCONTROL & 0x10) == 0) {
+                this.D.set(w);
+                this.IB.set(w);
+                this.writeMemory();
+            } else {
+                this.D.set(0);
+                w = this.partialWordAction(w, this.IB.value, function storeAction(stage, sd, dd, dw) {
+                    if (stage == 2) {
+                        this.D.value += sd-this.D.value%0x10;
+                    }
+                    d = this.D.value%0x10;
+                    this.D.value = (this.D.value - d)/0x10 + d*0x10000000000;
+                    return sd;
+                });
+                this.D.set(this.D.value);
+                this.IB.set(w);
+                if (this.CCONTROL%0x1000 < 0x100) {     // check whether L was decremented to zero
+                    this.writeMemory();
+                }
+            }
+        }
         this.operationComplete();
         break;
 
     case 0x41:      //--------------------- LDR     Load R
-        this.setProgramCheck(1);
+        this.opTime = 0.085;
+        this.E.set(this.CADDR);
+        this.readMemory();
+        if (!this.MET.value) {
+            this.D.set(this.IB.value);
+            this.R.set(this.IB.value);
+        }
         this.operationComplete();
         break;
 
     case 0x42:      //--------------------- LDB/LBC Load B/B complement
-        this.setProgramCheck(1);
+        this.opTime = 0.090;
+        this.E.set(this.CADDR);
+        this.readMemory();
+        if (!this.MET.value) {
+            this.D.set(this.IB.value);
+            if (this.CCONTROL%0x10 == 1) {              // Load B complement
+                this.B.set(this.bcdAdd(this.IB.value, 0, 4, 1, 1));
+            } else {                                    // Load B
+                this.B.set(this.IB.value);
+            }
+        }
         this.operationComplete();
         break;
 
     case 0x43:      //--------------------- LSA     Load sign A
-        this.setProgramCheck(1);
+        this.opTime = 0.015
+        this.A.set(this.A.value%0x10000000000 + (this.CCONTROL%0x10)*0x10000000000);
         this.operationComplete();
         break;
 
     case 0x44:      //--------------------- STP     Store P
-        this.setProgramCheck(1);
+        this.opTime = 0.095;
+        this.E.set(this.CADDR);
+        this.readMemory();
+        if (!this.MET.value) {
+            this.IB.set(this.IB.value - this.IB.value%0x10000 + this.bcdAdd(this.P.value, 1, 4));
+            this.D.set(this.IB.value);
+            this.writeMemory();
+        }
         this.operationComplete();
         break;
 
     case 0x45:      //--------------------- CL*     Clear A/R/B
-        this.setProgramCheck(1);
+        this.opTime = 0.010;
+        if (this.CCONTROL & 0x01) {
+            this.A.set(0);
+        }
+        if (this.CCONTROL & 0x02) {
+            this.R.set(0);
+        }
+        if (this.CCONTROL & 0x04) {
+            this.B.set(0);
+        }
         this.operationComplete();
         break;
 
     case 0x46:      //--------------------- CLL     Clear location
-        this.setProgramCheck(1);
+        this.opTime = 0.025;
+        this.E.set(this.CADDR);
+        this.writeMemory();                             // IB is still zero
         this.operationComplete();
         break;
 
     case 0x48:      //--------------------- SR*     Shift right A/A and R/A with sign
-        this.setProgramCheck(1);
+        x = B220Processor.bcdBinary(this.CADDR % 0x20);
+        this.opTime = 0.020 + x*0.005;
+        this.DC.set(B220Processor.binaryBCD(20-x));
+        switch (this.CCONTROL%0x10) {
+        case 1:         // SRT: Shift Right A and R
+            w = this.A.value % 0x10000000000;           // A sign is not affected
+            this.R.value %= 0x10000000000;              // discard the R sign
+            while (this.DC.value < 0x20) {
+                d = w % 0x10;
+                w = (w-d)/0x10;
+                this.R.value = (this.R.value - this.R.value%0x10)/0x10 + d*0x1000000000;
+                this.DC.inc();
+            }
+            this.R.set(this.A.value - this.A.value%0x10000000000 + this.R.value); // copy A sign into R
+            this.A.set(this.A.value - this.A.value%0x10000000000 + w);  // restore the A sign
+            break;
+        case 2:         // SRS: Shift Right A with Sign
+            w = this.A.value % 0x100000000000;          // A sign is included
+            while (this.DC.value < 0x20) {
+                d = w % 0x10;
+                w = (w-d)/0x10;
+                this.DC.inc();
+            }
+            this.A.set(w);
+            break;
+        default:        // SRA: Shift Right A
+            w = this.A.value % 0x10000000000;           // A sign is not affected
+            while (this.DC.value < 0x20) {
+                d = w % 0x10;
+                w = (w-d)/0x10;
+                this.DC.inc();
+            }
+            this.A.set(this.A.value - this.A.value%0x10000000000 + w);  // restore the A sign
+            break;
+        } // switch on control digit
         this.operationComplete();
         break;
 
-    case 0x49:      //--------------------- SL*     Shift left A/A and R/A with sign
-        this.setProgramCheck(1);
+    case 0x49:      //--------------------- SL*     Shift (rotate) left A/A and R/A with sign
+        switch (this.CCONTROL%0x10) {
+        case 1:         // SLT: Shift Left A and R
+            x = B220Processor.bcdBinary(this.CADDR % 0x20);
+            this.opTime = 0.210 - x*0.005;
+            this.DC.set(B220Processor.binaryBCD(x));
+            w = this.R.value % 0x10000000000;           // R sign is not affected
+            this.A.value %= 0x10000000000;              // discard the A sign
+            while (this.DC.value < 0x20) {
+                d = w % 0x10;
+                w = (w-d)/0x10 + (this.A.value%0x10)*0x1000000000;
+                this.A.value = (this.A.value - this.A.value%0x10)/0x10 + d*0x1000000000;
+                this.DC.inc();
+            }
+            this.A.set(this.R.value - this.R.value%0x10000000000 + this.A.value);  // copy R sign into A
+            this.R.set(this.R.value - this.R.value%0x10000000000 + w); // restore the R sign
+            break;
+        case 2:         // SLS: Shift Left A with Sign
+            x = B220Processor.bcdBinary(this.CADDR % 0x10);
+            this.opTime = 0.160 - x*0.005;
+            this.DC.set(B220Processor.binaryBCD(10+x));
+            w = this.A.value % 0x100000000000;          // A sign is included
+            while (this.DC.value < 0x20) {
+                d = w % 0x10;
+                w = (w-d)/0x10 + d*0x10000000000;
+                this.DC.inc();
+            }
+            this.A.set(w);
+            break;
+        default:        // SLA: Shift Left A
+            x = B220Processor.bcdBinary(this.CADDR % 0x10);
+            this.opTime = 0.160 - x*0.005;
+            this.DC.set(B220Processor.binaryBCD(10+x));
+            w = this.A.value % 0x10000000000;           // A sign is not affected
+            while (this.DC.value < 0x20) {
+                d = w % 0x10;
+                w = (w-d)/0x10 + d*0x1000000000;
+                this.DC.inc();
+            }
+            this.A.set(this.A.value - this.A.value%0x10000000000 + w);  // restore the A sign
+            break;
+        } // switch on control digit
         this.operationComplete();
         break;
 
@@ -2994,250 +3650,6 @@ B220Processor.prototype.execute = function execute() {
             this.consoleInputDigit();
             break;
 
-        case 0x01:      //---------------- CIRA Circulate A
-            x = B220Processor.bcdBinary(this.CADDR % 0x20);
-            this.execTime += x+8;
-            x = 19-x;
-            this.SHIFT = B220Processor.binaryBCD(x);    // for display only
-            this.togDELAY = 1;                          // for display only
-            w = this.A.value;
-            for (; x<=19; ++x) {
-                d = (w - w%0x10000000000)/0x10000000000;
-                w = (w%0x10000000000)*0x10 + d;
-            }
-            this.A.set(w);
-            break;
-
-        case 0x02:      //---------------- STC  Store and Clear A
-            this.execTime += 1;
-            break;
-
-        case 0x03:      //---------------- PTW  Paper-tape/Flexowriter write
-            if (this.cswPOSuppress) {
-                //this.schedule();                 // ignore printout commands
-            } else if (this.cswOutput == 0) {
-                this.togCST = 1;                        // halt if Output switch is OFF
-                //this.schedule();
-            } else {
-                this.togPO1 = 1;                        // for display only
-                this.SHIFT = this.bcdAdd(this.CADDR%0x20, 0x19, 1, 1);  // 19-n
-                this.execTime -= performance.now()*B220Processor.wordsPerMilli; // mark time during I/O
-                this.stopIdle = 1;                      // turn IDLE lamp on in case Output Knob is OFF
-                d = (this.CADDR%0x1000 - this.CADDR%0x100)/0x100;
-                if (d) {                                // if C8 is not zero, output it first as the format digit
-                    this.togOK = this.togDELAY = 1;     // for display only
-                    this.console.writeFormatDigit(d, this.boundConsoleOutputSignDigit);
-                } else {
-                    this.consoleOutputSignDigit();
-                }
-            }
-            break;
-
-        case 0x04:      //---------------- CNZ  Change on Non-Zero
-            this.execTime += 3;
-            this.togZCT = 1;                            // for display only
-            this.D.set(0);
-            this.integerAdd();                          // clears the sign digit, among other things
-            if (this.A.value) {
-                this.setTimingToggle(0);                // stay in Execute
-                this.OFT.set(1);                    // set overflow
-                this.COP = 0x28;                        // make into a CC
-                this.C.set((this.CCONTROL*0x100 + this.COP)*0x10000 + this.CADDR);
-            }
-            break;
-
-        // 0x05:        //---------------- (no op)
-
-        case 0x06:      //---------------- UA   Unit Adjust
-            this.execTime += 2;
-            if (this.A.value % 2 == 0) {
-                ++this.A.value;
-            }
-            break;
-
-        case 0x07:      //---------------- PTWF Paper-tape Write Format
-            if (this.cswPOSuppress) {
-                //this.schedule();                 // ignore printout commands
-            } else if (this.cswOutput == 0) {
-                this.togCST = 1;                        // halt if Output switch is OFF
-                //this.schedule();
-            } else {
-                this.execTime -= performance.now()*B220Processor.wordsPerMilli; // mark time during I/O
-                this.stopIdle = 1;                      // turn IDLE lamp on in case Output Knob is OFF
-                d = (this.CADDR%0x1000 - this.CADDR%0x100)/0x100;
-                if (d) {                                // if C8 is not zero, output it as the format digit
-                    this.togOK = this.togDELAY = 1;
-                    this.console.writeFormatDigit(d, this.boundConsoleOutputFinished);
-                } else {
-                    this.consoleOutputFinished();
-                }
-            }
-            break;
-
-        // 0x08:        //---------------- HALT [was handled above]
-
-        // 0x09:        //---------------- (no op)
-
-        case 0x11:      //---------------- BA   B to A transfer
-            this.execTime += 3;
-            this.togBTOAIN = 1;                         // for display only
-            this.togADDAB = 1;                          // for display only
-            this.togDELTABDIV = 1;                      // for display only
-            this.SHIFT = 0x15;                          // for display only
-            this.A.set(this.bcdAdd(0, this.B.value));
-            //this.schedule();
-            break;
-
-        case 0x12:      //---------------- ST   Store A
-            this.execTime += 1;
-            this.writeMemory(this.schedule, false);
-            break;
-
-        case 0x13:      //---------------- SR   Shift Right A & R
-            x = B220Processor.bcdBinary(this.CADDR % 0x20);
-            this.execTime += (x < 12 ? 2 : 3);
-            x = 19-x;
-            this.SHIFT = B220Processor.binaryBCD(x);    // for display only
-            this.SHIFTCONTROL = 0x04;                   // for display only
-            w = this.A.value % 0x10000000000;                 // A sign is not affected
-            for (; x<19; ++x) {
-                d = w % 0x10;
-                w = (w-d)/0x10;
-                this.R.set((this.R.value - this.R.value % 0x10)/0x10 + d*0x1000000000);
-            }
-            this.A.value += w - this.A.value%0x10000000000;         // restore the sign <<??>>
-            break;
-
-        case 0x14:      //---------------- SL   Shift Left A & R
-            x = B220Processor.bcdBinary(this.CADDR % 0x20);
-            this.execTime += (x < 9 ? 3 : 2);
-            this.SHIFT = B220Processor.binaryBCD(x);    // for display only
-            this.SHIFTCONTROL = 0x06;                   // for display only
-            w = this.A.value % 0x10000000000;                 // A sign is not affected
-            for (; x<=19; ++x) {
-                d = this.R.value % 0x10;
-                this.R.set((this.R.value - d)/0x10);
-                d = (w += d*0x10000000000)%0x10;
-                w = (w-d)/0x10;
-                this.R.value += d*0x1000000000;
-            }
-            this.A.value += w - this.A.value%0x10000000000;         // restore the sign <<??>>
-            break;
-
-        case 0x15:      //---------------- NOR  Normalize A & R
-            this.togZCT = 1;                            // for display only
-            this.SHIFTCONTROL = 0x02;                   // for display only
-            w = this.A.value % 0x10000000000;                 // A sign is not affected
-            x = 0;
-            do {
-                d = (w - w%0x1000000000)/0x1000000000;
-                if (d) {
-                    break;                              // out of do loop
-                } else {
-                    ++x;                                // count the shifts
-                    d = this.R.value % 0x1000000000;          // shift A and R left
-                    w = w*0x10 + (this.R.value - d)/0x1000000000;
-                    this.R.set(d*0x10);
-                }
-            } while (x < 10);
-            this.A.value += w - this.A.value%0x10000000000;         // restore the sign <<??>>
-            this.execTime += (x+1)*2;
-
-            this.SPECIAL = x;                           // the result
-            this.SHIFTCONTROL |= 0x04;                  // for display only
-            this.SHIFT = 0x19;                          // for display only
-            if (x < 10) {
-            } else {
-                this.setTimingToggle(0);                // stay in Execute
-                this.OFT.set(1);                    // set overflow
-                this.COP = 0x28;                        // make into a CC
-                this.C.set((this.CCONTROL*0x100 + this.COP)*0x10000 + this.CADDR);
-            }
-            break;
-
-        // 0x18-0x19:   //---------------- (no op)
-
-        case 0x20:      //---------------- CU   Change Unconditionally
-            this.execTime += 2;
-            this.SHIFT = 0x15;                          // for display only
-            this.SHIFTCONTROL = 0x07;                   // for display only
-            this.P = this.CADDR;                 // copy address to control counter
-            break;
-
-        case 0x21:      //---------------- CUR  Change Unconditionally, Record
-            this.execTime += 2;
-            this.SHIFT = 0x15;                          // for display only
-            this.SHIFTCONTROL = 0x07;                   // for display only
-            this.R.set(this.CCONTROL*0x1000000);           // save current control counter
-            this.CCONTROL = this.CADDR;                 // copy address to control counter
-            this.C.set((this.COP*0x10000 + this.CADDR)*0x10000 + this.CCONTROL);
-            break;
-
-        case 0x22:      //---------------- DB   Decrease B and Change on Negative
-            this.execTime += 3;
-            this.togADDAB = 1;                          // for display only
-            this.togDELTABDIV = 1;                      // for display only
-            this.togZCT = 1;                            // for display only
-            this.SHIFT = 0x15;                          // for display only
-            if (this.B.value == 0) {
-                this.B.set(0x9999);
-            } else {
-                this.B.set(this.bcdAdd(this.B.value, 0x9999) % 0x10000); // add -1
-                this.setTimingToggle(0);                // stay in Execute
-                this.OFT.set(1);                    // set overflow
-                this.COP = 0x28;                        // make into a CC
-                this.C.set((this.COP*0x10000 + this.CADDR)*0x10000 + this.CCONTROL);
-            }
-            this.togSIGN = ((this.A.value - this.A.value%0x10000000000)/0x10000000000)%2; // display only
-            this.D.set(0);
-            break;
-
-        case 0x28:      //---------------- CC   Change Conditionally
-            if (!this.stopOverflow) {                   // check if branch should occur
-                this.execTime += 1;
-                this.SHIFTCONTROL = 0x04;               // no -- set for display only
-            } else {
-                this.execTime += 2;
-                this.OFT.set(0);                    // reset overflow and do the branch
-                this.SHIFT = 0x15;                      // for display only
-                this.SHIFTCONTROL = 0x07;               // for display only
-                this.CCONTROL = this.CADDR;             // copy address to control counter
-                this.C.set((this.COP*0x10000 + this.CADDR)*0x10000 + this.CCONTROL);
-            }
-            break;
-
-        case 0x29:      //---------------- CCR  Change Conditionally, Record
-            if (!this.stopOverflow) {                   // check if branch should occur
-                this.execTime += 1;
-                this.SHIFTCONTROL = 0x04;               // for display only
-            } else {
-                this.execTime += 2;
-                this.OFT.set(0);                    // reset overflow and do the branch
-                this.SHIFT = 0x15;                      // for display only
-                this.SHIFTCONTROL = 0x07;               // for display only
-                this.R.set(this.CCONTROL*0x1000000);       // save current control counter
-                this.CCONTROL = this.CADDR;             // copy address to control counter
-                this.C.set((this.COP*0x10000 + this.CADDR)*0x10000 + this.CCONTROL);
-            }
-            break;
-
-        case 0x32:      //---------------- IB   Increase B
-            this.execTime += 3;
-            this.togADDAB = 1;                          // for display only
-            this.togDELTABDIV = 1;                      // for display only
-            this.togZCT = 1;                            // for display only
-            this.SHIFT = 0x15;                          // for display only
-            this.B.set(this.bcdAdd(this.B.value, 1) % 0x10000);  // discard any overflow in B
-            this.togSIGN = ((this.A.value - this.A.value%0x10000000000)/0x10000000000)%2; // display only
-            this.D.set(0);
-            break;
-
-        case 0x33:      //---------------- CR   Clear R
-            this.execTime += 2;
-            this.SHIFTCONTROL = 0x04;                   // for display only
-            this.R.set(0);
-            break;
-
         case 0x40:      //---------------- MTR  Magnetic Tape Read
             if (!this.magTape) {
                 //this.schedule();
@@ -3256,8 +3668,6 @@ B220Processor.prototype.execute = function execute() {
             }
             break;
 
-        // 0x41:        //---------------- (no op)
-
         case 0x42:      //---------------- MTS  Magnetic Tape Search
             if (this.magTape) {
                 this.selectedUnit = (this.CEXTRA >>> 4) & 0x0F;
@@ -3268,8 +3678,6 @@ B220Processor.prototype.execute = function execute() {
             }
             //this.schedule();
             break;
-
-        // 0x43:        //---------------- (no op)
 
         case 0x44:      //---------------- CDR  Card Read (Cardatron)
             this.D.set(0);
@@ -3297,8 +3705,6 @@ B220Processor.prototype.execute = function execute() {
             //this.schedule();
             break;
 
-        // 0x46-0x47:   //---------------- (no op)
-
         case 0x48:      //---------------- CDRF Card Read Format
             if (!this.cardatron) {
                 //this.schedule();
@@ -3312,8 +3718,6 @@ B220Processor.prototype.execute = function execute() {
                         this.boundCardatronOutputWord, this.boundCardatronOutputFinished);
             }
             break;
-
-        // 0x49:        //---------------- (no op)
 
         case 0x50:      //---------------- MTW  Magnetic Tape Write
             if (!this.magTape) {
@@ -3333,8 +3737,6 @@ B220Processor.prototype.execute = function execute() {
             }
             break;
 
-        // 0x51:        //---------------- (no op)
-
         case 0x52:      //---------------- MTRW Magnetic Tape Rewind
             if (this.magTape) {
                 this.selectedUnit = (this.CEXTRA >>> 4) & 0x0F;
@@ -3343,8 +3745,6 @@ B220Processor.prototype.execute = function execute() {
                 }
             }
             break;
-
-        // 0x53:        //---------------- (no op)
 
         case 0x54:      //---------------- CDW  Card Write (Cardatron)
             if (!this.cardatron) {
@@ -3371,8 +3771,6 @@ B220Processor.prototype.execute = function execute() {
             }
             break;
 
-        // 0x56-0x57:   //---------------- (no op)
-
         case 0x58:      //---------------- CDWF Card Write Format
             if (!this.cardatron) {
                 //this.schedule();
@@ -3386,8 +3784,6 @@ B220Processor.prototype.execute = function execute() {
                         this.boundCardatronOutputWord, this.boundCardatronOutputFinished);
             }
             break;
-
-        // 0x59:        //---------------- (no op)
 
         default:        //---------------- (unimplemented instruction -- alarm)
             break;
@@ -3644,6 +4040,34 @@ B220Processor.prototype.setCycle = function setCycle(cycle) {
 };
 
 /**************************************/
+B220Processor.prototype.toggleCompare = function toggleCompare(condition) {
+    /* Toggles the comparison lamps and sets the processor UET and HIT toggles
+    according to the condition: <0=LOW, 0=EQUAL, >0=HIGH */
+
+    if (this.poweredOn) {
+        if (condition < 0) {            // LOW
+            this.compareLowLamp.flip();
+            this.compareEqualLamp.set(0);
+            this.compareHighLamp.set(0);
+            this.UET.set(this.compareLowLamp.value);
+            this.HIT.set(0);
+        } else if (condition > 0) {     // HIGH
+            this.compareLowLamp.set(0);
+            this.compareEqualLamp.set(0);
+            this.compareHighLamp.flip();
+            this.UET.set(this.compareHighLamp.value);
+            this.HIT.set(this.compareHighLamp.value);
+        } else {                        // EQUAL
+            this.compareLowLamp.set(0);
+            this.compareEqualLamp.flip();
+            this.compareHighLamp.set(0);
+            this.UET.set(0);
+            this.HIT.set(this.compareEqualLamp.value);
+        }
+    }
+};
+
+/**************************************/
 B220Processor.prototype.resetRunTimer = function resetRunTimer() {
     /* Resets the elapsed run-time timer to zero */
 
@@ -3665,8 +4089,8 @@ B220Processor.prototype.resetTransfer = function resetTransfer() {
     if (this.poweredOn) {
         this.E.set(0x0000);
         this.readMemory();
-        this.IB.add((this.C.value % 0x10000)*0x10000 + (this.P.value % 0x10000) -
-                    this.IB.value % 0x100000000);
+        this.IB.set(this.IB.value - this.IB.value % 0x100000000 +
+                    (this.C.value % 0x10000)*0x10000 + this.P.value % 0x10000);
         this.writeMemory();
         this.P.set(0x0001);
         this.EXT.set(0);                    // set to Fetch cycle
@@ -3743,59 +4167,51 @@ B220Processor.prototype.loadDefaultProgram = function loadDefaultProgram() {
     /* Loads a set of default demo programs to the memory drum */
 
     // Simple counter speed test
-    this.MM[   0] = 0x0000120002;       // ADD     2
-    this.MM[   1] = 0x0000300000;       // BUN     0
-    this.MM[   2] = 0x0000000001;       // CNST    1
-
-    /*************************************************
-    // Bootstrap to loop-based square-roots test
-    this.MM[  10] = 0x0000360200        // BT6   200
-    this.MM[  11] = 0x0000370220        // BT7   220
-    this.MM[  12] = 0x0000206980        // CU   6980  branch to loop-6 entry point
-    *************************************************/
+    this.MM[  80] = 0x0000120082;       // ADD    82
+    this.MM[  81] = 0x0000300080;       // BUN    80
+    this.MM[  82] = 0x0000000001;       // CNST    1
 
     // Hello World
-    this.MM[  20] = 0x0030090022;       // SPO    22
-    this.MM[  21] = 0x0000009999;       // HLT  9999
-    this.MM[  22] = 0x21648455353;      // LIT  R'HELL'
-    this.MM[  23] = 0x25600665659;      // LIT  'O WOR'
-    this.MM[  24] = 0x25344000016;      // LIT  'LD  'R
+    this.MM[  90] = 0x0030090092;       // SPO    92
+    this.MM[  91] = 0x0000009999;       // HLT  9999
+    this.MM[  92] = 0x21648455353;      // LIT  R'HELL'
+    this.MM[  93] = 0x25600665659;      // LIT  'O WOR'
+    this.MM[  94] = 0x25344000016;      // LIT  'LD  'R
 
-    /*************************************************
-    // Tom Sawyer's "Square Roots 100" (Babylonian or Newton's method):
-    this.MM[ 100] = 0x640139;           // CAD   139
-    this.MM[ 101] = 0x120138;           // ST    138
-    this.MM[ 102] = 0x640139;           // CAD   139
-    this.MM[ 103] = 0x130005;           // SR    5
-    this.MM[ 104] = 0x610138;           // DIV   138
-    this.MM[ 105] = 0x120137;           // ST    137
-    this.MM[ 106] = 0x750138;           // SUB   138
-    this.MM[ 107] = 0x120136;           // ST    136
-    this.MM[ 108] = 0x660136;           // CADA  136
-    this.MM[ 109] = 0x750135;           // SUB   135
-    this.MM[ 110] = 0x730135;           // OSGD  135
-    this.MM[ 111] = 0x280118;           // CC    118
-    this.MM[ 112] = 0x640138;           // CAD   138
-    this.MM[ 113] = 0x740137;           // ADD   137
-    this.MM[ 114] = 0x130005;           // SR    5
-    this.MM[ 115] = 0x610134;           // DIV   134
-    this.MM[ 116] = 0x120138;           // ST    138
-    this.MM[ 117] = 0x200102;           // CU    102
-    this.MM[ 118] = 0x640139;           // CAD   139
-    this.MM[ 119] = 0x030505;           // PTW   0505
-    this.MM[ 120] = 0x640137;           // CAD   137
-    this.MM[ 121] = 0x030810;           // PTW   0810
-    this.MM[ 122] = 0x640139;           // CAD   139
-    this.MM[ 123] = 0x740133;           // ADD   133
-    this.MM[ 124] = 0x120139;           // ST    139
-    this.MM[ 125] = 0x200102;           // CU    102
+    // Tom Sawyer's "Square Roots 100" adapted from the 205 for the 220 (Babylonian or Newton's method):
+    this.MM[ 100] = 0x0000100139;       // CAD   139
+    this.MM[ 101] = 0x0000400138;       // STA   138
+    this.MM[ 102] = 0x0000100139;       // CAD   139
+    this.MM[ 103] = 0x0002450000;       // CLR
+    this.MM[ 104] = 0x0001480005;       // SRT   5
+    this.MM[ 105] = 0x0000150138;       // DIV   138
+    this.MM[ 106] = 0x0000400137;       // STA   137
+    this.MM[ 107] = 0x0000130138;       // SUB   138
+    this.MM[ 108] = 0x0000400136;       // STA   136
+    this.MM[ 109] = 0x0001100136;       // CAA   136
+    this.MM[ 110] = 0x0000180135;       // CFA   135
+    this.MM[ 111] = 0x0001340119;       // BCL   119
+    this.MM[ 112] = 0x0000100138;       // CAD   138
+    this.MM[ 113] = 0x0000120137;       // ADD   137
+    this.MM[ 114] = 0x0002450000;       // CLR
+    this.MM[ 115] = 0x0001480005;       // SRT   5
+    this.MM[ 116] = 0x0000150134;       // DIV   134
+    this.MM[ 117] = 0x0000400138;       // STA   138
+    this.MM[ 118] = 0x0000300102;       // BUN   102
+    this.MM[ 119] = 0x5011090139;       // SPO   139
+    this.MM[ 120] = 0x5011090137;       // SPO   137
+    this.MM[ 121] = 0x0010090132;       // SPO   132
+    this.MM[ 122] = 0x0000100139;       // CAD   139
+    this.MM[ 123] = 0x0000120133;       // ADD   133
+    this.MM[ 124] = 0x0000400139;       // STA   139
+    this.MM[ 125] = 0x0000300102;       // BUN   102
     this.MM[ 126] = 0;
     this.MM[ 127] = 0;
     this.MM[ 128] = 0;
     this.MM[ 129] = 0;
     this.MM[ 130] = 0;
     this.MM[ 131] = 0;
-    this.MM[ 132] = 0;
+    this.MM[ 132] = 0x20000000016;      // carraige return
     this.MM[ 133] = 0x100000;
     this.MM[ 134] = 0x200000;
     this.MM[ 135] = 0x10;
@@ -3804,6 +4220,7 @@ B220Processor.prototype.loadDefaultProgram = function loadDefaultProgram() {
     this.MM[ 138] = 0;
     this.MM[ 139] = 0x200000;
 
+    /*************************************************
     // "Square Roots 100" running from the loops with R cleared for division:
     // Block for the 6980 loop
     this.MM[ 200] = 0x0000647039;       // CAD  7039

@@ -488,25 +488,13 @@ B220ControlConsole.prototype.switch_Click = function switch_Click(ev) {
             p.RPT.flip();
             break;
         case "LowLamp":
-            p.compareLowLamp.flip();
-            p.compareEqualLamp.set(0);
-            p.compareHighLamp.set(0);
-            p.UET.set(p.compareLowLamp.value);
-            p.HIT.set(0);
+            p.toggleCompare(-1);
             break;
         case "EqualLamp":
-            p.compareLowLamp.set(0);
-            p.compareEqualLamp.flip();
-            p.compareHighLamp.set(0);
-            p.UET.set(0);
-            p.HIT.set(p.compareEqualLamp.value);
+            p.toggleCompare(0);
             break;
         case "HighLamp":
-            p.compareLowLamp.set(0);
-            p.compareEqualLamp.set(0);
-            p.compareHighLamp.flip();
-            p.UET.set(p.compareHighLamp.value);
-            p.HIT.set(p.compareHighLamp.value);
+            p.toggleCompare(+1);
             break;
         } // switch ev.target.id
     }

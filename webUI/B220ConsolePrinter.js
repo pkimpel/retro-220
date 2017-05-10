@@ -223,8 +223,10 @@ B220ConsolePrinter.prototype.button_Click = function button_Click(ev) {
 
     switch (ev.target.id) {
     case "LineFeedBtn":
+        this.emptyLine();
+        break;
     case "CarriageReturnBtn":
-        if (!this.ready) {
+        if (this.printerCol > 0) {
             this.emptyLine();
         }
         break;

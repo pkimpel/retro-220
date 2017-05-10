@@ -50,16 +50,22 @@ B220ConsoleKeyboard.prototype.clear = function clear() {
 B220ConsoleKeyboard.prototype.keyboardEnable = function keyboardEnable(enable) {
     /* Enables or disables the keyboard, and if necessary, opens the window for it */
 
-    if (!enable && this.enabled) {
-        this.enabled = false;
-        this.enabledLamp.set(0);
-    } else if (enable && !this.enabled) {
-        this.enabled = true;
-        if (!this.window) {
-            this.keyboardOpen();        // lamp will be lit in OnLoad()
-        } else {
-            this.enabledLamp.set(1);
+    if (enable) {
+        if (this.enabled) {
             this.window.focus();
+        } else {
+            this.enabled = true;
+            if (!this.window) {
+                this.keyboardOpen();        // lamp will be lit in OnLoad()
+            } else {
+                this.enabledLamp.set(1);
+                this.window.focus();
+            }
+        }
+    } else {
+        if (this.enabled) {
+            this.enabled = false;
+            this.enabledLamp.set(0);
         }
     }
 };
