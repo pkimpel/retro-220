@@ -15,6 +15,7 @@
 window.addEventListener("load", function() {
     var config = new B220SystemConfig();// system configuration object
     var devices = {};                   // hash of I/O devices for the Processor
+    var diagWindow = null;              // handle for the diagnostic monitor panel
     var processor;                      // the Processor object
     var statusMsgTimer = 0;             // status message timer control cookie
 
@@ -29,6 +30,10 @@ window.addEventListener("load", function() {
                 devices[e].shutDown();
                 devices[e] = null;
             }
+        }
+
+        if (diagWindow && !diagWindow.closed) {
+            diagWindow.close();
         }
 
         processor = null;
@@ -90,12 +95,12 @@ window.addEventListener("load", function() {
 
     /**************************************/
     function openDiagPanel(ev) {
-        /* Opens the emulator's diagnostic panel in a new sub-window */
-        var win;
+        /* Opens the emulator's diagnostic monitor panel in a new sub-window */
 
-        win = window.open("B220DiagMonitor.html", "DiagPanel",
-                "location=no,scrollbars=no,resizable,width=300,height=500,top=0,left=0");
-        win.global = window;            // give it access to our globals.
+        diagWindow = window.open("B220DiagMonitor.html", "DiagPanel",
+                "resizable,width=300,height=500,left=0,top=" + screen.availHeight-500);
+        diagWindow.global = window;     // give it access to our globals.
+        diagWindow.focus();
     }
 
     /**************************************/

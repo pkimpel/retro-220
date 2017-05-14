@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<title>retro-220 Emulator Diagnostic Panel</title>
+<!--
+/***********************************************************************
+* retro-220/webUI B220DiagMonitor.html
+************************************************************************
+* Copyright (c) 2017, Paul Kimpel.
+* Licensed under the MIT License, see
+*       http://www.opensource.org/licenses/mit-license.php
+************************************************************************
+* Burroughs 220 emulator diagnostic monitoring panel.
+************************************************************************
+* 2017-05-13  P.Kimpel
+*   Original version, from retro-205 D205DiagMonitor.html.
+***********************************************************************/
+-->
+<meta name="Author" content="Paul Kimpel">
+<meta http-equiv="Content-Script-Type" content="text/javascript">
+<meta http-equiv="Content-Style-Type" content="text/css">
+<link id=defaultStyleSheet rel=stylesheet type="text/css" href="B220Common.css">
+<link id=diagStyleSheet rel=stylesheet type="text/css" href="B220.css">
+
+<script>
+window.addEventListener("load", function(ev) {
+    var body = document.getElementById("DiagBody");
+    var delayDevNodes = {};
+    var getCallbackState = window.global.getCallbackState;
+    var intervalPeriod = 300;           // milliseconds
+    var intervalToken = 0;
+
+    var p = null;                       // the Processor object
+    var delayDeltaNode = document.getElementById("DelayDeltaAvg").firstChild;
+    var execClockNode = document.getElementById("ExecClock").firstChild;
+    var procRunNode = document.getElementById("ProcRunAvg").firstChild;
+    var procSlackNode = document.getElementById("ProcSlackAvg").firstChild;
+    var procTimeNode = document.getElementById("ProcTime").firstChild;
+    var timeStampNode = document.getElementById("TimeStamp").firstChild;
+
+    function clockIn(stamp, val) {
+        /* Clocks in a clocked-out timer */
+        var t = val;
+
+        while (t < 0) {
+            t += stamp;
+        }
+
+        return t;
+    }
+
+    function refreshStats() {
+        /* Obtains the current "delayDev" has from the SetCallback mechanism and
+        formats the data to DiagBody */
+        var cat;
+        var cell;
+        var textNode;
+        var delayDev;
+        var e;
+        var row;
+        var stamp = performance.now();
+        var state;
+
+        if (!p) {
+            p = window.global.B220Processor.instance;
+        } else {
+            timeStampNode.nodeValue = p.runStamp.toFixed(2);
+            execClockNode.nodeValue = clockIn(stamp, p.execClock).toFixed(2);
+            procTimeNode.nodeValue = clockIn(stamp, p.procTime).toFixed(2);
+            delayDeltaNode.nodeValue = p.delayDeltaAvg.toFixed(2);
+            procSlackNode.nodeValue = p.procSlackAvg.toFixed(4);
+            procRunNode.nodeValue = p.procRunAvg.toFixed(4);
+        }
+
+        state = getCallbackState(0x01); // get delayDev hash only
+        delayDev = state.delayDev;
+        for (cat in delayDev) {
+            textNode = delayDevNodes[cat];
+            if (!textNode) {
+                row = document.createElement("tr");
+                cell = document.createElement("td");
+                cell.className = "rj";
+                textNode = document.createTextNode("");
+                delayDevNodes[cat] = textNode;
+                cell.appendChild(textNode);
+                row.appendChild(cell);
+                cell = document.createElement("td");
+                cell.appendChild(document.createTextNode(cat));
+                row.appendChild(cell);
+                body.appendChild(row);
+            }
+
+            textNode.nodeValue = delayDev[cat].toFixed(2);
+        } // for cat
+    }
+
+    window.resizeTo(300, 500);
+    window.moveTo(0, screen.availHeight-500);
+    intervalToken = setInterval(refreshStats, intervalPeriod);
+    window.addEventListener("unload", function(ev) {
+        if (intervalToken) {
+            clearInterval(intervalToken);
+        }
+    });
+});
+</script>
+</head>
+
+<body>
+<h3>retro-220<br>Diagnostic Monitor</h1>
+<hr>
+<table id=DiagTable border=1 cellpadding=1 cellspacing=0>
+<colgoup>
+    <col style="width:7em">
+    <col style="width:12em">
+</colgroup>
+<thead>
+<tr>
+    <th>Delta (ms)<th>Category
+<tbody id=DiagBody>
+<tr><td id=TimeStamp class=rj>      <td>Time Stamp
+<tr><td id=ExecClock class=rj>      <td>Exec Clock
+<tr><td id=ProcTime class=rj>       <td>Proc Time
+<tr><td id=DelayDeltaAvg class=rj>  <td>Delay Delta Avg
+<tr><td id=ProcSlackAvg class=rj>   <td>Proc Slack Avg
+<tr><td id=ProcRunAvg class=rj>     <td>Proc Run Avg
+</table>
+</body>
+</html>

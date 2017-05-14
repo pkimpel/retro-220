@@ -730,8 +730,8 @@ B220ControlConsole.prototype.keyboardOpen = function keyboardOpen() {
 B220ControlConsole.prototype.outputUnitSelect = function outputUnitSelect(unitNr, successor) {
     /* Prepares for paper-tape or SPO output by selecting the first ready device
     having a unitMask matching the unitNr parameter. If one is found, returns
-    that index and calls initiateOutput() for the unit. If no such unit is found,
-    returns -1 */
+    that index and schedules initiateOutput() for the unit. If no such unit is
+    found, returns -1 */
     var result = -1;                    // be pessimistic
     var u = null;                       // output unit object
     var x;                              // for loop index
@@ -741,8 +741,8 @@ B220ControlConsole.prototype.outputUnitSelect = function outputUnitSelect(unitNr
         if (u && u.ready) {
             if (u.unitMask & B220Processor.pow2[unitNr]) {
                 result = x;
-                u.initiateOutput(successor);
-                break;                  // out of for loop
+                setCallback(this.mnemonic, u, 1, u.initiateOutput, successor);
+                break; // out of for loop
             }
         }
     }

@@ -510,11 +510,13 @@ B220ConsolePrinter.prototype.receiveChar = function receiveChar(char, successor)
         break;
 
     case 0x15:                          // form-feed
+        delay *= 4;
         this.suppressLZ = 0;
         this.printFormFeed();
         break;
 
     case 0x16:                          // carriage-return
+        delay *= 2;
         this.suppressLZ = 0;
         this.emptyLine();
         break;
@@ -525,7 +527,6 @@ B220ConsolePrinter.prototype.receiveChar = function receiveChar(char, successor)
         break;
 
     case 0x35:                          // end-of-word
-        delay = 0;
         nextReceiver = this.boundReceiveSign;   // next will be start of a new word
         if (this.eowAction) {
             switch (this.format) {
@@ -536,6 +537,7 @@ B220ConsolePrinter.prototype.receiveChar = function receiveChar(char, successor)
                 this.printTab();
                 break;
             case 2:                             // EOW = carriage-return
+                delay *= 2;
                 this.emptyLine();
                 break;
             }

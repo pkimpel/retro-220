@@ -487,7 +487,7 @@ function OrganSwitch(parent, x, y, id, offImage, onImage, momentary) {
 
 OrganSwitch.topCaptionClass = "OrganSwitchTopCaption";
 OrganSwitch.bottomCaptionClass = "OrganSwitchBottomCaption";
-OrganSwitch.momentaryPeriod = 150;      // time for momentary switch to bounce back, ms
+OrganSwitch.momentaryPeriod = 200;      // time for momentary switch to bounce back, ms
 
 /**************************************/
 OrganSwitch.prototype.addEventListener = function addEventListener(eventName, handler, useCapture) {
