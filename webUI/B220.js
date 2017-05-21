@@ -54,13 +54,13 @@ window.addEventListener("load", function() {
 
         processor = new B220Processor(config, devices);
 
-        /********************
         if (config.getNode("Cardatron.hasCardatron")) {
             devices.CardatronControl = new B220CardatronControl(processor);
         } else {
             devices.CardatronControl = null;
         }
 
+        /********************
         if (config.getNode("MagTape.hasMagTape")) {
             devices.MagTapeControl = new B220MagTapeControl(processor);
         } else {

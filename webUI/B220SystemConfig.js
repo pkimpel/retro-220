@@ -75,7 +75,8 @@ B220SystemConfig.prototype.createConfigData = function createConfigData() {
 
         ConsoleOutput: {
             units: [
-                {type: "TTYA", zeroSuppress: 0, mapMemory: 0, unitMask: 0x001, remote: 1, format: 0, columns: 72, tabs: "9,17,25,33,41,49,57,65,73,81"},
+                {type: "TTYA", zeroSuppress: 0, mapMemory: 0, unitMask: 0x001, remote: 1, format: 0,
+                               columns: 72, tabs: "9,17,25,33,41,49,57,65,73,81"},
                 {type: "NONE"},
                 {type: "NONE"},
                 {type: "NONE"},
@@ -96,8 +97,8 @@ B220SystemConfig.prototype.createConfigData = function createConfigData() {
                 {type: "NONE"},
                 {type: "NONE"},
                 {type: "NONE"},
-                {type: "LP3", algolGlyphs: true, greenBar: true,  zeroSuppressCols: ""},
-                {type: "CP2", algolGlyphs: true, greenBar: false, zeroSuppressCols: ""},
+                {type: "NONE"},
+                {type: "LP2", algolGlyphs: true, greenBar: true,  zeroSuppressCols: ""},
                 {type: "CP1", algolGlyphs: true, greenBar: false, zeroSuppressCols: ""}
                 ]},
 

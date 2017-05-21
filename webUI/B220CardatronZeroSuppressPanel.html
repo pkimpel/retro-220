@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<title>Burroughs 220 Emulator Cardatron Zero-Suppress Panel</title>
+<!--
+/***********************************************************************
+* retro-220/webUI B220CardatronZeroSuppressPanel.html
+************************************************************************
+* Copyright (c) 2017, Paul Kimpel.
+* Licensed under the MIT License, see
+*       http://www.opensource.org/licenses/mit-license.php
+************************************************************************
+* Burroughs 220 Cardatron Zero-Suppress Panel page.
+*
+* Implements a dialog to specify a list of zero-suppress starting columns
+* for Cardatron output devices.
+*
+************************************************************************
+* 2017-05-19  P.Kimpel
+*   Original version, from retro-205 D205CardatronZeroSuppressPanel.html.
+***********************************************************************/
+-->
+<meta name="Author" content="Paul Kimpel">
+<meta http-equiv="Content-Script-Type" content="text/javascript">
+<meta http-equiv="Content-Style-Type" content="text/css">
+<link id=defaultStyleSheet rel=stylesheet type="text/css" href="B220Common.css">
+<link id=tapeLoadStyleSheet rel=stylesheet type="text/css" href="B220CardatronOutput.css">
+</head>
+
+<body class=deviceBody>
+
+<div id=COZSGroup>
+    Begin zero-suppression in these columns:<br>
+    <input id=COZSColumnList type=text size=60>
+
+    <div id=COZSNotes>
+        Enter a comma-delimited list of 1-relative column numbers in ascending
+        order; click <b>OK</b> to save and apply to the device.
+    </div>
+
+    <div id=COZSButtonGroup>
+        <button id=COZSCancelBtn class="large redButton">Cancel</button>
+        &nbsp;
+        <button id=COZSOKBtn class="large greenButton">OK</button>
+    </div>
+</div>
+
+</body>
+</html>

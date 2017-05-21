@@ -77,6 +77,7 @@ function B220Processor(config, devices) {
 
     // Memory
     this.memorySize = config.getNode("memorySize");     // memory size, words
+    this.bcdMemorySize = B220Processor.binaryBCD(this.memorySize);
     this.MM = new Float64Array(this.memorySize);        // main memory, 11-digit words
     this.IB = new B220Processor.Register(11*4, this, true);     // memory Input Buffer
 
@@ -107,6 +108,14 @@ function B220Processor(config, devices) {
     this.P = new B220Processor.Register( 4*4, this, false);
     this.R = new B220Processor.Register(11*4, this, false);
     this.S = new B220Processor.Register( 4*4, this, false);
+
+    // Register E decrements modulo the system memory size, so override dec().
+    this.E.dec = function decE() {
+        if (this.value == 0) {
+            this.value = this.p.bcdMemorySize;
+        }
+        return this.constructor.prototype.dec.apply(this);
+    };
 
     // Control Console Lamps
     this.digitCheckAlarm =      new B220Processor.FlipFlop(this, false);
@@ -232,10 +241,8 @@ function B220Processor(config, devices) {
     this.boundConsoleReceiveDigit = B220Processor.bindMethod(this, B220Processor.prototype.consoleReceiveDigit);
     this.boundConsoleReceiveSingleDigit = B220Processor.bindMethod(this, B220Processor.prototype.consoleReceiveSingleDigit);
 
-    this.boundCardatronOutputWordReady = B220Processor.bindMethod(this, B220Processor.prototype.cardatronOutputWordReady);
     this.boundCardatronOutputWord= B220Processor.bindMethod(this, B220Processor.prototype.cardatronOutputWord);
     this.boundCardatronOutputFinished = B220Processor.bindMethod(this, B220Processor.prototype.cardatronOutputFinished);
-    this.boundCardatronInputWord = B220Processor.bindMethod(this, B220Processor.prototype.cardatronInputWord);
     this.boundCardatronReceiveWord = B220Processor.bindMethod(this, B220Processor.prototype.cardatronReceiveWord);
 
     this.boundMagTapeReceiveBlock = B220Processor.bindMethod(this, B220Processor.prototype.magTapeReceiveBlock);
@@ -253,7 +260,7 @@ function B220Processor(config, devices) {
 *   Global Constants                                                   *
 ***********************************************************************/
 
-B220Processor.version = "0.01";
+B220Processor.version = "0.01a";
 
 B220Processor.tick = 1000/200000;       // milliseconds per clock cycle (200KHz)
 B220Processor.cyclesPerMilli = 1/B220Processor.tick;
@@ -561,15 +568,15 @@ B220Processor.prototype.clear = function clear() {
     this.COP = 0;                       // copy of C register op code (2 digits)
     this.CADDR = 0;                     // copy of C register operand address (4 digits)
 
+    // I/O globals
+    this.rDigit = 0;                    // variant/format digit from control part of instruction
+    this.vDigit = 0;                    // variant digit from control part of instruction
+    this.selectedUnit = 0;              // currently-selected unit number
+
     // Kill any pending action that may be in process
     if (this.scheduler) {
         clearCallback(this.scheduler);
         this.scheduler = 0;
-    }
-
-    // Clear Cardatron Control Unit
-    if (this.cardatron) {
-        this.cardatron.clear();
     }
 
     this.updateGlow(1);                 // initialize the lamp states
@@ -1056,6 +1063,49 @@ B220Processor.prototype.setHighSpeedPrinterCheck = function setHighSpeedPrinterC
         if (value) {
             this.setStop();
         }
+    }
+};
+
+
+/***********************************************************************
+*   Memory Access                                                      *
+***********************************************************************/
+
+/**************************************/
+B220Processor.prototype.readMemory = function readMemory() {
+    /* Reads the contents of one word of memory into the IB register from the
+    address in the E register. Sets the Storage Check alarm if the address is
+    not valid. Returns the word fetched, or the current value of IB if invalid
+    address */
+    var addr = B220Processor.bcdBinary(this.E.value);
+
+    if (isNaN(addr)) {
+        this.setStorageCheck(1);
+        return this.IB.value;
+    } else if (addr >= this.memorySize) {
+        this.setStorageCheck(1);
+        return this.IB.value;
+    } else if (this.MEMORYLOCKOUTSW) {
+        return this.IB.set(this.D.value);
+    } else {
+        return this.IB.set(this.MM[addr]);
+    }
+};
+
+/**************************************/
+B220Processor.prototype.writeMemory = function writeMemory() {
+    /* Stores one word of memory from the IB register to the address in the E
+    register. Sets the Storage Check alarm if the address is not valid */
+    var addr = B220Processor.bcdBinary(this.E.value);
+
+    if (isNaN(addr)) {
+        this.setStorageCheck(1);
+    } else if (addr >= this.memorySize) {
+        this.setStorageCheck(1);
+    } else if (this.MEMORYLOCKOUTSW) {
+        this.D.set(this.IB.value);
+    } else {
+        this.MM[addr] = this.IB.value;
     }
 };
 
@@ -2264,49 +2314,6 @@ B220Processor.prototype.storeRegister = function storeRegister() {
 
 
 /***********************************************************************
-*   Memory Access                                                      *
-***********************************************************************/
-
-/**************************************/
-B220Processor.prototype.readMemory = function readMemory() {
-    /* Reads the contents of one word of memory into the IB register from the
-    address in the E register. Sets the Storage Check alarm if the address is
-    not valid. Returns the word fetched, or the current value of IB if invalid
-    address */
-    var addr = B220Processor.bcdBinary(this.E.value);
-
-    if (isNaN(addr)) {
-        this.setStorageCheck(1);
-        return this.IB.value;
-    } else if (addr >= this.memorySize) {
-        this.setStorageCheck(1);
-        return this.IB.value;
-    } else if (this.MEMORYLOCKOUTSW) {
-        return this.IB.set(this.D.value);
-    } else {
-        return this.IB.set(this.MM[addr]);
-    }
-};
-
-/**************************************/
-B220Processor.prototype.writeMemory = function writeMemory() {
-    /* Stores one word of memory from the IB register to the address in the E
-    register. Sets the Storage Check alarm if the address is not valid */
-    var addr = B220Processor.bcdBinary(this.E.value);
-
-    if (isNaN(addr)) {
-        this.setStorageCheck(1);
-    } else if (addr >= this.memorySize) {
-        this.setStorageCheck(1);
-    } else if (this.MEMORYLOCKOUTSW) {
-        this.D.set(this.IB.value);
-    } else {
-        this.MM[addr] = this.IB.value;
-    }
-};
-
-
-/***********************************************************************
 *   Console I/O Module                                                 *
 ***********************************************************************/
 
@@ -2427,7 +2434,7 @@ B220Processor.prototype.consoleOutputSign = function consoleOutputSign(printSign
         this.E.set(this.CADDR);
         this.readMemory();
         if (this.MET.value) {           // invalid address
-            this.ioComplete();
+            this.ioComplete(true);
         } else {
             this.D.set(this.IB.value);
             this.opTime += 0.070;       // estimate for memory access and rotation
@@ -2517,7 +2524,7 @@ B220Processor.prototype.consoleOutputFinished = function consoleOutputFinished()
     this.clockIn();
     if (this.AST.value) {               // if false, we've probably been cleared
         this.EWT.set(0);
-        this.ioComplete();
+        this.ioComplete(true);
     }
 };
 
@@ -2574,8 +2581,8 @@ B220Processor.prototype.consoleReceiveDigit = function consoleReceiveDigit(digit
                 this.CCONTROL = this.bcdAdd(this.CADDR, 1, 4);
             }
 
-            this.CEXTRA = (this.D.value - word%0x1000000)/0x1000000;
-            this.kDigit = (this.CEXTRA >>> 8) & 0x0F;
+            this.CCONTROL = (this.D.value - word%0x1000000)/0x1000000;
+            this.rDigit = (this.CCONTROL >>> 8) & 0x0F;
             // do not set this.selectedUnit from the word -- keep the same unit
 
             // Shift D5-D10 into C1-C6, modify by B as necessary, and execute
@@ -2654,175 +2661,113 @@ B220Processor.prototype.consoleReceiveSingleDigit = function consoleReceiveSingl
 ***********************************************************************/
 
 /**************************************/
-B220Processor.prototype.cardatronOutputWordReady = function cardatronOutputWordReady() {
-    /* Successor function for readMemory that sets up the next word of output
-    and calls the current ioCallback function to output that word */
-
-    if (this.tog3IO) {                  // if false, we've probably been cleared
-        this.SHIFT = 0x09;              // for display only
-        this.A.set(this.D.value);                // move D with the memory word to A
-        this.togTWA = 1;                // for display only
-        this.execTime -= performance.now()*B220Processor.wordsPerMilli;
-        this.ioCallback(this.A.value, this.boundCardatronOutputWord, this.boundCardatronOutputFinished);
-    }
-};
-
-/**************************************/
-B220Processor.prototype.cardatronOutputWord = function cardatronOutputWord(receiver) {
+B220Processor.prototype.cardatronOutputWord = function cardatronOutputWord() {
     /* Initiates a read of the next word from memory for output to the
-    Cardatron Control Unit */
+    Cardatron Control Unit. Returns a negative number to stop transfer */
+    var word;
 
-    this.execTime += performance.now()*B220Processor.wordsPerMilli;
-    if (this.tog3IO) {                  // if false, we've probably been cleared
-        // Increment the source address (except on the first word)
-        this.SHIFTCONTROL = 0x01;       // for display only
-        this.SHIFT = 0x15;              // for display only
-        if (this.togCOUNT) {
-            this.CADDR = this.bcdAdd(this.CADDR, 1, 4);
+    this.clockIn();
+    if (!this.AST.value) {              // we've probably been cleared
+        word = -1;
+    } else if (this.MET.value) {        // previous memory access error
+        word = 0;
+    } else {
+        word = this.readMemory();       // address in E was previously set
+        if (this.MET.value) {
+            word = 0;
         } else {
-            this.togCOUNT = 1;
+            this.E.dec();               // step down to next memory address
         }
-        this.C.set((this.COP*0x10000 + this.CADDR)*0x10000 + this.CCONTROL);
-        this.ioCallback = receiver;
-        this.readMemory(this.boundCardatronOutputWordReady);
     }
+
+    return word;
 };
 
 /**************************************/
 B220Processor.prototype.cardatronOutputFinished = function cardatronOutputFinished() {
     /* Handles the final cycle of an I/O operation and restores this.execTime */
 
-    if (this.tog3IO) {                  // if false, we've probably been cleared
-        this.tog3IO = 0;
-        this.togTWA = 0;                // for display only
-        this.execTime += performance.now()*B220Processor.wordsPerMilli;
-        this.schedule();
+    if (this.AST.value) {               // if false, we've probably been cleared
+        this.ioComplete(true);
     }
-};
-
-/**************************************/
-B220Processor.prototype.cardatronInputWord = function cardatronInputWord() {
-    // Solicits the next input word from the Cardatron Control Unit */
-
-    this.togTF = 0;                     // for display only, reset finish pulse
-    this.togTWA = 1;                    // for display only
-    this.execTime -= performance.now()*B220Processor.wordsPerMilli; // mark time during I/O
-    this.cardatron.inputWord(this.selectedUnit, this.boundCardatronReceiveWord);
 };
 
 /**************************************/
 B220Processor.prototype.cardatronReceiveWord = function cardatronReceiveWord(word) {
     /* Handles a word coming from the Cardatron input unit. Negative values for
-    the word indicate the last word was previously sent and the I/O is finished.
-    The word is stored into the D register and is handled according to the sign
-    digit in the D register. Any partial word received at the end of the
-    I/O is abandoned */
+    the word indicates this is the last word and the I/O is finished. The word
+    is stored into the D register and is handled according to the sign digit in
+    the D register. The last word received (typically a "pusher" word of zeroes)
+    is abandoned and not acted upon. Returns -1 if further data transfer is to
+    be terminated, 0 otherwise */
+    var returnCode = 0;                 // default is to continue receiving
     var sign;                           // D-register sign digit
 
-    this.execTime += performance.now()*B220Processor.wordsPerMilli; // restore time after I/O
-    if (word < 0) {
+    this.clockIn();
+    if (!this.AST.value) {              // we've probably been cleared
+        returnCode = -1;
+    } else if (word < 0) {
         // Last word received -- finished with the I/O
-        this.tog3IO = 0;
-        this.togSTART = 0;
-        this.togTF = 0;                 // for display only
-        this.togTWA = 0;                // for display only
-        this.D.set(word-900000000000);     // remove the finished signal; for display only, not stored
-        this.schedule();
+        this.D.set(word-0x900000000000);// remove the finished signal; for display only, not stored
+        this.ioComplete(true);
+        returnCode = -1;
+    } else if (this.MET.value) {
+        // Memory error has occurred: just ignore further data from Cardatron
     } else {
         // Full word accumulated -- process it and initialize for the next word
-        this.SHIFT = 0x19;              // for display only
-        this.togTF = 1;                 // for display only
         this.D.set(word);
         word %= 0x10000000000;          // strip the sign digit
         sign = (this.D.value - word)/0x10000000000; // get D-sign
 
-        if (sign & 0x04) {
-            // D-sign is 4, 5, 6, 7: execute the word as an instruction
-            this.execTime += 2;
-            this.togTF = 0;             // for display only
-            this.togSTART = 1-((sign >>> 1)%2); // whether to continue in input mode
-            this.setTimingToggle(0);    // Execute mode
-            this.togCOUNT = 0;
-            this.togBTOAIN = 0;
-            this.togADDAB = 1;          // for display only
-            this.togADDER = 1;          // for display only
-            this.togDPCTR = 1;          // for display only
-            this.togCLEAR = ((this.kDigit & 0x08) ? 1 : 1-(sign%2));
-            this.togSIGN = ((this.A.value - this.A.value%0x10000000000)/0x10000000000)%2; // display only
-
-            this.CEXTRA = (this.D - word%0x1000000)/0x1000000;
-            this.kDigit = (this.CEXTRA >>> 8) & 0x0F;
-            // do not set this.selectedUnit from the word -- keep the same unit
-
-            // Shift D5-D10 into C1-C6, modify by B as necessary, and execute
-            if (this.togCLEAR) {
-                word = this.bcdAdd(word%0x1000000, 0, 11);
-            } else {
-                word = this.bcdAdd(word%0x1000000, this.B.value, 11) % 0x1000000;
+        switch (sign) {
+        case 0:                         // sign is 0-5: store word normally
+        case 1:
+        case 2:
+        case 3:
+        case 4:
+        case 5:
+            this.IB.set(this.D.value);
+            this.writeMemory();
+            if (!this.MET.value) {
+                this.E.dec();                   // decrement memory address for next word
             }
-            this.C.set(word*0x10000 + this.CCONTROL); // put C back together
-            this.CADDR = word % 0x10000;
-            this.COP = (word - this.CADDR)/0x10000;
-            if (sign & 0x02) {          // sign-6 or -7
-                this.tog3IO = 0;
-                this.togTF = 0;         // for display only
-                this.cardatron.inputStop(this.selectedUnit);
-                this.execute();
-            } else {                    // sign-4 or -5
-                /* It's not exactly clear what should happen at this point. The
-                documentation states that a sign-4 or -5 word coming from a Cardatron
-                input unit can only contain a CDR (44) instruction, which is sensible,
-                since sign-4/5 words are generally used to change the destination memory
-                address for the data transfer, and the Cardatron presumably still had
-                words to transfer. What it doesn't say is what happened if the sign-4/5
-                word contained something else. My guess is that either the Processor
-                ignored any other op code and proceeded as if it had been a CDR, or more
-                likely, things went to hell in a handbasket. The latter is a little
-                difficult to emulate, especially since we don't know which hell or
-                handbasket might be involved, so we'll assume the former, and just
-                continue requesting words from the Cardatron */
-                this.SHIFT = 0x09;      // reset shift counter for next word
-                this.D.set(0);             // clear D to prepare for next word
-                this.cardatronInputWord(); // request the next word
-            }
-        } else {
-            // D-sign is 0, 1, 2, 3, 8, 9: store word, possibly modified by B
-            this.execTime += 3;
-            this.setTimingToggle(1);    // Fetch mode
-            this.togCOUNT = this.togBTOAIN;
-            this.togBTOAIN = 1;
-            this.togADDAB = 1;          // for display only
-            this.togADDER = 1;          // for display only
-            this.togDPCTR = 1;          // for display only
-            this.togSIGN = sign%2;
-            if (this.kDigit & 0x08) {
-                this.togCLEAR = 1;
-            } else {
-                this.togCLEAR = 1-((sign >>> 1)%2);
-                sign &= 0x0D;
-            }
+            break;
 
-            // Increment the destination address (except on the first word)
-            this.SHIFTCONTROL = 0x01;   // for display only
-            this.SHIFT = 0x15;          // for display only
-            if (this.togCOUNT) {
-                this.CADDR = this.bcdAdd(this.CADDR, 1, 4);
+        case 6:                         // sign is 6, 7: execute control word
+        case 7:
+            if (this.vDigit & 0x01) {           // input control words are inhibited
+                this.IB.set(this.D.value);
+                this.writeMemory();             // just store the word with its sign
+                if (!this.MET.value) {
+                    this.E.dec();               // decrement memory address for next word
+                }
+            } else {                            // input control words are executed
+                this.IB.set(this.D.value);      // move word to IB for use by fetch()
+                this.ioComplete(false);         // terminate I/O but do not restart Processor yet
+                this.fetch(true);               // set up to execute control word
+                returnCode = -1;                // stop further input from Cardatron
+                // Schedule the Processor to give Cardatron a chance to finish its operation.
+                setCallback(this.mnemonic, this, 0, this.schedule);
             }
-            this.C.set((this.COP*0x10000 + this.CADDR)*0x10000 + this.CCONTROL);
+            break;
 
-            // Modify the word by B as necessary and store it
-            if (this.togCLEAR) {
-                word = this.bcdAdd(word, 0, 11);
-            } else {
-                word = this.bcdAdd(word, this.B.value, 11);
+        default:                        // sign is 8, 9: store word with optional B mod
+            if (!(this.rDigit & 0x08)) {        // no B-register modification
+                this.IB.set(this.D.value);
+            } else {                            // add B to low-order five digits of word
+                word = word - word%0x100000 + this.bcdAdd(word, this.B.value, 5);
+                this.C10.set(0);                // reset carry toggle
+                this.IB.set((sign%2)*0x10000000000 + word);
             }
-
-            this.A.set(sign*0x10000000000 + word%0x10000000000);
-            this.SHIFT = 0x09;          // reset shift counter for next word
-            this.D.set(0);                 // clear D and request the next word after storing this one
-            this.writeMemory(this.boundCardatronInputWord, false);
-        }
+            this.writeMemory();
+            if (!this.MET.value) {
+                this.E.dec();                   // decrement memory address for next word
+            }
+            break;
+        } // switch sign
     }
+
+    return returnCode;
 };
 
 /***********************************************************************
@@ -3047,18 +2992,18 @@ B220Processor.prototype.fetchWordToC = function fetchWordToC(word) {
 };
 
 /**************************************/
-B220Processor.prototype.fetch = function fetch() {
+B220Processor.prototype.fetch = function fetch(entryP) {
     /* Implements the Fetch cycle of the 220 processor. This is initiated either
     by pressing START on the Console with EXT=0 (Fetch), pressing STEP on the
     Console when the computer is stopped and EXT=0, during I/O when a control
-    word (sign>3) is received from a peripheral device, or by the prior
-    Operation Complete if the processor is in continuous mode. Note that the
-    time for fetch is built into the individual instruction times, and is
-    accumulated here only if the Execute cycle is skipped */
+    word (sign 6,7) is received from a peripheral device, or by the prior
+    Operation Complete if the processor is in continuous mode. The "entryP"
+    parameter indicates whether the instruction word is already in IB (true)
+    or must be fetched from the address in P first (false) */
     var dSign;                          // sign bit of IB register
     var word;                           // instruction word
 
-    if (this.AST.value) {               // if doing I/O
+    if (entryP) {                       // if instruction already loaded
         word = this.IB.value;
     } else {                            // if doing normal fetch
         this.E.set(this.P.value);
@@ -3070,7 +3015,7 @@ B220Processor.prototype.fetch = function fetch() {
         this.fetchWordToC(word);
 
         this.D.set(word);               // D contains a copy of memory word
-        if (!this.AST.value && !this.PCOUNTSW) {
+        if (!entryP && !this.PCOUNTSW) {
             this.P.inc();               // if not doing I/O, bump the program counter
         }
     }
@@ -3150,7 +3095,7 @@ B220Processor.prototype.execute = function execute() {
         d = this.console.outputUnitSelect(d, this.boundConsoleOutputSign);
         if (d < 0) {                                    // no unit available -- set alarm and quit
             this.setPaperTapeCheck(1);
-            this.ioComplete();
+            this.ioComplete(true);
         }
         break;
 
@@ -3182,7 +3127,7 @@ B220Processor.prototype.execute = function execute() {
         d = this.console.outputUnitSelect(0, this.boundConsoleOutputSign);
         if (d < 0) {                                    // no unit available -- set alarm and quit
             this.setPaperTapeCheck(1);
-            this.ioComplete();
+            this.ioComplete(true);
         }
         break;
 
@@ -3677,8 +3622,23 @@ B220Processor.prototype.execute = function execute() {
         break;
 
     case 0x60:      //--------------------- CRD     Card read
-        this.setProgramCheck(1);
-        this.operationComplete();
+        this.opTime = 1.600;                            // rough minimum estimage
+        this.E.set(this.CADDR);
+        this.D.set(0);
+        if (!this.cardatron) {
+            this.setCardatronCheck(1);
+            this.operationComplete();
+        } else {
+            this.selectedUnit = (this.CCONTROL >>> 12) & 0x0F;
+            this.rDigit = this.CCONTROL & 0x0F;
+            this.vDigit = (this.CCONTROL >>> 4) & 0x0F;
+            this.ioInitiate();
+            d = this.cardatron.inputInitiate(this.selectedUnit, this.rDigit, this.boundCardatronReceiveWord);
+            if (d < 0) {                                // invalid unit
+                this.setCardatronCheck(1);
+                this.ioComplete(true);
+            }
+        }
         break;
 
     case 0x61:      //--------------------- CWR     Card write
@@ -3688,6 +3648,23 @@ B220Processor.prototype.execute = function execute() {
 
     case 0x62:      //--------------------- CRF     Card read, format load
         this.setProgramCheck(1);
+        this.opTime = 2.940;                            // rough minimum estimage
+        this.E.set(this.CADDR);
+        this.D.set(0);
+        if (!this.cardatron) {
+            this.setCardatronCheck(1);
+            this.operationComplete();
+        } else {
+            this.selectedUnit = (this.CCONTROL >>> 12) & 0x0F;
+            this.rDigit = this.CCONTROL & 0x0F;
+            this.ioInitiate();
+            d = this.cardatron.inputFormatInitiate(this.selectedUnit, this.rDigit,
+                        this.boundCardatronOutputWord, this.boundCardatronOutputFinished);
+            if (d < 0) {                                // invalid unit
+                this.setCardatronCheck(1);
+                this.ioComplete(true);
+            }
+        }
         this.operationComplete();
         break;
 
@@ -3697,7 +3674,22 @@ B220Processor.prototype.execute = function execute() {
         break;
 
     case 0x64:      //--------------------- CRI     Card read interrogate, branch
-        this.setProgramCheck(1);
+        this.opTime = 0.265;                            // average
+        this.E.set(this.CADDR);
+        this.D.set(0);
+        if (!this.cardatron) {
+            this.setCardatronCheck(1);
+        } else {
+            this.E.set(this.CADDR);
+            this.selectedUnit = (this.CCONTROL >>> 12) & 0x0F;
+            d = this.cardatron.inputReadyInterrogate(this.selectedUnit);
+            if (d < 0) {                                // invalid unit
+                this.setCardatronCheck(1);
+            } else if (d > 0) {
+                this.opTime += 0.020;
+                this.P.set(this.CADDR);
+            }
+        }
         this.operationComplete();
         break;
 
@@ -3736,8 +3728,8 @@ B220Processor.prototype.execute = function execute() {
             if (!this.magTape) {
                 //this.schedule();
             } else {
-                this.selectedUnit = (this.CEXTRA >>> 4) & 0x0F;
-                d = (this.CEXTRA >>> 8) & 0xFF;         // number of blocks
+                this.selectedUnit = (this.CCONTROL >>> 4) & 0x0F;
+                d = (this.CCONTROL >>> 8) & 0xFF;         // number of blocks
                 this.togMT3P = 1;
                 this.togMT1BV4 = d%2;              // select initial loop buffer
                 this.togMT1BV5 = 1-this.togMT1BV4;
@@ -3752,8 +3744,8 @@ B220Processor.prototype.execute = function execute() {
 
         case 0x42:      //---------------- MTS  Magnetic Tape Search
             if (this.magTape) {
-                this.selectedUnit = (this.CEXTRA >>> 4) & 0x0F;
-                d = (this.CEXTRA >>> 8) & 0xFF;         // lane number
+                this.selectedUnit = (this.CCONTROL >>> 4) & 0x0F;
+                d = (this.CCONTROL >>> 8) & 0xFF;         // lane number
                 if (this.magTape.search(this.selectedUnit, d, this.CADDR)) {
                     this.OFT.set(1);                // control or tape unit busy/not-ready
                 }
@@ -3761,52 +3753,12 @@ B220Processor.prototype.execute = function execute() {
             //this.schedule();
             break;
 
-        case 0x44:      //---------------- CDR  Card Read (Cardatron)
-            this.D.set(0);
-            if (!this.cardatron) {
-                //this.schedule();
-            } else {
-                this.tog3IO = 1;
-                this.kDigit = (this.CEXTRA >>> 8) & 0x0F;
-                this.selectedUnit = (this.CEXTRA >>> 4) & 0x07;
-                this.SHIFT = 0x08;                      // prepare to receive 11 digits
-                this.execTime -= performance.now()*B220Processor.wordsPerMilli; // mark time during I/O
-                this.cardatron.inputInitiate(this.selectedUnit, this.kDigit, this.boundCardatronReceiveWord);
-            }
-            break;
-
-        case 0x45:      //---------------- CDRI Card Read Interrogate
-            this.selectedUnit = (this.CEXTRA >>> 4) & 0x07;
-            if (this.cardatron && this.cardatron.inputReadyInterrogate(this.selectedUnit)) {
-                this.R.set(this.CCONTROL*0x1000000);
-                this.setTimingToggle(0);                // stay in Execute
-                this.OFT.set(1);                    // set overflow
-                this.COP = 0x28;                        // make into a CC
-                this.C.set((this.COP*0x10000 + this.CADDR)*0x10000 + this.CCONTROL);
-            }
-            //this.schedule();
-            break;
-
-        case 0x48:      //---------------- CDRF Card Read Format
-            if (!this.cardatron) {
-                //this.schedule();
-            } else {
-                this.tog3IO = 1;
-                this.kDigit = (this.CEXTRA >>> 8) & 0x0F;
-                this.selectedUnit = (this.CEXTRA >>> 4) & 0x07;
-                this.SHIFT = 0x19;                      // start at beginning of a word
-                this.execTime -= performance.now()*B220Processor.wordsPerMilli; // mark time during I/O
-                this.cardatron.inputFormatInitiate(this.selectedUnit, this.kDigit,
-                        this.boundCardatronOutputWord, this.boundCardatronOutputFinished);
-            }
-            break;
-
         case 0x50:      //---------------- MTW  Magnetic Tape Write
             if (!this.magTape) {
                 //this.schedule();
             } else {
-                this.selectedUnit = (this.CEXTRA >>> 4) & 0x0F;
-                d = (this.CEXTRA >>> 8) & 0xFF;         // number of blocks
+                this.selectedUnit = (this.CCONTROL >>> 4) & 0x0F;
+                d = (this.CCONTROL >>> 8) & 0xFF;         // number of blocks
                 this.togMT3P = 1;
                 this.togMT1BV4 = d%2;              // select initial loop buffer
                 this.togMT1BV5 = 1-this.togMT1BV4;
@@ -3821,7 +3773,7 @@ B220Processor.prototype.execute = function execute() {
 
         case 0x52:      //---------------- MTRW Magnetic Tape Rewind
             if (this.magTape) {
-                this.selectedUnit = (this.CEXTRA >>> 4) & 0x0F;
+                this.selectedUnit = (this.CCONTROL >>> 4) & 0x0F;
                 if (this.magTape.rewind(this.selectedUnit)) {
                     this.OFT.set(1);                // control or tape unit busy/not-ready
                 }
@@ -3833,17 +3785,17 @@ B220Processor.prototype.execute = function execute() {
                 //this.schedule();
             } else {
                 this.tog3IO = 1;
-                this.kDigit = (this.CEXTRA >>> 8) & 0x0F;
-                this.selectedUnit = (this.CEXTRA >>> 4) & 0x07;
+                this.kDigit = (this.CCONTROL >>> 8) & 0x0F;
+                this.selectedUnit = (this.CCONTROL >>> 4) & 0x07;
                 this.SHIFT = 0x19;                      // start at beginning of a word
                 this.execTime -= performance.now()*B220Processor.wordsPerMilli; // mark time during I/O
-                this.cardatron.outputInitiate(this.selectedUnit, this.kDigit, (this.CEXTRA >>> 12) & 0x0F,
+                this.cardatron.outputInitiate(this.selectedUnit, this.kDigit, (this.CCONTROL >>> 12) & 0x0F,
                         this.boundCardatronOutputWord, this.boundCardatronOutputFinished);
             }
             break;
 
         case 0x55:      //---------------- CDWI Card Write Interrogate
-            this.selectedUnit = (this.CEXTRA >>> 4) & 0x07;
+            this.selectedUnit = (this.CCONTROL >>> 4) & 0x07;
             if (this.cardatron && this.cardatron.outputReadyInterrogate(this.selectedUnit)) {
                 this.R.set(this.CCONTROL*0x1000000);
                 this.setTimingToggle(0);                // stay in Execute
@@ -3858,8 +3810,8 @@ B220Processor.prototype.execute = function execute() {
                 //this.schedule();
             } else {
                 this.tog3IO = 1;
-                this.kDigit = (this.CEXTRA >>> 8) & 0x0F;
-                this.selectedUnit = (this.CEXTRA >>> 4) & 0x07;
+                this.kDigit = (this.CCONTROL >>> 8) & 0x0F;
+                this.selectedUnit = (this.CCONTROL >>> 4) & 0x07;
                 this.SHIFT = 0x19;                      // start at beginning of a word
                 this.execTime -= performance.now()*B220Processor.wordsPerMilli; // mark time during I/O
                 this.cardatron.outputFormatInitiate(this.selectedUnit, this.kDigit,
@@ -3911,9 +3863,10 @@ B220Processor.prototype.operationComplete = function operationComplete() {
 };
 
 /**************************************/
-B220Processor.prototype.ioComplete = function ioComplete() {
+B220Processor.prototype.ioComplete = function ioComplete(restart) {
     /* Implements completion of the Execute cycle for an I/O instruction that
-    has been executing asynchronously */
+    has been executing asynchronously. If "restart" is true, the Processor will
+    resume automatic operation */
 
     this.AST.set(0);
     this.clockIn();
@@ -3922,7 +3875,7 @@ B220Processor.prototype.ioComplete = function ioComplete() {
     }
 
     this.operationComplete();
-    if (this.RUT.value) {
+    if (restart && this.RUT.value) {
         this.schedule();
     }
 };
@@ -3968,7 +3921,7 @@ B220Processor.prototype.run = function run() {
                 }
             }
 
-            this.fetch();
+            this.fetch(false);
             if (this.SST.value) {
                 this.stop();                    // single-stepping
             }
@@ -4200,20 +4153,6 @@ B220Processor.prototype.tcuClear = function tcuClear() {
 };
 
 /**************************************/
-B220Processor.prototype.inputSetup = function inputSetup(unitNr) {
-    /* Called from the Cardatron Control Unit. If the Processor is stopped,
-    loads a CDR (60) instruction into C for unit "unitNr" and sets Execute cycle */
-
-    if (this.poweredOn && !this.RUT.value) {
-        this.CONTROL = unitNr*0x1000;   // recognize control words, no lockout
-        this.COP = 0x60;                // CDR instruction
-        this.CADDR = 0;
-        this.C.set((this.CCONTROL*0x100 + this.COP)*0x10000 + this.CADDR);
-        this.EXT.set(1);
-    }
-};
-
-/**************************************/
 B220Processor.prototype.powerUp = function powerUp() {
     /* Powers up the system */
 
@@ -4343,7 +4282,7 @@ B220Processor.prototype.loadDefaultProgram = function loadDefaultProgram() {
     this.MM[ 229] = 0;
     this.MM[ 230] = 0;
     this.MM[ 231] = 0;
-    this.MM[ 232] = 0x20000000016;      // carriage return
+    this.MM[ 232] = 0x20202020216;      // carriage return
     this.MM[ 233] = 0x05110000000;      // 1.0 literal: argument increment
     this.MM[ 234] = 0x05120000000;      // 2.0 literal
     this.MM[ 235] = 0x05099999990;      // 0.99999990 literal: target precision
@@ -4351,4 +4290,92 @@ B220Processor.prototype.loadDefaultProgram = function loadDefaultProgram() {
     this.MM[ 237] = 0;                  // current sqrt result
     this.MM[ 238] = 0;                  // current upper bound on result
     this.MM[ 239] = 0x05120000000;      // 2.0 sqrt argument
+
+    // Print first 800 digits of Pi; adapted from C program by Dik Winter of CWI, Amsterdam
+    this.MM[ 300]= 0x00000100371; //       CAD   FLIM
+    this.MM[ 301]= 0x00000400365; //       STA   C               C=FLIM
+    this.MM[ 302]= 0x00000100363; //       CAD   A
+    this.MM[ 303]= 0x00001480010; //       SRT   10
+    this.MM[ 304]= 0x00000150375; //       DIV   FIVE            A DIV 5
+    this.MM[ 305]= 0x00000420365; //       LDB   C               FOR (B=C; B>=0; --B)
+    this.MM[ 306]= 0x10000401000; //       STA - F               F[B]=A DIV 5
+    this.MM[ 307]= 0x00001210306; //       DBB   *-1,1
+
+    this.MM[ 308]= 0x00000100365; // L1    CAD   C               START OF OUTER LOOP
+    this.MM[ 309]= 0x00000140374; //       MUL   TWO
+    this.MM[ 310]= 0x00001400368; //       STR   G               G=C*2
+    this.MM[ 311]= 0x00000370362; //       BFR   ENDL1,00,00     IF G EQL 0, BRANCH OUT OF LOOP
+    this.MM[ 312]= 0x00000460366; //       CLL   D               D=0
+    this.MM[ 313]= 0x00000100365; //       CAD   C
+    this.MM[ 314]= 0x00000400364; //       STA   B               B=C
+    this.MM[ 315]= 0x00000420364; //       LDB   B
+
+    this.MM[ 316]= 0x10000101000; // DO    CAD - F               START OF INNER LOOP
+    this.MM[ 317]= 0x00000140363; //       MUL   A               F[B]*A
+    this.MM[ 318]= 0x00001490010; //       SLT   10              SHIFT PRODUCT TO RA
+    this.MM[ 319]= 0x00000120366; //       ADD   D
+    this.MM[ 320]= 0x00000400366; //       STA   D               D+=F[B]*A
+    this.MM[ 321]= 0x00001480010; //       SRT   10              SAVE NEW D IN RR
+    this.MM[ 322]= 0x00001270368; //       DFL   G,00,1          G-=1
+    this.MM[ 323]= 0x00000150368; //       DIV   G               D DIV G
+    this.MM[ 324]= 0x10001401000; //       STR - F               F[B]=D MOD G
+    this.MM[ 325]= 0x00000400366; //       STA   D               D=D DIV G
+    this.MM[ 326]= 0x00001270368; //       DFL   G,00,1          G-=1
+    this.MM[ 327]= 0x00000100364; //       CAD   B
+    this.MM[ 328]= 0x00000130373; //       SUB   ONE
+    this.MM[ 329]= 0x00000400364; //       STA   B               B-=1
+    this.MM[ 330]= 0x00000360334; //       BFA   ENDDO,00,00     IF B EQL 0, BRANCH OUT OF INNER LOOP
+    this.MM[ 331]= 0x00000140366; //       MUL   D
+    this.MM[ 332]= 0x00001400366; //       STR   D               D*=B
+    this.MM[ 333]= 0x00001210316; //       DBB   DO,1            DECREMENT RB, REPEAT INNER LOOP IF >= 0
+
+    this.MM[ 334]= 0x00014270365; // ENDDO DFL   C,00,14         C-=14
+    this.MM[ 335]= 0x00000100366; //       CAD   D
+    this.MM[ 336]= 0x00001480010; //       SRT   10
+    this.MM[ 337]= 0x00000150363; //       DIV   A               D DIV A
+    this.MM[ 338]= 0x00000120367; //       ADD   E               RA=E+D DIV A
+    this.MM[ 339]= 0x00001400367; //       STR   E               E=D MOD A
+
+                                  //                             FORMAT 4 DIGITS FOR SPO OUTPUT
+    this.MM[ 340]= 0x00001480003; //       SRT   3               ISOLATE HIGH-ORDER DIGIT IN A
+    this.MM[ 341]= 0x00000120376; //       ADD   N80             CONVERT 1ST DIGIT TO ALPHA
+    this.MM[ 342]= 0x00000490001; //       SLA   1
+    this.MM[ 343]= 0x00001490001; //       SLT   1
+    this.MM[ 344]= 0x00000120376; //       ADD   N80             CONVERT 2ND DIGIT TO ALPHA
+    this.MM[ 345]= 0x00000490001; //       SLA   1
+    this.MM[ 346]= 0x00001490001; //       SLT   1
+    this.MM[ 347]= 0x00000120376; //       ADD   N80             CONVERT 3RD DIGIT TO ALPHA
+    this.MM[ 348]= 0x00000490001; //       SLA   1
+    this.MM[ 349]= 0x00001490001; //       SLT   1
+    this.MM[ 350]= 0x00000120376; //       ADD   N80             CONVERT 4TH DIGIT TO ALPHA
+    this.MM[ 351]= 0x00000490002; //       SLA   2               INSERT TRAILING SPACE
+    this.MM[ 352]= 0x00002430000; //       LSA   2               SET SIGN TO TWO FOR ALPHA WORD
+    this.MM[ 353]= 0x00000400364; //       STA   B               STORE IN WORD BUFFER
+    this.MM[ 354]= 0x00010090364; //       SPO   B,1
+    this.MM[ 355]= 0x00405260369; //       IFL   COL,04,1        CHECK FOR FULL LINE ON SPO
+    this.MM[ 356]= 0x00000100369; //       CAD   COL
+    this.MM[ 357]= 0x00000180370; //       CFA   ECOL
+    this.MM[ 358]= 0x00001340308; //       BCL   L1              IF COL < ECOL, BRANCH
+    this.MM[ 359]= 0x00010090377; //       SPO   CR,1            OUTPUT NEWLINES
+    this.MM[ 360]= 0x00000460369; //       CLL   COL             CLEAR COLUMN COUNTER
+    this.MM[ 361]= 0x00000300308; //       BUN   L1
+    this.MM[ 362]= 0x00000007557; // ENDL1 HLT   7557
+
+    this.MM[ 363]= 0x00000010000; // A     CNST  10000
+    this.MM[ 364]= 0x00000000000; // B     CNST  0
+    this.MM[ 365]= 0x00000000000; // C     CNST  0
+    this.MM[ 366]= 0x00000000000; // D     CNST  0
+    this.MM[ 367]= 0x00000000000; // E     CNST  0
+    this.MM[ 368]= 0x00000000000; // G     CNST  0
+    this.MM[ 369]= 0x00000000000; // COL   CNST  0
+    this.MM[ 370]= 0x00000000050; // ECOL  CNST  50
+    this.MM[ 371]= 0x00000002800; // FLIM  CNST  2800
+    this.MM[ 372]= 0x00000000000; // ZERO  CNST  0
+    this.MM[ 373]= 0x00000000001; // ONE   CNST  1
+    this.MM[ 374]= 0x00000000002; // TWO   CNST  2
+    this.MM[ 375]= 0x00000000005; // FIVE  CNST  5
+    this.MM[ 376]= 0x00000000080; // N80   CNST  80
+    this.MM[ 377]= 0x20202021616; // CR    CNST  20202021616     NEWLINES
+
+    this.MM[1000]= 0x00000000000; // F     DEFN  *               ARRAY F[2800]
 };

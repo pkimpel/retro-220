@@ -1,20 +1,20 @@
 CACHE MANIFEST
-# retro-220 emulator 0.01, 2017-05-13 18:30
+# retro-220 emulator 0.01a, 2017-05-20 18:30
 CACHE:
 ../emulator/B220Processor.js
 B220.css
 B220.html
 B220.js
-#B220CardatronControl.css
-#B220CardatronControl.html
-#B220CardatronControl.js
-#B220CardatronInput.css
-#B220CardatronInput.html
-#B220CardatronInput.js
-#B220CardatronOutput.css
-#B220CardatronOutput.html
-#B220CardatronOutput.js
-#B220CardatronZeroSuppressPanel.html
+B220CardatronControl.css
+B220CardatronControl.html
+B220CardatronControl.js
+B220CardatronInput.css
+B220CardatronInput.html
+B220CardatronInput.js
+B220CardatronOutput.css
+B220CardatronOutput.html
+B220CardatronOutput.js
+B220CardatronZeroSuppressPanel.html
 B220Common.css
 #B220ConsoleInput.css
 #B220ConsoleInput.js

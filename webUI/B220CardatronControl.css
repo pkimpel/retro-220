@@ -1,0 +1,77 @@
+/***********************************************************************
+* retro-220/webUI B220CardatronControl.css
+************************************************************************
+* Copyright (c) 2017, Paul Kimpel.
+* Licensed under the MIT License, see
+*       http://www.opensource.org/licenses/mit-license.php
+************************************************************************
+* Burroughs 220 emulator Cardatron Control style sheet.
+************************************************************************
+* 2017-05-19  P.Kimpel
+*   Original version, from retro-205 D205CardatronControl.css
+***********************************************************************/
+
+#cardatronControlBody {
+    height:             100%;
+    min-height:         100%;
+    overflow:           hidden;
+    padding:            0}
+
+#PanelSurface {
+    position:           absolute;
+    top:                0;
+    bottom:             0;
+    left:               0;
+    right:              0}
+
+#ControlPanel {
+    position:           absolute;
+    top:                0;
+    bottom:             0;
+    left:               0;
+    right:              0;
+    margin:             4px}
+
+#ClearBtn {
+    bottom:             16px;
+    right:              4px}
+#ClearBtnCaption {
+    bottom:             4px;
+    right:              4px;
+    width:              40px}
+
+#OutputUnitLamp {
+    top:                8px;
+    left:               8px}
+#UnitDesignate4Lamp {
+    top:                8px;
+    left:               32px}
+#UnitDesignate2Lamp {
+    top:                8px;
+    left:               56px}
+#UnitDesignate1Lamp {
+    top:                8px;
+    left:               80px}
+
+#RelayDesignate8Lamp {
+    top:                40px;
+    left:               8px}
+#RelayDesignate4Lamp {
+    top:                40px;
+    left:               32px}
+#RelayDesignate2Lamp {
+    top:                40px;
+    left:               56px}
+#RelayDesignate1Lamp {
+    top:                40px;
+    left:               80px}
+
+#BufferReadLamp {
+    top:                72px;
+    left:               8px}
+#BufferWriteLamp {
+    top:                72px;
+    left:               32px}
+#FormatLoadLamp {
+    top:                72px;
+    left:               56px}

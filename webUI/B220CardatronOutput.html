@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<title>Burroughs 220 Emulator Cardatron Output Unit</title>
+<!--
+/***********************************************************************
+* retro-220/webUI B220CardatronOutput.html
+************************************************************************
+* Copyright (c) 2017, Paul Kimpel.
+* Licensed under the MIT License, see
+*       http://www.opensource.org/licenses/mit-license.php
+************************************************************************
+* Burroughs 220 Cardatron Output Unit device page.
+*
+* Implements the 220 line-printer/card-punch peripheral.
+*
+************************************************************************
+* 2017-05-19  P.Kimpel
+*   Original version, from retro-205 D205CardatronOutput.html.
+***********************************************************************/
+-->
+<meta name="Author" content="Paul Kimpel">
+<meta http-equiv="Content-Script-Type" content="text/javascript">
+<meta http-equiv="Content-Style-Type" content="text/css">
+<link id=defaultStyleSheet rel=stylesheet type="text/css" href="B220Common.css">
+<link id=writerStyleSheet rel=stylesheet type="text/css" href="B220CardatronOutput.css">
+</head>
+
+<body id=writerBody class=deviceBody>
+
+<div id=CODiv>
+    <button id=COStartBtn           class="large greenButton">START</button>
+    <button id=COStopBtn            class="large redButton">STOP</button>
+    <button id=COEndOfSupplyBtn     class="large redButton">END OF<br>PAPER</button>
+    <button id=CORunoutSupplyBtn    class="large redButton"
+            title="Triple-click to rip paper or empty hopper"
+            >FORM<br>FEED</button>
+
+    <div id=ClearBtn class=redButton1>&nbsp;</div>
+    <div id=ClearBtnCaption class=caption>CLEAR</div>
+
+    <div id=COSetZSBtn class=blackButton1 title="Click to set zero-suppression starting columns">&nbsp;</div>
+    <div id=COSetZSBtnCaption class=caption>SET ZS</div>
+
+    <div id=COOptionsDiv>
+      <span id=COGreenbarSpan>
+          <input id=COGreenbarCheck type=checkbox value=1 checked>
+          <label for=COGreenbarCheck class="annunciator annunciatorLit">GREENBAR</label>
+          &nbsp;&nbsp;
+      </span>
+      <input id=COAlgolGlyphsCheck type=checkbox value=1 checked>
+      <label for=COAlgolGlyphsCheck class="annunciator annunciatorLit">ALGOL GLYPHS</label>
+    </div>
+
+    <meter id=COSupplyMeter min=0 max=100 low=10 value=100></meter>
+    <label id=COSupplyMeterCaption for=COSupplyMeter>SUPPLY REMAINING</label>
+
+    <iframe id=COSupplyFrame class=paper scrolling=auto src="./B220FramePaper.html"></iframe>
+</div>
+
+</body>
+</html>

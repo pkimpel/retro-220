@@ -509,6 +509,9 @@ B220ConsolePrinter.prototype.receiveChar = function receiveChar(char, successor)
         this.printChar(this.suppressLZ ? 0x00 : char);
         break;
 
+    case 0x02:                          // blank (non-print)
+        break;
+
     case 0x15:                          // form-feed
         delay *= 4;
         this.suppressLZ = 0;
