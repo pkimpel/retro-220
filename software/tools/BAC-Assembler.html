@@ -255,6 +255,7 @@ window.addEventListener("load", function() {
     *       13 = BU pair for CRF/CWF: (B-1)*2 in (41) U in (11)
     *       14 = reload-lockout value added to (41)
     *       15 = digit inserted in (11); if specified, insert 1 in (41)
+    *       16 = format band digit in (41): (B-1)*2
     *       19 = resolved address only
     ***************************************/
 
@@ -366,7 +367,7 @@ window.addEventListener("load", function() {
         "MIB":  [ 59,  1, -1,  4, -1,  8,  0],
         "MIE":  [159,  1, -1,  4, -1,  8,  0],
         "CRD":  [ 60,  1, -1,  4, -1,  5,  0,  8,  0],
-        "CWR":  [ 61,  1, -1,  4, -1, 13, -1,  8,  0],
+        "CWR":  [ 61,  1, -1,  4, -1, 16, -1,  8,  0],
         "CRF":  [ 62,  1, -1, 13, -1, 14,  0],
         "CWF":  [ 63,  1, -1, 13, -1, 14,  0],
         "CRI":  [ 64,  1, -1,  4, -1],
@@ -1198,6 +1199,11 @@ window.addEventListener("load", function() {
                     w2 = w1 - w1 % p10[6];
                     word += p10[6] - w2;
                 }
+                break;
+            case 16:                    // format band digit in (41): (B-1)*2
+                w1 = word % p10[7];             // band in (41)
+                w2 = w1 - w1 % p10[6];
+                word += (f%10-1)*2*p10[6] - w2;
                 break;
             case 19:                    // resolved address only
                 w2 = word % p10[4];

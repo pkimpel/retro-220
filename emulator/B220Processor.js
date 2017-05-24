@@ -260,7 +260,7 @@ function B220Processor(config, devices) {
 *   Global Constants                                                   *
 ***********************************************************************/
 
-B220Processor.version = "0.01a";
+B220Processor.version = "0.02";
 
 B220Processor.tick = 1000/200000;       // milliseconds per clock cycle (200KHz)
 B220Processor.cyclesPerMilli = 1/B220Processor.tick;
@@ -2672,6 +2672,7 @@ B220Processor.prototype.cardatronOutputWord = function cardatronOutputWord() {
     } else if (this.MET.value) {        // previous memory access error
         word = 0;
     } else {
+        this.opTime += 0.117;           // time for full-word transfer
         word = this.readMemory();       // address in E was previously set
         if (this.MET.value) {
             word = 0;
@@ -2715,6 +2716,7 @@ B220Processor.prototype.cardatronReceiveWord = function cardatronReceiveWord(wor
         // Memory error has occurred: just ignore further data from Cardatron
     } else {
         // Full word accumulated -- process it and initialize for the next word
+        this.opTime += 0.117;           // time for full-word transfer
         this.D.set(word);
         word %= 0x10000000000;          // strip the sign digit
         sign = (this.D.value - word)/0x10000000000; // get D-sign
@@ -3642,13 +3644,28 @@ B220Processor.prototype.execute = function execute() {
         break;
 
     case 0x61:      //--------------------- CWR     Card write
-        this.setProgramCheck(1);
-        this.operationComplete();
+        this.opTime = 1.600;                            // rough minimum estimage
+        this.E.set(this.CADDR);
+        this.D.set(0);
+        if (!this.cardatron) {
+            this.setCardatronCheck(1);
+            this.operationComplete();
+        } else {
+            this.selectedUnit = (this.CCONTROL >>> 12) & 0x0F;
+            this.rDigit = this.CCONTROL & 0x0F;
+            this.vDigit = (this.CCONTROL >>> 4) & 0x0F;
+            this.ioInitiate();
+            d = this.cardatron.outputInitiate(this.selectedUnit, this.rDigit, this.vDigit,
+                        this.boundCardatronOutputWord, this.boundCardatronOutputFinished);
+            if (d < 0) {                                // invalid unit
+                this.setCardatronCheck(1);
+                this.ioComplete(true);
+            }
+        }
         break;
 
     case 0x62:      //--------------------- CRF     Card read, format load
-        this.setProgramCheck(1);
-        this.opTime = 2.940;                            // rough minimum estimage
+        this.opTime = 1.600;                            // rough minimum estimage
         this.E.set(this.CADDR);
         this.D.set(0);
         if (!this.cardatron) {
@@ -3665,12 +3682,26 @@ B220Processor.prototype.execute = function execute() {
                 this.ioComplete(true);
             }
         }
-        this.operationComplete();
         break;
 
     case 0x63:      //--------------------- CWF     Card write, format load
-        this.setProgramCheck(1);
-        this.operationComplete();
+        this.opTime = 1.600;                            // rough minimum estimage
+        this.E.set(this.CADDR);
+        this.D.set(0);
+        if (!this.cardatron) {
+            this.setCardatronCheck(1);
+            this.operationComplete();
+        } else {
+            this.selectedUnit = (this.CCONTROL >>> 12) & 0x0F;
+            this.rDigit = this.CCONTROL & 0x0F;
+            this.ioInitiate();
+            d = this.cardatron.outputFormatInitiate(this.selectedUnit, this.rDigit,
+                        this.boundCardatronOutputWord, this.boundCardatronOutputFinished);
+            if (d < 0) {                                // invalid unit
+                this.setCardatronCheck(1);
+                this.ioComplete(true);
+            }
+        }
         break;
 
     case 0x64:      //--------------------- CRI     Card read interrogate, branch
@@ -3680,7 +3711,6 @@ B220Processor.prototype.execute = function execute() {
         if (!this.cardatron) {
             this.setCardatronCheck(1);
         } else {
-            this.E.set(this.CADDR);
             this.selectedUnit = (this.CCONTROL >>> 12) & 0x0F;
             d = this.cardatron.inputReadyInterrogate(this.selectedUnit);
             if (d < 0) {                                // invalid unit
@@ -3694,7 +3724,21 @@ B220Processor.prototype.execute = function execute() {
         break;
 
     case 0x65:      //--------------------- CWI     Card write interrogate, branch
-        this.setProgramCheck(1);
+        this.opTime = 0.265;                            // average
+        this.E.set(this.CADDR);
+        this.D.set(0);
+        if (!this.cardatron) {
+            this.setCardatronCheck(1);
+        } else {
+            this.selectedUnit = (this.CCONTROL >>> 12) & 0x0F;
+            d = this.cardatron.outputReadyInterrogate(this.selectedUnit);
+            if (d < 0) {                                // invalid unit
+                this.setCardatronCheck(1);
+            } else if (d > 0) {
+                this.opTime += 0.020;
+                this.P.set(this.CADDR);
+            }
+        }
         this.operationComplete();
         break;
 
@@ -3835,11 +3879,11 @@ B220Processor.prototype.operationComplete = function operationComplete() {
     /* Implements Operation Complete for the Execute cycle. If we're not locked
     in Execute, switch to Fetch cycle next */
 
-    this.execClock += this.opTime;
     if (this.FETCHEXECUTELOCKSW != 1) {
         this.EXT.set(0);                // set to FETCH state
     }
 
+    this.execClock += this.opTime;
     if (this.ORDERCOMPLEMENTSW) {
         this.C.flipBit(16);             // complement low order bit of op code
         this.COP ^= 0x01;

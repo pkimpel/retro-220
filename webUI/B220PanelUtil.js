@@ -827,10 +827,10 @@ PanelRegister.prototype.drawBox = function drawBox(col, lamps, rows, leftStyle, 
     var rightBias = (rightStyle ? 1 : 0);
 
     box.style.position = "absolute";
-    box.style.left = (this.xCoord(col) - (PanelRegister.hSpacing-PanelRegister.lampDiameter)/2).toString() + "px";
-    box.style.width = (PanelRegister.hSpacing*lamps - rightBias).toString() + "px";
+    box.style.left = (this.xCoord(col) - (PanelRegister.hSpacing-PanelRegister.lampDiameter)/2 + 1).toString() + "px";
+    box.style.width = (PanelRegister.hSpacing*lamps - 2).toString() + "px";
     box.style.top = this.yCoord(1).toString() + "px";
-    box.style.height = (this.yCoord(rows) - this.yCoord(1) + PanelRegister.lampDiameter).toString() + "px";
+    box.style.height = (this.yCoord(rows+1) - this.yCoord(1)).toString() + "px";
     box.style.borderLeft = leftStyle;
     box.style.borderRight = rightStyle;
     box.appendChild(document.createTextNode("\xA0"));

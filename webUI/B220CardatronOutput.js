@@ -37,9 +37,6 @@ function B220CardatronOutput(mnemonic, unitIndex, config) {
     this.useGreenbar = false;           // format "greenbar" shading on the paper (printer only)
     this.lpi = 6;                       // lines/inch (actually, lines per greenbar group, should be even)
 
-    this.boundOutputFormatWord = B220Util.bindMethod(this, B220CardatronOutput.prototype.outputFormatWord);
-    this.boundOutputWord = B220Util.bindMethod(this, B220CardatronOutput.prototype.outputWord);
-
     this.clear();
 
     // Line buffer for assembling the print/punch line
@@ -67,7 +64,7 @@ function B220CardatronOutput(mnemonic, unitIndex, config) {
     this.supply = null;                 // the "paper" or "cards" we print/punch on
     this.endOfSupply = null;            // dummy element used to control scrolling
     this.supplyMeter = null;            // <meter> element showing amount of paper/card supply remaining
-    w = (this.isPrinter ? 780 : 608);
+    w = (this.isPrinter ? 790 : 608);
     this.window = window.open("../webUI/B220CardatronOutput.html", mnemonic,
             "location=no,scrollbars,resizable,width=" + w + ",height=" + h +
             ",left=" + (screen.availWidth - w) +
@@ -82,11 +79,9 @@ B220CardatronOutput.prototype.maxSupplyLines = 150000;  // maximum output scroll
 B220CardatronOutput.prototype.rtrimRex = /\s+$/;        // regular expression for right-trimming lines
 B220CardatronOutput.prototype.theColorGreen = "#CFC";   // for greenbar shading
 
-B220CardatronOutput.trackSize = 316;     // digits
-B220CardatronOutput.digitTime = 60/21600/B220CardatronOutput.trackSize;
-                                        // one digit time, about 8.8 µs at 21600rpm
-B220CardatronOutput.digitsPerMilli = 0.001/B220CardatronOutput.digitTime;
-                                        // digit times per millisecond: 113.8
+B220CardatronOutput.trackSize = 319;     // digits
+B220CardatronOutput.drumTransferTime = 60000/21600;
+                                        // one drum rotation, about 2.78 ms
 
 // Translate info band zone & numeric digits to ASCII character codes.
 // See U.S. Patent 3,072,328, January 8, 1963, L.L. Bewley et al, Figure 2;
@@ -157,6 +152,7 @@ B220CardatronOutput.prototype.clear = function clear() {
     this.bufferReady = true;            // buffer drum info band is ready to accept data from Processor
     this.writeRequested = false;        // Processor has initiated a write, waiting for buffer
     this.togNumeric = false;            // current digit came from zone (false) or numeric (true) punches
+    this.suppress12Mode = false;        // suppresses 12 zones for sign digits
 
     this.supplyLeft = this.maxSupplyLines; // lines/cards remaining in output supply
     this.runoutSupplyCount = 0;         // counter for triple-formfeed => rip paper/empty hopper
@@ -166,8 +162,9 @@ B220CardatronOutput.prototype.clear = function clear() {
 
     this.pendingCall = null;            // stashed pending function reference
     this.pendingParams = null;          // stashed pending function parameters
-    this.kDigit = 0;                    // stashed reload-format band number
-    this.tDigit = 0;                    // stashed Tab Select relay digit
+    this.pendingFinish = null;          // stashed pending signalFinished() reference
+    this.cDigit = 0;                    // stashed Tab Select relay digit
+    this.fDigit = 0;                    // stashed format band number
     this.lastNumericDigit = 0;          // last numeric digit encountered
     this.infoIndex = 0;                 // 0-relative offset into info band on drum
     this.selectedFormat = 0;            // currently-selected format band
@@ -347,6 +344,7 @@ B220CardatronOutput.prototype.finishWrite = function finishWrite() {
     if (this.writeRequested) {
         this.writeRequested = false;
         this.pendingCall.apply(this, this.pendingParams);
+        this.pendingCall = null;
     }
 };
 
@@ -431,7 +429,7 @@ B220CardatronOutput.prototype.initiateWrite = function initiateWrite() {
         } else {
             line = line.replace(this.rtrimRex, '');
         }
-        switch (this.tDigit) {
+        switch (this.cDigit) {
         case 1:                         // Relay 1 (eject page after printing)
         case 9:                         // same as 1
             this.printLine(line, this.pendingSpaceBefore);
@@ -791,8 +789,7 @@ B220CardatronOutput.prototype.deviceOnLoad = function deviceOnLoad() {
 };
 
 /**************************************/
-B220CardatronOutput.prototype.outputWord = function outputWord(
-        word, requestNextWord, signalFinished) {
+B220CardatronOutput.prototype.outputWord = function outputWord(requestNextWord) {
     /* Receives the next info band word from the Processor and stores its digits
     under control of the selected format band. requestNextWord is the callback function
     to request the next word from the Processor; signalFinished is the callback
@@ -805,14 +802,11 @@ B220CardatronOutput.prototype.outputWord = function outputWord(
     var info = this.info;               // local reference to info band
     var ix = this.infoIndex;            // current info/format band index
     var lastNumeric = this.lastNumericDigit;
-    var latency = 0;                    // drum latency for first digit of a word
-    var nu = this.togNumeric;           // numeric vs. zone digit toggle
+    var nu = this.togNumeric;           // numeric/zone digit toggle
+    var word = requestNextWord();       // word received from processor
     var x = 0;                          // word-digit index
 
     band = this.formatBand[this.selectedFormat];
-    // For the first digit of a word, note the current buffer drum digit address
-    drumAddr = (performance.now()*B220CardatronOutput.digitsPerMilli) % B220CardatronOutput.trackSize;
-    latency = (ix - drumAddr + B220CardatronOutput.trackSize) % B220CardatronOutput.trackSize;
 
     // Loop through the digits in the word, processing each one
     do {
@@ -845,7 +839,11 @@ B220CardatronOutput.prototype.outputWord = function outputWord(
                         if (x > 9) {
                             // For a zone digit in the sign position, store a 5 (+) or 6 (-)
                             // so that the sign will be printed/punched as a zone 11/12.
-                            info[ix] = (d & 0x01) + 5;
+                            if (d == 0 && this.suppress12Mode) {
+                                info[ix] = 0;   // suppress the 12-zone output
+                            } else {
+                                info[ix] = (d & 0x01) + 5;
+                            }
                         } else if (d > 3) {
                             info[ix] = this.zoneXlate[d][lastNumeric];
                         } else {
@@ -884,24 +882,27 @@ B220CardatronOutput.prototype.outputWord = function outputWord(
     this.lastNumericDigit = lastNumeric;
     this.togNumeric = nu;
     this.infoIndex = ix;
-    if (ix < info.length) {
-        // Delay requesting the next word for the amount of time until buffer drum was in position
-        setCallback(this.mnemonic, this, latency/B220CardatronOutput.digitsPerMilli,
-                requestNextWord, this.boundOutputWord);
-        // requestNextWord(this.boundOutputWord);  // until we get the timing fixed
-    } else {
-        // At end of info band -- finish the data transfer and start the I/O to the device
-        this.initiateWrite();
-        signalFinished();
     }
+
+/**************************************/
+B220CardatronOutput.prototype.outputTransfer = function outputTransfer(requestNextWord) {
+    /* Driver for receiving info band words from the Processor */
+
+    while (this.infoIndex < this.info.length) {
+        this.outputWord(requestNextWord);
+    }
+
+    this.pendingFinish();               // call signalFinished()
+    this.pendingFinish = null;
+    this.initiateWrite();
 };
 
 /**************************************/
 B220CardatronOutput.prototype.outputInitiate = function outputInitiate(
-        kDigit, tDigit, requestNextWord, signalFinished) {
-    /* Initiates a write to the buffer drum on this unit. kDigit is the
-    second numeric digit from the instruction word containing the format number.
-    tDigit is the first numeric digit from the instruction word and sets the
+        fDigit, cDigit, requestNextWord, signalFinished) {
+    /* Initiates a write to the buffer drum on this unit. fDigit is the
+    (41) numeric digit from the instruction word containing the format number.
+    cDigit is the (31) numeric digit from the instruction word and sets the
     Tab Select relays for the IBM device. We use it for carriage control as
     implemented by the standard Burroughs 205/220 plugboard for the 407:
         0 = No relays (single space before printing)
@@ -918,27 +919,28 @@ B220CardatronOutput.prototype.outputInitiate = function outputInitiate(
     requestNextWord is the callback function that will request the next word from the
     processor. signalFinished is the callback function that tells the Processor
     we're done. If the buffer is not ready, simply sets the writeRequested flag
-    and exits after stashing kDigit, tDigit, and the callbacks. Note that if the
+    and exits after stashing fDigit, cDigit, and the callbacks. Note that if the
     device is not ready, the buffer can still be loaded */
 
     if (!this.bufferReady) {
         this.writeRequested = true;     // wait for the buffer to be emptied
         this.pendingCall = outputInitiate;
-        this.pendingParams = [kDigit, tDigit, requestNextWord, signalFinished];
-    } else if (kDigit > 9) {
+        this.pendingParams = [fDigit, cDigit, requestNextWord, signalFinished];
+    } else if (fDigit > 9) {
         signalFinished();
     } else {
-        this.kDigit = kDigit;
-        this.tDigit = (this.isPrinter ? tDigit : 0);
-        this.selectedFormat = ((kDigit >>> 1) & 0x07) + 1;
+        this.cDigit = (this.isPrinter ? cDigit : 0);
+        this.fDigit = fDigit;
+        this.suppress12Mode = (fDigit%2 == 0);
+        this.selectedFormat = ((fDigit >>> 1) & 0x07) + 1;
         this.setFormatSelectLamps(this.selectedFormat);
         this.togNumeric = true;
         this.lastNumericDigit = 0;
         this.bufferReady = false;
         this.clearInfoBand();
-        setCallback(this.mnemonic, this,
-                B220CardatronOutput.trackSize/B220CardatronOutput.digitsPerMilli*2.5,
-                requestNextWord, this.boundOutputWord); // request the first data word
+        this.pendingFinish = signalFinished;    // stash the callback function
+        setCallback(this.mnemonic, this, B220CardatronOutput.drumTransferTime*(Math.random()+2),
+                    this.outputTransfer, requestNextWord);
     }
 };
 
@@ -950,56 +952,55 @@ B220CardatronOutput.prototype.outputReadyInterrogate = function outputReadyInter
 };
 
 /**************************************/
+B220CardatronOutput.prototype.outputFormatTransfer = function outputFormatTransfer(requestNextWord) {
+    /* Receives output format band words from the Processor and stores the
+    digits from each word into the next 11 format band digits */
+    var band = this.formatBand[this.selectedFormat];
+    var d;                              // current format digit
+    var ix = 0;                         // current format band digit index
+    var word;                           // band word received from Processor
+    var x;                              // word-digit index
+
+    while (ix < B220CardatronOutput.trackSize) {
+        word = requestNextWord();
+        if (word < 0) {                 // transfer terminated
+            ix = B220CardatronOutput.tracksize;
+        } else {
+            for (x=0; x<11; ++x) {
+                d = word % 0x10;
+                word = (word-d)/0x10;
+                if (ix < B220CardatronOutput.trackSize) {
+                    band[ix++] = d % 4;
+                } else {
+                    break;              // out of for loop
+                }
+            } // for x
+        }
+    }
+
+    this.pendingFinish();               // call signalFinished();
+    this.pendingFinish = null;
+};
+
+/**************************************/
 B220CardatronOutput.prototype.outputFormatInitiate = function outputFormatInitiate(
-        kDigit, requestNextWord, signalFinished) {
-    /* Initiates the loading of a format band on this unit. kDigit is the
-    second numeric digit from the instruction word, the low-order bit is ignored
+        fDigit, requestNextWord, signalFinished) {
+    /* Initiates the loading of a format band on this unit. fDigit is the
+    (41) numeric digit from the instruction word, the low-order bit is ignored,
     and the remaining three bits indicate the format band to be loaded. requestNextWord
     is the callback function that will trigger the Processor to send the next word.
     signalFinished is the callback function that will signal the Processor to
     terminate the I/O */
 
-    if (kDigit > 9) {
+    if (fDigit > 9) {
         signalFinished();
     } else {
-        this.kDigit = kDigit;
-        this.selectedFormat = ((kDigit >>> 1) & 0x07) + 1;
-        this.infoIndex = 0;             // start at the beginning of the format band
-        this.togNumeric = true;
-        this.lastNumericDigit = 0;
+        this.fDigit = fDigit;
+        this.selectedFormat = ((fDigit >>> 1) & 0x07) + 1;
+        this.pendingFinish = signalFinished;      // stash the call-back function
         this.setFormatSelectLamps(this.selectedFormat);
-        setCallback(this.mnemonic, this,
-                B220CardatronOutput.trackSize/B220CardatronOutput.digitsPerMilli*2.5,
-                requestNextWord, this.boundOutputFormatWord); // request the first format word
-    }
-};
-
-/**************************************/
-B220CardatronOutput.prototype.outputFormatWord = function outputFormatWord(
-        word, requestNextWord, signalFinished) {
-    /* Receives the next output format band word from the Processor and
-    stores the digits from the word into the next 11 format band digits */
-    var band = this.formatBand[this.selectedFormat];
-    var d;                              // current format digit
-    var ix = this.infoIndex;            // current format band digit index
-    var x;                              // word-digit index
-
-    for (x=0; x<11; ++x) {
-        d = word % 0x10;
-        word = (word-d)/0x10;
-        if (ix < B220CardatronOutput.trackSize) {
-            band[ix++] = d % 4;
-        } else {
-            break;                      // out of for loop
-        }
-    } // for x
-
-    this.infoIndex = ix;
-    if (ix < B220CardatronOutput.trackSize) {
-        requestNextWord(this.boundOutputFormatWord);
-    } else {
-        this.setFormatSelectLamps(0);
-        signalFinished();
+        setCallback(this.mnemonic, this, B220CardatronOutput.drumTransferTime*(Math.random()+2),
+                    this.outputFormatTransfer, requestNextWord);
     }
 };
 

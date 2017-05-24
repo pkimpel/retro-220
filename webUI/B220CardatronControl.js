@@ -171,7 +171,7 @@ B220CardatronControl.prototype.cardatronOnLoad = function cardatronOnLoad() {
 };
 
 /**************************************/
-B220CardatronControl.prototype.inputInitiate = function inputInitiate(unitNr, kDigit, wordSender) {
+B220CardatronControl.prototype.inputInitiate = function inputInitiate(unitNr, rDigit, wordSender) {
     /* Initiates the read from one of the Cardatron input devices.
     Returns 0 if device exists and the I/O was initiated; returns -1 if device
     not present */
@@ -185,7 +185,7 @@ B220CardatronControl.prototype.inputInitiate = function inputInitiate(unitNr, kD
     if (!this.inputUnit[unitNr]) {
         return -1;                      // just terminate the I/O
     } else {
-        this.inputUnit[unitNr].inputInitiate(kDigit, wordSender);
+        this.inputUnit[unitNr].inputInitiate(rDigit, wordSender);
         return 0;
     }
 };
@@ -195,6 +195,7 @@ B220CardatronControl.prototype.inputReadyInterrogate = function inputReadyInterr
     /* Interrogates the ready status of a Cardatron input device.
     Returns -1 if device not present, 0 if device not ready, 1 if device is ready */
 
+    this.setUnitDesignateLamps(unitNr);
     if (!this.inputUnit[unitNr]) {
         return -1;
     } else {
@@ -204,7 +205,7 @@ B220CardatronControl.prototype.inputReadyInterrogate = function inputReadyInterr
 
 /**************************************/
 B220CardatronControl.prototype.inputFormatInitiate = function inputFormatInitiate(
-        unitNr, kDigit, requestNextWord, signalFinished) {
+        unitNr, rDigit, requestNextWord, signalFinished) {
     /* Initiates loading a format band for one of the Cardatron input devices.
     Returns 0 if device exists and the I/O was initiated; returns -1 if device
     not present */
@@ -218,58 +219,63 @@ B220CardatronControl.prototype.inputFormatInitiate = function inputFormatInitiat
     if (!this.inputUnit[unitNr]) {
         return -1;                      // just terminate the I/O
     } else {
-        this.inputUnit[unitNr].inputFormatInitiate(kDigit, requestNextWord, signalFinished);
+        this.inputUnit[unitNr].inputFormatInitiate(rDigit, requestNextWord, signalFinished);
         return 0;
     }
 };
 
 /**************************************/
 B220CardatronControl.prototype.outputInitiate = function outputInitiate(
-        unitNr, kDigit, tDigit, requestNextWord, signalFinished) {
-    /* Initiates writing to one of the Cardatron output devices */
+        unitNr, fDigit, cDigit, requestNextWord, signalFinished) {
+    /* Initiates writing to one of the Cardatron output devices.
+    Returns 0 if device exists and the I/O was initiated; returns -1 if device
+    not present */
 
     this.bufferReadLamp.set(0);
     this.bufferWriteLamp.set(1);
     this.formatLoadLamp.set(0);
     this.outputUnitLamp.set(1);
-    this.setRelayDesignateLamps(tDigit);
+    this.setRelayDesignateLamps(cDigit);
+    this.setUnitDesignateLamps(unitNr);
     if (!this.outputUnit[unitNr]) {
-        // ?? what happens if the unitNr is invalid? Halt?
-        signalFinished();               // just terminate the I/O
+        return -1;                      // just terminate the I/O
     } else {
-        this.setUnitDesignateLamps(unitNr);
-        this.outputUnit[unitNr].outputInitiate(kDigit, tDigit, requestNextWord, signalFinished);
+        this.outputUnit[unitNr].outputInitiate(fDigit, cDigit, requestNextWord, signalFinished);
+        return 0;
     }
 };
 
 /**************************************/
 B220CardatronControl.prototype.outputReadyInterrogate = function outputReadyInterrogate(unitNr) {
-    /* Interrogates the ready status of a Cardatron output device */
+    /* Interrogates the ready status of a Cardatron output device.
+    Returns -1 if device not present, 0 if device not ready, 1 if device is ready */
 
+    this.setUnitDesignateLamps(unitNr);
     if (!this.outputUnit[unitNr]) {
-        // ?? what happens if the unitNr is invalid? Halt?
-        return false;
+        return -1;                      // just terminate the I/O
     } else {
-        return this.outputUnit[unitNr].outputReadyInterrogate();
+        return (this.outputUnit[unitNr].outputReadyInterrogate() ? 1 : 0);
     }
 };
 
 /**************************************/
 B220CardatronControl.prototype.outputFormatInitiate = function outputFormatInitiate(
-        unitNr, kDigit, requestNextWord, signalFinished) {
-    /* Initiates loading a format band for one of the Cardatron output devices */
+        unitNr, fDigit, requestNextWord, signalFinished) {
+    /* Initiates loading a format band for one of the Cardatron output devices.
+    Returns 0 if device exists and the I/O was initiated; returns -1 if device
+    not present */
 
     this.bufferReadLamp.set(0);
     this.bufferWriteLamp.set(0);
     this.formatLoadLamp.set(1);
     this.outputUnitLamp.set(1);
     this.setRelayDesignateLamps(0);
+    this.setUnitDesignateLamps(unitNr);
     if (!this.outputUnit[unitNr]) {
-        // ?? what happens if the unitNr is invalid? Halt?
-        signalFinished();               // just terminate the I/O
+        return -1;                      // just terminate the I/O
     } else {
-        this.setUnitDesignateLamps(unitNr);
-        this.outputUnit[unitNr].outputFormatInitiate(kDigit, requestNextWord, signalFinished);
+        this.outputUnit[unitNr].outputFormatInitiate(fDigit, requestNextWord, signalFinished);
+        return 0;
     }
 };
 

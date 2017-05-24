@@ -529,6 +529,11 @@ B220ControlConsole.prototype.consoleOnLoad = function consoleOnLoad() {
     this.regP = new PanelRegister(this.$$("PRegPanel"),  4*4, 4, "P_", "P");
     this.regS = new PanelRegister(this.$$("SRegPanel"),  4*4, 4, "S_", "S");
 
+    this.regA.drawBox(6, 2, 4, "2px solid white", "2px solid white");
+    this.regC.drawBox(5, 2, 4, "2px solid white", "2px solid white");
+    this.regD.drawBox(6, 2, 4, "2px solid white", "2px solid white");
+    this.regR.drawBox(6, 2, 4, "2px solid white", "2px solid white");
+
     // Status Panels
 
     panel = this.$$("AlarmPanel");
