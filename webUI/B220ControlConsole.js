@@ -18,6 +18,7 @@ function B220ControlConsole(p, systemShutdown) {
     var h = 600;
     var w = 1064;
     var mnemonic = "ControlConsole";
+    var inputConfig = p.config.getNode("ConsoleInput");
     var outputConfig = p.config.getNode("ConsoleOutput");
     var u;
     var x;
@@ -36,8 +37,34 @@ function B220ControlConsole(p, systemShutdown) {
     this.boundResetTimer = B220Util.bindMethod(this, B220ControlConsole.prototype.resetTimer);
     this.boundUpdatePanel = B220Util.bindMethod(this, B220ControlConsole.prototype.updatePanel);
 
+    // Configure the console input unit objects. These are paper-tape readers.
+    this.inputUnit = [
+            null,                       // unit[0] not used
+            null,                       // 1=unit A
+            null,                       // 2=unit B
+            null,                       // 3=unit C
+            null,                       // 4=unit D
+            null,                       // 5=unit E
+            null,                       // 6=unit F
+            null,                       // 7=unit G
+            null,                       // 8=unit H
+            null,                       // 9=unit I
+            null];                      //10=unit J
+
+    for (x=1; x<inputConfig.units.length; ++x) {
+        u = inputConfig.units[x];
+        switch (u.type.substring(0, 3)) {
+        case "PTR":
+            this.inputUnit[x] = new B220PaperTapeReader(u.type, x, this.config);
+            break;
+        default:
+            this.inputUnit[x] = null;
+            break;
+        } // switch u.type
+    }
+
     // Configure the console output unit objects. These can be any combination
-    // of paper tape punches and teletype printers.
+    // of paper-tape punches and teletype printers.
     this.outputUnit = [
             null,                       // 0=unit A (usually the SPO)
             null,                       // 1=unit B
@@ -717,6 +744,8 @@ B220ControlConsole.prototype.consoleOnLoad = function consoleOnLoad() {
 
     this.$$("EmulatorVersion").textContent = B220Processor.version;
 
+    this.window.moveTo(screen.availWidth - this.window.outerWidth, 0);
+
     // Power on the system by default...
     setCallback(this.mnemonic, this, 1000, function powerOnTimer() {
         this.powerOnSystem();
@@ -756,6 +785,30 @@ B220ControlConsole.prototype.outputUnitSelect = function outputUnitSelect(unitNr
 };
 
 /**************************************/
+B220ControlConsole.prototype.inputUnitSelect = function inputUnitSelect(unitNr, successor) {
+    /* Prepares for paper-tape input by selecting the first ready device
+    having a unitMask matching the unitNr parameter. If one is found, returns
+    that index and schedules initiateInput() for the unit. If no such unit is
+    found, returns -1 */
+    var result = -1;                    // be pessimistic
+    var u = null;                       // input unit object
+    var x;                              // for loop index
+
+    for (x=1; x<this.inputUnit.length; ++x) {
+        u = this.inputUnit[x];
+        if (u && u.ready) {
+            if (u.unitMask & B220Processor.pow2[unitNr]) {
+                result = x;
+                setCallback(this.mnemonic, u, 1, u.initiateInput, successor);
+                break; // out of for loop
+            }
+        }
+    }
+
+    return result;
+};
+
+/**************************************/
 B220ControlConsole.prototype.shutDown = function shutDown() {
     /* Shuts down the panel */
     var x;
@@ -771,6 +824,13 @@ B220ControlConsole.prototype.shutDown = function shutDown() {
         if (this.outputUnit[x]) {
             this.outputUnit[x].shutDown();
             this.outputUnit[x] = null;
+        }
+    }
+
+    for (x=1; x<this.inputUnit.length; ++x) {
+        if (this.inputUnit[x]) {
+            this.inputUnit[x].shutDown();
+            this.inputUnit[x] = null;
         }
     }
 

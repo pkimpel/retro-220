@@ -65,7 +65,8 @@ function B220CardatronInput(mnemonic, unitIndex, config) {
     this.formatSelectList = null;
     this.window = window.open("../webUI/B220CardatronInput.html", mnemonic,
             "location=no,scrollbars,resizable,width=" + w + ",height=" + h +
-            ",left=" + (unitIndex*24) + ",top=" + (unitIndex*24));
+            ",left=" + ((unitIndex-1)*32) +
+            ",top=" + (screen.availHeight - h - (unitIndex-1)*32));
     this.window.addEventListener("load",
             B220Util.bindMethod(this, B220CardatronInput.prototype.readerOnLoad), false);
 }
@@ -522,7 +523,7 @@ B220CardatronInput.prototype.finishCardRead = function finishCardRead() {
                     c = card.charCodeAt(col);   // translate char to buffer code
                     if (c < 0x80) {
                         c = this.cardFilter[c];
-                    } else if (c == 0xA4) {     // the "lozenge" ("¤")
+                    } else if (c == 0xA4) {     // the "lozenge" ("Â¤")
                         c = this.cardFilter[0x3C];  // use the code for "<"
                     } else {
                         c = 0;
@@ -632,6 +633,8 @@ B220CardatronInput.prototype.readerOnLoad = function readerOnLoad() {
 
     this.window.resizeBy(de.scrollWidth - this.window.innerWidth + 4, // kludge for right-padding/margin
                          de.scrollHeight - this.window.innerHeight);
+
+    this.window.moveTo(0, screen.availHeight - this.window.outerHeight - (this.unitIndex-1)*32);
 };
 
 /**************************************/

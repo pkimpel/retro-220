@@ -68,7 +68,7 @@ function B220CardatronOutput(mnemonic, unitIndex, config) {
     this.window = window.open("../webUI/B220CardatronOutput.html", mnemonic,
             "location=no,scrollbars,resizable,width=" + w + ",height=" + h +
             ",left=" + (screen.availWidth - w) +
-            ",top=" + (screen.availHeight - h - (unitIndex-1)*24));
+            ",top=" + (screen.availHeight - h - (unitIndex-3)*32));
     this.window.addEventListener("load",
             B220Util.bindMethod(this, B220CardatronOutput.prototype.deviceOnLoad), false);
 }
@@ -786,6 +786,9 @@ B220CardatronOutput.prototype.deviceOnLoad = function deviceOnLoad() {
         this.$$("COGreenbarCheck").addEventListener("click",
                 B220Util.bindMethod(this, B220CardatronOutput.prototype.COGreenbarCheck_onClick), false);
     }
+
+    this.window.moveTo(screen.availWidth - this.window.outerWidth,
+                       screen.availHeight - this.window.outerHeight - (7-this.unitIndex)*32);
 };
 
 /**************************************/

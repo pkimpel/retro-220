@@ -15,7 +15,7 @@
 /**************************************/
 function B220CardatronControl(p) {
     /* Constructor for the CardatronControl object */
-    var left = 660;                     // left window margin
+    var left = 600;                     // left window margin
     var u;                              // unit config object
     var x;                              // unit index
 
@@ -27,7 +27,8 @@ function B220CardatronControl(p) {
 
     this.doc = null;
     this.window = window.open("../webUI/B220CardatronControl.html", this.mnemonic,
-            "location=no,scrollbars=no,resizable,width=140,height=140,top=0,left=" + left);
+            "location=no,scrollbars=no,resizable,width=140,height=140,left=" + left +
+            ",top=" + (screen.availHeight-140));
     this.window.addEventListener("load",
         B220Util.bindMethod(this, B220CardatronControl.prototype.cardatronOnLoad));
 
@@ -168,6 +169,8 @@ B220CardatronControl.prototype.cardatronOnLoad = function cardatronOnLoad() {
             B220Util.bindMethod(this, B220CardatronControl.prototype.ClearBtn_onClick));
 
     this.clear();
+
+    this.window.moveTo(this.window.screenX, screen.availHeight - this.window.outerHeight);
 };
 
 /**************************************/

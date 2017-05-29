@@ -15,8 +15,8 @@
 /**************************************/
 function B220PaperTapePunch(mnemonic, unitIndex, config) {
     /* Constructor for the Console Paper Tape Punch object */
-    var top = unitIndex*32;
-    var left = unitIndex*32;
+    var top = unitIndex*32 + 360;
+    var left = (unitIndex-1)*32;
 
     this.config = config;               // System configuration object
     this.mnemonic = mnemonic;           // Unit mnemonic
@@ -25,8 +25,6 @@ function B220PaperTapePunch(mnemonic, unitIndex, config) {
 
     this.nextCharTime = 0;              // next time a character can be punched
     this.unitMask = 0;                  // unit selection mask
-    this.unitSwitch = new Array(11);    // unit selection switch objects
-    this.tabStop = [];                  // 0-relative tab stop positions
 
     this.boundFlipSwitch = B220Util.bindMethod(this, B220PaperTapePunch.prototype.flipSwitch);
     this.boundReceiveSign = B220Util.bindMethod(this, B220PaperTapePunch.prototype.receiveSign);
@@ -57,18 +55,19 @@ B220PaperTapePunch.maxScrollLines = 45000;
 
 B220PaperTapePunch.codeXlate = [   // translate internal B220 code to ANSI
         // Note that ANSI new-line sequences are used for end-of-word characters,
-        // so B220 carriage-return translates to "|". To avoide space-expansion of
-        // tab characters, they are translated to "~".
-        " ", "?", " ", ".", "\u00A4", "?",  "?",  "?", "?", "?", "?", "?", "?", "?", "?", "?",  // 00-0F
-        "&", "?", "?", "$", "*",      "\f", "|",  "?", "?", "?", "?", "?", "?", "?", "?", "?",  // 10-1F
-        "-", "/", "?", ",", "%",      "?",  "~",  "?", "?", "?", "?", "?", "?", "?", "?", "?",  // 20-2F
-        "?", "?", "?", "#", "@",      "!",  "?",  "?", "?", "?", "?", "?", "?", "?", "?", "?",  // 30-3F
-        "?", "A", "B", "C", "D",      "E",  "F",  "G", "H", "I", "?", "?", "?", "?", "?", "?",  // 40-4F
-        "?", "J", "K", "L", "M",      "N",  "O",  "P", "Q", "R", "?", "?", "?", "?", "?", "?",  // 50-5F
-        "?", "?", "S", "T", "U",      "V",  "W",  "X", "Y", "Z", "?", "?", "?", "?", "?", "?",  // 60-6F
-        "?", "?", "?", "?", "?",      "?",  "?",  "?", "?", "?", "?", "?", "?", "?", "?", "?",  // 70-7F
-        "0", "1", "2", "3", "4",      "5",  "6",  "7", "8", "9", "?", "?", "?", "?", "?", "?",  // 80-8F
-        "?", "?", "?", "?", "?",      "?",  "?",  "?", "?", "?", "?", "?", "?", "?", "?", "?"]; // 90-9F
+        // so B220 carriage-return (16) translates to "|". To avoid space-expansion
+        // of tabs (26), they are translated to "~". The 02 "blank" code is "_".
+        // Form-feed (15) translates to "^".
+        " ", "?", "_", ".", "\u00A4", "?", "?",  "?", "?", "?", "?", "?", "?", "?", "?", "?",  // 00-0F
+        "&", "?", "?", "$", "*",      "^", "|",  "?", "?", "?", "?", "?", "?", "?", "?", "?",  // 10-1F
+        "-", "/", "?", ",", "%",      "?", "~",  "?", "?", "?", "?", "?", "?", "?", "?", "?",  // 20-2F
+        "?", "?", "?", "#", "@",      "!", "?",  "?", "?", "?", "?", "?", "?", "?", "?", "?",  // 30-3F
+        "?", "A", "B", "C", "D",      "E", "F",  "G", "H", "I", "?", "?", "?", "?", "?", "?",  // 40-4F
+        "?", "J", "K", "L", "M",      "N", "O",  "P", "Q", "R", "?", "?", "?", "?", "?", "?",  // 50-5F
+        "?", "?", "S", "T", "U",      "V", "W",  "X", "Y", "Z", "?", "?", "?", "?", "?", "?",  // 60-6F
+        "?", "?", "?", "?", "?",      "?", "?",  "?", "?", "?", "?", "?", "?", "?", "?", "?",  // 70-7F
+        "0", "1", "2", "3", "4",      "5", "6",  "7", "8", "9", "?", "?", "?", "?", "?", "?",  // 80-8F
+        "?", "?", "?", "?", "?",      "?", "?",  "?", "?", "?", "?", "?", "?", "?", "?", "?"]; // 90-9F
 
 
 /**************************************/
@@ -77,16 +76,6 @@ B220PaperTapePunch.prototype.clear = function clear() {
 
     this.ready = false;                 // ready status
     this.busy = false;                  // busy status
-};
-
-/**************************************/
-B220PaperTapePunch.prototype.beforeUnload = function beforeUnload(ev) {
-    var msg = "Closing this window will make the device unusable.\n" +
-              "Suggest you stay on the page and minimize this window instead";
-
-    ev.preventDefault();
-    ev.returnValue = msg;
-    return msg;
 };
 
 /**************************************/
@@ -134,6 +123,16 @@ B220PaperTapePunch.prototype.punchChar = function punchChar(code) {
             this.punchTape.lastChild.nodeValue = line + c;
         }
     }
+};
+
+/**************************************/
+B220PaperTapePunch.prototype.beforeUnload = function beforeUnload(ev) {
+    var msg = "Closing this window will make the device unusable.\n" +
+              "Suggest you stay on the page and minimize this window instead";
+
+    ev.preventDefault();
+    ev.returnValue = msg;
+    return msg;
 };
 
 /**************************************/
@@ -202,13 +201,13 @@ B220PaperTapePunch.prototype.flipSwitch = function flipSwitch(ev) {
 B220PaperTapePunch.prototype.punchOnLoad = function punchOnLoad() {
     /* Initializes the Paper Tape Punch window and user interface */
     var body;
-    var id;
     var mask;
     var prefs = this.config.getNode("ConsoleOutput.units", this.unitIndex);
     var x;
 
     this.doc = this.window.document;
     this.doc.title = "retro-220 Punch - " + this.mnemonic;
+
     this.punchTape = this.$$("Paper");
     this.punchEOP = this.$$("EndOfPaper");
     this.punchEmptyPaper();
@@ -248,8 +247,8 @@ B220PaperTapePunch.prototype.punchOnLoad = function punchOnLoad() {
     this.remoteSwitch.addEventListener("click", this.boundFlipSwitch);
     this.unitDesignateKnob.addEventListener("change", this.boundFlipSwitch);
 
-    //this.punchWin.moveTo(screen.availWidth-this.punchWin.outerWidth,
-    //                   screen.availHeight-this.punchWin.outerHeight);
+    //this.punchWin.resizeBy(screen.availWidth - this.punchWin.outerWidth,
+    //                   screen.availHeight - this.punchWin.outerHeight);
     //this.punchWin.moveTo(0, 430);
     this.window.focus();
 };

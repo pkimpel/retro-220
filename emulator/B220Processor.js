@@ -237,9 +237,9 @@ function B220Processor(config, devices) {
     this.boundConsoleOutputSign = B220Processor.bindMethod(this, B220Processor.prototype.consoleOutputSign);
     this.boundConsoleOutputChar = B220Processor.bindMethod(this, B220Processor.prototype.consoleOutputChar);
     this.boundConsoleOutputFinished = B220Processor.bindMethod(this, B220Processor.prototype.consoleOutputFinished);
-    this.boundConsoleInputDigit = B220Processor.bindMethod(this, B220Processor.prototype.consoleInputDigit);
-    this.boundConsoleReceiveDigit = B220Processor.bindMethod(this, B220Processor.prototype.consoleReceiveDigit);
-    this.boundConsoleReceiveSingleDigit = B220Processor.bindMethod(this, B220Processor.prototype.consoleReceiveSingleDigit);
+    this.boundConsoleInputReceiveChar = B220Processor.bindMethod(this, B220Processor.prototype.consoleInputReceiveChar);
+    this.boundConsoleInputInitiateNormal = B220Processor.bindMethod(this, B220Processor.prototype.consoleInputInitiateNormal);
+    this.boundConsoleInputInitiateInverse = B220Processor.bindMethod(this, B220Processor.prototype.consoleInputInitiateInverse);
 
     this.boundCardatronOutputWord= B220Processor.bindMethod(this, B220Processor.prototype.cardatronOutputWord);
     this.boundCardatronOutputFinished = B220Processor.bindMethod(this, B220Processor.prototype.cardatronOutputFinished);
@@ -260,7 +260,7 @@ function B220Processor(config, devices) {
 *   Global Constants                                                   *
 ***********************************************************************/
 
-B220Processor.version = "0.02";
+B220Processor.version = "0.03";
 
 B220Processor.tick = 1000/200000;       // milliseconds per clock cycle (200KHz)
 B220Processor.cyclesPerMilli = 1/B220Processor.tick;
@@ -2470,8 +2470,7 @@ B220Processor.prototype.consoleOutputChar = function consoleOutputChar(printChar
                 this.CADDR = this.C.value%0x10000;
                 printChar(0x35, this.boundConsoleOutputSign);
             }
-        } else if (this.PZT.value) {
-            // Output alphabetically
+        } else if (this.PZT.value) {    // Output alphabetically
             w = this.D.value % 0x1000000000;
             d = (this.D.value - w)/0x1000000000; // get next 2 digits
             this.D.set(w*0x100 + d);    // rotate D+sign left by two
@@ -2483,8 +2482,7 @@ B220Processor.prototype.consoleOutputChar = function consoleOutputChar(printChar
                 this.EWT.set(1);
             }
             printChar(d, this.boundConsoleOutputChar);
-        } else {
-            // Output numerically
+        } else {                        // Output numerically
             if (this.DPT.value && !this.LEADINGZEROESSW) {
                 // decimal point may be needed
                 d = this.CCONTROL >>> 12;
@@ -2529,130 +2527,191 @@ B220Processor.prototype.consoleOutputFinished = function consoleOutputFinished()
 };
 
 /**************************************/
-B220Processor.prototype.consoleInputDigit = function consoleInputDigit() {
-    // Solicits the next input digit from the Control Console */
+B220Processor.prototype.consoleInputFinishWord = function consoleInputFinishWord(result) {
+    /* Finishes the receipt of a word from the Console paper tape reader and
+    either stores it in memory or shunts it to the C register for execution.
+    Updates the C register as necessary and decides whether to initiate receipt
+    of another word */
+    var d;
+    var w;
 
-    this.togTF = 0;                     // for display only, reset finish pulse
-    this.execTime -= performance.now()*B220Processor.wordsPerMilli; // mark time during I/O
-    this.console.readDigit(this.boundConsoleReceiveDigit);
-};
+    if (this.sDigit) {                  // decrement word count
+        d = this.bcdAdd(this.CCONTROL, 0x990, 3);
+        this.CCONTROL += d - this.CCONTROL%0x1000;
+        this.C.set((this.CCONTROL*0x100 + this.COP)*0x10000 + this.CADDR);
+    }
 
-/**************************************/
-B220Processor.prototype.consoleReceiveDigit = function consoleReceiveDigit(digit) {
-    /* Handles an input digit coming from the Control Console keyboard or
-    paper-tape reader. Negative values indicate a finish pulse; otherwise
-    the digit is data read from the device. Data digits are rotated into
-    the D register; finish pulses are handled according to the sign digit
-    in the D register */
-    var sign;                           // register sign digit
-    var word;                           // register word less sign
+    if (this.COP == 0x05) {             // read inverse: permute the sign digit
+        d = this.D.value%0x10;
+        w = (this.D.value - d)/0x10;
+        this.D.set(w + d*0x10000000000);
+        if (d == 2) {                   // alphanumeric translation is invalid for inverse mode
+            this.setPaperTapeCheck(1);
+            this.ioComplete(true);
+            return;                     // >>> ALARM ERROR EXIT <<<
+        }
+    } else {                            // sign digit in normal position
+        w = this.D.value%0x10000000000;
+        d = (this.D.value - w)/0x10000000000;
+    }
 
-    this.execTime += performance.now()*B220Processor.wordsPerMilli; // restore time after I/O
-    if (digit >= 0) {
-        this.togTC1 = 1-this.togTC1;    // for display only
-        this.togTC2 = 1-this.togTC2;    // for display only
-        this.D.set((this.D.value % 0x10000000000)*0x10 + digit);
-        this.consoleInputDigit();
-    } else {
-        this.togTF = 1;
-        this.togTC1 = this.togTC2 = 0;  // for display only
-        word = this.D.value%0x10000000000;
-        sign = (this.D.value - word)/0x10000000000; // get D-sign
+    if (this.rDigit & d & 0x08) {       // B-modify word before storing
+        this.D.set(w + (d&0x07)*0x10000000000);
+        this.IB.set(this.D.value - w%0x10000 + this.bcdAdd(w, this.B.value, 4));
+        this.C10.set(0);
+    } else {                            // store word as-is
+        this.IB.set(this.D.value);
+    }
 
-        if (sign & 0x04) {
-            // D-sign is 4, 5, 6, 7: execute a "tape control" command
-            this.execTime += 2;
-            this.togTF = 0;             // for display only
-            this.togSTART = 1-((sign >>> 1)%2); // whether to continue in input mode
-            this.setTimingToggle(0);    // Execute mode
-            this.togCOUNT = 1;
-            this.togBTOAIN = 0;
-            this.togADDAB = 1;          // for display only
-            this.togADDER = 1;          // for display only
-            this.togDPCTR = 1;          // for display only
-            this.togCLEAR = 1-(sign%2);
-            this.togSIGN = ((this.A.value - this.A.value%0x10000000000)/0x10000000000)%2; // display only
-            sign &= 0x08;
-
-            // Increment the destination address (except on the first word)
-            this.SHIFTCONTROL = 0x01;   // for display only
-            this.SHIFT = 0x13;          // for display only
-            if (this.togCOUNT) {
-                this.CCONTROL = this.bcdAdd(this.CADDR, 1, 4);
-            }
-
-            this.CCONTROL = (this.D.value - word%0x1000000)/0x1000000;
-            this.rDigit = (this.CCONTROL >>> 8) & 0x0F;
-            // do not set this.selectedUnit from the word -- keep the same unit
-
-            // Shift D5-D10 into C1-C6, modify by B as necessary, and execute
-            this.D.set(sign*0x100000 + (word - word%0x1000000)/0x1000000);
-            if (this.togCLEAR) {
-                word = this.bcdAdd(word%0x1000000, 0, 11);
-            } else {
-                word = this.bcdAdd(word%0x1000000, this.B.value, 11) % 0x1000000;
-            }
-            this.SHIFT = 0x19;          // for display only
-            this.C.set(word*0x10000 + this.CCONTROL); // put C back together
-            this.CADDR = word % 0x10000;
-            this.COP = (word - this.CADDR)/0x10000;
-            this.execute();
-        } else {
-            // D-sign is 0, 1, 2, 3: store word, possibly modified by B
-            this.execTime += 3;
-            this.setTimingToggle(1);    // Fetch mode
-            this.togCOUNT = this.togBTOAIN;
-            this.togBTOAIN = 1;
-            this.togADDAB = 1;          // for display only
-            this.togADDER = 1;          // for display only
-            this.togDPCTR = 1;          // for display only
-            this.togCLEAR = 1-((sign >>> 1)%2);
-            this.togSIGN = sign%2;
-
-            // Increment the destination address (except on the first word)
-            this.SHIFTCONTROL = 0x01;   // for display only
-            this.SHIFT = 0x15;          // for display only
-            if (this.togCOUNT) {
-                this.CADDR = this.bcdAdd(this.CADDR, 1, 4);
-            }
-            this.CCONTROL = this.CADDR;
-            this.C.set((this.COP*0x10000 + this.CADDR)*0x10000 + this.CCONTROL);
-
-            // Modify the word by B as necessary and store it
-            this.D.set((sign & 0x0C)*0x10000000000 + word);
-            if (this.togCLEAR) {
-                this.A.set(this.bcdAdd(this.D.value, 0, 11));
-            } else {
-                this.A.set(this.bcdAdd(this.D.value, this.B.value, 11));
-            }
-
+    if (this.rDigit == 1 && (d & 0x0E) == 0x06) { // control word to C register
+        this.ioComplete(false);         // terminate I/O but do not restart Processor yet
+        this.fetch(true);               // set up to execute control word
+        // Schedule the Processor to give the reader a chance to finish its operation.
+        setCallback(this.mnemonic, this, 0, this.schedule);
+    } else {                            // just store the word
+        this.writeMemory();
+        if (this.MET.value) {           // memory address error
+            this.ioComplete(true);
+        } else if (this.sDigit && this.CCONTROL%0x1000 < 0x10) { // word count exhausted
+            this.ioComplete(true);
+        } else {                        // initiate input of another word
             this.D.set(0);
-            word = this.A.value % 0x10000000000;
-            sign = (((this.A.value - word)/0x10000000000) & 0x0E) | (sign%2);
-            this.A.set(sign*0x10000000000 + word);
-            this.writeMemory(this.boundConsoleInputDigit, false);
+            if (this.COP == 0x05) {
+                d = this.console.inputUnitSelect(this.selectedUnit, this.boundConsoleInputInitiateInverse);
+            } else {
+                d = this.console.inputUnitSelect(this.selectedUnit, this.boundConsoleInputInitiateNormal);
+            }
+            if (d < 0) {                // no unit available -- set alarm and quit
+                this.setPaperTapeCheck(1);
+                this.ioComplete(true);
+            }
         }
     }
 };
 
 /**************************************/
-B220Processor.prototype.consoleReceiveSingleDigit = function consoleReceiveSingleDigit(digit) {
-    /* Handles a single input digit coming from the Control Console keyboard
-    or paper-tape reader, as in the case of Digit Add (10). Negative values
-    indicate a finish pulse, which is ignored, and causes another digit to be
-    solicited from the Console; otherwise the digit is (virtually) moved to
-    the D register and then (actually) added to the A register */
+B220Processor.prototype.consoleInputInitiateNormal = function consoleInputInitiateNormal(result) {
+    /* Initiates the receipt into a word of characters from the Console tape
+    reader in normal (sign-first) mode. Increments the C register operand address,
+    rotates the sign digit into the D register, and determines whether the word
+    should be translated numerically or alphanumerically */
+    var code = result.code;
+
+    this.clockIn();
+    if (this.AST.value) {               // if false, we've probably been cleared
+        this.E.set(this.CADDR);
+        this.C.inc();
+        this.CADDR = this.C.value%0x10000;
+
+        switch (code) {
+        case 0x17:                      // invalid character/parity error
+            this.setPaperTapeCheck(1);
+            this.ioComplete(true);
+            break;
+        case 0x35:                      // end-of-word
+            this.consoleInputFinishWord(result);
+            break;
+        case 0x82:                      // sign=2, set alpha translation
+            this.PZT.set(!this.HOLDPZTZEROSW);
+            this.D.set(2);
+            result.readChar(this.boundConsoleInputReceiveChar);
+            break;
+        default:                        // anything else, set numeric translation
+            this.PZT.set(0);
+            if ((code & 0xF0) == 0x80) {// it's a numeric sign -- okay
+                this.D.set(code%0x10);
+                result.readChar(this.boundConsoleInputReceiveChar);
+            } else if (code == 0) {     // we'll take a space as a zero
+                this.D.set(0);
+                result.readChar(this.boundConsoleInputReceiveChar);
+            } else {                    // sign is non-numeric -- invalid
+                this.D.set(0);
+                this.setPaperTapeCheck(1);
+                this.ioComplete(true);
+            }
+            break;
+        } // switch code
+    }
+};
+
+/**************************************/
+B220Processor.prototype.consoleInputInitiateInverse = function consoleInputInitiateInverse(result) {
+    /* Initiates the receipt into a word of characters from the Console tape
+    reader in inverse (sign-last) mode. Increments the C register operand address,
+    rotates the sign digit into the D register, and sets PZT for numeric translation */
+    var code = result.code;
+
+    this.clockIn();
+    if (this.AST.value) {               // if false, we've probably been cleared
+        this.E.set(this.CADDR);
+        this.C.inc();
+        this.CADDR = this.C.value%0x10000;
+
+        switch (code) {
+        case 0x17:                      // invalid character/parity error
+            this.setPaperTapeCheck(1);
+            this.ioComplete(true);
+            break;
+        case 0x35:                      // end-of-word
+            this.consoleInputFinishWord(result);
+            break;
+        default:                        // anything else, set numeric translation
+            this.PZT.set(0);
+            if ((code & 0xF0) == 0x80) {// it's a numeric code -- okay
+                this.D.set(code%0x10);
+                result.readChar(this.boundConsoleInputReceiveChar);
+            } else if (code == 0) {     // we'll take a space as a zero
+                this.D.set(0);
+                result.readChar(this.boundConsoleInputReceiveChar);
+            } else {                    // digit is non-numeric -- invalid
+                this.D.set(0);
+                this.setPaperTapeCheck(1);
+                this.ioComplete(true);
+            }
+            break;
+        } // switch code
+    }
+};
+
+/**************************************/
+B220Processor.prototype.consoleInputReceiveChar = function consoleInputReceiveChar(result) {
+    /* Handles an input character coming from the Console paper-tape reader.
+    result.code is the B220 character code read from the device. result.readChar
+    is the callback function to request the next character. Data digits are
+    rotated into the D register; end-of-word (0x35) codes are handled according
+    to the sign digit in the D register */
+    var code = result.code;             // character received
     var sign;                           // register sign digit
     var word;                           // register word less sign
 
-    if (digit < 0) {                    // ignore finish pulse and just re-solicit
-        this.console.readDigit(this.boundConsoleReceiveSingleDigit);
-    } else {
-        this.execTime += performance.now()*B220Processor.wordsPerMilli + 4; // restore time after I/O
-        this.togSTART = 0;
-        this.D.set(digit);
-        this.integerAdd(false, false);
-        this.schedule();
+    this.clockIn();
+    if (this.AST.value) {               // if false, we've probably been cleared
+        switch (code) {
+        case 0x17:                      // invalid character/parity error
+            this.setPaperTapeCheck(1);
+            this.ioComplete(true);
+            break;
+        case 0x35:                      // end-of-word
+            this.consoleInputFinishWord(result);
+            break;
+        default:                        // anything else, accumulate digits in word
+            if (this.PZT.value) {       // alphanumeric translation
+                this.D.set((this.D.value % 0x1000000000)*0x100 + code);
+                result.readChar(this.boundConsoleInputReceiveChar);
+            } else {                    // numeric translation
+                if ((code & 0xF0) == 0x80) {// it's a numeric code -- okay
+                    this.D.set((this.D.value % 0x10000000000)*0x10 + code%0x10);
+                    result.readChar(this.boundConsoleInputReceiveChar);
+                } else if (code == 0) {     // we'll take a space as a zero
+                    this.D.set((this.D.value % 0x10000000000)*0x10);
+                    result.readChar(this.boundConsoleInputReceiveChar);
+                } else {                    // code is non-numeric -- invalid
+                    this.setPaperTapeCheck(1);
+                    this.ioComplete(true);
+                }
+            }
+            break;
+        } // switch code
     }
 };
 
@@ -3072,18 +3131,60 @@ B220Processor.prototype.execute = function execute() {
         break;
 
     case 0x03:      //--------------------- PRD     Paper tape read
-        this.setProgramCheck(1);
-        this.operationComplete();
+        this.opTime = 0.185;                            // just a guess...
+        d = this.CCONTROL >>> 12;                       // get unit number
+        if (d == 0) {
+            d = 10;                                     // xlate unit 0 to unit 10
+        }
+
+        this.selectedUnit = d;
+        this.rDigit = this.CCONTROL & 0x0F;
+        this.sDigit = 1;                                // use word count in C (32)
+        this.D.set(0);
+        this.ioInitiate();
+        d = this.console.inputUnitSelect(this.selectedUnit, this.boundConsoleInputInitiateNormal);
+        if (d < 0) {                                    // no unit available -- set alarm and quit
+            this.setPaperTapeCheck(1);
+            this.ioComplete(true);
+        }
         break;
 
     case 0x04:      //--------------------- PRB     Paper tape read, branch
-        this.setProgramCheck(1);
-        this.operationComplete();
+        this.opTime = 0.185;                            // just a guess...
+        d = this.CCONTROL >>> 12;                       // get unit number
+        if (d == 0) {
+            d = 10;                                     // xlate unit 0 to unit 10
+        }
+
+        this.selectedUnit = d;
+        this.rDigit = (this.CCONTROL & 0x0E) | 1;       // force recognition of control words
+        this.sDigit = 0;                                // do not use word count in C (32)
+        this.D.set(0);
+        this.ioInitiate();
+        d = this.console.inputUnitSelect(this.selectedUnit, this.boundConsoleInputInitiateNormal);
+        if (d < 0) {                                    // no unit available -- set alarm and quit
+            this.setPaperTapeCheck(1);
+            this.ioComplete(true);
+        }
         break;
 
     case 0x05:      //--------------------- PRI     Paper tape read, inverse format
-        this.setProgramCheck(1);
-        this.operationComplete();
+        this.opTime = 0.185;                            // just a guess...
+        d = this.CCONTROL >>> 12;                       // get unit number
+        if (d == 0) {
+            d = 10;                                     // xlate unit 0 to unit 10
+        }
+
+        this.selectedUnit = d;
+        this.rDigit = (this.CCONTROL & 0x0E) | 1;       // force recognition of control words
+        this.sDigit = 1;                                // use word count in C (32)
+        this.D.set(0);
+        this.ioInitiate();
+        d = this.console.inputUnitSelect(this.selectedUnit, this.boundConsoleInputInitiateInverse);
+        if (d < 0) {                                    // no unit available -- set alarm and quit
+            this.setPaperTapeCheck(1);
+            this.ioComplete(true);
+        }
         break;
 
     case 0x06:      //--------------------- PWR     Paper tape write
@@ -3093,6 +3194,7 @@ B220Processor.prototype.execute = function execute() {
             d = 10;                                     // xlate unit 0 to unit 10
         }
 
+        this.selectedUnit = d;
         this.ioInitiate();
         d = this.console.outputUnitSelect(d, this.boundConsoleOutputSign);
         if (d < 0) {                                    // no unit available -- set alarm and quit
@@ -3107,6 +3209,7 @@ B220Processor.prototype.execute = function execute() {
             d = 10;                                     // xlate unit 0 to unit 10
         }
 
+        this.selectedUnit = d;
         d = this.console.outputUnitSelect(d, B220Processor.emptyFunction);
         if (d < 0) {                                    // if not ready, continue in sequence
             this.opTime = 0.015;
@@ -3762,11 +3865,6 @@ B220Processor.prototype.execute = function execute() {
 
 
         switch (-1) {
-        case 0x00:      //---------------- PTR  Paper-tape/keyboard read
-            this.D.set(0);
-            this.togSTART = 1;
-            this.consoleInputDigit();
-            break;
 
         case 0x40:      //---------------- MTR  Magnetic Tape Read
             if (!this.magTape) {
@@ -3823,46 +3921,6 @@ B220Processor.prototype.execute = function execute() {
                 }
             }
             break;
-
-        case 0x54:      //---------------- CDW  Card Write (Cardatron)
-            if (!this.cardatron) {
-                //this.schedule();
-            } else {
-                this.tog3IO = 1;
-                this.kDigit = (this.CCONTROL >>> 8) & 0x0F;
-                this.selectedUnit = (this.CCONTROL >>> 4) & 0x07;
-                this.SHIFT = 0x19;                      // start at beginning of a word
-                this.execTime -= performance.now()*B220Processor.wordsPerMilli; // mark time during I/O
-                this.cardatron.outputInitiate(this.selectedUnit, this.kDigit, (this.CCONTROL >>> 12) & 0x0F,
-                        this.boundCardatronOutputWord, this.boundCardatronOutputFinished);
-            }
-            break;
-
-        case 0x55:      //---------------- CDWI Card Write Interrogate
-            this.selectedUnit = (this.CCONTROL >>> 4) & 0x07;
-            if (this.cardatron && this.cardatron.outputReadyInterrogate(this.selectedUnit)) {
-                this.R.set(this.CCONTROL*0x1000000);
-                this.setTimingToggle(0);                // stay in Execute
-                this.OFT.set(1);                    // set overflow
-                this.COP = 0x28;                        // make into a CC
-                this.C.set((this.COP*0x10000 + this.CADDR)*0x10000 + this.CCONTROL);
-            }
-            break;
-
-        case 0x58:      //---------------- CDWF Card Write Format
-            if (!this.cardatron) {
-                //this.schedule();
-            } else {
-                this.tog3IO = 1;
-                this.kDigit = (this.CCONTROL >>> 8) & 0x0F;
-                this.selectedUnit = (this.CCONTROL >>> 4) & 0x07;
-                this.SHIFT = 0x19;                      // start at beginning of a word
-                this.execTime -= performance.now()*B220Processor.wordsPerMilli; // mark time during I/O
-                this.cardatron.outputFormatInitiate(this.selectedUnit, this.kDigit,
-                        this.boundCardatronOutputWord, this.boundCardatronOutputFinished);
-            }
-            break;
-
         default:        //---------------- (unimplemented instruction -- alarm)
             break;
         } // switch this.COP

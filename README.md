@@ -12,8 +12,8 @@ The contents of this project are licensed under the [MIT License](http://www.ope
 
 | Related Sites | URL |
 | ------------- | ----- |
-| Emulator hosting site | http://www.phkimpel.us/ElectroData/220/ |
+| Emulator hosting site | http://www.phkimpel.us/Burroughs-220/ |
 | Burroughs 205/220 blog | http://datatron.blogspot.com |
-| Datatron 205 site | http://www.phkimpel.us/ElectroData/205/ |
+| Datatron 205 site | http://www.phkimpel.us/ElectroData-205/ |
 | Documents at bitsavers | http://bitsavers.org/pdf/burroughs/electrodata/220/ |
 

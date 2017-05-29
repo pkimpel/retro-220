@@ -1,23 +1,23 @@
 /***********************************************************************
-* retro-220/webUI B220PaperTapePunch.css
+* retro-220/webUI B220PaperTapeReader.css
 ************************************************************************
 * Copyright (c) 2017, Paul Kimpel.
 * Licensed under the MIT License, see
-*       http://www.opensource.org/licenses/mit-license.php
+*       http://www.opensource.org/licenses/mit-license.php.
 ************************************************************************
-* Burroughs 220 Paper Tape Punch Unit.
+* Burroughs 220 emulator Paper Tape Reader interface style sheet.
 ************************************************************************
-* 2017-04-28  P.Kimpel
-*   Original version, from retro-205 D205ConsoleOutput.css.
+* 2017-05-27  P.Kimpel
+*   Original version, from retro-205 D205ConsoleInput.css.
 ***********************************************************************/
 
-#PunchBody {
+#ReaderBody {
     height:             100%;
     min-height:         100%;
     overflow:           hidden;
     padding:            0}
 
-#PaperTapePunch {
+#PaperTapeReader {
     position:           absolute;
     top:                0;
     bottom:             0;
@@ -50,6 +50,24 @@
     left:               52px;
     top:                6px}
 
+#SpeedSwitch {
+    position:           absolute;
+    width:              24px;
+    left:               96px;
+    top:                12px}
+#SpeedSwitchHi {
+    width:              36px;
+    left:               92px;
+    top:                6px}
+#SpeedSwitchLow {
+    width:              36px;
+    left:               92px;
+    top:                42px}
+#SpeedSwitchCaption {
+    width:              36px;
+    left:               120px;
+    top:                24px}
+
 #UnitDesignateKnob {
     position:           absolute;
     text-align:         center;
@@ -63,32 +81,28 @@
     right:              8px;
     top:                6px}
 
-#PunchTape {
+#PRFileSelector {
     position:           absolute;
     left:               8px;
-    right:              8px;
     top:                60px;
-    bottom:             8px;
-    min-height:         32px;
-    min-width:          120px;
-    overflow-x:         hidden;
-    overflow-y:         scroll;
+    width:              calc(100% - 16px);
     color:              black;
+    border:             1px solid #666}
+
+#PRTapeSupplyBar {
+    position:           absolute;
+    top:                92px;
+    left:               8px;
+    width:              calc(100% - 16px);
+    height:             16px;
+    border:             1px solid #666}
+
+#PRTapeView {
+    position:           absolute;
+    text-align:         right;
+    bottom:             8px;
+    left:               8px;
+    width:              calc(100% - 16px);
+    height:             2em;
     background-color:   white;
-    padding:            4px;
-    border:             1px solid gray}
-
-#Paper {
-    margin-left:        0;
-    margin-right:       0;
-    margin-top:         0;
-    margin-bottom:      0;
-    padding:            0}
-
-#EndOfPaper {
-    display:            block;
-    margin:             0;
-    padding:            0;
-    opacity:            0}
-#EndOfPaper.hidden {
-    display:            none}
+    border:             none}

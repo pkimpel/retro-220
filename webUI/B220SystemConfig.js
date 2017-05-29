@@ -39,6 +39,88 @@ B220SystemConfig.prototype.configStorageName = "retro-220-Config";
 B220SystemConfig.prototype.configVersion = 1;
 B220SystemConfig.prototype.flushDelay = 60000;  // flush timer setting, ms
 
+B220SystemConfig.defaultConfig = {
+    version: this.configVersion,
+    memorySize: 5000,               // 11-digit words
+
+    ControlConsole: {
+        PCS1SW: 0,                      // Program Control Switches 1-0
+        PCS2SW: 0,
+        PCS3SW: 0,
+        PCS4SW: 0,
+        PCS5SW: 0,
+        PCW6SW: 0,
+        PCS7SW: 0,
+        PCS8SW: 0,
+        PCS9SW: 0,
+        PCS0SW: 0,
+        SONSW: 0,                       // S-register on
+        SUNITSSW: 0,                    // S-register units
+        STOCSW: 0,                      // S-to-C stop
+        STOPSW: 0},                     // S-to-P stop
+
+    ConsoleInput: {
+        units: [
+            null,                       // unit[0] not used
+            {type: "PTRA", unitMask: 0x002, remote: 1, speed: 0},
+            {type: "NONE"},
+            {type: "NONE"},
+            {type: "NONE"},
+            {type: "NONE"},
+            {type: "NONE"},
+            {type: "NONE"},
+            {type: "NONE"},
+            {type: "NONE"},
+            {type: "NONE"}
+            ]},
+
+    ConsoleOutput: {
+        units: [
+            {type: "TTYA", unitMask: 0x001, remote: 1, format: 0, zeroSuppress: 0, mapMemory: 0,
+                           columns: 72, tabs: "9,17,25,33,41,49,57,65,73,81"},
+            {type: "NONE"},
+            {type: "NONE"},
+            {type: "NONE"},
+            {type: "NONE"},
+            {type: "NONE"},
+            {type: "NONE"},
+            {type: "NONE"},
+            {type: "NONE"},
+            {type: "NONE"},
+            {type: "NONE"}
+            ]},
+
+    Cardatron: {
+        hasCardatron: true,
+        units: [
+            null,                       // unit[0] not used
+            {type: "CR1", formatSelect: 0, formatCol: 1},
+            {type: "NONE"},
+            {type: "NONE"},
+            {type: "NONE"},
+            {type: "NONE"},
+            {type: "LP2", algolGlyphs: true, greenBar: true,  zeroSuppressCols: ""},
+            {type: "CP1", algolGlyphs: true, greenBar: false, zeroSuppressCols: ""}
+            ]},
+
+    MagTape: {
+        hasMagTape: true,
+        units: [
+            null,                       // unit[0] not used
+            {type: "MTA", designate: 0, remoteSwitch: false, rewindReadySwitch: true, notWriteSwitch: false},
+            {type: "NONE"},
+            {type: "NONE"},
+            {type: "MTD", designate: 3, remoteSwitch: false, rewindReadySwitch: true, notWriteSwitch: false},
+            {type: "MTE", designate: 4, remoteSwitch: false, rewindReadySwitch: true, notWriteSwitch: false},
+            {type: "NONE"},
+            {type: "NONE"},
+            {type: "NONE"},
+            {type: "NONE"},
+            {type: "NONE"}
+            ]}
+    };
+
+
 /**************************************/
 B220SystemConfig.prototype.$$ = function $$(id) {
     return this.window.document.getElementById(id);
@@ -53,73 +135,7 @@ B220SystemConfig.prototype.createConfigData = function createConfigData() {
     var prefs;
     var s;
 
-    this.configData = {
-        version: this.configVersion,
-        memorySize: 5000,               // 11-digit words
-
-        ControlConsole: {
-            PCS1SW: 0,                  // Program Control Switches 1-0
-            PCS2SW: 0,
-            PCS3SW: 0,
-            PCS4SW: 0,
-            PCS5SW: 0,
-            PCW6SW: 0,
-            PCS7SW: 0,
-            PCS8SW: 0,
-            PCS9SW: 0,
-            PCS0SW: 0,
-            SONSW: 0,                   // S-register on
-            SUNITSSW: 0,                // S-register units
-            STOCSW: 0,                  // S-to-C stop
-            STOPSW: 0},                 // S-to-P stop
-
-        ConsoleOutput: {
-            units: [
-                {type: "TTYA", zeroSuppress: 0, mapMemory: 0, unitMask: 0x001, remote: 1, format: 0,
-                               columns: 72, tabs: "9,17,25,33,41,49,57,65,73,81"},
-                {type: "NONE"},
-                {type: "NONE"},
-                {type: "NONE"},
-                {type: "NONE"},
-                {type: "NONE"},
-                {type: "NONE"},
-                {type: "NONE"},
-                {type: "NONE"},
-                {type: "NONE"},
-                {type: "NONE"}
-                ]},
-
-        Cardatron: {
-            hasCardatron: true,
-            units: [
-                null,                   // unit[0] not used
-                {type: "CR1", formatSelect: 0, formatCol: 1},
-                {type: "NONE"},
-                {type: "NONE"},
-                {type: "NONE"},
-                {type: "NONE"},
-                {type: "LP2", algolGlyphs: true, greenBar: true,  zeroSuppressCols: ""},
-                {type: "CP1", algolGlyphs: true, greenBar: false, zeroSuppressCols: ""}
-                ]},
-
-        MagTape: {
-            hasMagTape: true,
-            suppressBSwitch: false,     // false => off => suppress B-register modification
-            units: [
-                null,                   // unit[0] not used
-                {type: "MTA", designate: 0, remoteSwitch: false, rewindReadySwitch: true, notWriteSwitch: false},
-                {type: "NONE"},
-                {type: "NONE"},
-                {type: "MTD", designate: 3, remoteSwitch: false, rewindReadySwitch: true, notWriteSwitch: false},
-                {type: "MTE", designate: 4, remoteSwitch: false, rewindReadySwitch: true, notWriteSwitch: false},
-                {type: "NONE"},
-                {type: "NONE"},
-                {type: "NONE"},
-                {type: "NONE"},
-                {type: "NONE"}
-                ]}
-        };
-
+    this.configData = B220SystemConfig.defaultConfig;
     this.flushHandler();
 };
 
@@ -280,7 +296,29 @@ B220SystemConfig.prototype.loadConfigDialog = function loadConfigDialog() {
     // System Properties
     this.setListValue("SystemMemorySize", cd.memorySize.toString());
 
+    // Console Input units
+
+    if (!cd.ConsoleInput) {
+        cd.ConsoleInput = B220SystemConfig.defaultConfig.ConsoleInput;
+    }
+
+    for (x=1; x<=10; ++x) {
+        unit = cd.ConsoleInput.units[x];
+        prefix = "ConsoleIn" + x;
+        this.setListValue(prefix + "Type", unit.type);
+        mask = 0x001;
+        for (y=1; y<=10; ++y) {
+            mask <<= 1;
+            this.$$(prefix + "_" + y).checked = (unit.unitMask & mask ? true : false);
+        } // for y
+    } // for x
+
     // Console Output units
+
+    if (!cd.ConsoleOutput) {
+        cd.ConsoleOutput = B220SystemConfig.defaultConfig.ConsoleOutput;
+    }
+
     for (x=0; x<=10; ++x) {
         unit = cd.ConsoleOutput.units[x];
         prefix = "ConsoleOut" + x;
@@ -298,6 +336,11 @@ B220SystemConfig.prototype.loadConfigDialog = function loadConfigDialog() {
     } // for x
 
     // Cardatron units
+
+    if (!cd.Cardatron) {
+        cd.Cardatron = B220SystemConfig.defaultConfig.Cardatron;
+    }
+
     for (x=1; x<=7; ++x) {
         unit = cd.Cardatron.units[x];
         prefix = "Cardatron" + x;
@@ -323,6 +366,10 @@ B220SystemConfig.prototype.loadConfigDialog = function loadConfigDialog() {
     } // for x
 
     // Magnetic Tape units
+
+    if (!cd.MagTape) {
+        cd.MagTape = B220SystemConfig.defaultConfig.MagTape;
+    }
 
     this.$$("SuppressBMod").checked = !cd.MagTape.suppressBSwitch;
     for (x=1; x<=10; ++x) {
@@ -372,6 +419,28 @@ B220SystemConfig.prototype.saveConfigDialog = function saveConfigDialog() {
     x = parseInt(e.options[e.selectedIndex], 10);
     cd.memorySize = (isNaN(x) ? 5000 : x);
 
+    // Console Input units
+
+    for (x=1; x<=10; ++x) {
+        unit = cd.ConsoleInput.units[x];
+        prefix = "ConsoleIn" + x;
+        e = this.$$(prefix + "Type");
+        unit.type = (e.selectedIndex < 0 ? "NONE" : e.options[e.selectedIndex].value);
+        mask = 0x001;
+        unit.unitMask = 0;
+        for (y=1; y<=10; ++y) {
+            mask <<= 1;
+            if (this.$$(prefix + "_" + y).checked) {
+                unit.unitMask |= mask;
+            }
+        } // for y
+
+        if (unit.type != "NONE") {
+            unit.remote = (unit.remote || 0);
+            unit.speed = (unit.speed || 0);
+        }
+    } // for x
+
     // Console Output units
 
     for (x=0; x<=10; ++x) {
@@ -391,10 +460,15 @@ B220SystemConfig.prototype.saveConfigDialog = function saveConfigDialog() {
             }
         } // for y
 
-        e = this.$$(prefix + "Format");
-        unit.format = (e.selectedIndex < 0 ? "NONE" : e.options[e.selectedIndex].value);
-        unit.columns = (unit.columns ? unit.columns : 72);
-        unit.tabs = (unit.tabs ? unit.tabs : "1,9,17,25,33,41,49,57,65,73");
+        if (unit.type != "NONE") {
+            unit.remote = (unit.remote || 0);
+            unit.zeroSuppress = (unit.zeroSuppress || 0);
+            unit.mapMemory = (unit.mapMemory || 0);
+            e = this.$$(prefix + "Format");
+            unit.format = (e.selectedIndex < 0 ? "NONE" : e.options[e.selectedIndex].value);
+            unit.columns = (unit.columns ? unit.columns : 72);
+            unit.tabs = (unit.tabs ? unit.tabs : "1,9,17,25,33,41,49,57,65,73");
+        }
     } // for x
 
     // Cardatron units
@@ -410,14 +484,18 @@ B220SystemConfig.prototype.saveConfigDialog = function saveConfigDialog() {
             cd.Cardatron.hasCardatron = true;
             unit.algolGlyphs = this.$$(prefix + "AlgolGlyphs").checked;
             unit.greenBar = this.$$(prefix + "Greenbar").checked;
+            unit.zeroSuppressCols = (unit.zeroSuppressCols || "");
             break;
         case "CP":
             cd.Cardatron.hasCardatron = true;
             unit.algolGlyphs = this.$$(prefix + "AlgolGlyphs").checked;
             unit.greenBar = false;
+            unit.zeroSuppressCols = (unit.zeroSuppressCols || "");
             break;
         case "CR":
             cd.Cardatron.hasCardatron = true;
+            unit.formatSelect = (unit.formatSelect || 0);
+            unit.formatCol = (unit.formatCol === undefined ? 1 : unit.formatCol)
             // no break
         default:
             unit.algolGlyphs = false;

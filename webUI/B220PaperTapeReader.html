@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<title>retro-220 Emulator Paper Tape Reader</title>
+<!--
+/***********************************************************************
+* retro-220/webUI B220PaperTapeReader.html
+************************************************************************
+* Copyright (c) 2017, Paul Kimpel.
+* Licensed under the MIT License, see
+*       http://www.opensource.org/licenses/mit-license.php
+************************************************************************
+* Burroughs 220 Paper Tape Reader device page.
+************************************************************************
+* 2017-05-27  P.Kimpel
+*   Original version, from retro-205 D205PaperTapeReader.html.
+***********************************************************************/
+-->
+<meta name="Author" content="Paul Kimpel">
+<meta http-equiv="Content-Script-Type" content="text/javascript">
+<meta http-equiv="Content-Style-Type" content="text/css">
+<link id=defaultStyleSheet rel=stylesheet type="text/css" href="B220Common.css">
+<link id=tapeReaderStyleSheet rel=stylesheet type="text/css" href="B220PaperTapeReader.css">
+</head>
+
+<body id=ReaderBody class=deviceBody>
+
+<div id=PaperTapeReader class=panelSurface>
+    <div id=RemoteSwitchOn class=caption>REMOTE</div>
+    <div id=RemoteSwitchOff class=caption>LOCAL</div>
+
+    <div id=ReadyLampCaption class=caption>READY</div>
+
+    <div id=SpeedSwitchHi class=caption>HI</div>
+    <div id=SpeedSwitchLow class=caption>LOW</div>
+    <div id=SpeedSwitchCaption class=caption>SPEED</div>
+
+    <div id=UnitDesignateKnobCaption class=caption>UNIT DESIGNATE</div>
+    <select id=UnitDesignateKnob>
+        <option value= 0>SPO
+        <option value= 1>1
+        <option value= 2>2
+        <option value= 3>3
+        <option value= 4>4
+        <option value= 5>5
+        <option value= 6>6
+        <option value= 7>7
+        <option value= 8>8
+        <option value= 9>9
+        <option value=10>0
+        <option value=99>OFF
+    </select>
+
+    <input id=PRFileSelector type=file size=60 multiple>
+    <meter id=PRTapeSupplyBar min=0 max=100 value=0 title="Click to clear input tape"></meter>
+    <input id=PRTapeView type=text READONLY>
+</div>
+
+</body>
+</html>
