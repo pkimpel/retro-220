@@ -15,7 +15,7 @@
 /**************************************/
 function B220PaperTapePunch(mnemonic, unitIndex, config) {
     /* Constructor for the Console Paper Tape Punch object */
-    var top = unitIndex*32 + 360;
+    var top = unitIndex*32 + 264;
     var left = (unitIndex-1)*32;
 
     this.config = config;               // System configuration object

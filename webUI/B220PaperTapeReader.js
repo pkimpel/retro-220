@@ -18,7 +18,7 @@
 /**************************************/
 function B220PaperTapeReader(mnemonic, unitIndex, config) {
     /* Constructor for the PaperTapeReader object */
-    var top = unitIndex*32 + 360;
+    var top = unitIndex*32 + 264;
     var left = (unitIndex-1)*32 + 250;
 
     this.config = config;               // System configuration object

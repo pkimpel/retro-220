@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<title>220 Emulator Magnetic Tape Loader</title>
+<!--
+/***********************************************************************
+* retro-220/webUI B220MagTapeLoadPanel.html
+************************************************************************
+* Copyright (c) 2017, Paul Kimpel.
+* Licensed under the MIT License, see
+*       http://www.opensource.org/licenses/mit-license.php
+************************************************************************
+* Burroughs 220 Magnetic Tape Drive Loader page.
+*
+* Implements a dialog to load blank tapes or tape-image files for the
+* magnetic tape drive device.
+*
+************************************************************************
+* 2017-07-09  P.Kimpel
+*   Original version, from retro-205 D205MagTapeLoadPanel.html.
+***********************************************************************/
+-->
+<meta name="Author" content="Paul Kimpel">
+<meta http-equiv="Content-Script-Type" content="text/javascript">
+<meta http-equiv="Content-Style-Type" content="text/css">
+<link id=defaultStyleSheet rel=stylesheet type="text/css" href="B220Common.css">
+<link id=tapeLoadStyleSheet rel=stylesheet type="text/css" href="B220MagTapeDrive.css">
+</head>
+
+<body class=deviceBody>
+
+<div id=MTLoadFileGroup>
+    <input id=MTLoadFileSelector type=file size=60>
+
+    <div id=MTLoadFormatGroup>
+        Format
+        <select id=MTLoadFormatSelect>
+            <option value="edited" selected>(Edited tape)
+            <option value="10">10-word blocks
+            <option value="20">20-word blocks
+            <option value="30">30-word blocks
+            <option value="40">40-word blocks
+            <option value="50">50-word blocks
+            <option value="60">60-word blocks
+            <option value="70">70-word blocks
+            <option value="80">80-word blocks
+            <option value="90">90-word blocks
+            <option value="100">100-word blocks
+        </select>
+        &nbsp;&nbsp;
+        <input id=MTLoadWriteEnableCheck type=checkbox value="1">
+        <label for=MTLoadWriteEnableCheck>Write Enabled</label>
+    </div>
+
+    <div id=MTLoadNotes>
+        To load a blank tape, simply click <b>OK</b>; otherwise
+        select a tape-image file before clicking <b>OK</b>.
+    </div>
+
+    <div id=MTLoadButtonGroup>
+        <button id=MTLoadCancelBtn class="large redButton">Cancel</button>
+        &nbsp;
+        <button id=MTLoadOKBtn class="large greenButton">OK</button>
+    </div>
+</div>
+
+</body>
+</html>

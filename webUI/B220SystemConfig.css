@@ -89,7 +89,6 @@
 #ConsoleInputTable,
 #ConsoleOutputTable,
 #CardatronTable,
-#MagTapeOptionsTable,
 #MagTapeTable {
     border-spacing:     0;
     border-collapse:    collapse}
@@ -100,8 +99,6 @@
 #ConsoleOutputTable TD,
 #CardatronTable TH,
 #CardatronTable TD,
-#MagTapeOptionsTable TH,
-#MagTapeOptionsTable TD,
 #MagTapeTable TH,
 #MagTapeTable TD {
     padding-left:       4px;

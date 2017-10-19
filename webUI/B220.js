@@ -60,13 +60,11 @@ window.addEventListener("load", function() {
             devices.CardatronControl = null;
         }
 
-        /********************
         if (config.getNode("MagTape.hasMagTape")) {
             devices.MagTapeControl = new B220MagTapeControl(processor);
         } else {
             devices.MagTapeControl = null;
         }
-        ********************/
 
         // Control Console must be instantiated last
         devices.ControlConsole = new B220ControlConsole(processor, systemShutDown);

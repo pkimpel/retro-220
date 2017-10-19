@@ -48,7 +48,7 @@ function B220ConsolePrinter(mnemonic, unitIndex, config) {
     this.printerLine = 0;
     this.printerCol = 0;
     this.window = window.open("../webUI/B220ConsolePrinter.html", mnemonic,
-            "location=no,scrollbars=no,resizable,width=640,height=300," +
+            "location=no,scrollbars=no,resizable,width=640,height=240," +
             "left=" + left + ",top=" + top);
     this.window.addEventListener("load", B220Util.bindMethod(this,
             B220ConsolePrinter.prototype.printerOnLoad));

@@ -44,7 +44,8 @@
     position:           absolute;
     width:              24px;
     left:               56px;
-    top:                14px}
+    top:                14px;
+    box-shadow:         3px 3px 2px #999}
 #ReadyLampCaption {
     width:              36px;
     left:               52px;
@@ -57,7 +58,8 @@
     right:              8px;
     top:                18px;
     color:              white;
-    background-color:   #333}
+    background-color:   #333;
+    box-shadow:         3px 3px 2px #999}
 #UnitDesignateKnobCaption {
     width:              64px;
     right:              8px;

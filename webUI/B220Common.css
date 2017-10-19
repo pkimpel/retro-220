@@ -445,7 +445,7 @@ DIV.redButton1 {
     width:              14px;
     height:             14px;
     font-size:          4px;
-    background-image:   radial-gradient(circle, #C00, #F00);
+    background-image:   radial-gradient(circle, #C00, #E00, #F00);
     border-radius:      50%;
     border:             10px solid #CCC}
 DIV.redButton2 {
@@ -453,7 +453,7 @@ DIV.redButton2 {
     width:              8px;
     height:             8px;
     font-size:          4px;
-    background-image:   radial-gradient(circle, #C00, #F00);
+    background-image:   radial-gradient(circle, #C00, #E00, #F00);
     border-radius:      50%;
     border:             6px solid #CCC}
 DIV.redButton3 {
@@ -461,7 +461,7 @@ DIV.redButton3 {
     width:              20px;
     height:             20px;
     font-size:          4px;
-    background-image:   radial-gradient(circle, #C00, #F00);
+    background-image:   radial-gradient(circle, #C00, #E00, #F00);
     border-radius:      50%;
     border:             2px solid #CCC}
 DIV.blackButton1 {
@@ -469,7 +469,7 @@ DIV.blackButton1 {
     width:              14px;
     height:             14px;
     font-size:          4px;
-    background-image:   radial-gradient(circle, #000, #333);
+    background-image:   radial-gradient(circle, #333, #111, #000);
     border-radius:      50%;
     border:             10px solid #CCC}
 DIV.blackButton3 {
@@ -477,7 +477,7 @@ DIV.blackButton3 {
     width:              20px;
     height:             20px;
     font-size:          4px;
-    background-image:   radial-gradient(circle, #000, #333);
+    background-image:   radial-gradient(circle, #333, #111, #000);
     border-radius:      50%;
     border:             2px solid #CCC}
 

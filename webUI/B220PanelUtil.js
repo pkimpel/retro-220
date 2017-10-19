@@ -824,7 +824,6 @@ PanelRegister.prototype.drawBox = function drawBox(col, lamps, rows, leftStyle, 
     leftStyle and rightStyle specify the left and right borders of the box using
     standard CSS border syntax. Returns the box element */
     var box = document.createElement("div");
-    var rightBias = (rightStyle ? 1 : 0);
 
     box.style.position = "absolute";
     box.style.left = (this.xCoord(col) - (PanelRegister.hSpacing-PanelRegister.lampDiameter)/2 + 1).toString() + "px";

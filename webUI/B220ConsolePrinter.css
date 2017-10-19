@@ -84,12 +84,14 @@
 #EndOfPaper.hidden {
     display:            none}
 
+/***** TTY Control Panel *****/
+
 #FormatControlsDiv {
     position:           absolute;
     overflow:           visible;
     display:            none;
-    left:               calc(50% - 312px);
-    top:                48px;
+    left:               2px;
+    top:                4px;
     z-index:            10;
     height:             216px;
     width:              624px;

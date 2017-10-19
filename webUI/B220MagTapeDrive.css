@@ -1,0 +1,294 @@
+/***********************************************************************
+* retro-220/webUI B220MagTapeDrive.css
+************************************************************************
+* Copyright (c) 2017, Paul Kimpel.
+* Licensed under the MIT License, see
+*       http://www.opensource.org/licenses/mit-license.php
+************************************************************************
+* Burroughs 220 emulator Magnetic Tape Drive
+* web interface style sheet.
+************************************************************************
+* 2017-07-09  P.Kimpel
+*   Original version, from retro-205 D205MagTapeDrive.css.
+***********************************************************************/
+
+#magTapeBody {
+    height:             100%;
+    min-height:         100%;
+    overflow:           hidden;
+    padding:            0}
+
+#MTDiv {
+    position:           absolute;
+    top:                0;
+    bottom:             0;
+    left:               0;
+    right:              0;
+    margin:             0px}
+
+DIV.annunciator {
+    color:              #F93;
+    padding-top:        4px;
+    padding-bottom:     4px;
+    text-align:         center;
+    position:           absolute}
+
+DIV.annunciatorLit {
+    background-color:   black}
+
+SELECT {
+    text-align:         center}
+
+
+#RWLLamp {
+    top:                18px;
+    left:               10px;
+    box-shadow:         3px 3px 2px #999}
+#RWLLampCaption {
+    top:                10px;
+    left:               0px;
+    width:              48px}
+
+#NotWriteLamp {
+    top:                18px;
+    left:               58px;
+    box-shadow:         3px 3px 2px #999}
+#NotWriteLampCaption {
+    top:                10px;
+    left:               48px;
+    width:              48px}
+
+#NotReadyLamp {
+    top:                18px;
+    left:               106px;
+    box-shadow:         3px 3px 2px #999}
+#NotReadyLampCaption {
+    top:                10px;
+    left:               96px;
+    width:              48px}
+
+#DesignatedLamp {
+    top:                18px;
+    left:               154px;
+    box-shadow:         3px 3px 2px #999}
+#DesignatedLampCaption {
+    top:                3px;
+    left:               144px;
+    width:              48px}
+
+#TransportPowerCaption {
+    top:                4px;
+    left:               192px;
+    width:              96px}
+
+#TransportOnLamp {
+    top:                18px;
+    left:               202px;
+    box-shadow:         3px 3px 2px #999}
+#TransportOnLampCaption {
+    top:                10px;
+    left:               192px;
+    width:              48px}
+
+#TransportStandbyLamp {
+    top:                18px;
+    left:               250px;
+    box-shadow:         3px 3px 2px #999}
+#TransportStandbyLampCaption {
+    top:                10px;
+    left:               240px;
+    width:              48px}
+
+#LoadBtn {
+    top:                64px;
+    left:               12px;
+    box-shadow:         3px 3px 2px #999}
+#LoadBtnCaption {
+    top:                56px;
+    left:               0px;
+    width:              48px}
+
+#UnloadBtn {
+    top:                64px;
+    left:               60px;
+    box-shadow:         3px 3px 2px #999}
+#UnloadBtnCaption {
+    top:                56px;
+    left:               48px;
+    width:              48px}
+
+#RewindBtn {
+    top:                64px;
+    left:               108px;
+    box-shadow:         3px 3px 2px #999}
+#RewindBtnCaption {
+    top:                56px;
+    left:               96px;
+    width:              48px}
+
+#TransportPowerBtnCaption {
+    top:                58px;
+    left:               192px;
+    width:              96px}
+
+#TransportOnBtn {
+    top:                64px;
+    left:               204px;
+    box-shadow:         3px 3px 2px #999}
+#TransportOnBtnCaption {
+    top:                56px;
+    left:               192px;
+    width:              48px}
+
+#TransportStandbyBtn {
+    top:                64px;
+    left:               252px;
+    box-shadow:         3px 3px 2px #999}
+#TransportStandbyBtnCaption {
+    top:                56px;
+    left:               240px;
+    width:              48px}
+
+#RWLRBtn {
+    top:                104px;
+    left:               12px;
+    box-shadow:         3px 3px 2px #999}
+#RWLRBtnCaption {
+    top:                96px;
+    left:               0px;
+    width:              48px}
+
+#WriteBtn {
+    top:                104px;
+    left:               60px;
+    box-shadow:         3px 3px 2px #999}
+#WriteBtnCaption {
+    top:                96px;
+    left:               48px;
+    width:              48px}
+
+#NotWriteBtn {
+    top:                104px;
+    left:               108px;
+    box-shadow:         3px 3px 2px #999}
+#NotWriteBtnCaption {
+    top:                96px;
+    left:               96px;
+    width:              48px}
+
+#UnitDesignate {
+    position:           absolute;
+    top:                106px;
+    left:               204px;
+    width:              72px;
+    box-shadow:         3px 3px 2px #999}
+#UnitDesignateCaption {
+    top:                96px;
+    left:               192px;
+    width:              96px}
+
+
+#MTReel {
+    position:           absolute;
+    height:             48px;
+    visibility:         hidden;
+    border-radius:      50%;
+    top:                8px;
+    right:              16px}
+
+#MTUnloadedLight {
+    top:                60px;
+    right:              8px;
+    width:              64px}
+
+#MTAtBOTLight {
+    top:                78px;
+    right:              8px;
+    width:              64px}
+
+#MTAtEOTLight {
+    top:                96px;
+    right:              8px;
+    width:              64px}
+
+#MTRewindingLight {
+    top:                114px;
+    right:              8px;
+    width:              64px}
+
+#MTStatusDiv {
+    position:           absolute;
+    bottom:             4px;
+    left:               8px;
+    right:              8px}
+
+#MTFileName {
+    width:              100%;
+    font-family:        DejaVuSansWeb, sans-serif;
+    color:              black;
+    background-color:   inherit;
+    border:             none}
+
+#MTReelBar {
+    margin-top:         4px;
+    width:              100%;
+    height:             16px;
+    border:             1px solid white}
+
+#MTReelBarCaption {
+    position:           absolute;
+    right:              4px;
+    top:                24px;
+    z-index:            1;
+    height:             12px;
+    color:              black;
+    font-weight:        bold}
+
+/* Tape Load Panel */
+
+#MTLoadFileGroup {
+    position:           absolute;
+    top:                8px;
+    left:               8px;
+    right:              8px}
+
+#MTLoadFileSelector {
+    border:             1px solid white;
+    color:              white;
+    width:              100%}
+
+#MTLoadFormatGroup {
+    position:           absolute;
+    top:                32px;
+    left:               0}
+
+#MTLoadFormatSelect {
+    border:             1px solid white}
+
+#MTLoadWriteEnableCheck {
+    border:             1px solid white}
+
+#MTLoadNotes {
+    position:           absolute;
+    top:                60px;
+    width:              300px;
+    left:               0}
+
+#MTLoadButtonGroup {
+    position:           absolute;
+    top:                60px;
+    right:              0}
+
+#MTLoadCancelBtn {
+    background-image:   none;
+    background-color:   #900;
+    height:             20px;
+    bottom:             0;
+    right:              64px}
+
+#MTLoadOKBtn {
+    background-image:   none;
+    background-color:   #060;
+    height:             20px;
+    bottom:             0;
+    right:              0}

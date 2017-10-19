@@ -224,9 +224,6 @@ function B220Processor(config, devices) {
     this.TAT = new B220Processor.FlipFlop(this, false);         // magnetic tape alarm toggle
     this.UET = new B220Processor.FlipFlop(this, false);         // unequal comparison toggle (HIT=UET=0 => off)
 
-    // Mag-Tape Control Unit switch
-    this.tswSuppressB = 0;              // Suppress B-register modification on input
-
     // Left/Right Maintenance Panel
     this.leftPanelOpen = false;
     this.rightPanelOpen = false;
@@ -245,10 +242,9 @@ function B220Processor(config, devices) {
     this.boundCardatronOutputFinished = B220Processor.bindMethod(this, B220Processor.prototype.cardatronOutputFinished);
     this.boundCardatronReceiveWord = B220Processor.bindMethod(this, B220Processor.prototype.cardatronReceiveWord);
 
+    this.boundMagTapeComplete = B220Processor.bindMethod(this, B220Processor.prototype.magTapeComplete);
     this.boundMagTapeReceiveBlock = B220Processor.bindMethod(this, B220Processor.prototype.magTapeReceiveBlock);
-    this.boundMagTapeInitiateSend = B220Processor.bindMethod(this, B220Processor.prototype.magTapeInitiateSend);
     this.boundMagTapeSendBlock = B220Processor.bindMethod(this, B220Processor.prototype.magTapeSendBlock);
-    this.boundMagTapeTerminateSend = B220Processor.bindMethod(this, B220Processor.prototype.magTapeTerminateSend);
 
     this.clear();                       // Create and initialize the processor state
 
@@ -260,7 +256,7 @@ function B220Processor(config, devices) {
 *   Global Constants                                                   *
 ***********************************************************************/
 
-B220Processor.version = "0.03";
+B220Processor.version = "0.03a";
 
 B220Processor.tick = 1000/200000;       // milliseconds per clock cycle (200KHz)
 B220Processor.cyclesPerMilli = 1/B220Processor.tick;
@@ -1056,7 +1052,7 @@ B220Processor.prototype.setPaperTapeCheck = function setPaperTapeCheck(value) {
 
 /**************************************/
 B220Processor.prototype.setHighSpeedPrinterCheck = function setHighSpeedPrinterCheck(value) {
-    /* Sets the Cardatron Check alarm */
+    /* Sets the High Speed Printer Check alarm */
 
     if (!this.ALARMSW) {
         this.HAT.set(value);
@@ -2755,11 +2751,11 @@ B220Processor.prototype.cardatronOutputFinished = function cardatronOutputFinish
 /**************************************/
 B220Processor.prototype.cardatronReceiveWord = function cardatronReceiveWord(word) {
     /* Handles a word coming from the Cardatron input unit. Negative values for
-    the word indicates this is the last word and the I/O is finished. The word
-    is stored into the D register and is handled according to the sign digit in
-    the D register. The last word received (typically a "pusher" word of zeroes)
-    is abandoned and not acted upon. Returns -1 if further data transfer is to
-    be terminated, 0 otherwise */
+    the word indicates this is the last word and the I/O is finished. Otherwise,
+    the word is stored into the D register and is handled according to the sign
+    digit in the D register. The last word received (typically a "pusher" word
+    of zeroes) is abandoned and not acted upon. Returns -1 if further data
+    transfer is to be terminated, 0 otherwise */
     var returnCode = 0;                 // default is to continue receiving
     var sign;                           // D-register sign digit
 
@@ -2836,95 +2832,70 @@ B220Processor.prototype.cardatronReceiveWord = function cardatronReceiveWord(wor
 ***********************************************************************/
 
 /**************************************/
-B220Processor.prototype.magTapeInitiateSend = function magTapeInitiateSend(writeInitiate) {
-    /* Performs the initial memory block-to-loop operation after the tape control
-    unit has determined the drive is ready and not busy. Once the initial loop is
-    loaded, calls "writeInitiate" to start tape motion, which in turn will cause
-    the control to call this.magTapeSendBlock to pass the loop data to the drive
-    and initiate loading of the alternate loop buffer */
-    var that = this;
+B220Processor.prototype.magTapeComplete = function magTapeComplete(alarm, control, word) {
+    /* Call-back routine to signal completion of a magnetic tape operation. If
+    "alarm" is true, the Magnetic Tape Alarm will be set. If "control" is true,
+    the contents of "word" are processed as a tape control word and an appropriate
+    branch is set up. Unconditionally terminates the tape I/O instruction */
+    var aaaa;
+    var bbbb;
 
-    if (this.togMT3P) {                 // if false, we've probably been cleared
-        if (this.CADDR >= 0x8000) {
-            writeInitiate(this.boundMagTapeSendBlock, this.boundMagTapeTerminateSend);
-        } else {
-            this.execTime += performance.now()*B220Processor.wordsPerMilli; // restore time after I/O
-            this.blockToLoop((this.togMT1BV4 ? 4 : 5), function initialBlockComplete() {
-                that.execTime -= performance.now()*B220Processor.wordsPerMilli; // suspend time during I/O
-                writeInitiate(that.boundMagTapeSendBlock, that.boundMagTapeTerminateSend);
-            });
+    if (alarm) {
+        this.setMagneticTapeCheck(true);
+    } else if (control) {
+        this.D.set(word);
+        bbbb = word%0x10000;
+        aaaa = ((word - bbbb)/0x10000)%0x10000;
+        if ((word - word%0x10000000000)%2) {            // if sign bit is 1,
+            bbbb = this.bcdAdd(bbbb, this.B.value, 4);  // B-adjust the low-order 4 digits
+        }
+
+        this.E.set(aaaa);
+        this.readMemory();
+        if (!this.MET.value) {
+            this.IB.set(this.IB.value - this.IB.value%0x100000000 +
+                        (this.C.value%0x10000)*0x10000 + this.P.value%0x10000);
+            this.writeMemory();
+            this.P.set(bbbb);
         }
     }
+
+    this.ioComplete(true);
 };
 
 /**************************************/
-B220Processor.prototype.magTapeSendBlock = function magTapeSendBlock(lastBlock) {
-    /* Sends a block of data from a loop buffer to the tape control unit and
-    initiates the load of the alternate loop buffer. this.togMT1BV4 and
-    this.togMT1BV5 control alternation of the loop buffers. "lastBlock" indicates
-    this will be the last block requested by the control unit and no further
-    blocks should be buffered. If the C-register address is 8000 or higher, the
-    loop is not loaded from main memory, and the current contents of the loop
-    are written to tape. Since tape block writes take 46 ms, they are much
-    longer than any memory-to-loop transfer, so this routine simply exits after
-    the next blockToLoop is initiated, and the processor then waits for the tape
-    control unit to request the next block, by which time the blockToLoop will
-    have completed. Returns null if the processor has been cleared and the I/O
-    must be aborted */
-    var loop;
-    var that = this;
+B220Processor.prototype.magTapeSendBlock = function magTapeSendBlock(buffer, words) {
+    /* Sends a block of data from memory to the tape control unit. "buffer" is an
+    array of words to receive the data to be written to tape. "words" is the number
+    of words to place in the buffer, starting at the current operand address in the
+    C register. Returns true if the processor has been cleared or a memory address
+    error occurs, and the I/O must be aborted */
+    var result = false;                 // return value
+    var that = this;                    // local context
+    var x = 0;                          // buffer index
 
-    function blockFetchComplete() {
-        that.execTime -= performance.now()*B220Processor.wordsPerMilli; // suspend time again during I/O
-    }
+    //console.log("TSU " + this.selectedUnit + " W, Len " + words +
+    //        ", ADDR=" + this.CADDR.toString(16));
 
-    //console.log("TSU " + this.selectedUnit + " W, L" + (this.togMT1BV4 ? 4 : 5) +
-    //        ", ADDR=" + this.CADDR.toString(16) +
-    //        " : " + block[0].toString(16) + ", " + block[19].toString(16));
-
-    if (!this.togMT3P) {
-        loop = null;
+    if (!this.AST.value) {
+        result = true;
     } else {
-        // Select the appropriate loop to send data to the drive
-        if (this.togMT1BV4) {
-            loop = this.L4;
-            this.toggleGlow.glowL4 = 1; // turn on the lamp and let normal decay work
-        } else {
-            loop = this.L5;
-            this.toggleGlow.glowL5 = 1;
-        }
-
-        if (!lastBlock) {
-            this.execTime += performance.now()*B220Processor.wordsPerMilli; // restore time after I/O
-            // Flip the loop-buffer toggles
-            this.togMT1BV5 = this.togMT1BV4;
-            this.togMT1BV4 = 1-this.togMT1BV4;
-            // Block the loop buffer from main memory if appropriate
-            if (this.CADDR < 0x8000) {
-                this.blockToLoop((this.togMT1BV4 ? 4 : 5), blockFetchComplete);
+        while (x < words) {
+            this.E.set(this.CADDR);
+            this.CADDR = this.bcdAdd(this.CADDR, 1, 4);
+            this.readMemory();
+            if (this.MET.value) {       // invalid address
+                result = true;
+                break;                  // out of do-loop
             } else {
-                blockFetchComplete();
+                buffer[x] = this.IB.value;
+                ++x;
             }
         }
-
-        this.A.set(loop[loop.length-1]);   // for display only
-        this.D.set(0);                     // for display only
     }
 
-    return loop;                        // give the loop data to the control unit
-};
-
-/**************************************/
-B220Processor.prototype.magTapeTerminateSend = function magTapeTerminateSend() {
-    /* Called by the tape control unit after the last block has been completely
-    written to tape. Terminates the write instruction */
-
-    if (this.togMT3P) {                 // if false, we've probably been cleared
-        this.togMT3P = 0;
-        this.togMT1BV4 = this.togMT1BV5 = 0;
-        this.execTime += performance.now()*B220Processor.wordsPerMilli; // restore time after I/O
-        this.schedule();
-    }
+    this.C.set(this.C.value - this.C.value%0x10000 + this.CADDR);
+    return result;
 };
 
 /**************************************/
@@ -3676,9 +3647,32 @@ B220Processor.prototype.execute = function execute() {
         this.operationComplete();
         break;
 
-    case 0x50:      //--------------------- MT*     Magnetic tape search/field search/lane select/rewind
-        this.setProgramCheck(1);
-        this.operationComplete();
+    case 0x50:      //--------------------- MTS/MFS/MLS/MRW/MDA  Magnetic tape search/field search/lane select/rewind
+        this.opTime = 0.160;
+        if (!this.magTape) {
+            this.setMagneticTapeCheck(true);                // no tape control
+            this.operationComplete();
+        } else {
+            this.selectedUnit = (this.CCONTROL >>> 12) & 0x0F;
+            switch (this.CCONTROL%0x10) {
+            case 0: case 1: case 2: case 3:                 // MTS/MFS: search or field search
+                this.setProgramCheck(true);  // TEMP //
+                this.operationComplete();
+                break;
+            case 4: case 5: case 6: case 7:                 // MLS: lane select
+                this.ioInitiate();
+                this.magTape.laneSelect(this.D.value, this.boundMagTapeComplete);
+                break;
+            case 8: case 9:                                 // MRW/MDA: rewind, with or without lockout
+                this.ioInitiate();
+                this.magTape.rewind(this.D.value, this.boundMagTapeComplete);
+                break;
+            default:                                        // should never happen
+                this.setProgramCheck(true);
+                this.operationComplete();
+                break;
+            } // switch on operation variant
+        }
         break;
 
     case 0x51:      //--------------------- MTC/MFC Magnetic tape scan/field scan
@@ -3697,13 +3691,31 @@ B220Processor.prototype.execute = function execute() {
         break;
 
     case 0x54:      //--------------------- MIW     Magnetic tape initial write
-        this.setProgramCheck(1);
-        this.operationComplete();
+        this.opTime = 0.160;
+        if (!this.magTape) {
+            this.setMagneticTapeCheck(true);                // no tape control
+            this.operationComplete();
+        } else {
+            this.selectedUnit = (this.CCONTROL >>> 12) & 0x0F;
+            this.CCONTROL = this.CADDR;                     // copy C address into control digits
+            this.C.set((this.CCONTROL*0x100 + this.COP)*0x10000 + this.CADDR);
+            this.ioInitiate();
+            this.magTape.initialWrite(this.D.value, this.boundMagTapeComplete, this.boundMagTapeSendBlock);
+        }
         break;
 
     case 0x55:      //--------------------- MIR     Magnetic tape initial write, record
-        this.setProgramCheck(1);
-        this.operationComplete();
+        this.opTime = 0.160;
+        if (!this.magTape) {
+            this.setMagneticTapeCheck(true);                // no tape control
+            this.operationComplete();
+        } else {
+            this.selectedUnit = (this.CCONTROL >>> 12) & 0x0F;
+            this.CCONTROL = this.CADDR;                     // copy C address into control digits
+            this.C.set((this.CCONTROL*0x100 + this.COP)*0x10000 + this.CADDR);
+            this.ioInitiate();
+            this.magTape.initialWriteRecord(this.D.value, this.boundMagTapeComplete, this.boundMagTapeSendBlock);
+        }
         break;
 
     case 0x56:      //--------------------- MOW     Magnetic tape overwrite
@@ -3716,13 +3728,47 @@ B220Processor.prototype.execute = function execute() {
         this.operationComplete();
         break;
 
-    case 0x58:      //--------------------- MPF/MPB Magnetic tape position forward/backward/at end
-        this.setProgramCheck(1);
-        this.operationComplete();
+    case 0x58:      //--------------------- MPF/MPB/MIE Magnetic tape position forward/backward/at end
+        this.opTime = 0.130;
+        if (!this.magTape) {
+            this.setMagneticTapeCheck(true);                // no tape control
+            this.operationComplete();
+        } else {
+            this.selectedUnit = (this.CCONTROL >>> 12) & 0x0F;
+            this.ioInitiate();
+            switch (this.CCONTROL%0x10) {
+            case 1:                                         // MPB: position tape backward
+                this.magTape.positionBackward(this.D.value, this.boundMagTapeComplete);
+                break;
+            case 2:                                         // MPE: position tape at end
+                this.magTape.positionAtEnd(this.D.value, this.boundMagTapeComplete);
+                break;
+            default:                                        // MPF: position tape forward
+                this.magTape.positionForward(this.D.value, this.boundMagTapeComplete);
+                break;
+            } // switch on operation variant
+        }
         break;
 
     case 0x59:      //--------------------- MIB/MIE Magnetic tape interrogate, branch/end of tape, branch
-        this.setProgramCheck(1);
+        if (!this.magTape) {
+            this.opTime = 0.01;
+        } else if (this.magTape.controlBusy) {
+            this.opTime = 0.01;
+        } else {
+            opTime = 0.14;
+            if (this.CCONTROL%0x10 == 1) {              // MIE
+                if (this.magTape.testUnitAtMagneticEOT(this.D.value)) {
+                    this.P.set(this.CADDR);
+                    this.opTime += 0.020;
+                }
+            } else {                                    // MIB
+                if (this.magTape.testUnitReady(this.D.value)) {
+                    this.P.set(this.CADDR);
+                    this.opTime += 0.020;
+                }
+            }
+        }
         this.operationComplete();
         break;
 
@@ -3913,14 +3959,6 @@ B220Processor.prototype.execute = function execute() {
             }
             break;
 
-        case 0x52:      //---------------- MTRW Magnetic Tape Rewind
-            if (this.magTape) {
-                this.selectedUnit = (this.CCONTROL >>> 4) & 0x0F;
-                if (this.magTape.rewind(this.selectedUnit)) {
-                    this.OFT.set(1);                // control or tape unit busy/not-ready
-                }
-            }
-            break;
         default:        //---------------- (unimplemented instruction -- alarm)
             break;
         } // switch this.COP
@@ -4132,6 +4170,7 @@ B220Processor.prototype.stop = function stop() {
         this.execLimit = 0;             // kill the time slice
         this.SST.set(0);
         this.RUT.set(0);
+        this.AST.set(0);
 
         // Stop the timers
         this.clockIn();
@@ -4169,7 +4208,11 @@ B220Processor.prototype.setStop = function setStop() {
     the end of the Execute cycle, then stop */
 
     if (this.poweredOn) {
-        this.RUT.set(0);
+        if (this.RUT.value) {
+            this.RUT.set(0);
+        } else {
+            this.stop();
+        }
     }
 };
 
@@ -4250,7 +4293,9 @@ B220Processor.prototype.tcuClear = function tcuClear() {
     /* Clears the Tape Control Unit */
 
     if (this.poweredOn) {
-        //?? TBD ??
+        if (this.magTape) {
+            this.magTape.clearUnit();
+        }
     }
 };
 
@@ -4296,6 +4341,22 @@ B220Processor.prototype.powerDown = function powerDown() {
 /**************************************/
 B220Processor.prototype.loadDefaultProgram = function loadDefaultProgram() {
     /* Loads a set of default demo programs to the memory drum */
+
+    // TEMP // Tape tests
+    this.MM[   0] = 0x1008500000;       // MRW     1
+    this.MM[   1] = 0x1002580000;       // MPE     1
+    this.MM[   2] = 0x1000540000;       // MIW     0,1,10,100
+    this.MM[   3] = 0x1750540100;       // MIW     100,1,7,50
+    this.MM[   4] = 0x1500550079;       // MIR     79,1,5,00
+    this.MM[   5] = 0x1101540200;       // MIW     200,1,1,1
+    this.MM[   6] = 0x1009500000;       // MDA     1
+    this.MM[   7] = 0x7777009999;       // HLT     9999,7777
+
+    this.MM[  79] = 0x1900000000;       // preface for 19 words, 80-98
+    this.MM[  99] = 0x4000000000;       // preface for 40 words, 100-139
+    this.MM[ 140] = 0x5800000000;       // preface for 58 words, 141-198
+    this.MM[ 199] = 0x9900000000;       // preface for 99 words, 200-298
+    this.MM[ 299] = 0x0000000000;       // preface for 100 words, 300-399
 
     // Simple counter speed test
     this.MM[  80] = 0x0000120082;       // ADD    82

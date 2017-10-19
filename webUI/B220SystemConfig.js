@@ -107,11 +107,11 @@ B220SystemConfig.defaultConfig = {
         hasMagTape: true,
         units: [
             null,                       // unit[0] not used
-            {type: "MTA", designate: 0, remoteSwitch: false, rewindReadySwitch: true, notWriteSwitch: false},
+            {type: "MTA",  designate: 1},
+            {type: "MTB",  designate: 2},
             {type: "NONE"},
             {type: "NONE"},
-            {type: "MTD", designate: 3, remoteSwitch: false, rewindReadySwitch: true, notWriteSwitch: false},
-            {type: "MTE", designate: 4, remoteSwitch: false, rewindReadySwitch: true, notWriteSwitch: false},
+            {type: "NONE"},
             {type: "NONE"},
             {type: "NONE"},
             {type: "NONE"},
@@ -371,15 +371,11 @@ B220SystemConfig.prototype.loadConfigDialog = function loadConfigDialog() {
         cd.MagTape = B220SystemConfig.defaultConfig.MagTape;
     }
 
-    this.$$("SuppressBMod").checked = !cd.MagTape.suppressBSwitch;
     for (x=1; x<=10; ++x) {
         unit = cd.MagTape.units[x];
         prefix = "MagTape" + x;
         this.setListValue(prefix + "Type", unit.type);
-        this.$$(prefix + "Designate").selectedIndex = unit.designate;
-        this.$$(prefix + "Remote").checked = unit.remoteSwitch;
-        this.$$(prefix + "RewindReady").checked = unit.rewindReadySwitch;
-        this.$$(prefix + "NotWrite").checked = unit.notWriteSwitch;
+        this.$$(prefix + "Designate").selectedIndex = unit.designate-1;
     } // for x
 
     this.$$("MessageArea").textContent = "220 System Configuration loaded.";
@@ -509,17 +505,13 @@ B220SystemConfig.prototype.saveConfigDialog = function saveConfigDialog() {
     // Magnetic Tape units
 
     cd.MagTape.hasMagTape = false;
-    cd.MagTape.suppressBSwitch = !this.$$("SuppressBMod").checked;
 
     for (x=1; x<=10; ++x) {
         unit = cd.MagTape.units[x];
         prefix = "MagTape" + x;
         e = this.$$(prefix + "Type");
         unit.type = (e.selectedIndex < 0 ? "NONE" : e.options[e.selectedIndex].value);
-        unit.designate = this.$$(prefix + "Designate").selectedIndex;
-        unit.remoteSwitch = this.$$(prefix + "Remote").checked;
-        unit.rewindReadySwitch = this.$$(prefix + "RewindReady").checked;
-        unit.notWriteSwitch = this.$$(prefix + "NotWrite").checked;
+        unit.designate = this.$$(prefix + "Designate").selectedIndex+1;
         if (unit.type != "NONE") {
             cd.MagTape.hasMagTape = true;
         }

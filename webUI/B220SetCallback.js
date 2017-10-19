@@ -18,8 +18,8 @@
 * minimum they use, and their precision in activating the call-back function
 * once the actual delay is established varies even more. This module will use
 * setTimeout() if the requested delay time is above a certain threshold, and
-* a setImmediate-like mechanism (based on window.postMessage) if the requested
-* delay is below that threshold.
+* a setImmediate-like mechanism (based on Promise) if the requested delay is
+* below that threshold.
 *
 * To help compensate for the fact that the call-back function may be called
 * sooner than requested, and that due either to other activity or to browser
@@ -43,9 +43,9 @@
 *       earlier or later than the specified delay. The string "category" (which
 *       may be empty, null, or undefined) defines the category under which the
 *       average delay difference will be maintained. setCallBack returns a
-*       numeric token identifying the call-back event, which can be used
-*       with clearCallback(). Note that passing a string in lieu of a function
-*       object is not permitted.
+*       numeric token identifying the call-back event, which can be used with
+*       clearCallback() to cancel the callback. Note that passing a string in
+*       lieu of a function object is not permitted.
 *
 *   clearCallBack(token)
 *
@@ -77,6 +77,8 @@
 *   Original version, cloned from retro-205 emulator D205SetCallback.js.
 * 2017-02-18  P.Kimpel
 *   Redesign yet again the delay adjustment mechanism -- from 205 project.
+* 2017-10-16  P.Kimpel
+*   Replace window.postMessage yield mechanism with one based on Promise().
 ***********************************************************************/
 "use strict";
 
@@ -89,7 +91,6 @@
     var perf = global.performance;      // cached window.performance object
     var pool = [];                      // pool of reusable callback objects
     var poolLength = 0;                 // length of active entries in pool
-    var secretPrefix = "retro-205.webUI." + Date.now().toString(16);
 
     /**************************************/
     function activateCallback(token) {
@@ -140,7 +141,7 @@
         /* Sets up and schedules a callback for function "fcn", called with context
         "context", after a delay of "delay" ms. An optional "arg" value will be passed
         to "fcn". If the delay is less than "minTimeout", a setImmediate-like mechanism
-        based on window.postsMessage() will be used; otherwise the environment's standard
+        based on DOM Promise() will be used; otherwise the environment's standard
         setTimeout mechanism will be used */
         var adj = 0;                    // adjustment to delay and delayDev[]
         var categoryName = (category || "NUL").toString();
@@ -213,23 +214,10 @@
             thisCallback.cancelToken = global.setTimeout(activateCallback, delay, token);
         } else {
             thisCallback.cancelToken = 0;
-            global.postMessage(secretPrefix + tokenName, "*");
+            Promise.resolve(token).then(activateCallback);
         }
 
         return token;
-    }
-
-    /**************************************/
-    function onMessage(ev) {
-        /* Handler for the global.onmessage event. Activates the callback */
-        var payload;
-
-        if (ev.source === global) {
-            payload = ev.data.toString();
-            if (payload.substring(0, secretPrefix.length) === secretPrefix) {
-                activateCallback(payload.substring(secretPrefix.length));
-            }
-        }
     }
 
     /**************************************/
@@ -270,7 +258,7 @@
     }
 
     /********** Outer block of anonymous closure **********/
-    if (!global.setCallback && global.postMessage && !global.importScripts) {
+    if (!global.setCallback && !global.importScripts) {
         // Attach to the prototype of global, if possible, otherwise to global itself
         var attachee = global;
 
@@ -282,7 +270,6 @@
         }
         *****/
 
-        global.addEventListener("message", onMessage, false);
         attachee.setCallback = setCallback;
         attachee.clearCallback = clearCallback;
         attachee.getCallbackState = getCallbackState;
