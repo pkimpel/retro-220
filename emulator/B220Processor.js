@@ -243,8 +243,8 @@ function B220Processor(config, devices) {
     this.boundCardatronReceiveWord = B220Processor.bindMethod(this, B220Processor.prototype.cardatronReceiveWord);
 
     this.boundMagTapeComplete = B220Processor.bindMethod(this, B220Processor.prototype.magTapeComplete);
-    this.boundMagTapeReceiveBlock = B220Processor.bindMethod(this, B220Processor.prototype.magTapeReceiveBlock);
-    this.boundMagTapeSendBlock = B220Processor.bindMethod(this, B220Processor.prototype.magTapeSendBlock);
+    this.boundMagTapeReceiveWord = B220Processor.bindMethod(this, B220Processor.prototype.magTapeReceiveWord);
+    this.boundMagTapeSendWord = B220Processor.bindMethod(this, B220Processor.prototype.magTapeSendWord);
 
     this.clear();                       // Create and initialize the processor state
 
@@ -256,7 +256,7 @@ function B220Processor(config, devices) {
 *   Global Constants                                                   *
 ***********************************************************************/
 
-B220Processor.version = "0.03a";
+B220Processor.version = "0.03b";
 
 B220Processor.tick = 1000/200000;       // milliseconds per clock cycle (200KHz)
 B220Processor.cyclesPerMilli = 1/B220Processor.tick;
@@ -1886,7 +1886,7 @@ B220Processor.prototype.compareField = function compareField() {
             if (s == 0) {
                 s = 10;
             }
-            L = (this.CCONTROL >>> 8) & 0x0F;
+            L = (this.CCONTROL >>> 8)%0x10;
             if (L == 0) {
                 L = 10;
             }
@@ -2009,7 +2009,7 @@ B220Processor.prototype.increaseFieldLocation = function increaseFieldLocation()
         if (s == 0) {
             s = 10;
         }
-        L = (this.CCONTROL >>> 8) & 0x0F;
+        L = (this.CCONTROL >>> 8)%0x10;
         if (L == 0) {
             L = 10;
         }
@@ -2092,7 +2092,7 @@ B220Processor.prototype.decreaseFieldLocation = function decreaseFieldLocation(l
         if (s == 0) {
             s = 10;
         }
-        L = (this.CCONTROL >>> 8) & 0x0F;
+        L = (this.CCONTROL >>> 8)%0x10;
         if (L == 0) {
             L = 10;
         }
@@ -2173,7 +2173,7 @@ B220Processor.prototype.branchField = function branchField(regValue) {
     if (s == 0) {
         s = 10;
     }
-    L = (this.CCONTROL >>> 8) & 0x0F;
+    L = (this.CCONTROL >>> 8)%0x10;
     if (L == 0) {
         L = 10;
     }
@@ -2265,7 +2265,7 @@ B220Processor.prototype.storeRegister = function storeRegister() {
             if (s == 0) {
                 s = 10;
             }
-            L = (this.CCONTROL >>> 8) & 0x0F;
+            L = (this.CCONTROL >>> 8)%0x10;
             if (L == 0) {
                 L = 10;
             }
@@ -2433,7 +2433,7 @@ B220Processor.prototype.consoleOutputSign = function consoleOutputSign(printSign
             this.ioComplete(true);
         } else {
             this.D.set(this.IB.value);
-            this.opTime += 0.070;       // estimate for memory access and rotation
+            this.execClock += 0.070;    // estimate for memory access and rotation
             w = this.D.value%0x10000000000;
             d = (this.D.value - w)/0x10000000000; // get the sign digit
             this.D.set(w*0x10 + d);     // rotate D+sign left one
@@ -2470,7 +2470,7 @@ B220Processor.prototype.consoleOutputChar = function consoleOutputChar(printChar
             w = this.D.value % 0x1000000000;
             d = (this.D.value - w)/0x1000000000; // get next 2 digits
             this.D.set(w*0x100 + d);    // rotate D+sign left by two
-            this.opTime += 0.060;       // estimate for rotation
+            this.execClock += 0.060;    // estimate for rotation
             this.DC.inc();              // increment DC for two digits
             this.DC.inc();
             this.PA.set(d);
@@ -2495,7 +2495,7 @@ B220Processor.prototype.consoleOutputChar = function consoleOutputChar(printChar
                 w = this.D.value % 0x10000000000;
                 d = (this.D.value - w)/0x10000000000; // get a digit
                 this.D.value = w*0x10 + d;  // rotate D+sign left by one
-                this.opTime += 0.065;       // estimate for rotation
+                this.execClock += 0.065;    // estimate for rotation
                 this.DC.inc();
             } while (d == 0 && this.LT1.value && this.DC.value < 0x20);
 
@@ -2727,13 +2727,14 @@ B220Processor.prototype.cardatronOutputWord = function cardatronOutputWord() {
     } else if (this.MET.value) {        // previous memory access error
         word = 0;
     } else {
-        this.opTime += 0.117;           // time for full-word transfer
         word = this.readMemory();       // address in E was previously set
         if (this.MET.value) {
             word = 0;
         } else {
             this.E.dec();               // step down to next memory address
         }
+
+        this.execClock += 0.117;        // time for full-word transfer
     }
 
     return word;
@@ -2771,7 +2772,6 @@ B220Processor.prototype.cardatronReceiveWord = function cardatronReceiveWord(wor
         // Memory error has occurred: just ignore further data from Cardatron
     } else {
         // Full word accumulated -- process it and initialize for the next word
-        this.opTime += 0.117;           // time for full-word transfer
         this.D.set(word);
         word %= 0x10000000000;          // strip the sign digit
         sign = (this.D.value - word)/0x10000000000; // get D-sign
@@ -2811,8 +2811,8 @@ B220Processor.prototype.cardatronReceiveWord = function cardatronReceiveWord(wor
         default:                        // sign is 8, 9: store word with optional B mod
             if (!(this.rDigit & 0x08)) {        // no B-register modification
                 this.IB.set(this.D.value);
-            } else {                            // add B to low-order five digits of word
-                word = word - word%0x100000 + this.bcdAdd(word, this.B.value, 5);
+            } else {                            // add B to low-order four digits of word
+                word = word - word%0x100000 + this.bcdAdd(word, this.B.value, 4);
                 this.C10.set(0);                // reset carry toggle
                 this.IB.set((sign%2)*0x10000000000 + word);
             }
@@ -2822,6 +2822,8 @@ B220Processor.prototype.cardatronReceiveWord = function cardatronReceiveWord(wor
             }
             break;
         } // switch sign
+
+        this.execClock += 0.117;        // time for full-word transfer
     }
 
     return returnCode;
@@ -2864,139 +2866,81 @@ B220Processor.prototype.magTapeComplete = function magTapeComplete(alarm, contro
 };
 
 /**************************************/
-B220Processor.prototype.magTapeSendBlock = function magTapeSendBlock(buffer, words) {
-    /* Sends a block of data from memory to the tape control unit. "buffer" is an
-    array of words to receive the data to be written to tape. "words" is the number
-    of words to place in the buffer, starting at the current operand address in the
-    C register. Returns true if the processor has been cleared or a memory address
-    error occurs, and the I/O must be aborted */
-    var result = false;                 // return value
-    var that = this;                    // local context
-    var x = 0;                          // buffer index
-
-    //console.log("TSU " + this.selectedUnit + " W, Len " + words +
-    //        ", ADDR=" + this.CADDR.toString(16));
+B220Processor.prototype.magTapeSendWord = function magTapeSendWord(initial) {
+    /* Sends the next of data from memory to the tape control unit, starting at
+    the current operand address in the C register. "initial" is true if this
+    call is the first to fetch words for a block. This causes the routine to
+    save the current operand address in the control digits of C. Returns
+    binary -1 if the processor has been cleared or a memory address error
+    occurs, and the I/O must be aborted. Returns the BCD memory word otherwise */
+    var result;                         // return value
 
     if (!this.AST.value) {
-        result = true;
+        result = -1;                    // we've probably been cleared
     } else {
-        while (x < words) {
-            this.E.set(this.CADDR);
-            this.CADDR = this.bcdAdd(this.CADDR, 1, 4);
-            this.readMemory();
-            if (this.MET.value) {       // invalid address
-                result = true;
-                break;                  // out of do-loop
-            } else {
-                buffer[x] = this.IB.value;
-                ++x;
-            }
+        if (initial) {
+            this.clockIn();
+            this.CCONTROL = this.CADDR; // copy C address into control digits
+        }
+
+        this.E.set(this.CADDR);
+        this.CADDR = this.bcdAdd(this.CADDR, 1, 4);
+        this.C.set((this.CCONTROL*0x100 + this.COP)*0x10000 + this.CADDR);
+        this.readMemory();
+        if (this.MET.value) {           // invalid address
+            result = -1;
+        } else {
+            result = this.IB.value;
+            this.D.set(result);
+            this.execClock += 0.480;    // time to transfer one word to tape
         }
     }
 
-    this.C.set(this.C.value - this.C.value%0x10000 + this.CADDR);
     return result;
 };
 
 /**************************************/
-B220Processor.prototype.magTapeReceiveBlock = function magTapeReceiveBlock(block, lastBlock) {
-    /* Called by the tape control unit to store a block of 20 words. If "lastBlock" is
-    true, it indicates this is the last block and the I/O is finished. If "block"
-    is null, that indicates the I/O was aborted and the block must not be stored
-    in memory. The block is stored in one of the loops, as determined by the
-    togMT1BV4 and togMT1BV5 control toggles. Sign digit adjustment and B-register
-    modification take place at this time. If the C-register operand address is
-    less than 8000, the loop is then stored at the current operand address, which
-    is incremented by blockFromLoop(). If this is the last block, schedule()
-    is called after the loop is stored to terminate the read instruction. Since
-    tape block reads take 46 ms, they are much longer than any loop-to-memory
-    transfer, so this routine simply exits after the blockFromLoop is initiated,
-    and the then processor waits for the next block to arrive from the tape, by
-    which time the blockFromLoop will (should?) have completed. Returns true if
-    the processor has been cleared and the tape control unit should abort the I/O */
-    var aborted = false;                // return value
-    var loop;
+B220Processor.prototype.magTapeReceiveWord = function magTapeReceiveWord(initial, word) {
+    /* Stores the next of data from the tape control unit to memory, starting at
+    the current operand address in the C register. "initial" is true if this
+    call is the first to store words for a block. This causes the routine to
+    save the current operand address in the control digits of C. Returns
+    binary -1 if the processor has been cleared or a memory address error
+    occurs, and the I/O must be aborted. Returns 0 otherwise */
+    var result = 0;                     // return value
     var sign;                           // sign digit
-    var that = this;
-    var w;                              // scratch word
-    var x;                              // scratch index
 
-    function blockStoreComplete() {
-        if (lastBlock) {
-            if (that.togMT3P) {         // if false, we've probably been cleared
-                that.A = that.D = 0;    // for display only
-                that.togMT3P = 0;
-                that.togMT1BV4 = that.togMT1BV5 = 0;
-                that.schedule();
-            }
-        } else {
-            // Flip the loop buffer toggles
-            that.togMT1BV5 = that.togMT1BV4;
-            that.togMT1BV4 = 1-that.togMT1BV4;
-            // Suspend time again during I/O
-            that.execTime -= performance.now()*B220Processor.wordsPerMilli;
-        }
-    }
-
-    //console.log("TSU " + this.selectedUnit + " R, L" + (this.togMT1BV4 ? 4 : 5) +
-    //        ", ADDR=" + this.CADDR.toString(16) +
-    //        " : " + block[0].toString(16) + ", " + block[19].toString(16));
-
-    if (!this.togMT3P) {                // if false, we've probably been cleared
-        aborted = true;
+    if (!this.AST.value) {
+        result = -1;                    // we've probably been cleared
     } else {
-        this.execTime += performance.now()*B220Processor.wordsPerMilli; // restore time after I/O
-        // Select the appropriate loop to receive data from the drive
-        if (this.togMT1BV4) {
-            loop = this.L4;
-            this.toggleGlow.glowL4 = 1; // turn on the lamp and let normal decay work
-        } else {
-            loop = this.L5;
-            this.toggleGlow.glowL5 = 1;
+        if (initial) {
+            this.clockIn();
+            this.CCONTROL = this.CADDR; // copy C address into control digits
         }
 
-        if (!block) {                   // control unit aborted the I/O
-            blockStoreComplete();
-        } else {
-            // Copy the tape block data to the appropriate high-speed loop
-            for (x=0; x<loop.length; ++x) {
-                this.D.set(w = block[x]);  // D for display only
-                if (w < 0x20000000000) {
-                    this.togCLEAR = 1;  // no B modification
-                } else {
-                    // Adjust sign digit and do B modification as necessary
-                    sign = ((w - w%0x10000000000)/0x10000000000) % 0x08; // low-order 3 bits only
-                    if (this.tswSuppressB) {
-                        this.togCLEAR = 1;  // no B modification
-                    } else {
-                        this.togCLEAR = ((sign & 0x02) ? 0 : 1);
-                        sign &= 0x01;
-                    }
-
-                    w = sign*0x10000000000 + w%0x10000000000;
-                }
-
-                if (this.togCLEAR) {
-                    w = this.bcdAdd(w, 0, 11);
-                } else {
-                    w = this.bcdAdd(w, this.B.value, 11);
-                }
-
-                loop[x] = w;
-            } // for x
-
-            this.A.set(w);                 // for display only
-
-            // Block the loop buffer to main memory if appropriate
-            if (this.CADDR < 0x8000) {
-                this.blockFromLoop((this.togMT1BV4 ? 4 : 5), blockStoreComplete);
-            } else {
-                blockStoreComplete();
+        this.E.set(this.CADDR);
+        this.CADDR = this.bcdAdd(this.CADDR, 1, 4);
+        this.C.set((this.CCONTROL*0x100 + this.COP)*0x10000 + this.CADDR);
+        this.D.set(word);
+        if (this.vDigit & 0x08) {       // B-adjustment of words is enabled
+            sign = (word - word%0x10000000000);
+            if (sign & 0x08) {          // this word is to be B-adjusted
+                word = (sign&0x07)*0x10000000000 + word%0x10000000000 -
+                       word%0x100000 + this.bcdAdd(word, this.B.value, 4);
+                this.C10.set(0);        // reset carry toggle
             }
+        }
+
+        this.IB.set(word);
+        this.writeMemory();
+        if (this.MET.value) {           // invalid address
+            result = -1;
+        } else {
+            this.execClock += 0.480;    // time to transfer one word to tape
         }
     }
 
-    return aborted;
+    return result;
 };
 
 
@@ -3109,7 +3053,7 @@ B220Processor.prototype.execute = function execute() {
         }
 
         this.selectedUnit = d;
-        this.rDigit = this.CCONTROL & 0x0F;
+        this.rDigit = this.CCONTROL%0x10;
         this.sDigit = 1;                                // use word count in C (32)
         this.D.set(0);
         this.ioInitiate();
@@ -3653,25 +3597,20 @@ B220Processor.prototype.execute = function execute() {
             this.setMagneticTapeCheck(true);                // no tape control
             this.operationComplete();
         } else {
-            this.selectedUnit = (this.CCONTROL >>> 12) & 0x0F;
-            switch (this.CCONTROL%0x10) {
-            case 0: case 1: case 2: case 3:                 // MTS/MFS: search or field search
-                this.setProgramCheck(true);  // TEMP //
-                this.operationComplete();
-                break;
-            case 4: case 5: case 6: case 7:                 // MLS: lane select
-                this.ioInitiate();
-                this.magTape.laneSelect(this.D.value, this.boundMagTapeComplete);
-                break;
-            case 8: case 9:                                 // MRW/MDA: rewind, with or without lockout
-                this.ioInitiate();
-                this.magTape.rewind(this.D.value, this.boundMagTapeComplete);
-                break;
-            default:                                        // should never happen
-                this.setProgramCheck(true);
-                this.operationComplete();
-                break;
-            } // switch on operation variant
+            this.selectedUnit = (this.CCONTROL >>> 12)%0x10;
+            this.vDigit = this.CCONTROL%0x10;
+            this.ioInitiate();
+            if (this.vDigit & 0x08) {                       // MRW/MDA: rewind, with or without lockout
+                this.magTape.rewind(this.D.value, this.boundMagTapeComplete, this.boundMagTapeSendWord);
+            } else if (this.vDigit & 0x04) {                // MLS: lane select
+                this.magTape.laneSelect(this.D.value, this.boundMagTapeComplete, this.boundMagTapeSendWord);
+            } else {                                        // MTS/MFS: search or field search
+                if (this.D.value%0x80000000000 < 0x40000000000) {       // full-word search
+                    this.magTape.search(this.D.value, this.boundMagTapeComplete, 0, this.boundMagTapeSendWord);
+                } else {                                                // partial-word search based on sL in B
+                    this.magTape.search(this.D.value, this.boundMagTapeComplete, this.B.value, this.boundMagTapeSendWord);
+                }
+            }
         }
         break;
 
@@ -3681,13 +3620,29 @@ B220Processor.prototype.execute = function execute() {
         break;
 
     case 0x52:      //--------------------- MRD     Magnetic tape read
-        this.setProgramCheck(1);
-        this.operationComplete();
+        this.opTime = 0.160;
+        if (!this.magTape) {
+            this.setMagneticTapeCheck(true);                // no tape control
+            this.operationComplete();
+        } else {
+            this.selectedUnit = (this.CCONTROL >>> 12)%0x10;
+            this.vDigit = this.CCONTROL%0x10;
+            this.ioInitiate();
+            this.magTape.read(this.D.value, this.boundMagTapeComplete, false, this.boundMagTapeReceiveWord);
+        }
         break;
 
     case 0x53:      //--------------------- MRR     Magnetic tape read, record
-        this.setProgramCheck(1);
-        this.operationComplete();
+        this.opTime = 0.160;
+        if (!this.magTape) {
+            this.setMagneticTapeCheck(true);                // no tape control
+            this.operationComplete();
+        } else {
+            this.selectedUnit = (this.CCONTROL >>> 12)%0x10;
+            this.vDigit = this.CCONTROL%0x10;
+            this.ioInitiate();
+            this.magTape.read(this.D.value, this.boundMagTapeComplete, true, this.boundMagTapeReceiveWord);
+        }
         break;
 
     case 0x54:      //--------------------- MIW     Magnetic tape initial write
@@ -3696,11 +3651,9 @@ B220Processor.prototype.execute = function execute() {
             this.setMagneticTapeCheck(true);                // no tape control
             this.operationComplete();
         } else {
-            this.selectedUnit = (this.CCONTROL >>> 12) & 0x0F;
-            this.CCONTROL = this.CADDR;                     // copy C address into control digits
-            this.C.set((this.CCONTROL*0x100 + this.COP)*0x10000 + this.CADDR);
+            this.selectedUnit = (this.CCONTROL >>> 12)%0x10;
             this.ioInitiate();
-            this.magTape.initialWrite(this.D.value, this.boundMagTapeComplete, this.boundMagTapeSendBlock);
+            this.magTape.initialWrite(this.D.value, this.boundMagTapeComplete, false, this.boundMagTapeSendWord);
         }
         break;
 
@@ -3710,22 +3663,34 @@ B220Processor.prototype.execute = function execute() {
             this.setMagneticTapeCheck(true);                // no tape control
             this.operationComplete();
         } else {
-            this.selectedUnit = (this.CCONTROL >>> 12) & 0x0F;
-            this.CCONTROL = this.CADDR;                     // copy C address into control digits
-            this.C.set((this.CCONTROL*0x100 + this.COP)*0x10000 + this.CADDR);
+            this.selectedUnit = (this.CCONTROL >>> 12)%0x10;
             this.ioInitiate();
-            this.magTape.initialWriteRecord(this.D.value, this.boundMagTapeComplete, this.boundMagTapeSendBlock);
+            this.magTape.initialWrite(this.D.value, this.boundMagTapeComplete, true, this.boundMagTapeSendWord);
         }
         break;
 
     case 0x56:      //--------------------- MOW     Magnetic tape overwrite
-        this.setProgramCheck(1);
-        this.operationComplete();
+        this.opTime = 0.160;
+        if (!this.magTape) {
+            this.setMagneticTapeCheck(true);                // no tape control
+            this.operationComplete();
+        } else {
+            this.selectedUnit = (this.CCONTROL >>> 12)%0x10;
+            this.ioInitiate();
+            this.magTape.overwrite(this.D.value, this.boundMagTapeComplete, false, this.boundMagTapeSendWord);
+        }
         break;
 
     case 0x57:      //--------------------- MOR     Magnetic tape overwrite, record
-        this.setProgramCheck(1);
-        this.operationComplete();
+        this.opTime = 0.160;
+        if (!this.magTape) {
+            this.setMagneticTapeCheck(true);                // no tape control
+            this.operationComplete();
+        } else {
+            this.selectedUnit = (this.CCONTROL >>> 12)%0x10;
+            this.ioInitiate();
+            this.magTape.overwrite(this.D.value, this.boundMagTapeComplete, true, this.boundMagTapeSendWord);
+        }
         break;
 
     case 0x58:      //--------------------- MPF/MPB/MIE Magnetic tape position forward/backward/at end
@@ -3734,7 +3699,7 @@ B220Processor.prototype.execute = function execute() {
             this.setMagneticTapeCheck(true);                // no tape control
             this.operationComplete();
         } else {
-            this.selectedUnit = (this.CCONTROL >>> 12) & 0x0F;
+            this.selectedUnit = (this.CCONTROL >>> 12)%0x10;
             this.ioInitiate();
             switch (this.CCONTROL%0x10) {
             case 1:                                         // MPB: position tape backward
@@ -3780,9 +3745,9 @@ B220Processor.prototype.execute = function execute() {
             this.setCardatronCheck(1);
             this.operationComplete();
         } else {
-            this.selectedUnit = (this.CCONTROL >>> 12) & 0x0F;
-            this.rDigit = this.CCONTROL & 0x0F;
-            this.vDigit = (this.CCONTROL >>> 4) & 0x0F;
+            this.selectedUnit = (this.CCONTROL >>> 12)%0x10;
+            this.rDigit = this.CCONTROL%0x10;
+            this.vDigit = (this.CCONTROL >>> 4)%0x10;
             this.ioInitiate();
             d = this.cardatron.inputInitiate(this.selectedUnit, this.rDigit, this.boundCardatronReceiveWord);
             if (d < 0) {                                // invalid unit
@@ -3800,9 +3765,9 @@ B220Processor.prototype.execute = function execute() {
             this.setCardatronCheck(1);
             this.operationComplete();
         } else {
-            this.selectedUnit = (this.CCONTROL >>> 12) & 0x0F;
-            this.rDigit = this.CCONTROL & 0x0F;
-            this.vDigit = (this.CCONTROL >>> 4) & 0x0F;
+            this.selectedUnit = (this.CCONTROL >>> 12)%0x10;
+            this.rDigit = this.CCONTROL%0x10;
+            this.vDigit = (this.CCONTROL >>> 4)%0x10;
             this.ioInitiate();
             d = this.cardatron.outputInitiate(this.selectedUnit, this.rDigit, this.vDigit,
                         this.boundCardatronOutputWord, this.boundCardatronOutputFinished);
@@ -3821,8 +3786,8 @@ B220Processor.prototype.execute = function execute() {
             this.setCardatronCheck(1);
             this.operationComplete();
         } else {
-            this.selectedUnit = (this.CCONTROL >>> 12) & 0x0F;
-            this.rDigit = this.CCONTROL & 0x0F;
+            this.selectedUnit = (this.CCONTROL >>> 12)%0x10;
+            this.rDigit = this.CCONTROL%0x10;
             this.ioInitiate();
             d = this.cardatron.inputFormatInitiate(this.selectedUnit, this.rDigit,
                         this.boundCardatronOutputWord, this.boundCardatronOutputFinished);
@@ -3841,8 +3806,8 @@ B220Processor.prototype.execute = function execute() {
             this.setCardatronCheck(1);
             this.operationComplete();
         } else {
-            this.selectedUnit = (this.CCONTROL >>> 12) & 0x0F;
-            this.rDigit = this.CCONTROL & 0x0F;
+            this.selectedUnit = (this.CCONTROL >>> 12)%0x10;
+            this.rDigit = this.CCONTROL%0x10;
             this.ioInitiate();
             d = this.cardatron.outputFormatInitiate(this.selectedUnit, this.rDigit,
                         this.boundCardatronOutputWord, this.boundCardatronOutputFinished);
@@ -3860,7 +3825,7 @@ B220Processor.prototype.execute = function execute() {
         if (!this.cardatron) {
             this.setCardatronCheck(1);
         } else {
-            this.selectedUnit = (this.CCONTROL >>> 12) & 0x0F;
+            this.selectedUnit = (this.CCONTROL >>> 12)%0x10;
             d = this.cardatron.inputReadyInterrogate(this.selectedUnit);
             if (d < 0) {                                // invalid unit
                 this.setCardatronCheck(1);
@@ -3879,7 +3844,7 @@ B220Processor.prototype.execute = function execute() {
         if (!this.cardatron) {
             this.setCardatronCheck(1);
         } else {
-            this.selectedUnit = (this.CCONTROL >>> 12) & 0x0F;
+            this.selectedUnit = (this.CCONTROL >>> 12)%0x10;
             d = this.cardatron.outputReadyInterrogate(this.selectedUnit);
             if (d < 0) {                                // invalid unit
                 this.setCardatronCheck(1);
@@ -3906,63 +3871,6 @@ B220Processor.prototype.execute = function execute() {
         this.operationComplete();
         break;
     } // switch this.COP
-
-    /***************************************************************************
-
-
-        switch (-1) {
-
-        case 0x40:      //---------------- MTR  Magnetic Tape Read
-            if (!this.magTape) {
-                //this.schedule();
-            } else {
-                this.selectedUnit = (this.CCONTROL >>> 4) & 0x0F;
-                d = (this.CCONTROL >>> 8) & 0xFF;         // number of blocks
-                this.togMT3P = 1;
-                this.togMT1BV4 = d%2;              // select initial loop buffer
-                this.togMT1BV5 = 1-this.togMT1BV4;
-                this.execTime -= performance.now()*B220Processor.wordsPerMilli; // mark time during I/O
-                if (this.magTape.read(this.selectedUnit, d, this.boundMagTapeReceiveBlock)) {
-                    this.OFT.set(1);                // control or tape unit busy/not-ready
-                    this.togMT3P = this.togMT1BV4 = this.togMT1BV5 = 0;
-                    //this.schedule();
-                }
-            }
-            break;
-
-        case 0x42:      //---------------- MTS  Magnetic Tape Search
-            if (this.magTape) {
-                this.selectedUnit = (this.CCONTROL >>> 4) & 0x0F;
-                d = (this.CCONTROL >>> 8) & 0xFF;         // lane number
-                if (this.magTape.search(this.selectedUnit, d, this.CADDR)) {
-                    this.OFT.set(1);                // control or tape unit busy/not-ready
-                }
-            }
-            //this.schedule();
-            break;
-
-        case 0x50:      //---------------- MTW  Magnetic Tape Write
-            if (!this.magTape) {
-                //this.schedule();
-            } else {
-                this.selectedUnit = (this.CCONTROL >>> 4) & 0x0F;
-                d = (this.CCONTROL >>> 8) & 0xFF;         // number of blocks
-                this.togMT3P = 1;
-                this.togMT1BV4 = d%2;              // select initial loop buffer
-                this.togMT1BV5 = 1-this.togMT1BV4;
-                this.execTime -= performance.now()*B220Processor.wordsPerMilli; // mark time during I/O
-                if (this.magTape.write(this.selectedUnit, d, this.boundMagTapeInitiateSend)) {
-                    this.OFT.set(1);                // control or tape unit busy/not-ready
-                    this.togMT3P = this.togMT1BV4 = this.togMT1BV5 = 0;
-                    //this.schedule();
-                }
-            }
-            break;
-
-        default:        //---------------- (unimplemented instruction -- alarm)
-            break;
-        } // switch this.COP
-    ***************************************************************************/
 };
 
 
@@ -4025,6 +3933,7 @@ B220Processor.prototype.ioInitiate = function ioInitiate() {
     /* Initiates asynchronous mode of the processor for I/O */
 
     this.AST.set(1);
+    this.updateGlow(1);                 // update the console lamps
     this.execLimit = 0;                 // kill the run() loop
 };
 
@@ -4348,15 +4257,32 @@ B220Processor.prototype.loadDefaultProgram = function loadDefaultProgram() {
     this.MM[   2] = 0x1000540000;       // MIW     0,1,10,100
     this.MM[   3] = 0x1750540100;       // MIW     100,1,7,50
     this.MM[   4] = 0x1500550079;       // MIR     79,1,5,00
-    this.MM[   5] = 0x1101540200;       // MIW     200,1,1,1
-    this.MM[   6] = 0x1009500000;       // MDA     1
-    this.MM[   7] = 0x7777009999;       // HLT     9999,7777
+    this.MM[   5] = 0x1101542000;       // MIW     2000,1,1,1   // write control block
+
+    this.MM[   6] = 0x1008500000;       // MRW     1
+    this.MM[   7] = 0x1000560000;       // MOW     0,1,10,100
+    this.MM[   8] = 0x1750560100;       // MOW     100,1,7,50
+    this.MM[   9] = 0x1500570079;       // MOR     79,1,5,00
+    this.MM[  10] = 0x1101012000;       // MOW     2000,1,1,1   // TEMP: changed to a NOP
+
+    this.MM[  11] = 0x1008500000;       // MRW     1
+    this.MM[  12] = 0x1000523000;       // MRD     3000,1,10,0
+    this.MM[  13] = 0x1700524000;       // MRD     4000,1,7,0
+    this.MM[  14] = 0x1500534350;       // MRR     4350,1,5,0
+    this.MM[  15] = 0x1100534800;       // MRR     4800,1,1,0   // should be a control block
+
+    this.MM[  16] = 0x1009500000;       // MDA     1
+    this.MM[  17] = 0x7777009999;       // HLT     9999,7777
 
     this.MM[  79] = 0x1900000000;       // preface for 19 words, 80-98
     this.MM[  99] = 0x4000000000;       // preface for 40 words, 100-139
     this.MM[ 140] = 0x5800000000;       // preface for 58 words, 141-198
     this.MM[ 199] = 0x9900000000;       // preface for 99 words, 200-298
     this.MM[ 299] = 0x0000000000;       // preface for 100 words, 300-399
+
+    this.MM[2000] = 0x9920012002;       // end-of-tape control word
+    this.MM[2001] = 0x9999999999;       // storage for end-of-tape block state
+    this.MM[2002] = 0x9999008421;       // HLT: target for end-of-tape control branch
 
     // Simple counter speed test
     this.MM[  80] = 0x0000120082;       // ADD    82

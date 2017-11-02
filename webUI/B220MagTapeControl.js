@@ -35,17 +35,9 @@ function B220MagTapeControl(p) {
 
     this.boundControlFinished = B220Util.bindMethod(this, B220MagTapeControl.prototype.controlFinished);
     this.boundTapeUnitFinished = B220Util.bindMethod(this, B220MagTapeControl.prototype.tapeUnitFinished);
-    this.boundReadReceiveBlock = B220Util.bindMethod(this, B220MagTapeControl.prototype.readReceiveBlock);
-    this.boundWriteTerminate = B220Util.bindMethod(this, B220MagTapeControl.prototype.writeTerminate);
-    this.boundWriteSendBlock = B220Util.bindMethod(this, B220MagTapeControl.prototype.writeSendBlock);
-    this.boundWriteInitiate = B220Util.bindMethod(this, B220MagTapeControl.prototype.writeInitiate);
-    this.boundSearchComplete = B220Util.bindMethod(this, B220MagTapeControl.prototype.searchComplete);
+    this.boundSwitch_Click = B220Util.bindMethod(this, B220MagTapeControl.prototype.switch_Click);
 
     this.currentUnit = null;            // stashed tape unit object
-    this.memoryBlockCallback = null;    // stashed block-sending/receiving call-back function
-    this.memoryTerminateCallback = null;// stashed memory-sending terminate call-back function
-    this.tapeBlock = new Float64Array(101);
-                                        // block buffer for tape I/O
 
     /* Set up the tape units from the system configuration. These can be any
     combination of Tape Storage Units (DataReaders) and DataFiles. The indexes
@@ -69,10 +61,10 @@ function B220MagTapeControl(p) {
         u = this.config.getNode("MagTape.units", x);
         switch (u.type.substring(0, 2)) {
         case "MT":
-            this.tapeUnit[x] = new B220MagTapeDrive(u.type, x, this.config);
+            this.tapeUnit[x] = new B220MagTapeDrive(u.type, x, this, this.config);
             break;
         case "DF":
-            this.tapeUnit[x] = new B220DataFile(u.type, x, this.config);
+            this.tapeUnit[x] = new B220DataFile(u.type, x, this, this.config);
             break;
         default:
             this.tapeUnit[x] = null;
@@ -90,13 +82,11 @@ B220MagTapeControl.prototype.$$ = function $$(e) {
 B220MagTapeControl.prototype.clear = function clear() {
     /* Initializes (and if necessary, creates) the panel state */
 
-    this.MISC = 0;                      // Miscellaneous control register
-    this.C = 0;                         // C register (block number, etc.)
+    this.C = 0;                         // C register (unit, block count, etc.)
     this.T = 0;                         // T register
 
     this.unitNr = 0;                    // current unit number from command
     this.unitIndex = 0;                 // current index into this.tapeUnit[]
-    this.blockCount = 0;                // number of blocks for current operation
     this.blockWords = 0;                // number of words/block for current operation
 
     this.controlBusy = false;           // control unit is busy with read/write/search
@@ -145,6 +135,16 @@ B220MagTapeControl.prototype.queuePendingOperation = function queuePendingOperat
 };
 
 /**************************************/
+B220MagTapeControl.prototype.dequeuePendingOperation = function dequeuePendingOperation() {
+    /* Dequeues and reinitiates a pending tape operation */
+    var args = this.pendingArgs;        // pending Arguments object
+    var callee = this.pendingCallee;    // pending method to call
+
+    this.pendingCallee = this.pendingArgs = null;
+    callee.apply(this, args);
+};
+
+/**************************************/
 B220MagTapeControl.prototype.loadCommand = function loadCommand(dReg, releaseProcessor, callee, args) {
     /* If the control unit or the tape unit addressed by the unit field in dReg
     are currently busy, queues the args parameter (an Arguments object) in
@@ -153,8 +153,8 @@ B220MagTapeControl.prototype.loadCommand = function loadCommand(dReg, releasePro
     calls the releaseProcessor call-back and returns false. If the control and
     tape unit are ready for their next operation, loads the contents of the processor's
     D register passed to the operation routines into the T, C, and MISC registers.
-    Sets this.unitNr, this.unitIndex, this.blockCount, and this.blockWords from
-    the digits in T. Then returns true */
+    Sets this.unitNr, this.unitIndex, and this.blockWords from the digits in T.
+    Sets this.currentUnit to the current tape unit object. Then returns true */
     var c;                              // scratch
     var t = dReg%0x10000000000;         // scratch
     var ux;                             // internal unit index
@@ -164,31 +164,33 @@ B220MagTapeControl.prototype.loadCommand = function loadCommand(dReg, releasePro
     if (this.controlBusy) {
         this.queuePendingOperation(callee, args);
     } else {
-        this.MISC = 0;
         this.T = t;
         this.unitNr = (t - t%0x1000000000)/0x1000000000;
         t = (t - t%0x10000)/0x10000;
         c = t%0x10;                     // low-order digit of op code
         t = (t - t%0x100)/0x100;        // control digits from instruction
         this.blockWords = t%0x100;
-        this.blockCount = ((t - this.blockWords)/0x100)%0x10;
-        if (this.blockWords == 0) {
-            this.blockWords = 100;
-        } else {
+        if (this.blockWords > 0) {
             this.blockWords = B220Processor.bcdBinary(this.blockWords);
+        } else {
+            this.blockWords = 100;
         }
 
         this.C = this.unitNr*0x100000 + t*0x10 + c;
-        this.regMisc.update(this.MISC);
+        this.clearMisc();
         this.regC.update(this.C);
         this.regT.update(this.T);
         this.unitIndex = ux = this.findDesignate(this.unitNr);
         if (ux < 0) {
+            this.reportStatus(2);       // drive not ready, not present
             setCallback(this.mnemonic, this, 0, releaseProcessor, true);
-        } else if (this.tapeUnit[ux].busy) {
-            this.queuePendingOperation(callee, args);
         } else {
-            result = true;
+            this.currentUnit = this.tapeUnit[ux];
+            if (this.currentUnit.busy || this.currentUnit.rewindLock) {
+                this.queuePendingOperation(callee, args);
+            } else {
+                result = true;
+            }
         }
     }
 
@@ -201,8 +203,6 @@ B220MagTapeControl.prototype.controlFinished = function controlFinished(alarm) {
     back to simulate the amount of time the control unit is busy with an I/O.
     If alarm is true, sets the Processor's Magnetic Tape Check alarm.
     If another operation is pending, initiates that operation */
-    var args;                           // pending Arguments object
-    var callee;                         // pending method to call
 
     //console.log(this.mnemonic + " controlFinished: " + alarm + ", busy=" + this.controlBusy);
     if (alarm) {
@@ -211,20 +211,19 @@ B220MagTapeControl.prototype.controlFinished = function controlFinished(alarm) {
 
     this.controlBusy = false;
     if (this.pendingCallee !== null) {
-        callee = this.pendingCallee;
-        args = this.pendingArgs;
-        this.pendingCallee = this.pendingArgs = null;
-        callee.apply(this, args);
+        this.dequeuePendingOperation();
     }
 };
 
 /**************************************/
-B220MagTapeControl.prototype.tapeUnitFinished = function tapeUnitFinished(alarm) {
+B220MagTapeControl.prototype.tapeUnitFinished = function tapeUnitFinished() {
     /* Call-back function passed to tape unit methods to signal when the unit has
     completed its asynchronous operation */
 
     if (!this.controlBusy) {            // if the control unit is currently idle...
-        this.controlFinished(alarm);    // initiate any pending operation
+        if (this.pendingCallee !== null) {
+            this.dequeuePendingOperation();
+        }
     }
 };
 
@@ -252,10 +251,58 @@ B220MagTapeControl.prototype.decrementBlockCount = function decrementBlockCount(
 };
 
 /**************************************/
-B220MagTapeControl.prototype.ClearBtn_onClick = function ClearBtn_onClick(ev) {
-    /* Handle the click event for the tape control CLEAR button */
+B220MagTapeControl.prototype.clearMisc = function clearMisc() {
+    /* Resets this.regMisc and the individual lamps for that register */
+    var bitNr;
+    var m = this.regMisc;
 
-    this.clearUnit();
+    m.update(0);
+    for (bitNr=m.bits-1; bitNr>= 0; --bitNr) {
+        m.lamps[bitNr].set(0);
+    }
+};
+
+/**************************************/
+B220MagTapeControl.prototype.reportStatus = function reportStatus(code) {
+    /* Sets bits in the MISC register to indicate various drive and control unit
+    status and error conditions */
+
+    switch (code) {
+    case 1: // report tape unit ready
+        this.TX2Lamp.set(0);
+        this.TX10Lamp.set(0);
+        break;
+    case 2: // report tape unit not ready
+        this.TX2Lamp.set(1);
+        this.TX10Lamp.set(1);
+        break;
+    case 4: // read check
+        this.TYC1Lamp.set(1);
+        this.TYC2Lamp.set(1);
+        break;
+    } // switch code
+};
+
+/**************************************/
+B220MagTapeControl.prototype.switch_Click = function switch_Click(ev) {
+    /* Handle the click event for buttons and switches */
+
+    switch(ev.target.id) {
+    case "ClearBtn":
+        this.clearUnit();
+        break;
+    case "Misc_RightClear":
+        this.clearMisc();
+        break;
+    case "C_RightClear":
+        this.C = 0;
+        this.regC.update(0);
+        break;
+    case "T_RightClear":
+        this.T = 0;
+        this.regT.update(0);
+        break;
+    } // switch target.id
 };
 
 /**************************************/
@@ -304,276 +351,219 @@ B220MagTapeControl.prototype.magTapeOnLoad = function magTapeOnLoad() {
     this.TX2Lamp = this.regMisc.lamps[0];
     this.TX2Lamp.setCaption("TX2", true);
 
-    // C Register
-    this.regC = new PanelRegister(this.$$("CRegPanel"), 6*4, 4, "C_", "C");
-
-    // T Register
+    // Full Registers
+    this.regC = new PanelRegister(this.$$("CRegPanel"),  6*4, 4, "C_", "C");
     this.regT = new PanelRegister(this.$$("TRegPanel"), 10*4, 4, "T_", "T");
 
 
     // Events
-
     this.window.addEventListener("beforeunload", B220MagTapeControl.prototype.beforeUnload);
-    this.$$("ClearBtn").addEventListener("click",
-            B220Util.bindMethod(this, B220MagTapeControl.prototype.ClearBtn_onClick));
+    this.$$("ClearBtn").addEventListener("click", this.boundSwitch_Click, false);
+    this.regMisc.rightClearBar.addEventListener("click", this.boundSwitch_Click, false);
+    this.regC.rightClearBar.addEventListener("click", this.boundSwitch_Click, false);
+    this.regT.rightClearBar.addEventListener("click", this.boundSwitch_Click, false);
 
     this.clearUnit();
 };
 
 /**************************************/
-B220MagTapeControl.prototype.readTerminate = function readTerminate() {
-    /* Terminates the read operation, sets the control to not-busy, and signals
-    the processor we are finished with the I/O */
+B220MagTapeControl.prototype.search = function search(dReg, releaseProcessor, bReg, fetchWord) {
+    /* Searches a tape unit for a block with a keyWord matching the word at the
+    operand address in memory. "bReg is the contents of the B register for a
+    search, or 0 for a full-word search. This routine is used by MTS and MFS */
+    var alarm = false;                  // error result
+    var blocksLeft = true;              // true => more blocks to process
+    var searchWord;                     // target word to search for
+    var that = this;                    // local self-reference
 
-    this.controlBusy = false;
-    this.currentUnit.readTerminate();
-};
+    function signalControl(controlWord) {
+        /* Call-back function to send the EOT or control word to the Processor
+        and release it for the next operation */
 
-/**************************************/
-B220MagTapeControl.prototype.readReceiveBlock = function readReceiveBlock(block, abortRead) {
-    /* Receives the next block read by the tape unit. Sends the block to the
-    processor for storage in memory, updates the block counter, and if not
-    finished, requests the next block from the tape. Termination is a little
-    tricky here, as readTerminate() must be called to release the drive before
-    the block is stored in memory (and p.executeComplete() called to advance to
-    the next instruction, but if the memory call-back tells us the processor
-    has been cleared, we must release the drive after the attempt to store the
-    block in memory. Mess with the sequencing below at your peril */
-    var lastBlock;
-    var t = B220Processor.bcdBinary(this.T);
+        releaseProcessor(false, true, controlWord);
+    }
 
-    if (abortRead) {
-        this.readTerminate();
-        this.memoryBlockCallback(null, true);
-    } else {
-        // Decrement the block counter in the T register:
-        t = (t + 990)%1000;                 // subtract 1 from the counter field without overflow
-        this.T = B220Processor.binaryBCD(t);
-        this.regT.update(this.T);
+    function blockReady(alarm, control, controlWord, readBlock, completed) {
+        /* Call-back function when the drive is ready to send the next block
+        of data, or when it has encountered an error such as EOT. "alarm"
+        indicates that an error has occurred and the operation is to be aborted.
+        "control" inidicates that an EOT or control block was encountered, and
+        "controlWord" is to be passed to the Processor for handling. Otherwise,
+        if there are more blocks to write, fetches the next block from the
+        Processor and calls the drive's "readBlock" function, Finally calls
+        "completed" to finish the operation */
 
-        // If there are more blocks to read, request the next one
-        lastBlock = (t < 10);
-        if (lastBlock) {
-            this.readTerminate();
-            abortRead = this.memoryBlockCallback(block, true);
+        if (alarm) {
+            setCallback(that.mnemonic, that, 0, releaseProcessor, true);
+            completed(true);            // drive detected an error
+        } else if (control) {
+            setCallback(that.mnemonic, that, 0, signalControl, controlWord);
+            completed(false);
+        } else if (blocksLeft) {
+            blocksLeft = that.decrementBlockCount();    // set to false on last block
+            readBlock(storeWord, record, controlEnabled);// read the next block
         } else {
-            abortRead = this.memoryBlockCallback(block, false);
-            if (abortRead) {            // processor was cleared
-                this.readTerminate();
-            } else {                    // at least one block left to go
-                this.currentUnit.readBlock(this.boundReadReceiveBlock);
-            }
+            setCallback(that.mnemonic, that, 0, releaseProcessor, false);
+            completed(false);           // normal termination
+        }
+    }
+
+    if (this.loadCommand(dReg, releaseProcessor, search, arguments)) {
+        this.controlBusy = true;
+        searchWord = fetchWord(true);
+        if (searchWord < 0) {
+            alarm = true;
+        } else {
+            alarm = this.currentUnit.searchBlock(blockReady, this.boundControlFinished);
+        }
+
+        if (alarm) {
+            setCallback(this.mnemonic, this,  0, releaseProcessor, alarm);
+            this.controlFinished(true);
         }
     }
 };
 
 /**************************************/
-B220MagTapeControl.prototype.read = function read(unitNr, blocks, blockSender) {
-    /* Initiates a read on the designated unit. "blocks" is the number of blocks
-    to read in BCD; "blockSender" is the call-back function to send a block of data
-    to the processor. "terminator" is the call-back function to tell the Processor
-    the I/O is finished. Returns true if the control is still busy with another command
-    or the unit is busy, and does not do the read */
-    var result = false;                 // return value
-    var unit;                           // tape unit object
-    var ux;                             // internal unit index
+B220MagTapeControl.prototype.read = function read(dReg, releaseProcessor, record, storeWord) {
+    /* Reads the number of blocks indicated in dReg. If "record" is true (MRR),
+    block lengths (preface words) are stored into the word in memory preceding
+    the data read from tape. "storeWord" is a function to store a word to the
+    Processor's memory. This routine is used by MRD and MRR */
+    var alarm = false;                  // error result
+    var blocksLeft = true;              // true => more blocks to process
+    var controlEnabled = false;         // true => control blocks will be recognized
+    var that = this;                    // local self-reference
 
-    if (this.controlBusy) {
-        result = true;
-    } else {
-        this.C = unitNr;
-        this.regC.update(unitNr);
-        ux = this.findDesignate(unitNr);
-        if (ux < 0) {
-            result = true;
+    function signalControl(controlWord) {
+        /* Call-back function to send the EOT or control word to the Processor
+        and release it for the next operation */
+
+        releaseProcessor(false, true, controlWord);
+    }
+
+    function blockReady(alarm, control, controlWord, readBlock, completed) {
+        /* Call-back function when the drive is ready to send the next block
+        of data, or when it has encountered an error such as EOT. "alarm"
+        indicates that an error has occurred and the operation is to be aborted.
+        "control" inidicates that an EOT or control block was encountered, and
+        "controlWord" is to be passed to the Processor for handling. Otherwise,
+        if there are more blocks to write, fetches the next block from the
+        Processor and calls the drive's "readBlock" function, Finally calls
+        "completed" to finish the operation */
+
+        if (alarm) {
+            setCallback(that.mnemonic, that, 0, releaseProcessor, true);
+            completed(true);            // drive detected an error
+        } else if (control) {
+            setCallback(that.mnemonic, that, 0, signalControl, controlWord);
+            completed(false);
+        } else if (blocksLeft) {
+            blocksLeft = that.decrementBlockCount();    // set to false on last block
+            readBlock(storeWord, record, controlEnabled);// read the next block
         } else {
-            this.controlBusy = true;
-            this.currentUnit = unit = this.tapeUnit[ux];
-            this.MISC = B220Processor.binaryBCD(unit.laneNr);
-            this.regMisc.update(this.MISC);
-            this.T = blocks*0x10 + unitNr;
-            this.regT.update(this.T);
-            this.memoryBlockCallback = blockSender;
-            result = unit.readInitiate(this.boundReadReceiveBlock);
-            if (result) {
-                this.controlBusy = false;
-            }
+            setCallback(that.mnemonic, that, 0, releaseProcessor, false);
+            completed(false);           // normal termination
         }
     }
 
-    return result;
-};
-
-/**************************************/
-B220MagTapeControl.prototype.writeTerminate = function writeTerminate(abortWrite) {
-    /* Called by the drive after the last block is written to release the
-    control unit and terminate the I/O. Note that "abortWrite" is not used, but
-    exists for signature compatibility with writeSendBlock() */
-
-    this.recordLamp.set(0);
-    this.controlBusy = false;
-    this.memoryTerminateCallback();
-};
-
-/**************************************/
-B220MagTapeControl.prototype.writeSendBlock = function writeSendBlock(abortWrite) {
-    /* Called by the tape drive when it is ready for the next block to be written.
-    Retrieves the next buffered block from the Processor and passes it to the drive.
-    Unless this is the last block to write, the drive will call this again after
-    tape motion is complete. Note that this.memoryBlockCallback() will return true
-    if the processor has been cleared and the I/O must be aborted */
-    var aborted;                        // true if processor aborted the I/O
-    var lastBlock = abortWrite;         // true if this will be the last block
-    var t = B220Processor.bcdBinary(this.T);
-
-    // First, decrement the block counter in the T register:
-    t = (t + 990)%1000;                 // subtract 1 from the counter field without overflow
-    this.T = B220Processor.binaryBCD(t);
-    this.regT.update(this.T);
-    if (t < 10) {
-        lastBlock = true;
-    }
-
-    aborted = this.memoryBlockCallback(this.tapeBlock, lastBlock);
-    if (abortWrite || aborted) {
-        this.writeTerminate(false);
-    } else if (lastBlock) {
-        this.currentUnit.writeBlock(this.tapeBlock, this.boundWriteTerminate, true);
-    } else {
-        this.currentUnit.writeBlock(this.tapeBlock, this.boundWriteSendBlock, false);
-    }
-};
-
-/**************************************/
-B220MagTapeControl.prototype.writeInitiate = function writeInitiate(blockReceiver, terminator) {
-    /* Call-back function called by the Processor once the initial block to be
-    written is buffered in one of the high-speed loops. Once this block is
-    buffered, the drive can start tape motion and begin writing to tape */
-
-    this.memoryBlockCallback = blockReceiver;
-    this.memoryTerminateCallback = terminator;
-    this.currentUnit.writeInitiate(this.boundWriteSendBlock);
-};
-
-/**************************************/
-B220MagTapeControl.prototype.write = function write(unitNr, blocks, receiveInitiate) {
-    /* Initiates a write on the designated unit. "blocks" is the number of blocks
-    to write in BCD; "receiveInitiate" is the call-back function to begin memory
-    transfer from the processor. Returns true if the control is still busy with
-    another command or the unit is busy, and does not do the write */
-    var result = false;                 // return value
-    var unit;                           // tape unit object
-    var ux;                             // internal unit index
-
-    if (this.controlBusy) {
-        result = true;
-    } else {
-        this.C = unitNr;
-        this.regC.update(unitNr);
-        ux = this.findDesignate(unitNr);
-        if (ux < 0) {
-            result = true;
-        } else {
-            this.controlBusy = true;
-            this.currentUnit = unit = this.tapeUnit[ux];
-            this.MISC = B220Processor.binaryBCD(unit.laneNr);
-            this.regMisc.update(this.MISC);
-            this.T = blocks*0x10 + unitNr;
-            this.regT.update(this.T);
-            result = unit.writeReadyTest();
-            if (result) {
-                this.controlBusy = false;
-            } else {
-                receiveInitiate(this.boundWriteInitiate);
-            }
+    if (this.loadCommand(dReg, releaseProcessor, read, arguments)) {
+        this.controlBusy = true;
+        controlEnabled = (this.blockWords%2 == 0);      // low-order bit of v-digit
+        alarm = this.currentUnit.readBlock(blockReady, this.boundControlFinished);
+        if (alarm) {
+            setCallback(this.mnemonic, this,  0, releaseProcessor, alarm);
+            this.controlFinished(true);
         }
     }
-
-    return result;
 };
 
 /**************************************/
-B220MagTapeControl.prototype.searchComplete = function searchComplete(success) {
-    /* Resets the busy status at the completion of a search */
-    var d;                              // scratch digit
-
-    if (success) {
-        // rotate T one digit right at end of successful search
-        d = this.T % 0x10;
-        this.T = d*0x1000 + (this.T - d)/0x10;
-        this.regT.update(this.T);
-    }
-
-    this.controlBusy = false;
-};
-
-/**************************************/
-B220MagTapeControl.prototype.search = function search(unitNr, laneNr, addr) {
-    /* Initiates a search on the designated unit. "laneNr" is the lane number in
-    BCD; "addr" is the number of the block to search for in BCD. The search
-    Takes place in the control unit and drive independently of the processor.
-    Returns true if the control is still busy with another command or the unit
-    is busy, and does not do the search */
-    var block = B220Processor.bcdBinary(addr);
-    var lane = B220Processor.bcdBinary(laneNr);
-    var result = false;                 // return value
-    var unit;                           // tape unit object
-    var ux;                             // internal unit index
-
-    if (this.controlBusy) {
-        result = true;
-    } else {
-        this.C = unitNr;
-        this.regC.update(unitNr);
-        this.MISC = laneNr;
-        this.regMisc.update(laneNr);
-        this.T = addr;
-        this.regT.update(addr);
-        ux = this.findDesignate(unitNr);
-        if (ux < 0) {
-            result = true;
-        } else {
-            this.controlBusy = true;
-            unit = this.tapeUnit[ux];
-            result = unit.search(lane, block, this.boundSearchComplete,
-                    this.boundDirectionLampSet, this.boundTestDisabled);
-            if (result) {
-                this.controlBusy = false;
-            }
-        }
-    }
-
-    return result;
-};
-
-/**************************************/
-B220MagTapeControl.prototype.initialWrite = function initialWrite(dReg, releaseProcessor, fetchBlock) {
-    /* Initial-writes the number of blocks and of the size indicated in dReg.
-    This routine is used by MIW */
+B220MagTapeControl.prototype.overwrite = function overwrite(dReg, releaseProcessor, record, fetchWord) {
+    /* Overwrites the number of blocks and of the size indicated in dReg. If
+    "record" is true (MOR), block lengths (preface words) are taken from the
+    word in memory preceding the data to be written. Otherwise, block lengths
+    are taken from the instruction control digits. "fetchWord" is a function to
+    read a word from the Processor's memory. This routine is used by MOW and MOR */
     var alarm = false;                  // error result
     var blocksLeft = true;              // true => more blocks to process
     var that = this;                    // local self-reference
-    var unit = null;                    // selected tape unit
+    var words;
+
+    function signalControl(controlWord) {
+        /* Call-back function to send the EOT control word to the Processor
+        and release it for the next operation */
+
+        releaseProcessor(false, true, controlWord);
+    }
+
+    function blockReady(alarm, control, controlWord, writeBlock, completed) {
+        /* Call-back function when the drive is ready to receive the next block
+        of data, or when it has encountered an error such as EOT. "alarm"
+        indicates that an error has occurred and the operation is to be aborted.
+        "control" inidicates that an EOT block with a preface mismatch occurred,
+        and "controlWord" is to be passed to the Processor for handling.
+        Otherwise, if there are more blocks to write, fetches the next block
+        from the Processor and calls the drive's "writeBlock" function, Finally
+        calls "completed" to finish the operation */
+
+        if (alarm) {
+            setCallback(that.mnemonic, that, 0, releaseProcessor, true);
+            completed(true);            // drive detected an error
+        } else if (control) {
+            setCallback(that.mnemonic, that, 0, signalControl, controlWord);
+            completed(false);
+        } else if (blocksLeft) {
+            blocksLeft = that.decrementBlockCount();    // set to false on last block
+            writeBlock(fetchWord, words);               // write the next block
+        } else {
+            setCallback(that.mnemonic, that, 0, releaseProcessor, false);
+            completed(false);           // normal termination
+        }
+    }
+
+    if (this.loadCommand(dReg, releaseProcessor, overwrite, arguments)) {
+        this.controlBusy = true;
+        if (this.blockWords < this.currentUnit.minBlockWords && this.blockWords > 1) {
+            alarm = true;               // invalid block length
+        } else {
+            words = (record ? 0 : this.blockWords);
+            alarm = this.currentUnit.overwriteBlock(blockReady, this.boundControlFinished);
+        }
+
+        if (alarm) {
+            setCallback(this.mnemonic, this,  0, releaseProcessor, alarm);
+            this.controlFinished(true);
+        }
+    }
+};
+
+/**************************************/
+B220MagTapeControl.prototype.initialWrite = function initialWrite(dReg, releaseProcessor, record, fetchWord) {
+    /* Initial-writes the number of blocks and of the size indicated in dReg.
+    If "record" is true (MIR), block lengths (preface words) are taken from the
+    word in memory preceding the data to be written. Otherwise, block lengths
+    are taken from the instruction control digits. fetchWord" is a function to
+    read a word from the Processor's memory. This routine is used by MIW and MIR */
+    var alarm = false;                  // error result
+    var blocksLeft = true;              // true => more blocks to process
+    var that = this;                    // local self-reference
+    var words;
 
     function blockReady(alarm, writeBlock, completed) {
         /* Call-back function when the drive is ready to receive the next block
-        of data, or when it has encountered an error such as EOT. If there are
-        more blocks to write, fetches the next block from the Processor and calls
-        the drive's "writeBlock" function, otherwise calls "completed" to finish
-        the operation */
+        of data, or when it has encountered an error such as EOT. "alarm"
+        indicates that an error has occurred and the operation is to be aborted.
+        Otherwise, if there are more blocks to write, fetches the next block
+        from the Processor and calls the drive's "writeBlock" function. Finally
+        calls "completed" to finish the operation */
 
         if (alarm) {
             setCallback(that.mnemonic, that, 0, releaseProcessor, true);
             completed(true);            // drive detected an error
         } else if (blocksLeft) {
             blocksLeft = that.decrementBlockCount();    // set to false on last block
-            if (that.blockWords < unit.minBlockWords && that.blockWords > 1) {
-                completed(true);        // invalid block size
-            } else if (fetchBlock(that.tapeBlock, that.blockWords)) {
-                completed(true);        // Processor cleared or memory address error
-            } else {
-                writeBlock(that.tapeBlock, that.blockWords); // write next block
-            }
+            writeBlock(fetchWord, words);               // write the next block
         } else {
             setCallback(that.mnemonic, that, 0, releaseProcessor, false);
             completed(false);           // normal termination
@@ -582,70 +572,16 @@ B220MagTapeControl.prototype.initialWrite = function initialWrite(dReg, releaseP
 
     if (this.loadCommand(dReg, releaseProcessor, initialWrite, arguments)) {
         this.controlBusy = true;
-        unit = this.tapeUnit[this.unitIndex];
-        alarm = unit.initialWriteBlock(blockReady, this.boundControlFinished);
-        if (alarm) {
-            setCallback(this.mnemonic, this,  0, releaseProcessor, alarm);
-            controlFinished(true);
-        }
-    }
-};
-
-/**************************************/
-B220MagTapeControl.prototype.initialWriteRecord = function initialWriteRecord(dReg, releaseProcessor, fetchBlock) {
-    /* Initial-writes the number of blocks indicated in dReg. Block lengths
-    (preface words) are taken from the word in memory preceding the data to be
-    written. This routine is used by MIR */
-    var alarm = false;                  // error result
-    var blocksLeft = true;              // true => more blocks to process
-    var that = this;                    // local self-reference
-    var unit = null;                    // selected tape unit
-
-    function blockReady(alarm, writeBlock, completed) {
-        /* Call-back function when the drive is ready to receive the next block
-        of data, or when it has encountered an error such as EOT. If there are
-        more blocks to write, fetches the next block and its size from the
-        Processor and calls the drive's "writeBlock" function, otherwise calls
-        "completed" to finish the operation */
-        var words;                      // words to write for block
-
-        if (alarm) {
-            setCallback(that.mnemonic, that, 0, releaseProcessor, true);
-            completed(true);            // drive detected an error
-        } else if (blocksLeft) {
-            blocksLeft = that.decrementBlockCount();    // set to false on last block
-            if (fetchBlock(that.tapeBlock, 1)) {        // fetch the preface word
-                completed(true);        // Processor cleared or memory address error
-            } else {
-                words = that.tapeBlock[0];              // convert preface to binary
-                words = ((words - words%0x100000000)/0x100000000)%0x100;
-                if (words) {
-                    words = (words >>> 4)*10 + words%0x10;
-                } else {
-                    words = 100;        // preface == 0 => 100
-                }
-
-                if (words < unit.minBlockWords && words > 1) {
-                    completed(true);    // invalid block size
-                } else if (fetchBlock(that.tapeBlock, words)) {
-                    completed(true);    // Processor cleared or memory address error
-                } else {
-                    writeBlock(that.tapeBlock, words); // write next block
-                }
-            }
+        if (this.blockWords < this.currentUnit.minBlockWords && this.blockWords > 1) {
+            alarm = true;               // invalid block length
         } else {
-            setCallback(that.mnemonic, that, 0, releaseProcessor, false);
-            completed(false);           // normal termination
+            words = (record ? 0 : this.blockWords);
+            alarm = this.currentUnit.initialWriteBlock(blockReady, this.boundControlFinished);
         }
-    }
 
-    if (this.loadCommand(dReg, releaseProcessor, initialWriteRecord, arguments)) {
-        this.controlBusy = true;
-        unit = this.tapeUnit[this.unitIndex];
-        alarm = unit.initialWriteBlock(blockReady, this.boundControlFinished);
         if (alarm) {
             setCallback(this.mnemonic, this,  0, releaseProcessor, alarm);
-            controlFinished(true);
+            this.controlFinished(true);
         }
     }
 };
@@ -655,7 +591,6 @@ B220MagTapeControl.prototype.positionForward = function positionForward(dReg, re
     /* Positions the tape forward the number of blocks indicated in dReg */
     var alarm = false;                  // error result
     var that = this;                    // local self-reference
-    var unit = null;                    // selected tape unit
 
     function blockFinished(nextBlock, completed) {
         /* Call-back function when the drive has finished spacing one block
@@ -671,8 +606,7 @@ B220MagTapeControl.prototype.positionForward = function positionForward(dReg, re
 
     if (this.loadCommand(dReg, releaseProcessor, positionForward, arguments)) {
         this.controlBusy = true;
-        unit = this.tapeUnit[this.unitIndex];
-        alarm = unit.positionForward(blockFinished, this.boundControlFinished);
+        alarm = this.currentUnit.positionForward(blockFinished, this.boundControlFinished);
         setCallback(this.mnemonic, this,  0, releaseProcessor, alarm);
     }
 };
@@ -682,7 +616,6 @@ B220MagTapeControl.prototype.positionBackward = function positionBackward(dReg, 
     /* Positions the tape backward the number of blocks indicated in dReg */
     var alarm = false;                  // error result
     var that = this;                    // local self-reference
-    var unit = null;                    // selected tape unit
 
     function blockFinished(nextBlock, completed) {
         /* Call-back function when the drive has finished spacing one block
@@ -698,8 +631,7 @@ B220MagTapeControl.prototype.positionBackward = function positionBackward(dReg, 
 
     if (this.loadCommand(dReg, releaseProcessor, positionBackward, arguments)) {
         this.controlBusy = true;
-        unit = this.tapeUnit[this.unitIndex];
-        alarm = unit.positionBackward(blockFinished, this.boundControlFinished);
+        alarm = this.currentUnit.positionBackward(blockFinished, this.boundControlFinished);
         setCallback(this.mnemonic, this,  0, releaseProcessor, alarm);
     }
 };
@@ -713,13 +645,13 @@ B220MagTapeControl.prototype.positionAtEnd = function positionAtEnd(dReg, releas
 
     if (this.loadCommand(dReg, releaseProcessor, positionAtEnd, arguments)) {
         this.controlBusy = true;
-        alarm = this.tapeUnit[this.unitIndex].positionAtEnd(this.boundControlFinished);
+        alarm = this.currentUnit.positionAtEnd(this.boundControlFinished);
         setCallback(this.mnemonic, this,  0, releaseProcessor, alarm);
     }
 };
 
 /**************************************/
-B220MagTapeControl.prototype.laneSelect = function laneSelect(dReg, releaseProcessor) {
+B220MagTapeControl.prototype.laneSelect = function laneSelect(dReg, releaseProcessor, fetchWord) {
     /* Selects the tape lane of the designated unit. Returns an alarm if the
     unit does not exist or is not ready */
     var alarm = false;                  // error result
@@ -728,13 +660,14 @@ B220MagTapeControl.prototype.laneSelect = function laneSelect(dReg, releaseProce
     if (this.loadCommand(dReg, releaseProcessor,laneSelect, arguments)) {
         this.controlBusy = true;
         laneNr = ((this.C - this.C%0x100)/0x100)%2;
-        alarm = this.tapeUnit[this.unitIndex].laneSelect(laneNr, this.boundControlFinished);
+        fetchWord(true);                // memory access for MTS/MFS not used by MLS
+        alarm = this.currentUnit.laneSelect(laneNr, this.boundControlFinished);
         setCallback(this.mnemonic, this,  0, releaseProcessor, alarm);
     }
 };
 
 /**************************************/
-B220MagTapeControl.prototype.rewind = function rewind(dReg, releaseProcessor) {
+B220MagTapeControl.prototype.rewind = function rewind(dReg, releaseProcessor, fetchWord) {
     /* Initiates rewind of the designated unit. Returns an alarm if the unit
     does not exist or is not ready */
     var alarm = false;                  // error result
@@ -745,7 +678,8 @@ B220MagTapeControl.prototype.rewind = function rewind(dReg, releaseProcessor) {
         this.controlBusy = true;
         laneNr = ((this.C - this.C%0x100)/0x100)%2;
         lockout = ((this.C - this.C%0x10)/0x10)%2;
-        alarm = this.tapeUnit[this.unitIndex].rewind(laneNr, lockout, this.boundTapeUnitFinished);
+        fetchWord(true);                // memory access for MTS/MFS not used by MRW/MDA
+        alarm = this.currentUnit.rewind(laneNr, lockout);
         setCallback(this.mnemonic, this, 50, this.controlFinished, false);
         setCallback(this.mnemonic, this,  0, releaseProcessor, alarm);
     }
@@ -795,7 +729,7 @@ B220MagTapeControl.prototype.clearUnit = function clearUnit() {
     /* Clears the internal state of the control unit */
 
     this.clear();
-    this.regMisc.update(this.MISC);
+    this.clearMisc();
     this.regC.update(this.C);
     this.regT.update(this.T);
 };
@@ -814,6 +748,10 @@ B220MagTapeControl.prototype.shutDown = function shutDown() {
         }
     }
 
-    this.window.removeEventListener("beforeunload", B220MagTapeControl.prototype.beforeUnload);
+    this.window.removeEventListener("beforeunload", B220MagTapeControl.prototype.beforeUnload, false);
+    this.$$("ClearBtn").removeEventListener("click", this.boundSwitch_Click, false);
+    this.regMisc.rightClearBar.removeEventListener("click", this.boundSwitch_Click, false);
+    this.regC.rightClearBar.removeEventListener("click", this.boundSwitch_Click, false);
+    this.regT.rightClearBar.removeEventListener("click", this.boundSwitch_Click, false);
     this.window.close();
 };
