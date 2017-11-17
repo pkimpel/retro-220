@@ -148,17 +148,16 @@
     <button id=LeftPanelBtn  class=plainButton title="Some day there may be a Left Panel">Left Panel</button>
     <button id=RightPanelBtn class=plainButton title="Some day there may be a Right Panel, too">Right Panel</button>
 
+    <div id=ProcDelta title="Average Processor delay delta (ms)"></div>
+    <div id=ProcSlack title="Average Processor slack time (ms)"></div>
+    <div id=ProcRun   title="Average Processor run time (ms)"></div>
+
     <div id=VersionDiv class=caption>
         retro-220 <span id=EmulatorVersion>?.??</span>
     </div>
 </div>
 
 <div id=Diagnostics>
-    <br>
-    Proc Delta: <input id=ProcDelta class="rj" type=text size=10>
-    &nbsp;&nbsp;
-    Latency: <input id=LastLatency class="rj" type=text size=10>
-
     <table id=CallbackTable>
     <thead>
       <tr>

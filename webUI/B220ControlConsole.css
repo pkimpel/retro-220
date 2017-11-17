@@ -34,8 +34,8 @@
     font-weight:        bold}
 
 #IntervalTimerResetCaption {
-    bottom:             21px;
     left:               calc(50% - 206px);
+    bottom:             20px;
     width:              120px;
     text-align:         right}
 #IntervalTimerResetBtn {
@@ -69,7 +69,7 @@
     bottom:             12px}
 #PowerOffCaption {
     left:               calc(50% + 92px);
-    bottom:             21px}
+    bottom:             20px}
 
 #VersionDiv {
     right:              150px;
@@ -83,6 +83,25 @@
 #RightPanelBtn {
     width:              100px;
     right:              12px;
+    bottom:             12px}
+
+#ProcDelta {
+    position:           absolute;
+    width:              64px;
+    text-align:         right;
+    left:               120px;
+    bottom:             12px}
+#ProcSlack {
+    position:           absolute;
+    width:              64px;
+    text-align:         right;
+    left:               190px;
+    bottom:             12px}
+#ProcRun {
+    position:           absolute;
+    width:              64px;
+    text-align:         right;
+    left:               260px;
     bottom:             12px}
 
 #PanelSurface {

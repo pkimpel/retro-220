@@ -105,11 +105,28 @@ function B220MagTapeDrive(mnemonic, unitIndex, tcu, config) {
     this.reelBar = null;                // handle for tape-full meter
     this.reelIcon = null;               // handle for the reel spinner
 
+    this.boundInitialWriteBlock = B220MagTapeDrive.prototype.initialWriteBlock.bind(this);
+    this.boundOverwriteBlock = B220MagTapeDrive.prototype.overwriteBlock.bind(this);
+    this.boundReadNextBlock = B220MagTapeDrive.prototype.readNextBlock.bind(this);
+    this.boundReleaseDelay = B220MagTapeDrive.prototype.releaseDelay.bind(this);
+    this.boundReleaseUnit = B220MagTapeDrive.prototype.releaseUnit.bind(this);
+    this.boundReposition = B220MagTapeDrive.prototype.reposition.bind(this);
+    this.boundReverseDirection = B220MagTapeDrive.prototype.reverseDirection.bind(this);
+    this.boundSearchBackwardBlock = B220MagTapeDrive.prototype.searchBackwardBlock.bind(this);
+    this.boundSearchForwardBlock = B220MagTapeDrive.prototype.searchForwardBlock.bind(this);
+    this.boundSetBOT = B220MagTapeDrive.prototype.setBOT.bind(this);
+    this.boundSetEOT = B220MagTapeDrive.prototype.setEOT.bind(this);
+    this.boundSpaceBackwardBlock = B220MagTapeDrive.prototype.spaceBackwardBlock.bind(this);
+    this.boundSpaceEOIBlock = B220MagTapeDrive.prototype.spaceEOIBlock.bind(this);
+    this.boundSpaceForwardBlock = B220MagTapeDrive.prototype.spaceForwardBlock.bind(this);
+    this.boundStartUpBackward = B220MagTapeDrive.prototype.startUpBackward.bind(this);
+    this.boundStartUpForward = B220MagTapeDrive.prototype.startUpForward.bind(this);
+
     this.doc = null;
     this.window = window.open("../webUI/B220MagTapeDrive.html", mnemonic,
             "location=no,scrollbars=no,resizable,width=384,height=184,left=0,top=" + y);
     this.window.addEventListener("load",
-            B220Util.bindMethod(this, B220MagTapeDrive.prototype.tapeDriveOnload), false);
+            B220MagTapeDrive.prototype.tapeDriveOnload.bind(this), false);
 }
 
 // this.tapeState enumerations
@@ -146,10 +163,12 @@ B220MagTapeDrive.prototype.startOfBlockWords = 4;
                                         // inter-block tape gap + preface [words]
 B220MagTapeDrive.prototype.endOfBlockWords = 2;
                                         // end-of-block + erase gap [words]
-B220MagTapeDrive.prototype.repositionWords = 2;
+B220MagTapeDrive.prototype.repositionWords = 5;
                                         // number of words to reposition back into the block after a turnaround
 B220MagTapeDrive.prototype.startTime = 3;
                                         // tape start time [ms]
+B220MagTapeDrive.prototype.startWords = 6;
+                                        // number of words traversed during tape start time
 B220MagTapeDrive.prototype.stopTime = 3;
                                         // tape stop time [ms]
 B220MagTapeDrive.prototype.turnaroundTime = 5;
@@ -198,15 +217,23 @@ B220MagTapeDrive.prototype.nil = function nil() {
 };
 
 /**************************************/
-B220MagTapeDrive.prototype.releaseUnit = function releaseUnit(releaseControl, alarm) {
-    /* Releases the busy status of the unit. Typically used as a timed call-
-    back to simulate the amount of time the unit is busy with an I/O */
+B220MagTapeDrive.prototype.releaseUnit = function releaseUnit(param) {
+    /* Releases the busy status of the unit. Returns but does not use its
+    parameter so it can be used with Promise.then() */
 
     this.busy = false;
     this.designatedLamp.set(0);
-    if (releaseControl) {
-        releaseControl(alarm);
-    }
+    return param;
+};
+
+/**************************************/
+B220MagTapeDrive.prototype.releaseDelay = function releaseDelay(driveState) {
+    /* Delays the specified number of milliseconds in driveState.completionDelay.
+    Returns a Promise for completion of the delay */
+
+    return new Promise((resolve, reject) => {
+        setCallback(this.mnemonic, this, driveState.completionDelay, resolve, driveState);
+    });
 };
 
 /**************************************/
@@ -254,13 +281,14 @@ B220MagTapeDrive.prototype.spinReel = function spinReel(inches) {
 };
 
 /**************************************/
-B220MagTapeDrive.prototype.moveTape = function moveTape(inches, delay, successor) {
+B220MagTapeDrive.prototype.moveTape = function moveTape(inches, delay, successor, param) {
     /* Delays the I/O during tape motion, during which it animates the reel image
     icon. At the completion of the "delay" time in milliseconds, "successor" is
-    called with no parameters. */
+    called with "param" as a parameter */
     var delayLeft = Math.abs(delay);    // milliseconds left to delay
     var direction = (inches < 0 ? -1 : 1);
     var inchesLeft = inches;            // inches left to move tape
+    var initiallyReady = this.ready;    // remember initial ready state to detect change
     var lastStamp = performance.now();  // last timestamp for spinDelay
 
     function spinFinish() {
@@ -268,7 +296,7 @@ B220MagTapeDrive.prototype.moveTape = function moveTape(inches, delay, successor
         if (inchesLeft != 0) {
             this.spinReel(inchesLeft);
         }
-        successor.call(this);
+        successor.call(this, param);
     }
 
     function spinDelay() {
@@ -283,26 +311,47 @@ B220MagTapeDrive.prototype.moveTape = function moveTape(inches, delay, successor
             }
         }
 
-        if ((delayLeft -= interval) > this.spinUpdateInterval) {
-            lastStamp = stamp;
-            this.timer = setCallback(this.mnemonic, this, this.spinUpdateInterval, spinDelay);
-        } else {
-            this.timer = setCallback(this.mnemonic, this, delayLeft, spinFinish);
-        }
-        motion = inches*interval/delay;
-        if (inchesLeft*direction <= 0) { // inchesLeft crossed zero
-            motion = inchesLeft = 0;
-        } else if (motion*direction <= inchesLeft*direction) {
-            inchesLeft -= motion;
-        } else {
-            motion = inchesLeft;
+        if (initiallyReady && !this.ready) { // drive went not ready
             inchesLeft = 0;
-        }
+            this.timer = setCallback(this.mnemonic, this, this.spinUpdateInterval, spinFinish);
+        } else {
+            delayLeft -= interval;
+            if (delayLeft > this.spinUpdateInterval) {
+                lastStamp = stamp;
+                this.timer = setCallback(this.mnemonic, this, this.spinUpdateInterval, spinDelay);
+            } else {
+                this.timer = setCallback(this.mnemonic, this, delayLeft, spinFinish);
+            }
 
-        this.spinReel(motion);
+            motion = inchesLeft*interval/delayLeft;
+            if (inchesLeft*direction <= 0) { // inchesLeft crossed zero
+                motion = inchesLeft = 0;
+            } else if (motion*direction <= inchesLeft*direction) {
+                inchesLeft -= motion;
+            } else {
+                motion = inchesLeft;
+                inchesLeft = 0;
+            }
+
+            this.spinReel(motion);
+        }
     }
 
     spinDelay.call(this);
+};
+
+/**************************************/
+B220MagTapeDrive.prototype.moveTapeTo = function moveTapeTo(index, result) {
+    /* Advances the tape to the specified image index and returns a Promise
+    that will resolve when tape motion completes */
+
+    return new Promise((resolve, reject) => {
+        var len = index - this.imgIndex;    // number of words passed
+        var delay = len*this.millisPerWord; // amount of tape spin time
+
+        this.imgIndex = index;
+        this.moveTape(len*this.inchesPerWord, delay, resolve, result);
+    });
 };
 
 /**************************************/
@@ -325,6 +374,16 @@ B220MagTapeDrive.prototype.setAtBOT = function setAtBOT(atBOT) {
 };
 
 /**************************************/
+B220MagTapeDrive.prototype.setBOT = function setBOT(driveState) {
+    /* Sets BOT status on the drive and releases the drive after encountering
+    physical BOT. Return value is designed for use with Promise.then() */
+
+    this.setAtBOT(true);
+    this.releaseUnit(driveState);       // release the unit, but leave the control hung:
+    return driveState;                  // do not reject the Promise
+};
+
+/**************************************/
 B220MagTapeDrive.prototype.setAtEOT = function setAtEOT(atEOT) {
     /* Controls the at-End-of-Tape state of the tape drive */
 
@@ -337,6 +396,36 @@ B220MagTapeDrive.prototype.setAtEOT = function setAtEOT(atEOT) {
             this.reelBar.value = 0;
         }
     }
+};
+
+/**************************************/
+B220MagTapeDrive.prototype.setEOT = function setEOT(driveState) {
+    /* Sets EOT status on the drive and releases the drive after encountering
+    physical EOT. Return value is designed for use with Promise.then() */
+
+    this.setAtEOT(true);
+    this.releaseUnit(driveState);       // release the unit, but leave the control hung:
+    return driveState;                  // do not reject the Promise
+};
+
+/**************************************/
+B220MagTapeDrive.prototype.setLane = function(laneNr, param) {
+    /* Sets the lane of the tape drive and updates its annunciator on the drive
+    control panel. If the lane is changing, introduces a 70ms delay. Returns a
+    Promise that resolves once the lane is changed and any delay is completed.
+    "param" is not used by this routine, but is passed as a resolve result for
+    use with Promise.then() */
+    var lane = laneNr%2;                // make sure it's 0 or 1
+
+    this.$$("MTLaneNrLight").textContent = "LANE " + lane;
+    return new Promise((resolve, reject) => {
+        if (this.laneNr == lane) {
+            resolve(param);
+        } else {
+            this.laneNr = lane;
+            setCallback(this.mnemonic, this, 70, resolve, param);
+        }
+    });
 };
 
 /**************************************/
@@ -380,106 +469,13 @@ B220MagTapeDrive.prototype.setTapeUnloaded = function setTapeUnloaded() {
         this.reelBar.value = 0;
         this.reelIcon.style.visibility = "hidden";
         this.$$("MTFileName").value = "";
+        this.$$("MTLaneNrLight").style.visibility = "hidden";
         B220Util.addClass(this.$$("MTUnloadedLight"), "annunciatorLit");
         if (this.timer) {
             clearCallback(this.timer);
             this.timer = 0;
         }
     }
-};
-
-/**************************************/
-B220MagTapeDrive.prototype.findBlockStart = function findBlockStart() {
-    /* Searches forward in the tape image on the currently-selected lane for the
-    start of a block or magnetic end-of-tape markers, or physical end-of-tape,
-    whichever occurs first. If an inter-block (blank) gap word is found, skips
-    over all of them and reads the preface word. Returns the preface word, or
-    the magnetic EOT marker (-3) word, or if physical EOT is encountered, an
-    inter-block gap (-1) word */
-    var imgLength = this.imgLength;     // physical end of tape index
-    var lane = this.image[this.laneNr]; // image data for current lane
-    var result = this.markerGap;        // function result
-    var state = 1;                      // FSA state variable
-    var w;                              // current image word
-    var x = this.imgIndex;              // lane image word index
-
-    while (x < imgLength) {
-        w = lane[x++];
-        switch (state) {
-        case 1: // search for inter-block gap word
-            if (w == this.markerGap) {
-                state = 2;
-            } else if (w == this.markerMagEOT) {
-                result = w;             // return the EOT word
-                this.imgIndex = x-1;    // point to EOT word
-                x = imgLength;          // kill the loop
-            }
-            break;
-
-        case 2: // search for preface word
-            if (w >= 0) {
-                result = w;             // found preface, return it
-                this.imgIndex = x;      // point to first data word in block
-                x = imgLength;          // kill the loop
-            } else if (w != this.markerGap) {
-                result = w;             // return whatever marker word was found
-                this.imgIndex = x-1;    // point to the word found
-                x = imgLength;          // kill the loop
-            }
-            break;
-
-        default:
-            x = imgLength;              // kill the loop
-            throw new Error("Invalid state: B220MagTapeDrive.findBlockStart, " + state);
-            break;
-        } // switch state
-    } // while x
-
-    return result;
-};
-
-/**************************************/
-B220MagTapeDrive.prototype.writeBlockStart = function writeBlockStart(length) {
-    /* Writes the start-of-block words to the tape image buffer in the current
-    lane number and at the current offset of this.imgIndex: 3 gap words + the
-    preface word with the binary block length */
-    var x;
-
-    for (x=0; x<this.startOfBlockWords-1; ++x) {
-        this.image[this.laneNr][this.imgIndex+x] = this.markerGap;
-    }
-
-    this.image[this.laneNr][this.imgIndex+x] = length;  // preface word
-    this.imgIndex += this.startOfBlockWords;
-};
-
-/**************************************/
-B220MagTapeDrive.prototype.writeBlockEnd = function writeBlockEnd() {
-    /* Writes the start-of-block words to the tape image buffer at the current
-    value of this.imgIndex: 3 gap words + the preface word with the binary block
-    length */
-    var x;
-
-    for (x=0; x<this.endOfBlockWords; ++x) {
-        this.image[this.laneNr][this.imgIndex+x] = this.markerEOB;
-    }
-
-    this.imgIndex += this.endOfBlockWords;
-};
-
-/**************************************/
-B220MagTapeDrive.prototype.writeEndOfTapeBlock = function writeEndOfTapeBlock(controlWord) {
-    /* Writes an end-of-tape block containing the designated controlWord */
-    var x;
-
-    this.writeBlockStart(1);
-    this.image[this.laneNr][this.imgIndex++] = controlWord;
-    for (x=0; x<9; ++x) {
-        this.image[this.laneNr][this.imgIndex+x] = 0;
-    }
-
-    this.imgIndex += 9;
-    this.writeBlockEnd();
 };
 
 /**************************************/
@@ -501,13 +497,13 @@ B220MagTapeDrive.prototype.loadTape = function loadTape() {
 
         file = ev.target.files[0];
         fileName = file.name;
+        $$$("MTLoadWriteEnableCheck").checked = false;
     }
 
     function finishLoad() {
         /* Finishes the tape loading process and closes the loader window */
         var x;
 
-        mt.laneNr = 0;
         mt.notWrite = !$$$("MTLoadWriteEnableCheck").checked;
         mt.notWriteLamp.set(mt.notWrite ? 1 : 0);
         mt.reelBar.max = mt.maxTapeInches;
@@ -515,9 +511,52 @@ B220MagTapeDrive.prototype.loadTape = function loadTape() {
         mt.setAtBOT(true);
         mt.setAtEOT(false);
         mt.tapeState = mt.tapeLocal;    // setTapeReady() requires it not be unloaded
+        mt.setLane(0, null);
+        mt.$$("MTLaneNrLight").style.visibility = "visible";
         mt.setTapeReady(true);
         mt.reelIcon.style.visibility = "visible";
         B220Util.removeClass(mt.$$("MTUnloadedLight"), "annunciatorLit");
+    }
+
+    function writeBlockStart(length) {
+        /* Writes the start-of-block words to the tape image buffer in the current
+        lane number and at the current offset of mt.imgIndex: 3 gap words + the
+        preface word with the binary block length */
+        var x;
+
+        for (x=0; x<mt.startOfBlockWords-1; ++x) {
+            mt.image[mt.laneNr][mt.imgIndex+x] = mt.markerGap;
+        }
+
+        mt.image[mt.laneNr][mt.imgIndex+x] = length;  // preface word
+        mt.imgIndex += mt.startOfBlockWords;
+    }
+
+    function writeBlockEnd() {
+        /* Writes the start-of-block words to the tape image buffer at the current
+        value of mt.imgIndex: 3 gap words + the preface word with the binary block
+        length */
+        var x;
+
+        for (x=0; x<mt.endOfBlockWords; ++x) {
+            mt.image[mt.laneNr][mt.imgIndex+x] = mt.markerEOB;
+        }
+
+        mt.imgIndex += mt.endOfBlockWords;
+    }
+
+    function writeEndOfTapeBlock(controlWord) {
+        /* Writes an end-of-tape block containing the designated controlWord */
+        var x;
+
+        writeBlockStart(1);
+        mt.image[mt.laneNr][mt.imgIndex++] = controlWord;
+        for (x=0; x<9; ++x) {
+            mt.image[mt.laneNr][mt.imgIndex+x] = 0;
+        }
+
+        mt.imgIndex += 9;
+        writeBlockEnd();
     }
 
     function editedLoader() {
@@ -539,16 +578,16 @@ B220MagTapeDrive.prototype.loadTape = function loadTape() {
                 lane = mt.image[mt.laneNr];
                 mt.imgIndex = mt.magBOTWords;
                 while (lane[mt.imgIndex] != mt.markerMagEOT) {
-                    mt.writeBlockStart(blockLen);
+                    writeBlockStart(blockLen);
                     for (x=0; x<blockLen; ++x) {
                         lane[mt.imgIndex+x] = 0;
                     }
 
                     mt.imgIndex += blockLen;
-                    mt.writeBlockEnd();
+                    writeBlockEnd();
                 } // while
 
-                mt.writeEndOfTapeBlock(0x00000001); // aaaa=0000, bbbb=0001
+                writeEndOfTapeBlock(0x00000001); // aaaa=0000, bbbb=0001
 
                 // Write a gap so that MPE can sense end-of-info.
                 for (x=0; x<mt.startOfBlockWords*2; ++x) {
@@ -639,7 +678,7 @@ B220MagTapeDrive.prototype.loadTape = function loadTape() {
                         blockLen = 100;
                     }
 
-                    mt.writeBlockStart(blockLen);
+                    writeBlockStart(blockLen);
                     lane = mt.image[mt.laneNr];
                     while (tx < chunkLength && wx < blockLen) {
                         lane[mt.imgIndex+wx] = parseWord();
@@ -656,7 +695,7 @@ B220MagTapeDrive.prototype.loadTape = function loadTape() {
                     } // while
 
                     mt.imgIndex += blockLen;
-                    mt.writeBlockEnd();
+                    writeBlockEnd();
                     lx[mt.laneNr] = mt.imgIndex;        // save current offset for this lane
                 }
             }
@@ -759,6 +798,8 @@ B220MagTapeDrive.prototype.loadTape = function loadTape() {
             return doc.getElementById(id);
         };
 
+        win.removeEventListener("load", tapeLoadOnload, false);
+
         fileSelect = $$$("MTLoadFileSelector");
         fileSelect.addEventListener("change", fileSelector_onChange, false);
 
@@ -771,15 +812,18 @@ B220MagTapeDrive.prototype.loadTape = function loadTape() {
                      de.scrollHeight - win.innerHeight);
     }
 
+    function tapeLoadUnload(ev) {
+        win.removeEventListener("unload", tapeLoadUnload, false);
+        mt.loadWindow = null;
+    }
+
     // Outer block of loadTape
     if (this.loadWindow && !this.loadWindow.closed) {
         this.loadWindow.close();
     }
     this.loadWindow = win;
     win.addEventListener("load", tapeLoadOnload, false);
-    win.addEventListener("unload", function tapeLoadUnload(ev) {
-        this.loadWindow = null;
-    }, false);
+    win.addEventListener("unload", tapeLoadUnload, false);
 };
 
 /**************************************/
@@ -787,9 +831,59 @@ B220MagTapeDrive.prototype.unloadTape = function unloadTape() {
     /* Reformats the tape image data as ASCII text and displays it in a new
     window so the user can save or copy/paste it elsewhere */
     var doc = null;                     // loader window.document
+    var image;                          // <pre> element to receive tape image data
     var mt = this;                      // tape drive object
     var win = this.window.open("./B220FramePaper.html", this.mnemonic + "-Unload",
             "location=no,scrollbars=yes,resizable,width=800,height=600");
+
+    function findBlockStart() {
+        /* Searches forward in the tape image on the currently-selected lane for the
+        start of a block or magnetic end-of-tape markers, or physical end-of-tape,
+        whichever occurs first. If an inter-block (blank) gap word is found, skips
+        over all of them and reads the preface word. Returns the preface word, or
+        the magnetic EOT marker (-3) word, or if physical EOT is encountered, an
+        inter-block gap (-1) word */
+        var imgLength = mt.imgLength;   // physical end of tape index
+        var lane = mt.image[mt.laneNr]; // image data for current lane
+        var result = mt.markerGap;      // function result
+        var state = 1;                  // FSA state variable
+        var w;                          // current image word
+        var x = mt.imgIndex;            // lane image word index
+
+        while (x < imgLength) {
+            w = lane[x++];
+            switch (state) {
+            case 1: // search for inter-block gap word
+                if (w == mt.markerGap) {
+                    state = 2;
+                } else if (w == mt.markerMagEOT) {
+                    result = w;             // return the EOT word
+                    mt.imgIndex = x-1;      // point to EOT word
+                    x = imgLength;          // kill the loop
+                }
+                break;
+
+            case 2: // search for preface word
+                if (w >= 0) {
+                    result = w;             // found preface, return it
+                    mt.imgIndex = x;        // point to first data word in block
+                    x = imgLength;          // kill the loop
+                } else if (w != mt.markerGap) {
+                    result = w;             // return whatever marker word was found
+                    mt.imgIndex = x-1;      // point to the word found
+                    x = imgLength;          // kill the loop
+                }
+                break;
+
+            default:
+                x = imgLength;              // kill the loop
+                throw new Error("Invalid state: B220MagTapeDrive.unloadTape.findBlockStart, " + state);
+                break;
+            } // switch state
+        } // while x
+
+        return result;
+    }
 
     function unloadDriver() {
         /* Converts the tape image to ASCII once the window has displayed the
@@ -801,16 +895,12 @@ B220MagTapeDrive.prototype.unloadTape = function unloadTape() {
         var lx;                         // lane index
         var nzw;                        // number of consecutive zero words
         var state;                      // lane processing state variable
-        var tape;                       // <pre> element to receive tape data
         var w;                          // current image word
         var wx;                         // word index within block
         var x = 0;                      // image data index
 
-        doc = win.document;
-        doc.title = "retro-220 " + mt.mnemonic + " Unload Tape";
-        tape = doc.getElementById("Paper");
-        while (tape.firstChild) {               // delete any existing <pre> content
-            tape.removeChild(tape.firstChild);
+        while (image.firstChild) {      // delete any existing <pre> content
+            image.removeChild(image.firstChild);
         }
 
         for (lx=0; lx<2; ++lx) {
@@ -823,7 +913,7 @@ B220MagTapeDrive.prototype.unloadTape = function unloadTape() {
                 case 1: // Search for start of block
                     nzw = 0;
                     mt.imgIndex = x;
-                    w = mt.findBlockStart();
+                    w = findBlockStart();
                     if (w < 0) {        // done with this lane
                         x = imgLength;  // kill the loop
                     } else {            // format the preface word
@@ -843,7 +933,7 @@ B220MagTapeDrive.prototype.unloadTape = function unloadTape() {
                         }
                         buf += "," + w.toString(16);
                     } else {
-                        tape.appendChild(doc.createTextNode(buf + "\n"));
+                        image.appendChild(doc.createTextNode(buf + "\n"));
                         state = 1;      // reset for next block
                     }
                     break;
@@ -862,8 +952,12 @@ B220MagTapeDrive.prototype.unloadTape = function unloadTape() {
         /* Loads a status message into the "paper" rendering area, then calls
         unloadDriver after a short wait to allow the message to appear */
 
-        win.document.getElementById("Paper").appendChild(
-                win.document.createTextNode("Rendering tape image... please wait..."));
+        win.removeEventListener("load", unloadSetup, false);
+        doc = win.document;
+        doc.title = "retro-220 " + mt.mnemonic + " Unload Tape";
+        image = doc.getElementById("Paper");
+        image.appendChild(win.document.createTextNode(
+                "Rendering tape image... please wait..."));
         setTimeout(unloadDriver, 50);
     }
 
@@ -877,105 +971,60 @@ B220MagTapeDrive.prototype.unloadTape = function unloadTape() {
 B220MagTapeDrive.prototype.tapeRewind = function tapeRewind(laneNr, lockout) {
     /* Rewinds the tape. Makes the drive not-ready and delays for an appropriate
     amount of time depending on how far up-tape we are. Readies the unit again
-    when the rewind is complete unless lockout is truthy */
-    var lastStamp;
+    when the rewind is complete unless lockout is truthy. Returns a Promise that
+    resolves when the rewind completes */
 
-    function rewindFinish() {
-        this.timer = 0;
-        this.tapeState = this.tapeLocal;
-        B220Util.removeClass(this.$$("MTRewindingLight"), "annunciatorLit");
-        this.laneNr = laneNr%2;
-        this.rewindLock = (lockout ? true : false);
-        this.rwlLamp.set(this.rewindLock ? 1 : 0);
-        this.setTapeReady(!this.rewindLock);
-        this.releaseUnit(null, false);
-        if (this.ready) {
-            this.tcu.tapeUnitFinished();
+    return new Promise((resolve, reject) => {
+        var lastStamp;
+
+        function rewindFinish() {
+            this.timer = 0;
+            this.tapeState = this.tapeLocal;
+            B220Util.removeClass(this.$$("MTRewindingLight"), "annunciatorLit");
+            this.rewindLock = (lockout ? true : false);
+            this.rwlLamp.set(this.rewindLock ? 1 : 0);
+            this.setTapeReady(!this.rewindLock);
+            resolve(this.setLane(laneNr, null));
         }
-    }
 
-    function rewindDelay() {
-        var inches;
-        var stamp = performance.now();
-        var interval = stamp - lastStamp;
+        function rewindDelay() {
+            var inches;
+            var stamp = performance.now();
+            var interval = stamp - lastStamp;
 
-        if (interval <= 0) {
-            interval = this.spinUpdateInterval/2;
+            if (interval <= 0) {
+                interval = this.spinUpdateInterval/2;
+            }
+            if (this.tapeInches <= 0) {
+                this.setAtBOT(true);
+                this.timer = setCallback(this.mnemonic, this, 1000, rewindFinish);
+            } else {
+                inches = interval*this.rewindSpeed;
+                lastStamp = stamp;
+                this.timer = setCallback(this.mnemonic, this, this.spinUpdateInterval, rewindDelay);
+                this.spinReel(-inches);
+            }
         }
-        if (this.tapeInches <= 0) {
-            this.setAtBOT(true);
-            this.timer = setCallback(this.mnemonic, this, 1000, rewindFinish);
-        } else {
-            inches = interval*this.rewindSpeed;
-            lastStamp = stamp;
+
+        function rewindStart() {
+            this.designatedLamp.set(0);
+            lastStamp = performance.now();
             this.timer = setCallback(this.mnemonic, this, this.spinUpdateInterval, rewindDelay);
-            this.spinReel(-inches);
         }
-    }
 
-    function rewindStart() {
-        this.designatedLamp.set(0);
-        lastStamp = performance.now();
-        this.timer = setCallback(this.mnemonic, this, this.spinUpdateInterval, rewindDelay);
-    }
-
-    if (this.timer) {
-        clearCallback(this.timer);
-        this.timer = 0;
-    }
-    if (this.tapeState != this.tapeUnloaded && this.tapeState != this.tapeRewinding) {
-        this.busy = true;
-        this.tapeState = this.tapeRewinding;
-        this.setAtEOT(false);
-        B220Util.addClass(this.$$("MTRewindingLight"), "annunciatorLit");
-        this.timer = setCallback(this.mnemonic, this, 1000, rewindStart);
-    }
-};
-
-/**************************************/
-B220MagTapeDrive.prototype.tapeReposition = function tapeReposition(successor) {
-    /* Reverses tape direction after a forward tape operation and repositions
-    the head two words from the end of the block just passed, giving room for
-    startup of the next forward operation. At completion, calls the successor
-    function, passing false.
-
-    A real 220 drive repositioned tape about 60 digits (five words) from the end
-    of the data portion of the block, but that was to allow for tape acceleration
-    of about 3ms, at which point it took about 2ms (50 digits, or just over four
-    words) to reach the end of the erase gap and start of the inter-block gap
-    for the next block. this.repositionWords is sized to approximate that 2ms
-    delay */
-    var done = false;                   // completion flag
-    var lane = this.image[this.laneNr]; // image data for current lane
-    var state = 1;                      // FSA state variable
-    var x = this.imgIndex-1;            // lane image word index
-
-    do {
-        if (x <= 0) {
-            done = true;
-        } else {
-            switch (state) {
-            case 1: // initial state: skip backwards until erase-gap
-                if (lane[x] == this.markerEOB) {
-                    state = 2;
-                } else {
-                    --x;
-                }
-                break;
-            case 2: // skip over erase-gap words
-                if (lane[x] == this.markerEOB) {
-                    --x;
-                } else {
-                    done = true;
-                }
-                break;
-            } // switch state
+        if (this.timer) {
+            clearCallback(this.timer);
+            this.timer = 0;
         }
-    } while (!done);
 
-    x = this.imgIndex - x + this.repositionWords;       // words to reposition
-    this.imgIndex -= x;
-    this.moveTape(-x*this.inchesPerWord, this.turnaroundTime, successor);
+        if (this.tapeState != this.tapeUnloaded && this.tapeState != this.tapeRewinding) {
+            this.busy = true;
+            this.tapeState = this.tapeRewinding;
+            this.setAtEOT(false);
+            B220Util.addClass(this.$$("MTRewindingLight"), "annunciatorLit");
+            this.timer = setCallback(this.mnemonic, this, 1000, rewindStart);
+        }
+    });
 };
 
 /**************************************/
@@ -1006,7 +1055,9 @@ B220MagTapeDrive.prototype.RewindBtn_onclick = function RewindBtn_onclick(ev) {
     /* Handle the click event for the REWIND button */
 
     if (!this.busy && !this.powerOn && this.tapeState != this.tapeUnloaded) {
-        this.tapeRewind(this.laneNr, this.rewindLock, null);
+        this.tapeRewind(this.laneNr, this.rewindLock)
+        .then(this.boundReleaseUnit)
+        .then(this.tcu.boundTapeUnitFinished);
     }
 };
 
@@ -1092,1118 +1143,420 @@ B220MagTapeDrive.prototype.tapeDriveOnload = function tapeDriveOnload() {
     this.window.addEventListener("beforeunload",
             B220MagTapeDrive.prototype.beforeUnload, false);
     this.$$("LoadBtn").addEventListener("click",
-            B220Util.bindMethod(this, B220MagTapeDrive.prototype.LoadBtn_onclick), false);
+            B220MagTapeDrive.prototype.LoadBtn_onclick.bind(this), false);
     this.$$("UnloadBtn").addEventListener("click",
-            B220Util.bindMethod(this, B220MagTapeDrive.prototype.UnloadBtn_onclick), false);
+            B220MagTapeDrive.prototype.UnloadBtn_onclick.bind(this), false);
     this.$$("RewindBtn").addEventListener("click",
-            B220Util.bindMethod(this, B220MagTapeDrive.prototype.RewindBtn_onclick), false);
+            B220MagTapeDrive.prototype.RewindBtn_onclick.bind(this), false);
     this.unitDesignateList.addEventListener("change",
-            B220Util.bindMethod(this, B220MagTapeDrive.prototype.UnitDesignate_onchange), false);
+            B220MagTapeDrive.prototype.UnitDesignate_onchange.bind(this), false);
     this.$$("RWLRBtn").addEventListener("click",
-            B220Util.bindMethod(this, B220MagTapeDrive.prototype.RWLRBtn_onclick), false);
+            B220MagTapeDrive.prototype.RWLRBtn_onclick.bind(this), false);
     this.$$("WriteBtn").addEventListener("click",
-            B220Util.bindMethod(this, B220MagTapeDrive.prototype.WriteBtn_onclick), false);
+            B220MagTapeDrive.prototype.WriteBtn_onclick.bind(this), false);
     this.$$("NotWriteBtn").addEventListener("click",
-            B220Util.bindMethod(this, B220MagTapeDrive.prototype.WriteBtn_onclick), false);
+            B220MagTapeDrive.prototype.WriteBtn_onclick.bind(this), false);
     this.$$("TransportOnBtn").addEventListener("click",
-            B220Util.bindMethod(this, B220MagTapeDrive.prototype.TransportOnBtn_onclick), false);
+            B220MagTapeDrive.prototype.TransportOnBtn_onclick.bind(this), false);
     this.$$("TransportStandbyBtn").addEventListener("click",
-            B220Util.bindMethod(this, B220MagTapeDrive.prototype.TransportOnBtn_onclick), false);
+            B220MagTapeDrive.prototype.TransportOnBtn_onclick.bind(this), false);
 };
 
 /**************************************/
-B220MagTapeDrive.prototype.searchBlock = function searchBlock(blockReady, releaseControl, laneNr) {
-    /* Searches blocks on tape. "blockReady" is a function to be called after a
-    block is searched. "releaseControl" is a function to call after the control
-    signals completion (see release). "laneNr" is the lane on the tape to search.
-    This routine is used for MTS and MFS */
-    var imgLength = this.imgLength;     // physical end of tape index
-    var keyWord = 0;                    // keyWord read from block
-    var lane;                           // image data for current lane
-    var result = false;
-    var startDelay = this.startTime;    // delay for drive startup and lane change
-    var that = this;
+B220MagTapeDrive.prototype.startUpForward = function startUpForward(driveState) {
+    /* Initializes the I/O in a forward direction and provides the start-up
+    delay for drive acceleration. Returns a Promise that resolves at completion
+    of the start-up acceleration */
 
-    function release() {
-        /* Releases the unit and control */
-
-        that.releaseUnit(releaseControl, false);
-    }
-
-    function finish() {
-        /* Wraps up the positioning and delays before releasing the unit and control */
-        var delay = 16 - that.startTime;
-
-        setCallback(that.mnemonic, that, delay, release);
-    }
-
-    function turnaround() {
-        /* Repositions the tape after the last block is written */
-
-        that.tapeReposition(finish);
-    }
-
-    function signalControl() {
-        /* Returns to the tape control after encountering an end-of-tape block,
-        after the tape has been repositioned to read the EOT block */
-
-        blockReady(false, true, keyWord, null, null, turnaround);
-    }
-
-    function repositionAndSignal() {
-        /* Repositions the tape image so that an end-of-tape block can be read
-        by the next operation. Then terminates the I/O */
-
-        that.tapeReposition(signalControl);
-    }
-
-    function finalizeBlockForward() {
-        /* Returns the keyWord to the tape control after searching one block in
-        a forward direction */
-
-        blockReady(false, false, keyWord, searchBlockForward, searchBlockBackward, turnaround);
-    }
-
-    function abort() {
-        /* Aborts the I/O due to some error */
-
-        blockReady(true, false, 0, null, null, release);
-    }
-
-    function setEOT() {
-        /* Sets EOT status after positioning to end-of-tape. Does not release
-        the control unit */
-
-        that.setAtEOT(true);
-        that.releaseUnit(null, false);
-    }
-
-    function advance (index, successor) {
-        /* Advances the tape after a block is passed, then calls the successor */
-        var len = index - that.imgIndex;    // number of words passed
-        var delay = len*that.millisPerWord; // amount of tape spin time
-
-        that.imgIndex = index;
-        that.moveTape(len*that.inchesPerWord, delay, successor);
-    }
-
-    function searchBlockForward() {
-        /* Reads the start of the next block in the tape image in a forward
-        direction to obtain its keyword */
-        var count = 0;                  // word counter
-        var done = false;               // completion flag
-        var state = 1;                  // FSA state variable
-        var words = 0;                  // number of words from preface
-        var w;                          // current image word
-        var x = that.imgIndex;          // lane image word index
-
-        if (!that.ready) {
-            done = true;                // drive went non-ready
-            advance.call(that, x, abort);
-        } else {
-            do {
-                if (x >= imgLength) {
-                    done = true;        // at EOT: just exit and leave everybody hanging...
-                    that.busy = false;
-                    advance.call(that, x, setEOT);
-                } else {
-                    w = lane[x];
-
-                    switch (state) {
-                    case 1: // initial state: skip over flaw and intra-block words
-                        if (w == that.markerGap) {
-                            state = 2;
-                        } else {
-                            ++x;
-                        }
-                        break;
-
-                    case 2: // skip over inter-block gap and magnetic EOT words
-                        if (w == that.markerGap) {
-                            ++x;
-                        } else if (w == that.markerEOT) {
-                            ++x;
-                        } else if (w >= 0) {
-                            state = 3;          // found the preface
-                        } else {
-                            state = 1;          // ignore this block
-                        }
-                        break;
-
-                    case 3: // read the preface
-                        ++x;
-                        words = w;
-                        if (words < that.minBlockWords && words > 1) {
-                            done = true;        // preface check: invalid block size
-                            advance.call(that, x, abort);
-                        } else {
-                            state = 4;          // advance to the keyWord
-                        }
-                        break;
-
-                    case 4: // read the keyword
-                        ++x;
-                        if (w < 0) {            // block was shorter than preface indicated,
-                            state = 1;          // so ignore it and look for next block
-                        } else {
-                            done = true;
-                            keyWord = w;
-                            if (words == 1) {   // signal end-of-tape block
-                                advance.call(that, x, repositionAndSignal);
-                            } else {            // return keyWord to control
-                                advance.call(that, x, finalizeBlockForward);
-                            }
-                        }
-                        break;
-                    } // switch state
-                }
-            } while (!done);
-        }
-    }
-
-    function firstBlock() {
-        /* Called after the startTime delay to signal the control unit we are
-        ready for the first block of data */
-
-        blockReady(false, false, 0, searchBlockForward, searchBlockBackward, release);
-    }
-
-    if (this.busy || this.rewindLock) {
-        result = true;                  // unit busy or in RWL
-    } else if (!this.ready) {
-        result = true;                  // unit not ready
+    if (this.busy) {
+        driveState.state = driveState.driveBusy;
+        return Promise.reject(driveState);
+    } else if (!this.ready || this.rewindLock) {
+        driveState.state = driveState.driveNotReady;
+        return Promise.reject(driveState);
     } else if (this.atEOT) {
-        result = true;                  // tape at EOT
+        driveState.state = driveState.driveAtEOT;
+        return Promise.reject(driveState);
     } else {
-        this.busy = true;
-        this.designatedLamp.set(1);
-        this.setAtBOT(false);
-        if (laneNr != this.laneNr) {
-            this.laneNr = laneNr;
-            startDelay += 70;           // additional time for lane change
-        }
-
-        // Begin with a delay for start-up time
-        lane = this.image[this.laneNr];
-        setCallback(this.mnemonic, this, startDelay, firstBlock);
+        return new Promise((resolve, reject) => {
+            this.busy = true;
+            this.designatedLamp.set(1);
+            this.setAtBOT(false);
+            this.imgIndex += this.startWords;
+            driveState.completionDelay -= this.startTime;
+            setCallback(this.mnemonic, this, this.startTime, resolve, driveState);
+            this.moveTape(this.startWords*this.inchesPerWord, this.startTime, resolve, driveState);
+        });
     }
-
-    //console.log(this.mnemonic + " searchBlock       result=" + result.toString());
-    return result;
 };
 
 /**************************************/
-B220MagTapeDrive.prototype.readBlock = function readBlock(blockReady, releaseControl) {
-    /* Reads blocks on tape. "blockReady" is a function to be called after a
-    block is read. "releaseControl" is a function to call after the control
-    signals completion (see release). This routine is used for both MRD and MRR,
-    as block lengths are determined by the tape control unit */
-    var controlWord = 0;                // stashed control word for end-of-tape or control block
-    var imgLength = this.imgLength;     // physical end of tape index
-    var lane = this.image[this.laneNr]; // image data for current lane
-    var result = false;
-    var that = this;
+B220MagTapeDrive.prototype.startUpBackward = function startUpBackward(driveState) {
+    /* Initializes the I/O in a backward direction and provides the start-up
+    delay for drive acceleration */
 
-    function release() {
-        /* Releases the unit and control */
-
-        that.releaseUnit(releaseControl, false);
-    }
-
-    function finish() {
-        /* Wraps up the positioning and delays before releasing the unit and control */
-        var delay = 18 - that.startTime - that.repositionTime;
-
-        setCallback(that.mnemonic, that, delay, release);
-    }
-
-    function turnaround() {
-        /* Repositions the tape after the last block is written */
-
-        that.tapeReposition(finish);
-    }
-
-    function signalControl() {
-        /* Returns to the tape control after encountering an end-of-tape block,
-        using the control word stashed by readBlockNext. Note that tape must be
-        positioned to read the block after the end-of-tape block, but we are
-        already past the first word in the block, so we don't reposition backwards
-        in this case -- just leave the tape where it is and normal pre-block
-        scanning will find the next block */
-
-        blockReady(false, true, controlWord, null, finish);
-    }
-
-    function repositionAndSignal() {
-        /* Repositions the tape image so that the block following a control block
-        can be read by the next operation. Then terminates the I/O */
-
-        that.tapeReposition(signalControl);
-    }
-
-    function finalizeBlock() {
-        /* Returns to the tape control after completion of one block */
-
-        blockReady(false, false, 0, readBlockNext, turnaround);
-    }
-
-    function abort() {
-        /* Aborts the I/O due to some error */
-
-        blockReady(true, false, 0, null, release);
-    }
-
-    function repositionAndAbort() {
-        /* Repositions the tape image so that the block causing the abort can be
-        read by the next operation. Then aborts the I/O */
-
-        that.tapeReposition(abort);
-    }
-
-    function setEOT() {
-        /* Sets EOT status after positioning to end-of-tape. Does not release
-        the control unit */
-
-        that.setAtEOT(true);
-        that.releaseUnit(null, false);
-    }
-
-    function advance (index, successor) {
-        /* Advances the tape after a block is passed, then calls the successor */
-        var len = index - that.imgIndex;    // number of words passed
-        var delay = len*that.millisPerWord; // amount of tape spin time
-
-        that.imgIndex = index;
-        that.moveTape(len*that.inchesPerWord, delay, successor);
-    }
-
-    function readBlockNext(storeWord, record, controlEnabled) {
-        /* Reads the next block in the tape image. "storeWord" is a call-back
-        to store the next word to the Processor's memory. If "record" is true,
-        the preface is stored in memory before the data. If "controlEnabled" is
-        true, control blocks are recognized */
-        var controlBlock = false;       // true if control block detected
-        var count = 0;                  // word counter
-        var done = false;               // completion flag
-        var firstWord = true;           // flag for initial memory fetch
-        var sign = 0;                   // sign digit of keyword
-        var state = 1;                  // FSA state variable
-        var words = 0;                  // number of words from preface
-        var w;                          // current image word
-        var x = that.imgIndex;          // lane image word index
-
-        if (!that.ready) {
-            done = true;                // drive went non-ready
-            advance.call(that, x, abort);
-        } else {
-            do {
-                if (x >= imgLength) {
-                    done = true;        // at EOT: just exit and leave everybody hanging...
-                    that.busy = false;
-                    advance.call(that, x, setEOT);
-                } else {
-                    w = lane[x];
-
-                    switch (state) {
-                    case 1: // initial state: skip over flaw and intra-block words
-                        if (w == that.markerGap) {
-                            state = 2;
-                        } else {
-                            ++x;
-                        }
-                        break;
-
-                    case 2: // skip over inter-block gap and magnetic EOT words
-                        if (w == that.markerGap) {
-                            ++x;
-                        } else if (w == that.markerEOT) {
-                            ++x;
-                        } else if (w >= 0) {
-                            state = 3;          // found the preface
-                        } else {
-                            done = true;        // not a formatted tape
-                            advance.call(that, x, repositionAndAbort);
-                        }
-                        break;
-
-                    case 3: // read the preface and check for EOT block
-                        ++x;
-                        words = w;
-                        if (words == 1) {
-                            state = 6;          // detected end-of-tape block
-                        } else if (words < that.minBlockWords && words > 1) {
-                            done = true;        // preface check: invalid block size
-                            advance.call(that, x, abort);
-                        } else {
-                            state = 4;          // normal or control block
-                        }
-                        break;
-
-                    case 4: // read the keyword, detect control block, and store the preface if necessary
-                        ++x;
-                        if (w < 0) {
-                            done = true;        // block was shorter than preface indicated
-                            advance.call(that, x-1, repositionAndAbort);
-                        } else {
-                            if (controlEnabled) {
-                                sign = (w - w%0x10000000000)%0x10;
-                                if (sign == 7) {
-                                    controlBlock = true;
-                                    // strip sign digit from keyword (not entirely sure this should be done)
-                                    w %= 0x10000000000;
-                                }
-                            }
-
-                            if (record) {       // store the preface word (with keyword sign if a control block)
-                                sign = ((sign*0x10 + (words%100 - words%10)/10)*0x10 + words%10)*0x100000000;
-                                done = (storeWord(firstWord, sign) < 0);        // true if memory error
-                                firstWord = false;
-                            }
-
-                            if (controlBlock) {
-                                --words;        // prevent storing the control word
-                            }
-
-                            if (done) {         // error storing preface word
-                                advance.call(that, x, abort);
-                            } else {
-                                w = storeWord(firstWord, w);
-                                if (w < 0) {
-                                    done = true;        // keyword memory store failed
-                                    advance.call(that, x, abort);
-                                } else {
-                                    firstWord = false;
-                                    ++count;
-                                    state = 5;
-                                }
-                            }
-                        }
-                        break;
-
-                    case 5: // read and store the remaining block words
-                        if (count < words) {
-                            if (w < 0) {
-                                done = true;    // block was shorter than preface indicated
-                                advance.call(that, x-1, repositionAndAbort);
-                            } else {
-                                w = storeWord(firstWord, w);
-                                if (w < 0) {
-                                    done = true;        // memory store failed
-                                    advance.call(that, x, abort);
-                                } else {
-                                    firstWord = false;
-                                    ++x;
-                                    ++count;
-                                }
-                            }
-                        } else if (controlBlock) {
-                            if (w < 0) {
-                                done = true;    // block was shorter than preface indicated
-                                advance.call(that, x-1, repositionAndAbort);
-                            } else {
-                                controlWord = w;
-                                ++x;
-                                state = 7;      // deal with the control word after EOB
-                            }
-                        } else {
-                            state = 7;          // check for proper EOB
-                        }
-                        break;
-
-                    case 6: // fetch the control word for an end-of-tape block and terminate
-                        controlWord = w;
-                        ++x;
-                        done = true;            // signal end-of-tape block
-                        advance.call(that, x, signalControl);
-                        break;
-
-                    case 7: // check for proper end-of-block and terminate
-                        done = true;
-                        if (w != that.markerEOB) {
-                            advance.call(that, x, repositionAndAbort);
-                        } else {                // block was longer than preface indicated
-                            if (controlBlock) {
-                                advance.call(that, x+that.endOfBlockWords, repositionAndSignal);
-                            } else {
-                                advance.call(that, x+that.endOfBlockWords, finalizeBlock);
-                            }
-                        }
-                        break;
-                    } // switch state
-                }
-            } while (!done);
-        }
-    }
-
-    function firstBlock() {
-        /* Called after the startTime delay to signal the control unit we are
-        ready for the first block of data */
-
-        blockReady(false, false, 0, readBlockNext, release);
-    }
-
-    if (this.busy || this.rewindLock) {
-        result = true;                  // unit busy or in RWL
-    } else if (!this.ready) {
-        result = true;                  // unit not ready
-    } else if (this.atEOT) {
-        result = true;                  // tape at EOT
+    if (this.busy) {
+        driveState.state = driveState.driveBusy;
+        return Promise.reject(driveState);
+    } else if (!this.ready || this.rewindLock) {
+        driveState.state = driveState.driveNotReady;
+        return Promise.reject(driveState);
+    } else if (this.atBOT) {
+        driveState.state = driveState.driveAtBOT;
+        return Promise.reject(driveState);
     } else {
-        this.busy = true;
-        this.designatedLamp.set(1);
-        this.setAtBOT(false);
-
-        // Begin with a delay for start-up time
-        setCallback(this.mnemonic, this, this.startTime, firstBlock);
+        return new Promise((resolve, reject) => {
+            this.busy = true;
+            this.designatedLamp.set(1);
+            this.setAtEOT(false);
+            this.imgIndex -= this.startWords;
+            driveState.completionDelay -= this.startTime;
+            setCallback(this.mnemonic, this, this.startTime, resolve, driveState);
+            this.moveTape(-this.startWords*this.inchesPerWord, this.startTime, resolve, driveState);
+        });
     }
-
-    //console.log(this.mnemonic + " readBlock         result=" + result.toString());
-    return result;
 };
 
 /**************************************/
-B220MagTapeDrive.prototype.overwriteBlock = function overwriteBlock(blockReady, releaseControl) {
-    /* Overwrites blocks on tape. "blockReady" is a function to be called after
-    a block is overwritten. "releaseControl" is a function to call after the
-    control signals completion (see release). This routine is used for both MOW
-    and MOR, as block lengths are determined by the tape control unit */
-    var controlWord = 0;                // stashed control word for end-of-tape block
-    var imgLength = this.imgLength;     // physical end of tape index
-    var lane = this.image[this.laneNr]; // image data for current lane
-    var result = false;
-    var that = this;
-
-    function release() {
-        /* Releases the unit and control */
-
-        that.releaseUnit(releaseControl, false);
-    }
-
-    function finish() {
-        /* Wraps up the positioning and delays before releasing the unit and control */
-        var delay = 18 - that.startTime - that.repositionTime;
-
-        setCallback(that.mnemonic, that, delay, release);
-    }
-
-    function turnaround() {
-        /* Repositions the tape after the last block is written */
-
-        that.tapeReposition(finish);
-    }
-
-    function signalControl() {
-        /* Returns to the tape control after encountering an end-of-tape block,
-        using the control word stashed by writeBlock. Note that tape must be
-        positioned to read the block after the end-of-tape block, but we are
-        already past the first word in the block, so we don't reposition backwards
-        in this case -- just leave the tape where it is and normal pre-block
-        scanning will find the next block */
-
-        blockReady(false, true, controlWord, null, finish);
-    }
-
-    function finalizeBlock() {
-        /* Returns to the tape control after completion of one block */
-
-        blockReady(false, false, 0, writeBlock, turnaround);
-    }
-
-    function abort() {
-        /* Aborts the I/O due to some error */
-
-        blockReady(true, false, 0, null, release);
-    }
-
-    function repositionAndAbort() {
-        /* Repositions the tape image so that the block causing the abort can be
-        read by the next operation. Then aborts the I/O */
-
-        that.tapeReposition(abort);
-    }
-
-    function setEOT() {
-        /* Sets EOT status after positioning to end-of-tape. Does not release
-        the control unit */
-
-        that.setAtEOT(true);
-        that.releaseUnit(null, false);
-    }
-
-    function advance (index, successor) {
-        /* Advances the tape after a block is passed, then calls the successor */
-        var len = index - that.imgIndex;    // number of words passed
-        var delay = len*that.millisPerWord; // amount of tape spin time
-
-        that.imgIndex = index;
-        if (index > that.imgTopWordNr) {
-            that.imgTopWordNr = index;
-        }
-        that.moveTape(len*that.inchesPerWord, delay, successor);
-    }
-
-    function writeBlock(fetchWord, words) {
-        /* Overwrites the next block in the tape image. "fetchWord" is a call-back
-        to retrieve the next word from the Processor's memory. "words" is the
-        number of words in the block, 0 => "record" mode */
-        var count = 0;                  // word counter
-        var done = false;               // completion flag
-        var firstWord = true;           // flag for initial memory fetch
-        var state = 1;                  // FSA state variable
-        var w;                          // current image word
-        var x = that.imgIndex;          // lane image word index
-
-        if (!that.ready) {
-            done = true;                // drive went non-ready
-            advance.call(that, x, abort);
-        } else {
-            do {
-                if (x >= imgLength) {
-                    done = true;        // at EOT: just exit and leave everybody hanging...
-                    that.busy = false;
-                    advance.call(that, x, setEOT);
-                } else {
-                    w = lane[x];
-
-                    switch (state) {
-                    case 1: // initial state: skip over flaw and intra-block words
-                        if (w == that.markerGap) {
-                            state = 2;
-                        } else {
-                            ++x;
-                        }
-                        break;
-
-                    case 2: // skip over inter-block gap and magnetic EOT words
-                        if (w == that.markerGap) {
-                            ++x;
-                        } else if (w == that.markerEOT) {
-                            ++x;
-                        } else if (w >= 0) {
-                            state = 3;          // found the preface
-                        } else {
-                            done = true;        // not a formatted tape
-                            advance.call(that, x, abort);
-                        }
-                        break;
-
-                    case 3: // check the preface
-                        ++x;
-                        if (words <= 0) {       // overwrite, record: fetch preface
-                            words = fetchWord(firstWord);
-                            if (words < 0) {    // memory fetch failed
-                                done = true;
-                            } else {            // convert preface word to binary
-                                firstWord = false;
-                                words = ((words - words%0x100000000)/0x100000000)%0x100;
-                                if (words > 0) {
-                                    words = (words >>> 4)*10 + words%0x10;
-                                } else {
-                                    words = 100;        // preface == 0 => 100
-                                }
-                            }
-                        }
-
-                        if (done) {             // preface fetch failed
-                            advance.call(that, x, abort);
-                        } else if (w < that.minBlockWords && w > 1) {
-                            done = true;        // preface check: invalid block size
-                            advance.call(that, x, abort);
-                        } else if (w == words) {
-                            state = 4;          // preface match: overwrite the block
-                        } else if (w == 1) {
-                            state = 5;          // preface mismatch on end-of-tape block
-                        } else {
-                            done = true;        // other preface mismatch
-                            advance.call(that, x, repositionAndAbort);
-                        }
-                        break;
-
-                    case 4: // overwrite the block words
-                        if (count < words) {
-                            if (w < 0) {
-                                done = true;    // block was shorter than preface indicated
-                                advance.call(that, x-1, repositionAndAbort);
-                            } else {
-                                w = fetchWord(firstWord);
-                                if (w < 0) {
-                                    done = true;        // memory fetch failed
-                                    advance.call(that, x, abort);
-                                } else {
-                                    firstWord = false;
-                                    lane[x] = w;
-                                    ++x;
-                                    ++count;
-                                }
-                            }
-                        } else if (count < that.minBlockWords) {
-                            if (w < 0) {        // block was shorter than preface indicated
-                                done = true;
-                                advance.call(that, x-1, repositionAndAbort);
-                            } else {
-                                lane[x] = 0;
-                                ++x;
-                                ++count;
-                            }
-                        } else if (w == that.markerEOB) {
-                            done = true;        // normal block termination
-                            advance.call(that, x+that.endOfBlockWords, finalizeBlock);
-                        } else {
-                            done = true;        // block was longer than preface indicated
-                            advance.call(that, x, repositionAndAbort);
-                        }
-                        break;
-
-                    case 5: // fetch the control word for an end-of-tape preface mismatch and terminate
-                        controlWord = w;
-                        ++x;
-                        done = true;            // signal end-of-tape block
-                        advance.call(that, x, signalControl);
-                        break;
-                    } // switch state
-                }
-            } while (!done);
-        }
-    }
-
-    function firstBlock() {
-        /* Called after the startTime delay to signal the control unit we are
-        ready for the first block of data */
-
-        blockReady(false, false, 0, writeBlock, release);
-    }
-
-    if (this.busy || this.rewindLock) {
-        result = true;                  // unit busy or in RWL
-    } else if (!this.ready) {
-        result = true;                  // unit not ready
-    } else if (this.notWrite) {
-        result = true;                  // tape in not-write status
-    } else if (this.atEOT) {
-        result = true;                  // tape at EOT
-    } else {
-        this.busy = true;
-        this.imgWritten = true;
-        this.designatedLamp.set(1);
-        this.setAtBOT(false);
-
-        // Begin with a delay for start-up time
-        setCallback(this.mnemonic, this, this.startTime, firstBlock);
-    }
-
-    //console.log(this.mnemonic + " overwriteBlock    result=" + result.toString());
-    return result;
-};
-
-/**************************************/
-B220MagTapeDrive.prototype.initialWriteBlock = function initialWriteBlock(blockReady, releaseControl) {
-    /* Writes blocks on edited (blank) tape. "blockReady" is a function to be
-    called after the block is written. "releaseControl" is a function to call
-    after the control signals completion (see release). This routine is used for
-    both MIW and MIR, as block lengths are determined by the tape control unit */
-    var imgLength = this.imgLength;     // physical end of tape index
-    var lane = this.image[this.laneNr]; // image data for current lane
-    var result = false;
-    var that = this;
-
-    function release() {
-        /* Releases the unit and control */
-
-        that.releaseUnit(releaseControl, false);
-    }
-
-    function finish() {
-        /* Wraps up the positioning and delays before releasing the unit and control */
-        var delay = 20 - that.startTime - that.repositionTime;
-
-        setCallback(that.mnemonic, that, delay, release);
-    }
-
-    function turnaround() {
-        /* Repositions the tape after the last block is written */
-
-        that.tapeReposition(finish);
-    }
-
-    function finalizeWrite() {
-        /* Write a longer inter-block gap so that MPE will work at magnetic
-        end-of-tape, check for end-of-tape, and initiate repositioning prior
-        to terminating the I/O */
-        var count = that.startOfBlockWords*2; // number of gap words
-        var done = false;               // loop control
-        var x = that.imgIndex;          // lane image word index
-
-        do {
-            if (x >= imgLength) {
-                done = true;            // at end-of-tape
-                that.setAtEOT(true);
-                advance.call(that, x, finish);
-            } else if (count > 0) {
-                --count;                // write extra inter-block gap word
-                lane[x] = that.markerGap;
-                ++x;
-            } else if (lane[x] == that.markerMagEOT) {
-                ++x;                    // space over magnetic EOT words
-            } else {
-                done = true;            // finish write and initiate repositioning
-                advance.call(that, x, turnaround);
-            }
-        } while(!done);
-    }
-
-    function finalizeBlock() {
-        /* Returns to the tape control after completion of one block */
-
-        blockReady(false, writeBlock, finalizeWrite);
-    }
-
-    function abort() {
-        /* Aborts the I/O due to some error */
-
-        blockReady(true, null, release);
-    }
-
-    function setEOT() {
-        /* Sets EOT status after positioning to end-of-tape. Does not release
-        the control unit */
-
-        that.setAtEOT(true);
-        that.releaseUnit(null, false);
-    }
-
-    function advance (index, successor) {
-        /* Advances the tape after a block is passed, then calls the successor */
-        var len = index - that.imgIndex;    // number of words passed
-        var delay = len*that.millisPerWord; // amount of tape spin time
-
-        that.imgIndex = index;
-        if (index > that.imgTopWordNr) {
-            that.imgTopWordNr = index;
-        }
-        that.moveTape(len*that.inchesPerWord, delay, successor);
-    }
-
-    function writeBlock(fetchWord, words) {
-        /* Initial-writes the next block in the tape image. "fetchWord" is a
-        call-back to retrieve the next word from the Processor's memory.
-        "words" is the number of words in the block, 0 => "record" mode */
-        var count = 0;                  // word counter
-        var done = false;               // completion flag
-        var firstWord = true;           // flag for initial memory fetch
-        var gapCount = 0;               // count of consecutive inter-block gap words
-        var state = 1;                  // FSA state variable
-        var w;                          // memory word
-        var x = that.imgIndex;          // lane image word index
-
-        if (!that.ready) {
-            done = true;                // drive went non-ready
-            advance.call(that, x, abort);
-        } else {
-            do {
-                if (x >= imgLength) {
-                    done = true;        // at EOT: just exit and leave everybody hanging...
-                    that.busy = false;
-                    advance.call(that, x, setEOT);
-                } else {
-
-                    switch (state) {
-                    case 1: // initial state: skip over flaw and intra-block words
-                        if (lane[x] == that.markerGap) {
-                            state = 2;
-                        } else {
-                            ++x;
-                        }
-                        break;
-
-                    case 2: // count 3 consecutive inter-block gap words
-                        if (lane[x] == that.markerGap) {
-                            ++gapCount;
-                            if (gapCount < that.startOfBlockWords) {
-                                ++x;
-                            } else {
-                                state = 3;
-                            }
-                        } else if (lane[x] == that.markerMagEOT) {
-                            ++x;
-                        } else {
-                            done = true;        // not an edited tape
-                            advance.call(that, x, abort);
-                        }
-                        break;
-
-                    case 3: // write the preface
-                        if (words <= 0) {       // initial-write, record: fetch preface
-                            words = fetchWord(firstWord);
-                            if (words < 0) {    // memory fetch failed
-                                done = true;
-                            } else {            // convert preface word to binary
-                                firstWord = false;
-                                words = ((words - words%0x100000000)/0x100000000)%0x100;
-                                if (words > 0) {
-                                    words = (words >>> 4)*10 + words%0x10;
-                                } else {
-                                    words = 100;        // preface == 0 => 100
-                                }
-                            }
-                        }
-
-                        if (done) {             // preface fetch failed
-                            advance.call(that, x, abort);
-                        } else if (words < that.minBlockWords && words > 1) {
-                            done = true;        // invalid block size
-                            advance.call(that, x, abort);
-                        } else {
-                            lane[x] = words;
-                            ++x;
-                            state = 4;
-                        }
-                        break;
-
-                    case 4: // write the block words
-                        if (count < words) {
-                            w = fetchWord(firstWord);
-                            if (w < 0) {
-                                done = true;        // memory fetch failed
-                                advance.call(that, x, abort);
-                            } else {
-                                firstWord = false;
-                                lane[x] = w;
-                                ++x;
-                                ++count;
-                            }
-                        } else if (count < that.minBlockWords) {
-                            lane[x] = 0;
-                            ++x;
-                            ++count;
-                        } else {
-                            count = 0;
-                            state = 5;
-                        }
-                        break;
-
-                    case 5: // write the erase gap
-                        if (count < that.endOfBlockWords) {
-                            lane[x] = that.markerEOB;
-                            ++x;
-                            ++count;
-                        } else {
-                            done = true;
-                            advance.call(that, x, finalizeBlock);
-                        }
-                        break;
-                    } // switch state
-                }
-            } while (!done);
-        }
-    }
-
-    function firstBlock() {
-        /* Called after the startTime delay to signal the control unit we are
-        ready for the first block of data */
-
-        blockReady(false, writeBlock, release);
-    }
-
-    if (this.busy || this.rewindLock) {
-        result = true;                  // unit busy or in RWL
-    } else if (!this.ready) {
-        result = true;                  // unit not ready
-    } else if (this.notWrite) {
-        result = true;                  // tape in not-write status
-    } else if (this.atEOT) {
-        result = true;                  // tape at EOT
-    } else {
-        this.busy = true;
-        this.imgWritten = true;
-        this.designatedLamp.set(1);
-        this.setAtBOT(false);
-
-        // Begin with a delay for start-up time
-        setCallback(this.mnemonic, this, this.startTime, firstBlock);
-    }
-
-    //console.log(this.mnemonic + " initialWriteBlock result=" + result.toString());
-    return result;
-};
-
-/**************************************/
-B220MagTapeDrive.prototype.positionForward = function positionForward(blockFinished, releaseControl) {
-    /* Positions tape in a forward direction. "blockFinished" is a function  to
-    be called after a block is spaced. "releaseControl" is a function to call
-    after the last block is spaced (see spaceForward and turnaround) */
-    var lane = this.image[this.laneNr]; // image data for current lane
-    var result = false;
-    var that = this;
-
-    function release() {
-        /* Releases the unit and control */
-
-        that.releaseUnit(releaseControl, false);
-    }
-
-    function finish() {
-        /* Wraps up the positioning and delays before releasing the unit and control */
-        var delay = 16 - that.startTime - that.repositionTime;
-
-        setCallback(that.mnemonic, that, delay, release);
-    }
-
-    function turnaround() {
-        /* Repositions the tape after the last block is spaced over */
-
-        that.tapeReposition(finish);
-    }
-
-    function setEOT() {
-        /* Sets EOT status after positioning to end-of-tape. Does not release
-        the control unit */
-
-        that.setAtEOT(true);
-        that.relaseUnit(null, false);
-    }
-
-    function advance (index, successor) {
-        /* Advances the tape after a block is passed, then calls the successor */
-        var len = index - that.imgIndex;    // number of words passed
-        var delay = len*that.millisPerWord; // amount of tape spin time
-
-        that.imgIndex = index;
-        that.moveTape(len*that.inchesPerWord, delay, successor);
-    }
-
-    function spaceForward(blockFinished) {
-        /* Spaces over the next block */
-        var done = false;                   // completion flag
-        var imgLength = that.imgLength;     // physical end of tape index
+B220MagTapeDrive.prototype.reposition = function reposition(driveState) {
+    /* Reverses tape direction after a forward tape operation and repositions
+    the head five words from the end of the prior block, giving room for
+    startup acceleration of the next forward operation. The "prior block" is
+    located by the first EOB (erase gap) or flaw marker word encountered when
+    moving in a backward direction. Returns a Promise that resolves when tape
+    motion is complete.
+
+    A real 220 drive repositioned tape about 60 digits (five words) from the end
+    of the data portion of the block, to allow for tape acceleration of about
+    3ms, at which point it took about 2ms (50 digits, or just over four words)
+    to reach the end of the erase gap and start of the inter-block gap for the
+    next block. this.repositionWords is sized to approximate the 3ms
+    acceleration delay */
+
+    return new Promise((resolve, reject) => {
+        var lane = this.image[this.laneNr]; // image data for current lane
         var state = 1;                      // FSA state variable
-        var w;                              // current image word
-        var x = that.imgIndex;              // lane image word index
+        var x = this.imgIndex-1;            // lane image word index (start with prior word)
 
         do {
-            if (x >= imgLength) {
-                done = true;                // just exit and leave everybody hanging...
-                that.busy = false;
-                advance.call(that, x, setEOT);
-            } else if (!that.ready) {
-                done = true;
-                that.busy = false;
-                that.releaseUnit(releaseControl, true);
+            if (x <= 0) {
+                state = 0;                  // at BOT
             } else {
-                w = lane[x];
-
                 switch (state) {
-                case 1: // initial state: skip over flaw and intra-block words
-                    if (w == that.markerGap) {
+                case 1: // initial state: skip backwards until erase-gap or BOT flaw-marker words
+                    if (lane[x] == this.markerEOB) {
                         state = 2;
+                    } else if (lane[x] == this.markerFlaw) {
+                        state = 0;
                     } else {
-                        ++x;
+                        --x;
                     }
                     break;
-
-                case 2: // skip inter-block gap words
-                    if (w != that.markerGap) {
-                        state = 3;
+                case 2: // skip backwards over erase-gap words
+                    if (lane[x] == this.markerEOB) {
+                        --x;
                     } else {
-                        ++x;
-                    }
-                    break;
-
-                case 3: // search for end of block (next inter-block gap word)
-                    if (w != that.markerGap) {
-                        ++x;
-                    } else {
-                        done = true;
-                        advance.call(that, x, function cb() {blockFinished(spaceForward, turnaround)});
+                        state = 0;
                     }
                     break;
                 } // switch state
             }
-        } while (!done);
+        } while (state);
 
-    }
+        x = this.imgIndex - x + this.repositionWords;       // words to reposition
+        if (x < this.imgIndex) {
+            this.imgIndex -= x;
+        } else {
+            x = this.imgIndex;
+            this.imgIndex = 0;
+            driveState.state = driveState.driveAtBOT;
+            this.setAtBOT(true);
+        }
 
-    if (this.busy || this.rewindLock) {
-        result = true;                  // unit busy or in RWL
-    } else if (!this.ready) {
-        result = true;                  // unit not ready
-    } else if (this.atEOT) {
-        result = true;                  // tape at EOT, leave control hung
-    } else {
-        this.busy = true;
-        this.designatedLamp.set(1);
-        this.setAtBOT(false);
-
-        // Begin with a delay for start-up time
-        setCallback(this.mnemonic, this, this.startTime, spaceForward, blockFinished);
-    }
-
-    //console.log(this.mnemonic + " positionForward   result=" + result.toString());
-    return result;
+        driveState.completionDelay -= this.turnaroundTime;
+        this.moveTape(-x*this.inchesPerWord, this.turnaroundTime, resolve, driveState);
+    });
 };
 
 /**************************************/
-B220MagTapeDrive.prototype.positionBackward = function positionBackward(blockFinished, releaseControl) {
-    /* Positions tape in a backward direction. "blockFinished" is a function to
-    be called after a block is spaced. "releaseControl" is a function to call
-    after the last block is spaced (see spaceBackward and finish) */
-    var lane = this.image[this.laneNr]; // image data for current lane
-    var result = false;
-    var that = this;
+B220MagTapeDrive.prototype.reverseDirection = function reverseDirection(driveState) {
+    /* Generates a delay to allow the drive to stop and reverse direction.
+    Returns a Promise that resolves when the delay is complete */
 
-    function release() {
-        /* Releases the unit and control */
+    return new Promise((resolve, reject) => {
+        setCallback(this.mnemonic, this, this.turnaroundTime, resolve, driveState);
+    });
+};
 
-        that.releaseUnit(releaseControl, false);
+/**************************************/
+B220MagTapeDrive.prototype.scanBlock = function scanBlock(driveState, wordIndex) {
+    /* Scans one block in a forward direction. Terminates with either the control
+    word from an EOT or control block, or the category word from any other block
+    stored in the "driveState" structure. "wordIndex" is the 1-relative index
+    of the category word to match. Returns a Promise that resolves at the end
+    of the block scan. This routine is used for MTC and MFC */
+
+    var scanForward = (resolve, reject) => {
+        /* Reads the start of the next block in the tape image in a forward
+        direction to obtain its category word */
+        var count = 0;                  // word counter within block
+        var imgLength = this.imgLength; // physical end of tape index
+        var lane = this.image[this.laneNr]; // image data for current lane
+        var preface = 0;                // block length read from tape image
+        var sign = 0;                   // sign digit of keyword
+        var state = 1;                  // FSA state variable
+        var w = 0;                      // current image word
+        var x = this.imgIndex;          // lane image word index
+
+        do {
+            if (x >= imgLength) {
+                state = 0;              // at EOT: just exit and leave the control hanging...
+                driveState.state = driveState.driveAtEOT;
+                this.moveTapeTo(x, driveState).then(this.boundSetEOT);
+            } else {
+                w = lane[x];
+                switch (state) {
+                case 1: // initial state: skip over flaw and intra-block words
+                    if (w == this.markerGap) {
+                        state = 2;
+                    } else {
+                        ++x;
+                    }
+                    break;
+
+                case 2: // skip over inter-block gap and magnetic EOT words
+                    if (w == this.markerGap) {
+                        ++x;
+                    } else if (w == this.markerMagEOT) {
+                        ++x;
+                    } else if (w >= 0) {
+                        state = 3;      // found the preface
+                    } else {
+                        state = 0;      // not a formatted tape
+                        driveState.state = driveState.drivePrefaceCheck;
+                        reject(this.moveTapeTo(x, driveState));
+                    }
+                    break;
+
+                case 3: // read the preface and check for EOT block
+                    ++x;
+                    preface = w;
+                    if (preface == 1) {
+                        state = 6;      // detected end-of-tape block
+                    } else if (preface < this.minBlockWords && preface > 1) {
+                        state = 0;      // invalid preface on tape
+                        driveState.state = driveState.drivePrefaceCheck;
+                        reject(this.moveTapeTo(x, driveState));
+                    } else {
+                        state = 4;      // normal or control block
+                    }
+                    break;
+
+                case 4: // read keyword, detect control block, do not advance beyond keyword (yet)
+                    if (w < 0) {
+                        state = 0;      // preface/block-length mismatch
+                        driveState.state = driveState.driveReadCheck;
+                        reject(this.moveTapeTo(x-1, driveState).then(this.boundReposition));
+                    } else {
+                        sign = (w - w%0x10000000000)/0x10000000000;
+                        if (sign == 7) {
+                            state = 6;  // detected control block
+                        } else {
+                            state = 5;  // normal block
+                        }
+                    }
+                    break;
+
+                case 5: // read the block words and capture the category word
+                    if (w < 0) {
+                        state = 0;  // preface/block-length mismatch
+                        driveState.state = driveState.driveReadCheck;
+                        reject(this.moveTapeTo(x-1, driveState).then(this.boundReposition));
+                    } else {
+                        ++count;
+                        ++x;
+                        if (count >= wordIndex) {
+                            driveState.keyword = w;     // return category word to the TCU
+                            state = 7;                  // finish the block
+                        }
+                    }
+                    break;
+
+                case 6: // handle an end-of-tape or control block
+                    if (w < 0) {
+                        state = 0;      // block was shorter than preface indicated
+                        driveState.state = driveState.driveReadCheck;
+                        reject(this.moveTapeTo(x-1, driveState).then(this.boundReposition));
+                    } else {
+                        driveState.state = driveState.driveHasControlWord;
+                        driveState.controlWord = w;     // not used by the TCU
+                        ++x;
+                        state = 7;
+                    }
+                    break;
+
+                case 7: // step through remaining words in the block until normal EOB
+                    if (w == this.markerEOB) {
+                        state = 8;
+                    } else {
+                        ++x;
+                    }
+                    break;
+
+                case 8: // step through erase-gap words and finish normally
+                    if (w == this.markerEOB) {
+                        ++x;
+                    } else {
+                        state = 0;
+                        resolve(this.moveTapeTo(x, driveState));
+                    }
+                    break;
+                } // switch state
+            }
+        } while (state);
     }
 
-    function finish() {
-        /* Wraps up the positioning and delays before releasing the unit and control */
-        var delay = 6 - that.startTime;
+    if (!this.ready || this.atEOT) {
+        driveState.state = driveState.driveNotReady;
+        return Promise.reject(driveState);
+    } else {
+        return new Promise(scanForward);
+    }
+};
 
-        setCallback(that.mnemonic, that, delay, release);
+/**************************************/
+B220MagTapeDrive.prototype.searchForwardBlock = function searchForwardBlock(driveState) {
+    /* Searches one block in a forward direction. Terminates with either the
+    control word from an EOT block or the keyword from any other block stored
+    in the "driveState" structure. Returns a Promise that resolves at the end
+    of the block search. This routine is used for MTS and MFS */
+
+    var searchForward = (resolve, reject) => {
+        /* Reads the start of the next block in the tape image in a forward
+        direction to obtain its keyword, leaving the tape positioned after
+        the keyword */
+        var imgLength = this.imgLength; // physical end of tape index
+        var lane = this.image[this.laneNr]; // image data for current lane
+        var preface = 0;                // block length read from tape image
+        var state = 1;                  // FSA state variable
+        var w = 0;                      // current image word
+        var x = this.imgIndex;          // lane image word index
+
+        do {
+            if (x >= imgLength) {
+                state = 0;              // at EOT: just exit and leave the control hanging...
+                driveState.state = driveState.driveAtEOT;
+                this.moveTapeTo(x, driveState).then(this.boundSetEOT);
+            } else {
+                w = lane[x];
+                switch (state) {
+                case 1: // initial state: skip over flaw and intra-block words
+                    if (w == this.markerGap) {
+                        state = 2;
+                    } else {
+                        ++x;
+                    }
+                    break;
+
+                case 2: // skip over inter-block gap and magnetic EOT words
+                    if (w == this.markerGap) {
+                        ++x;
+                    } else if (w == this.markerMagEOT) {
+                        ++x;
+                    } else if (w >= 0) {
+                        state = 3;      // found the preface
+                    } else {
+                        state = 0;      // not a formatted tape
+                        driveState.state = driveState.drivePrefaceCheck;
+                        reject(this.moveTapeTo(x, driveState));
+                    }
+                    break;
+
+                case 3: // read the preface and check for EOT block
+                    ++x;
+                    preface = w;
+                    if (preface == 1) {
+                        state = 5;      // detected end-of-tape block
+                    } else if (preface < this.minBlockWords && preface > 1) {
+                        state = 0;      // invalid preface on tape
+                        driveState.state = driveState.drivePrefaceCheck;
+                        reject(this.moveTapeTo(x, driveState));
+                    } else {
+                        state = 4;      // normal or control block
+                    }
+                    break;
+
+                case 4: // read the keyword and finish
+                    if (w < 0) {
+                        state = 0;      // preface/block-length mismatch
+                        driveState.state = driveState.driveReadCheck;
+                        reject(this.moveTapeTo(x-1, driveState).then(this.boundReposition));
+                    } else {
+                        state = 0;      // finish the block
+                        driveState.keyword = w;
+                        resolve(this.moveTapeTo(x+this.repositionWords, driveState));
+                    }
+                    break;
+
+                case 5: // handle an end-of-tape block and finish
+                    if (w < 0) {
+                        state = 0;      // block was shorter than preface indicated
+                        driveState.state = driveState.driveReadCheck;
+                        reject(this.moveTapeTo(x-1, driveState).then(this.boundReposition));
+                    } else {
+                        state = 0;      // finish the block
+                        driveState.state = driveState.driveHasControlWord;
+                        driveState.controlWord = w;     // not used by the TCU
+                        resolve(this.moveTapeTo(x+this.repositionWords, driveState));
+                    }
+                    break;
+                } // switch
+            }
+        } while (state);
     }
 
-    function setBOT() {
-        /* Sets BOT status after positioning to beginning-of-tape. Does not
-        release the control unit */
-
-        that.setAtBOT(true);
-        that.releaseUnit(null, false);
+    if (!this.ready || this.atEOT) {
+        driveState.state = driveState.driveNotReady;
+        return Promise.reject(driveState);
+    } else {
+        return new Promise(searchForward);
     }
+};
 
-    function advance (index, successor) {
-        /* Advances the tape after a block is passed, then calls the successor */
-        var len = index - that.imgIndex;    // number of words passed
-        var delay = len*that.millisPerWord; // amount of tape spin time
+/**************************************/
+B220MagTapeDrive.prototype.searchBackwardBlock = function searchBackwardBlock(driveState) {
+    /* Searches one block in a backward direction. Terminates with the keyword
+    from block stored in the "driveState" structure. Returns a Promise that
+    resolves at the end of the block search. This routine is used for MTS and
+    MFS */
 
-        that.imgIndex = index;
-        that.moveTape(len*that.inchesPerWord, delay, successor);
-    }
-
-    function spaceBackward(blockFinished) {
-        /* Spaces over the current or prior block until the inter-block gap */
-        var done = false;                   // completion flag
-        var state = 1;                      // FSA state variable
-        var w;                              // current image word
-        var x = that.imgIndex;              // lane image word index
+    var searchBackward = (resolve, reject) => {
+        /* Reads the start of the next block in the tape image in a backward
+        direction to obtain its keyword, leaving the tape positioned in the
+        prior block */
+        var count = 0;                  // contiguous block data word counter
+        var imgLength = this.imgLength; // physical end of tape index
+        var keyword = 0;                // keyword from block
+        var lane = this.image[this.laneNr]; // image data for current lane
+        var preface = 0;                // block length read from tape image
+        var state = 1;                  // FSA state variable
+        var w = 0;                      // current image word
+        var x = this.imgIndex-1;        // lane image word index (start with prior word)
 
         do {
             if (x <= 0) {
-                done = true;                // just exit and leave everybody hanging...
-                that.busy = false;
-                advance.call(that, x, setBOT);
-            } else if (!that.ready) {
-                done = true;
-                that.busy = false;
-                that.releaseUnit(releaseControl, true);
+                state = 0;                      // at BOT: just exit and leave the control hanging...
+                driveState.state = driveState.driveAtBOT;
+                this.moveTapeTo(x, driveState).then(this.boundSetBOT);
             } else {
                 w = lane[x];
-
                 switch (state) {
-                case 1: // initial state: skip over flaw words
-                    if (w == that.markerGap) {
+                case 1: // initial state: skip over flaw and magnetic EOT words
+                    if (w == this.markerGap) {
                         state = 2;
-                    } else if (w == that.markerFlaw) {
+                    } else if (w == this.markerFlaw) {
+                        --x;
+                    } else if (w == this.markerMagEOT) {
                         --x;
                     } else {
                         state = 3;
@@ -2211,125 +1564,763 @@ B220MagTapeDrive.prototype.positionBackward = function positionBackward(blockFin
                     break;
 
                 case 2: // skip initial inter-block gap words
-                    if (w != that.markerGap) {
-                        state = 3;
-                    } else {
+                    if (w == this.markerGap) {
                         --x;
+                    } else {
+                        state = 3;
                     }
                     break;
 
                 case 3: // search for start of block (first prior inter-block gap word)
-                    if (w != that.markerGap) {
+                    if (w == this.markerGap) {
+                        state = 4;
+                    } else if (w < 0) {
+                        count = 0;
                         --x;
                     } else {
-                        state = 4;
+                        keyword = preface;      // remember the last two words we've seen
+                        preface = w;
+                        --x;
+                        ++count;
                     }
                     break;
 
                 case 4: // skip this block's inter-block gap words
-                    if (w != that.markerGap) {
-                        done = true;
-                        x -= that.repositionWords;      // position into end of prior block, as usual
-                        advance.call(that, x, function cb() {blockFinished(spaceBackward, finish)});
-                    } else {
+                    if (w == this.markerGap) {
                         --x;
+                    } else {
+                        state = 5;
+                    }
+                    break;
+
+                case 5: // skip the prior block's erase-gap words, store the keyword, and then quit
+                    if (w == this.markerEOB) {
+                        --x;
+                    } else if (count < 2) {
+                        state = 1;      // saw less than 2 block data words, start over
+                        driveState.state = driveState.driveReadCheck;
+                        reject(this.moveTapeTo(x-this.repositionWords, driveState));
+                    } else {
+                        state = 0;      // position into end of prior block, as usual
+                        driveState.keyword = keyword;
+                        resolve(this.moveTapeTo(x-this.repositionWords, driveState));
                     }
                     break;
                 } // switch state
             }
-        } while (!done);
+        } while (state);
     }
 
-    if (this.busy || this.rewindLock) {
-        result = true;                  // unit busy or in RWL
-    } else if (!this.ready) {
-        result = true;                  // unit not ready
-    } else if (this.atBOT) {
-        result = true;                  // tape at BOT, leave control hung
+    if (!this.ready || this.atBOT) {
+        driveState.state = driveState.driveNotReady;
+        return Promise.reject(driveState);
     } else {
-        this.busy = true;
-        this.designatedLamp.set(1);
-        this.setAtEOT(false);
-
-        // Begin with a delay for start-up time
-        setCallback(this.mnemonic, this, this.startTime, spaceBackward, blockFinished);
+        return new Promise(searchBackward);
     }
-
-    //console.log(this.mnemonic + " positionBackward  result=" + result.toString());
-    return result;
 };
 
 /**************************************/
-B220MagTapeDrive.prototype.positionAtEnd = function positionAtEnd(releaseControl) {
-    /* Positions the tape to the end of recorded information (i.e., gap longer
-    and inter-block gap */
-    var lane = this.image[this.laneNr]; // image data for current lane
-    var result = false;
-    var that = this;
+B220MagTapeDrive.prototype.readNextBlock = function readNextBlock(driveState, record, controlEnabled, storeWord) {
+    /* Reads one block on tape. "record" is true for MRR. "controlEnabled" is true
+    if control blocks are to be recognized. "storeWord" is a call-back to store
+    the next word into the Processor's memory. This routine is used for both MRD
+    and MRR, as block lengths are determined by the tape control unit. Returns
+    a Promise that resolves when the read completes */
 
-    function release() {
-        /* Releases the unit and control */
-
-        that.releaseUnit(releaseControl, false);
-    }
-
-    function finish() {
-        /* Wraps up the positioning and delays before releasing the unit and control */
-        var delay = 23 - that.startTime - that.repositionTime;
-
-        setCallback(that.mnemonic, that, delay, release);
-    }
-
-    function turnaround() {
-        /* Repositions the tape after finding end-of-info */
-
-        that.tapeReposition(finish);
-    }
-
-    function setEOT() {
-        /* Sets EOT status after positioning to end-of-tape. Does not release
-        the control unit */
-
-        that.setAtEOT(true);
-        that.relaseUnit(null, false);
-    }
-
-    function advance (index, successor) {
-        /* Advances the tape after a block is passed, then calls the successor */
-        var len = index - that.imgIndex;    // number of words passed
-        var delay = len*that.millisPerWord; // amount of tape spin time
-
-        that.imgIndex = index;
-        that.moveTape(len*that.inchesPerWord, delay, successor);
-    }
-
-    function spaceForward() {
-        /* Spaces over the next block, unless a long gap or physical EOT is
-        encountered */
-        var done = false;                   // completion flag
-        var gapCount = 0;                   // number of consecutive erase-gap words
-        var imgLength = that.imgLength;     // physical end of tape index
-        var state = 1;                      // FSA state variable
-        var w;                              // current image word
-        var x = that.imgIndex;              // lane image word index
+    var readBlock = (resolve, reject) => {
+        /* Reads the next block in the tape image */
+        var controlBlock = false;       // true if control block detected
+        var count = 0;                  // word counter within block
+        var firstWord = false;          // flag for initial memory fetch
+        var imgLength = this.imgLength; // physical end of tape index
+        var lane = this.image[this.laneNr]; // image data for current lane
+        var preface = 0;                // block length read from tape image
+        var sign = 0;                   // sign digit of keyword
+        var state = 1;                  // FSA state variable
+        var w = 0;                      // current image word
+        var x = this.imgIndex;          // lane image word index
 
         do {
             if (x >= imgLength) {
-                done = true;                // just exit and leave everybody hanging...
-                that.busy = false;
-                advance.call(that, x, setEOT);
-            } else if (!that.ready) {
-                done = true;
-                that.busy = false;
-                that.releaseUnit(releaseControl, true);
+                state = 0;              // at EOT: just exit and leave the control hanging...
+                driveState.state = driveState.driveAtEOT;
+                this.moveTapeTo(x, driveState).then(this.boundSetEOT);
             } else {
                 w = lane[x];
+                switch (state) {
+                case 1: // initial state: skip over flaw and intra-block words
+                    if (w == this.markerGap) {
+                        state = 2;
+                    } else {
+                        ++x;
+                    }
+                    break;
 
+                case 2: // skip over inter-block gap and magnetic EOT words
+                    if (w == this.markerGap) {
+                        ++x;
+                    } else if (w == this.markerMagEOT) {
+                        ++x;
+                    } else if (w >= 0) {
+                        state = 3;      // found the preface
+                    } else {
+                        state = 0;      // not a formatted tape
+                        driveState.state = driveState.drivePrefaceCheck;
+                        reject(this.moveTapeTo(x, driveState));
+                    }
+                    break;
+
+                case 3: // read the preface and check for EOT block
+                    ++x;
+                    preface = w;
+                    if (preface == 1) {
+                        state = 6;      // detected end-of-tape block
+                    } else if (preface < this.minBlockWords && preface > 1) {
+                        state = 0;      // invalid preface on tape
+                        driveState.state = driveState.drivePrefaceCheck;
+                        reject(this.moveTapeTo(x, driveState));
+                    } else {
+                        state = 4;      // normal or control block
+                    }
+                    break;
+
+                case 4: // read the keyword, detect control block, store the preface if necessary, store keyword
+                    if (w < 0) {
+                        state = 0;      // preface/block-length mismatch
+                        driveState.state = driveState.driveReadCheck;
+                        reject(this.moveTapeTo(x-1, driveState).then(this.boundReposition));
+                    } else {
+                        ++x;
+                        if (controlEnabled) {
+                            sign = (w - w%0x10000000000)/0x10000000000;
+                            if (sign == 7) {
+                                controlBlock = true;
+                                // strip sign digit from keyword (not entirely sure this should be done)
+                                w %= 0x10000000000;
+                            }
+                        }
+
+                        if (record) {   // store the preface word (with keyword sign if a control block)
+                            sign = ((sign*0x10 + (preface%100 - preface%10)/10)*0x10 + preface%10)*0x100000000;
+                            if (storeWord(firstWord, sign) < 0) {
+                                state = 10; // memory error storing preface word
+                                driveState.state = driveState.driveMemoryError;
+                            } else {
+                                firstWord = false;
+                            }
+                        }
+
+                        if (state == 4) {  // no error detected yet
+                            if (controlBlock) {
+                                --preface; // decrement block length to prevent storing the control word
+                            }
+
+                            if (storeWord(firstWord, w) < 0) {
+                                state = 10; // memory error storing keyword from block
+                                driveState.state = driveState.driveMemoryError;
+                            } else {
+                                firstWord = false;
+                                ++count;
+                                state = 5;
+                            }
+                        }
+                    }
+                    break;
+
+                case 5: // read and store the remaining block words
+                    if (count < preface) {
+                        if (w < 0) {
+                            state = 0;  // preface/block-length mismatch
+                            driveState.state = driveState.driveReadCheck;
+                            reject(this.moveTapeTo(x-1, driveState).then(this.boundReposition));
+                        } else {
+                            if (storeWord(firstWord, w) < 0) {
+                                state = 10; // memory error storing data word from block
+                                driveState.state = driveState.driveMemoryError;
+                            } else {
+                                firstWord = false;
+                                ++x;
+                                ++count;
+                            }
+                        }
+                    } else if (controlBlock) {
+                        if (w < 0) {
+                            state = 0;  // preface/block-length mismatch
+                            driveState.state = driveState.driveReadCheck;
+                            reject(this.moveTapeTo(x-1, driveState).then(this.boundReposition));
+                        } else {
+                            driveState.state = driveState.driveHasControlWord;
+                            driveState.controlWord = w;
+                            ++x;
+                            state = 7;      // deal with the control word after EOB
+                        }
+                    } else {
+                        state = 7;          // check for proper EOB
+                    }
+                    break;
+
+                case 6: // capture the control word for an end-of-tape block
+                    if (w < 0) {
+                        state = 0;      // block was shorter than preface indicated
+                        driveState.state = driveState.driveReadCheck;
+                        reject(this.moveTapeTo(x-1, driveState).then(this.boundReposition));
+                    } else {
+                        driveState.state = driveState.driveHasControlWord;
+                        driveState.controlWord = w;
+                        ++x;
+                        state = 8;
+                    }
+                    break;
+
+                case 7: // check for proper end-of-block
+                    if (w == this.markerEOB) {
+                        state = 9;
+                    } else {
+                        state = 0;      // block was longer than preface indicated
+                        driveState.state = driveState.driveReadCheck;
+                        reject(this.moveTapeTo(x-1, driveState).then(this.boundReposition));
+                    }
+                    break;
+
+                case 8: // step through remaining words in the block until normal EOB
+                    if (w == this.markerEOB) {
+                        state = 9;
+                    } else {
+                        ++x;
+                    }
+                    break;
+
+                case 9: // step through erase-gap words and finish normally
+                    if (w == this.markerEOB) {
+                        ++x;
+                    } else {
+                        state = 0;
+                        resolve(this.moveTapeTo(x, driveState));
+                    }
+                    break;
+
+                case 10: // step through remaining words in the block until EOB for error
+                    if (w == this.markerEOB) {
+                        state = 11;
+                    } else {
+                        ++x;
+                    }
+                    break;
+
+                case 11: // step through erase-gap words and finish with error
+                    if (w == this.markerEOB) {
+                        ++x;
+                    } else {
+                        state = 0;
+                        reject(this.moveTapeTo(x, driveState));
+                    }
+                    break;
+                } // switch state
+            }
+        } while (state);
+    }
+
+    if (!this.ready || this.atEOT) {
+        driveState.state = driveState.driveNotReady;
+        return Promise.reject(driveState);
+    } else {
+        return new Promise(readBlock);
+    }
+};
+
+/**************************************/
+B220MagTapeDrive.prototype.overwriteBlock = function overwriteBlock(driveState, record, words, fetchWord) {
+    /* Overwrites one block on tape. "record" is true for MOR. "words" is the
+    number of words to write in the block. "fetchWord" is a call-back to
+    retrieve the next word from the Processor's memory. This routine is used
+    for both MOW and MOR, as block lengths are determined by the tape
+    control unit. Returns a Promise that resolves when the write completes */
+
+    var writeBlock = (resolve, reject) => {
+        /* Overwrites the next block in the tape image */
+        var count = 0;                  // word counter within block
+        var firstWord = !record;        // flag for initial memory fetch
+        var imgLength = this.imgLength; // physical end of tape index
+        var lane = this.image[this.laneNr]; // image data for current lane
+        var state = 1;                  // FSA state variable
+        var w = 0;                      // current image word
+        var x = this.imgIndex;          // lane image word index
+
+        do {
+            if (x >= imgLength) {
+                state = 0;              // at EOT: just exit and leave the control hanging...
+                driveState.state = driveState.driveAtEOT;
+                this.moveTapeTo(x, driveState).then(this.boundSetEOT);
+            } else {
+                w = lane[x];
+                switch (state) {
+                case 1: // initial state: skip over flaw and intra-block words
+                    if (w == this.markerGap) {
+                        state = 2;
+                    } else {
+                        ++x;
+                    }
+                    break;
+
+                case 2: // skip over inter-block gap and magnetic EOT words
+                    if (w == this.markerGap) {
+                        ++x;
+                    } else if (w == this.markerMagEOT) {
+                        ++x;
+                    } else if (w >= 0) {
+                        state = 3;      // found the preface
+                    } else {
+                        state = 0;      // not a formatted tape
+                        driveState.state = driveState.drivePrefaceCheck;
+                        reject(this.moveTapeTo(x, driveState));
+                    }
+                    break;
+
+                case 3: // check the preface
+                    ++x;
+                    if (w < this.minBlockWords && w > 1) {
+                        state = 0;      // invalid preface on tape
+                        driveState.state = driveState.drivePrefaceCheck;
+                        reject(this.moveTapeTo(x, driveState));
+                    } else if (w == words) {
+                        state = 4;      // preface match: overwrite the block
+                    } else if (w == 1) {
+                        state = 5;
+                    } else {
+                        state = 0;      // other preface mismatch
+                        driveState.state = driveState.drivePrefaceMismatch;
+                        reject(this.moveTapeTo(x, driveState).then(this.boundReposition));
+                    }
+                    break;
+
+                case 4: // overwrite the block words
+                    if (count < words) {
+                        if (w < 0) {
+                            state = 0;  // block was shorter than preface indicated
+                            driveState.state = driveState.driveReadCheck;
+                            reject(this.moveTapeTo(x-1, driveState).then(this.boundReposition));
+                        } else {
+                            w = fetchWord(firstWord);
+                            if (w < 0) {
+                                state = 8; // memory error: gobble rest of block
+                                driveState.state = driveState.driveMemoryError;
+                            } else {
+                                firstWord = false;
+                                lane[x] = w;
+                                ++x;
+                                ++count;
+                            }
+                        }
+                    } else if (count < this.minBlockWords) {
+                        if (w < 0) {
+                            state = 0;  // block was shorter than preface indicated
+                            driveState.state = driveState.driveReadCheck;
+                            reject(this.moveTapeTo(x-1, driveState).then(this.boundReposition));
+                        } else {
+                            lane[x] = 0; // pad out an EOT block
+                            ++x;
+                            ++count;
+                        }
+                    } else if (w == this.markerEOB) {
+                        state = 7;      // normal block termination
+                    } else {
+                        state = 0;      // block was longer than preface indicated
+                        driveState.state = driveState.driveReadCheck;
+                        reject(this.moveTapeTo(x-1, driveState).then(this.boundReposition));
+                    }
+                    break;
+
+                case 5: // capture control word for EOT block
+                    if (w < 0) {
+                        state = 0;      // block was shorter than preface indicated
+                        driveState.state = driveState.driveReadCheck;
+                        reject(this.moveTapeTo(x-1, driveState).then(this.boundReposition));
+                    } else {
+                        driveState.state = driveState.driveHasControlWord;
+                        driveState.controlWord = w;
+                        ++x;
+                        state = 6;      // gobble the rest of the block and finish normally
+                    }
+                    break;
+
+                case 6: // step through remaining words in the block until normal EOB
+                    if (w == this.markerEOB) {
+                        state = 7;
+                    } else {
+                        ++x;
+                    }
+                    break;
+
+                case 7: // step through erase-gap words and finish normally
+                    if (w == this.markerEOB) {
+                        ++x;
+                    } else {
+                        state = 0;
+                        resolve(this.moveTapeTo(x, driveState));
+                    }
+                    break;
+
+                case 8: // step through remaining words in the block until EOB for error
+                    if (w == this.markerEOB) {
+                        state = 9;
+                    } else {
+                        ++x;
+                    }
+                    break;
+
+                case 9: // step through erase-gap words and finish with error
+                    if (w == this.markerEOB) {
+                        ++x;
+                    } else {
+                        state = 0;
+                        reject(this.moveTapeTo(x, driveState));
+                    }
+                    break;
+                } // switch state
+            }
+        } while (state);
+    }
+
+    if (!this.ready || this.atEOT || this.notWrite) {
+        driveState.state = driveState.driveNotReady;
+        return Promise.reject(driveState);
+    } else {
+        this.imgWritten = true;         // mark the tape image as modified
+        return new Promise(writeBlock);
+    }
+};
+
+/**************************************/
+B220MagTapeDrive.prototype.initialWriteFinalize = function initialWriteFinalize(driveState) {
+    /* Write a longer inter-block gap so that MPE will work at magnetic
+    end-of-tape and check for end-of-tape prior to terminating the I/O */
+
+    return new Promise((resolve, reject) => {
+        var count = this.startOfBlockWords*2; // number of gap words
+        var done = false;               // loop control
+        var imgLength = this.imgLength; // physical end of tape index
+        var lane = this.image[this.laneNr]; // image data for current lane
+        var x = this.imgIndex;          // lane image word index
+
+        do {
+            if (x >= imgLength) {
+                done = true;            // at end-of-tape
+                resolve(this.moveTapeTo(x, driveState).then(this.boundSetEOT));
+            } else if (count > 0) {
+                --count;                // write extra inter-block gap word
+                lane[x] = this.markerGap;
+                ++x;
+            } else if (lane[x] == this.markerMagEOT) {
+                ++x;                    // space over magnetic EOT words
+            } else {
+                done = true;            // finish write
+                resolve(this.moveTapeTo(x, driveState));
+            }
+        } while(!done);
+    });
+};
+
+/**************************************/
+B220MagTapeDrive.prototype.initialWriteBlock = function initialWriteBlock(driveState, record, words, fetchWord) {
+    /* Initial-writes one block on edited (blank) tape. "record" is true for MIR.
+    "words" is the number of words to write in the block. "fetchWord" is a call-
+    back to retrieve the next word from the Processor's memory. This routine is
+    used for both MIW and MIR, as block lengths are determined by the tape
+    control unit. Returns a Promise that resolves when the write completes */
+
+    var writeBlock = (resolve, reject) => {
+        /* Initial-writes the next block in the tape image */
+        var count = 0;                  // word counter within block
+        var firstWord = !record;        // flag for initial memory fetch
+        var gapCount = 0;               // count of consecutive inter-block gap words
+        var imgLength = this.imgLength; // physical end of tape index
+        var lane = this.image[this.laneNr]; // image data for current lane
+        var state = 1;                  // FSA state variable
+        var w = 0;                      // memory word value
+        var x = this.imgIndex;          // lane image word index
+
+        do {
+            if (x >= imgLength) {
+                state = 0;              // at EOT: just exit and leave the control hanging...
+                driveState.state = driveState.driveAtEOT;
+                this.moveTapeTo(x, driveState).then(this.boundSetEOT);
+            } else {
+                switch (state) {
+                case 1: // initial state: skip over flaw and intra-block words
+                    if (lane[x] == this.markerGap) {
+                        state = 2;
+                    } else {
+                        ++x;
+                    }
+                    break;
+
+                case 2: // count 3 consecutive inter-block gap words
+                    if (lane[x] == this.markerGap) {
+                        ++gapCount;
+                        if (gapCount < this.startOfBlockWords) {
+                            ++x;
+                        } else {
+                            state = 3;
+                        }
+                    } else if (lane[x] == this.markerMagEOT) {
+                        ++x;
+                    } else {
+                        state = 0;      // not an edited tape
+                        driveState.state = driveState.driveNotEditedTape;
+                        reject(this.moveTapeTo(x, driveState));
+                    }
+                    break;
+
+                case 3: // write the preface
+                    lane[x] = words;
+                    ++x;
+                    state = 4;
+                    break;
+
+                case 4: // write the block words
+                    if (count < words) {
+                        w = fetchWord(firstWord);
+                        if (w < 0) {
+                            state = 0;  // memory fetch failed
+                            driveState.state = driveState.driveMemoryError;
+                            state = 5;
+                        } else {
+                            firstWord = false;
+                            lane[x] = w;
+                            ++x;
+                            ++count;
+                        }
+                    } else {
+                        state = 6;
+                    }
+                    break;
+
+                case 5: // pad out the block after a memory error
+                    if (count < words) {
+                        lane[x] = 0;
+                        ++x;
+                        ++count;
+                    } else {
+                        state = 6;
+                    }
+                    break;
+
+                case 6: // pad out to the minimum block length (e.g., for an EOT block)
+                    if (count < this.minBlockWords) {
+                        lane[x] = 0;
+                        ++x;
+                        ++count;
+                    } else {
+                        count = 0;
+                        state = 7;
+                    }
+                    break;
+
+                case 7: // write the erase gap
+                    if (count < this.endOfBlockWords) {
+                        lane[x] = this.markerEOB;
+                        ++x;
+                        ++count;
+                    } else {
+                        state = 0;      // finished with the block
+                        this.imgTopWordNr = x;
+                        resolve(this.moveTapeTo(x, driveState));
+                    }
+                    break;
+                } // switch state
+            }
+        } while (state);
+    };
+
+    if (!this.ready || this.atEOT || this.notWrite) {
+        driveState.state = driveState.driveNotReady;
+        return Promise.reject(driveState);
+    } else {
+        this.imgWritten = true;         // mark the tape image as modified
+        return new Promise(writeBlock);
+    }
+};
+
+/**************************************/
+B220MagTapeDrive.prototype.spaceForwardBlock = function spaceForwardBlock(driveState) {
+    /* Positions tape one block in a forward direction. Leaves the block
+    positioned at the preface word, ready to space the next block or reposition
+    into the prior block at the end of the operation. Returns a Promise that
+    resolves after the block is spaced */
+
+    var spaceBlock = (resolve, reject) => {
+        /* Spaces forward over the next block. Blocks are counted as their
+        preface words are passed. This routine does this by detecting the
+        transition between the preface and its immediately preceding gap word */
+        var imgLength = this.imgLength;     // physical end of tape index
+        var lane = this.image[this.laneNr]; // image data for current lane
+        var state = 1;                      // FSA state variable
+        var w = 0;                          // current image word
+        var x = this.imgIndex;              // lane image word index
+
+        do {
+            if (x >= imgLength) {
+                state = 0;                      // at EOT: just exit and leave the control hanging...
+                driveState.state = driveState.driveAtEOT;
+                this.moveTapeTo(x, driveState).then(this.boundSetEOT);
+            } else {
+                w = lane[x];
+                switch (state) {
+                case 1: // initial state: skip over flaw and intra-block words
+                    if (w == this.markerGap) {
+                        state = 2;
+                    } else {
+                        ++x;
+                    }
+                    break;
+
+                case 2: // skip inter-block gap words
+                    if (w == this.markerGap) {
+                        ++x;
+                    } else {
+                        state = 3;
+                    }
+                    break;
+
+                case 3: // found preface: search for end of block (next erase-gap word)
+                    if (w == this.markerEOB) {
+                        state = 4;
+                    } else {
+                        ++x;
+                    }
+                    break;
+
+                case 4: // step through erase-gap words and finish
+                    if (w == this.markerEOB) {
+                        ++x;
+                    } else {
+                        state = 0;
+                        resolve(this.moveTapeTo(x, driveState));
+                    }
+                    break;
+                } // switch state
+            }
+        } while (state);
+
+    }
+
+    if (!this.ready || this.atEOT) {
+        driveState.state = driveState.driveNotReady;
+        return Promise.reject(driveState);
+    } else {
+        return new Promise(spaceBlock);
+    }
+};
+
+/**************************************/
+B220MagTapeDrive.prototype.spaceBackwardBlock = function spaceBackwardBlock(driveState) {
+    /* Positions tape one block in a backward direction. Leaves the block
+    positioned five words into the end of the prior block, as for a normal
+    reposition after a forward operation. Returns a Promise that resolves
+    after the block is spaced */
+
+    var spaceBlock = (resolve, reject) => {
+        /* Spaces backward over the current or prior block. Blocks are counted
+        as their preface words are passed. This routine does that by detecting
+        the transition between the preface and its immediately preceding gap word */
+        var lane = this.image[this.laneNr]; // image data for current lane
+        var state = 1;                      // FSA state variable
+        var w = 0;                          // current image word
+        var x = this.imgIndex-1;            // lane image word index (start with prior word)
+
+        do {
+            if (x <= 0) {
+                state = 0;                      // at BOT: just exit and leave the control hanging...
+                driveState.state = driveState.driveAtBOT;
+                this.moveTapeTo(x, driveState).then(this.boundSetBOT);
+            } else {
+                w = lane[x];
+                switch (state) {
+                case 1: // initial state: skip over flaw and magnetic EOT words
+                    if (w == this.markerGap) {
+                        state = 2;
+                    } else if (w == this.markerFlaw) {
+                        --x;
+                    } else if (w == this.markerMagEOT) {
+                        --x;
+                    } else {
+                        state = 3;
+                    }
+                    break;
+
+                case 2: // skip initial inter-block gap words
+                    if (w == this.markerGap) {
+                        --x;
+                    } else {
+                        state = 3;
+                    }
+                    break;
+
+                case 3: // search for start of block (first prior inter-block gap word)
+                    if (w == this.markerGap) {
+                        state = 4;
+                    } else {
+                        --x;
+                    }
+                    break;
+
+                case 4: // skip this block's inter-block gap words
+                    if (w == this.markerGap) {
+                        --x;
+                    } else {
+                        state = 5;
+                    }
+                    break;
+
+                case 5: // skip the prior block's erase-gap words
+                    if (w == this.markerEOB) {
+                        --x;
+                    } else {            // position into end of prior block, as usual
+                        state = 0;
+                        resolve(this.moveTapeTo(x-this.repositionWords, driveState));
+                    }
+                    break;
+                } // switch state
+            }
+        } while (state);
+    }
+
+    if (!this.ready || this.atBOT) {
+        driveState.state = driveState.driveNotReady;
+        return Promise.reject(driveState);
+    } else {
+        return new Promise(spaceBlock);
+    }
+};
+
+/**************************************/
+B220MagTapeDrive.prototype.spaceEOIBlock = function spaceEOIBlock(driveState) {
+    /* Spaces forward one block on tape, detecting end-of-information if encountered
+    (i.e., gap longer and inter-block gap. Returns a Promise that resolves
+    after the block is spaced or EOI is encountered */
+
+    var spaceBlock = (resolve, reject) => {
+        /* Spaces over the next block, unless a long gap or physical EOT is
+        encountered */
+        var gapCount = 0;                   // number of consecutive erase-gap words
+        var imgLength = this.imgLength;     // physical end of tape index
+        var lane = this.image[this.laneNr]; // image data for current lane
+        var state = 1;                      // FSA state variable
+        var w = 0;                          // current image word
+        var x = this.imgIndex;              // lane image word index
+
+        do {
+            if (x >= imgLength) {
+                state = 0;                  // at EOT: just exit and leave the control hanging...
+                driveState.state = driveState.driveAtEOT;
+                this.moveTapeTo(x, driveState).then(this.boundSetEOT);
+            } else {
+                w = lane[x];
                 switch (state) {
                 case 1: // initial state: skip over flaw words
-                    if (w == that.markerGap) {
+                    if (w == this.markerGap) {
                         state = 2;
-                    } else if (w == that.markerFlaw) {
+                    } else if (w == this.markerFlaw) {
                         ++x;
                     } else {
                         state = 3;
@@ -2337,98 +2328,82 @@ B220MagTapeDrive.prototype.positionAtEnd = function positionAtEnd(releaseControl
                     break;
 
                 case 2: // count inter-block gap words
-                    if (w != that.markerGap) {
+                    if (w != this.markerGap) {
                         state = 3;
+                    } else if (gapCount > this.startOfBlockWords) {
+                        state = 0;
+                        driveState.state = driveState.driveAtEOI;
+                        resolve(this.moveTapeTo(x, driveState));
                     } else {
-                        if (gapCount > that.startOfBlockWords) {
-                            done = true;
-                            advance.call(that, x, turnaround);
-                        } else {
-                            ++x;
-                            ++gapCount;
-                        }
+                        ++x;
+                        ++gapCount;
                     }
                     break;
 
-                case 3: // search for end of block (next inter-block gap word)
-                    if (w != that.markerGap) {
+                case 3: // search for end of block (next erase-gap word)
+                    if (w == this.markerEOB) {
+                        state = 4;
+                    } else {
+                        ++x;
+                    }
+                    break;
+
+                case 4: // step through erase-gap words and finish
+                    if (w == this.markerEOB) {
                         ++x;
                     } else {
-                        done = true;
-                        advance.call(that, x, spaceForward);
+                        state = 0;
+                        resolve(this.moveTapeTo(x, driveState));
                     }
                     break;
                 } // switch state
             }
-        } while (!done);
+        } while (state);
+    };
 
-    }
-
-    if (this.busy || this.rewindLock) {
-        result = true;                  // unit busy or in RWL
-    } else if (!this.ready) {
-        result = true;                  // unit not ready
-    } else if (this.atEOT) {
-        result = true;                  // tape at EOT, leave control hung
+    if (!this.ready || this.atEOT) {
+        driveState.state = driveState.driveNotReady;
+        return Promise.reject(driveState);
     } else {
-        this.busy = true;
-        this.designatedLamp.set(1);
-        this.setAtBOT(false);
-
-        // Begin with a delay for start-up time
-        setCallback(this.mnemonic, this, this.startTime, spaceForward);
+        return new Promise(spaceBlock);
     }
-
-    //console.log(this.mnemonic + " positionAtEnd:    result=" + result.toString());
-    return result;
 };
 
 /**************************************/
-B220MagTapeDrive.prototype.laneSelect = function laneSelect(laneNr, releaseControl) {
+B220MagTapeDrive.prototype.laneSelect = function laneSelect(driveState, laneNr) {
     /* Selects the tape lane on the unit. If the drive is busy or not ready,
     returns true */
-    delay = 3;                          // ms for a no-lane change
-    var lane = laneNr%2;
-    var result = false;
 
-    if (this.busy || this.rewindLock) {
-        result = true;                  // unit busy or in RWL
-    } else if (!this.ready) {
-        result = true;                  // unit not ready
+    if (this.busy) {
+        driveState.state = driveState.driveBusy;
+        return Promise.reject(driveState);
+    } else if (!this.ready || this.rewindLock || this.atEOT) {
+        driveState.state = driveState.driveNotReady;
+        return Promise.reject(driveState);
     } else {
         this.busy = true;
         this.designatedLamp.set(1);
-        if (this.laneNr != lane) {
-            delay += 70;                // additional time (ms) if the lane changes
-            this.laneNr = laneNr%2;
-        }
-
-        setCallback(this.mnemonic, this, delay, this.releaseUnit, releaseControl);
+        return this.setLane(laneNr, driveState);
     }
-
-    //console.log(this.mnemonic + " lane-select:      lane=" + laneNr + ", result=" + result.toString());
-    return result;
 };
 
 /**************************************/
-B220MagTapeDrive.prototype.rewind = function rewind(laneNr, lockout) {
-    /* Initiates a rewind operation on the unit. If the drive is busy or not ready,
-    returns true.  Otherwise, makes the drive not-ready, delays for an
-    appropriate amount of time depending on how far up-tape we are, then readies the
-    unit again */
-    var result = false;
+B220MagTapeDrive.prototype.rewind = function rewind(driveState, laneNr, lockout) {
+    /* Initiates a rewind operation on the unit. Makes the drive not-ready,
+    delays for an appropriate amount of time depending on how far up-tape we
+    are, then readies the unit again. Returns a Promise that resolves once the
+    rewind completes */
 
-    if (this.busy || this.rewindLock) {
-        result = true;                  // unit busy or in RWL
-    } else if (!this.ready) {
-        result = true;                  // unit not ready
+    if (this.busy) {
+        driveState.state = driveState.driveBusy;
+        return Promise.reject(driveState);
+    } else if (!this.ready || this.rewindLock) {
+        driveState.state = driveState.driveNotReady;
+        return Promise.reject(driveState);
     } else {
         this.designatedLamp.set(1);
-        this.tapeRewind(laneNr, lockout);
+        return this.tapeRewind(laneNr, lockout);
     }
-
-    //console.log(this.mnemonic + " rewind:           lane=" + laneNr + ", lockout=" + lockout + ", result=" + result.toString());
-    return result;
 };
 
 /**************************************/

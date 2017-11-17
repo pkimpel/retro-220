@@ -197,6 +197,13 @@ SELECT {
     right:              16px}
 
 #MTUnloadedLight {
+    top:                36px;
+    right:              8px;
+    width:              64px}
+
+#MTLaneNrLight {
+    color:              black;
+    font-weight:        bold;
     top:                60px;
     right:              8px;
     width:              64px}

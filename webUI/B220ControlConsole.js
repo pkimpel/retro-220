@@ -17,7 +17,7 @@ function B220ControlConsole(p, systemShutdown) {
     /* Constructor for the ControlConsole object */
     var h = 600;
     var w = 1064;
-    var mnemonic = "ControlConsole";
+    var mnemonic = "Console";
     var inputConfig = p.config.getNode("ConsoleInput");
     var outputConfig = p.config.getNode("ConsoleOutput");
     var u;
@@ -30,12 +30,12 @@ function B220ControlConsole(p, systemShutdown) {
 
     this.keyboard = new B220ConsoleKeyboard(p);
 
-    this.boundLamp_Click = B220Util.bindMethod(this, B220ControlConsole.prototype.lamp_Click);
-    this.boundPowerBtn_Click = B220Util.bindMethod(this, B220ControlConsole.prototype.powerBtn_Click);
-    this.boundSwitch_Click = B220Util.bindMethod(this, B220ControlConsole.prototype.switch_Click);
-    this.boundStartBtn_Click = B220Util.bindMethod(this, B220ControlConsole.prototype.startBtn_Click);
-    this.boundResetTimer = B220Util.bindMethod(this, B220ControlConsole.prototype.resetTimer);
-    this.boundUpdatePanel = B220Util.bindMethod(this, B220ControlConsole.prototype.updatePanel);
+    this.boundMeatballMemdump = B220ControlConsole.prototype.meatballMemdump.bind(this);
+    this.boundLamp_Click = B220ControlConsole.prototype.lamp_Click.bind(this);
+    this.boundPowerBtn_Click = B220ControlConsole.prototype.powerBtn_Click.bind(this);
+    this.boundSwitch_Click = B220ControlConsole.prototype.switch_Click.bind(this);
+    this.boundResetTimer = B220ControlConsole.prototype.resetTimer.bind(this);
+    this.boundUpdatePanel = B220ControlConsole.prototype.updatePanel.bind(this);
 
     // Configure the console input unit objects. These are paper-tape readers.
     this.inputUnit = [
@@ -109,6 +109,24 @@ B220ControlConsole.onSwitchImage = "./resources/ToggleUp.png";
 B220ControlConsole.offOrganSwitchImage = "./resources/Organ-Switch-Up.png"
 B220ControlConsole.onOrganSwitchImage = "./resources/Organ-Switch-Down.png"
 
+B220ControlConsole.codeXlate = [        // translate internal B220 code to ANSI
+        " ", "_", " ", ".", "\u00A4", "_",  "_",  "_", "_", "_", "!", "!", "!", "!", "!", "!",  // 00-0F
+        "&", "_", "_", "$", "*",      "^",  "~",  "_", "_", "_", "!", "!", "!", "!", "!", "!",  // 10-1F
+        "-", "/", "_", ",", "%",      "_",  "|",  "_", "_", "_", "!", "!", "!", "!", "!", "!",  // 20-2F
+        "_", "_", "_", "#", "@",      "\\", "_",  "_", "_", "_", "!", "!", "!", "!", "!", "!",  // 30-3F
+        "_", "A", "B", "C", "D",      "E",  "F",  "G", "H", "I", "!", "!", "!", "!", "!", "!",  // 40-4F
+        "_", "J", "K", "L", "M",      "N",  "O",  "P", "Q", "R", "!", "!", "!", "!", "!", "!",  // 50-5F
+        "_", "_", "S", "T", "U",      "V",  "W",  "X", "Y", "Z", "!", "!", "!", "!", "!", "!",  // 60-6F
+        "_", "_", "_", "_", "_",      "_",  "_",  "_", "_", "_", "!", "!", "!", "!", "!", "!",  // 70-7F
+        "0", "1", "2", "3", "4",      "5",  "6",  "7", "8", "9", "!", "!", "!", "!", "!", "!",  // 80-8F
+        "_", "_", "_", "_", "_",      "_",  "_",  "_", "_", "_", "!", "!", "!", "!", "!", "!",  // 90-9F
+        "!", "!", "!", "!", "!",      "!",  "!",  "!", "!", "!", "!", "!", "!", "!", "!", "!",  // A0-AF
+        "!", "!", "!", "!", "!",      "!",  "!",  "!", "!", "!", "!", "!", "!", "!", "!", "!",  // B0-BF
+        "!", "!", "!", "!", "!",      "!",  "!",  "!", "!", "!", "!", "!", "!", "!", "!", "!",  // C0-CF
+        "!", "!", "!", "!", "!",      "!",  "!",  "!", "!", "!", "!", "!", "!", "!", "!", "!",  // D0-DF
+        "!", "!", "!", "!", "!",      "!",  "!",  "!", "!", "!", "!", "!", "!", "!", "!", "!",  // E0-EF
+        "!", "!", "!", "!", "!",      "!",  "!",  "!", "!", "!", "!", "!", "!", "!", "!", "!"]; // F0-FF
+
 /**************************************/
 B220ControlConsole.prototype.$$ = function $$(e) {
     return this.doc.getElementById(e);
@@ -148,6 +166,234 @@ B220ControlConsole.prototype.beforeUnload = function beforeUnload(ev) {
     ev.preventDefault();
     ev.returnValue = msg;
     return msg;
+};
+
+/**************************************/
+B220ControlConsole.prototype.meatballMemdump = function meatballMemdump() {
+    /* Opens a temporary window and formats the current processor and memory
+    state to it */
+    var doc = null;                     // loader window.document
+    var p = this.p;                     // local copy of Processor object
+    var paper = null;                   // <pre> element to receive dump lines
+    var trimRightRex = /[\s\uFEFF\xA0]+$/;
+    var win = this.window.open("./B220FramePaper.html", this.mnemonic + "-MEMDUMP",
+            "location=no,scrollbars=yes,resizable,width=800,height=600");
+    var xlate = B220ControlConsole.codeXlate; // local copy
+
+    function formatWord(w) {
+        /* Formats a 220 numeric word as "S DDDDDDDDDD" and returns it */
+        var s = padBCD(w, 11);
+
+        return s.substring(0, 1) + " " + s.substring(1);
+    }
+
+    function padBCD(value, digits) {
+        /* Formats "value" as a BCD number of "digits" length, left-padding with
+        zeroes as necessary */
+        var text = value.toString(16);
+
+        if (value < 0) {
+            return text;
+        } else {
+            return padLeft(text, digits, "0");
+        }
+    }
+
+    function padLeft(text, minLength, c) {
+        /* Pads "text" on the left to a total length of "minLength" with "c" */
+        var s = text.toString();
+        var len = s.length;
+        var pad = c || " ";
+
+        while (len++ < minLength) {
+            s = pad + s;
+        }
+        return s;
+    }
+
+    function trimRight(text) {
+        /* Returns the string with all terminating whitespace removed from "text" */
+
+        return text.replace(trimRightRex, '');
+    }
+
+    function wordToANSI(value) {
+        /* Converts the "value" as a 220 word to a five-character string and returns it */
+        var c;                              // current character
+        var s = "";                         // working string value
+        var w = value;                      // working word value
+        var x;                              // character counter
+
+        for (x=0; x<5; ++x) {
+            c = w % 256;
+            w = (w-c)/256;
+            s = xlate[c] + s;
+        }
+
+        return s;
+    }
+
+    function writer(text) {
+        /* Outputs one line of text to the dump window */
+
+        paper.appendChild(doc.createTextNode(trimRight(text) + "\n"));
+    }
+
+    function dumpProcessorState() {
+        /* Dumps the register state for the Processor */
+        var s = "";
+        var x = 0;
+
+        writer("");
+        writer("Processor:");
+        writer("");
+        writer("A: " + formatWord(p.A.value) + "     R: " + formatWord(p.R.value) +
+               "      D: " + formatWord(p.D.value));
+        writer("");
+        s = padBCD(p.C.value, 10);
+        s = s.substring(0, 4) + " " + s.substring(4, 6) + " " + s.substring(6);
+        writer("B: " + padBCD(p.B.value, 4) + "   P: " + padBCD(p.P.value, 4) + "   C: " + s +
+               "      E: " + padBCD(p.E.value, 4) + "   S: " + padBCD(p.S.value, 4));
+
+        writer("");
+        s = "Program Switches:";
+        for (x=1; x<=10; ++x) {
+            if (p["PC" + x%10 + "SW"]) {
+                s += " " + x%10;
+            } else {
+                s += " .";
+            }
+        }
+
+        if (p.SONSW)    {s += " S-ON"}
+        if (p.SUNITSSW) {s += " S-UNITS"}
+        if (p.STOCSW)   {s += " S-TO-C"}
+        if (p.STOPSW)   {s += " S-TO-P"}
+        writer(s);
+
+        s = "Flip-Flops:";
+        if (p.digitCheckAlarm.value)    {s += " DCK"}
+        if (p.ALT.value)                {s += " ALT"}
+        if (p.AST.value)                {s += " AST"}
+        if (p.CCT.value)                {s += " CCT"}
+        if (p.CRT.value)                {s += " CRT"}
+        if (p.DPT.value)                {s += " DPT"}
+        if (p.EWT.value)                {s += " EWT"}
+        if (p.EXT.value)                {s += " EXT"}
+        if (p.HAT.value)                {s += " HAT"}
+        if (p.HCT.value)                {s += " HCT"}
+        if (p.HIT.value)                {s += " HIT"}
+        if (p.MAT.value)                {s += " MAT"}
+        if (p.MET.value)                {s += " MET"}
+        if (p.MNT.value)                {s += " MNT"}
+        if (p.OFT.value)                {s += " OFT"}
+        if (p.PAT.value)                {s += " PAT"}
+        if (p.PRT.value)                {s += " PRT"}
+        if (p.PZT.value)                {s += " PZT"}
+        if (p.RPT.value)                {s += " RPT"}
+        if (p.RUT.value)                {s += " RUT"}
+        if (p.SST.value)                {s += " SST"}
+        if (p.TAT.value)                {s += " TAT"}
+        if (p.UET.value)                {s += " UET"}
+        writer(s);
+        s = "           ";
+        if (p.systemNotReady.value)     {s += " SNR"}
+        if (p.computerNotReady.value)   {s += " CNR"}
+        if (p.compareLowLamp.value)     {s += " LOW"}
+        if (p.compareEqualLamp.value)   {s += " EQUAL"}
+        if (p.compareLowLamp.value)     {s += " HIGH"}
+        if (p.C10.value)                {s += " C10"}
+        if (p.DST.value)                {s += " DST"}
+        if (p.LT1.value)                {s += " LT1"}
+        if (p.LT2.value)                {s += " LT2"}
+        if (p.LT3.value)                {s += " LT3"}
+        if (p.SCI.value)                {s += " SCI"}
+        if (p.SGT.value)                {s += " SGT"}
+        if (p.SUT.value)                {s += " SUT"}
+        if (p.TBT.value)                {s += " TBT"}
+        if (p.TCT.value)                {s += " TCT"}
+        if (p.TPT.value)                {s += " TPT"}
+        if (p.TWT.value)                {s += " TWT"}
+        writer(s);
+    }
+
+    function memdumpDriver() {
+        /* Driver for formatting the memory and Processor state dump */
+        var addr = 0;
+        var dupCount = 0;
+        var lastLine = "";
+        var line = "";
+        var top = p.memorySize-1;       // max memory address
+        var x = 0;                      // image data index
+
+        function dumpDupes() {
+            /* Outputs the duplicate-line message, if any */
+
+            if (dupCount > 0) {
+                writer("....  ..... DUP FOR " + dupCount + " LINE" + (dupCount>1 ? "S" : "") +
+                       " THRU " + padLeft(addr-1, 4, "0") + " .....");
+                dupCount = 0;
+            }
+        }
+
+        while (paper.firstChild) {               // delete any existing <pre> content
+            paper.removeChild(paper.firstChild);
+        }
+
+        writer("retro-220 Processor State and Memory Dump : " + new Date().toString());
+
+        dumpProcessorState();
+
+        // Dump all of memory
+        writer("");
+        writer("Memory: ");
+        writer("");
+        addr = 0;
+        while (addr <= top) {
+            // Format the next five words
+            line = "";
+            for (x=0; x<5; ++x) {
+                line += "  " + formatWord(p.MM[addr+x]);
+            } // for x
+
+            // Check for duplicate lines; write a non-duplicate
+            if (line == lastLine) {
+                ++dupCount;
+            } else {
+                dumpDupes();
+                lastLine = line;
+                line = padLeft(addr, 4, "0") + line + "  ";
+                for (x=0; x<5; ++x) {
+                    line += wordToANSI(p.MM[addr+x]);
+                } // for x
+
+                writer(line);
+            }
+
+            addr += 5;
+        } // for addr
+
+        dumpDupes();
+        writer("");
+        writer("End dump, memory size: " + (top+1).toString() + " words");
+    }
+
+    function memdumpSetup() {
+        /* Loads a status message into the "paper" rendering area, then calls
+        dumpDriver after a short wait to allow the message to appear */
+
+        win.removeEventListener("load", memdumpSetup, false);
+        doc = win.document;
+        doc.title = "retro-220 Console: Meatball Memdump";
+        paper = doc.getElementById("Paper");
+        writer("Rendering the dump... please wait...");
+        setTimeout(memdumpDriver, 50);
+    }
+
+    // Outer block of meatBallMemdump
+    win.moveTo((screen.availWidth-win.outerWidth)/2, (screen.availHeight-win.outerHeight)/2);
+    win.focus();
+    win.addEventListener("load", memdumpSetup, false);
 };
 
 /**************************************/
@@ -259,9 +505,10 @@ B220ControlConsole.prototype.updatePanel = function updatePanel() {
     this.equalLamp.set(p.compareEqualLamp.glow);
     this.highLamp.set(p.compareHighLamp.glow);
 
+    this.$$("ProcDelta").textContent = p.delayDeltaAvg.toFixed(2) + " D";
+    this.$$("ProcSlack").textContent = p.procSlackAvg.toFixed(2)  + " S";
+    this.$$("ProcRun").textContent = p.procRunAvg.toFixed(2)  +     " R";
     /********** DEBUG **********
-    this.$$("ProcDelta").value = p.procSlackAvg.toFixed(2);
-    this.$$("LastLatency").value = p.delayDeltaAvg.toFixed(2);
     this.displayCallbackState();
     ***************************/
 };
@@ -737,6 +984,7 @@ B220ControlConsole.prototype.consoleOnLoad = function consoleOnLoad() {
     this.resetTransferSwitch.addEventListener("click", this.boundSwitch_Click);
     this.tcuClearSwitch.addEventListener("click", this.boundSwitch_Click);
 
+    this.$$("BurroughsMeatball").addEventListener("click", this.boundMeatballMemdump);
     this.$$("IntervalTimerResetBtn").addEventListener("click", this.boundResetTimer);
     this.$$("PowerOffBtn").addEventListener("click", this.boundPowerBtn_Click);
 
