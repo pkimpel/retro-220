@@ -210,13 +210,6 @@ B220MagTapeDrive.prototype.clear = function clear() {
 };
 
 /**************************************/
-B220MagTapeDrive.prototype.nil = function nil() {
-    /* An empty function that just returns */
-
-    return;
-};
-
-/**************************************/
 B220MagTapeDrive.prototype.releaseUnit = function releaseUnit(param) {
     /* Releases the busy status of the unit. Returns but does not use its
     parameter so it can be used with Promise.then() */
@@ -253,105 +246,6 @@ B220MagTapeDrive.prototype.setUnitDesignate = function setUnitDesignate(index) {
         this.remote = true;
         this.setTapeReady(true);
     }
-};
-
-/**************************************/
-B220MagTapeDrive.prototype.spinReel = function spinReel(inches) {
-    /* Rotates the reel image icon an appropriate amount based on the "inches"
-    of tape to be moved. The rotation is limited to this.maxSpinAngle degrees
-    in either direction so that movement remains apparent to the viewer */
-    var circumference = this.reelCircumference*(1 - this.tapeInches/this.maxTapeInches/2);
-    var degrees = inches/circumference*360;
-
-    if (degrees > this.maxSpinAngle) {
-        degrees = this.maxSpinAngle;
-    } else if (degrees < -this.maxSpinAngle) {
-        degrees = -this.maxSpinAngle;
-    }
-
-    this.reelAngle = (this.reelAngle + degrees)%360;
-    this.reelIcon.style.transform = "rotate(" + this.reelAngle.toFixed(0) + "deg)";
-
-    this.tapeInches += inches;
-    if (this.tapeInches < this.maxTapeInches) {
-        this.reelBar.value = this.maxTapeInches - this.tapeInches;
-    } else {
-        this.reelBar.value = 0;
-    }
-};
-
-/**************************************/
-B220MagTapeDrive.prototype.moveTape = function moveTape(inches, delay, successor, param) {
-    /* Delays the I/O during tape motion, during which it animates the reel image
-    icon. At the completion of the "delay" time in milliseconds, "successor" is
-    called with "param" as a parameter */
-    var delayLeft = Math.abs(delay);    // milliseconds left to delay
-    var direction = (inches < 0 ? -1 : 1);
-    var inchesLeft = inches;            // inches left to move tape
-    var initiallyReady = this.ready;    // remember initial ready state to detect change
-    var lastStamp = performance.now();  // last timestamp for spinDelay
-
-    function spinFinish() {
-        this.timer = 0;
-        if (inchesLeft != 0) {
-            this.spinReel(inchesLeft);
-        }
-        successor.call(this, param);
-    }
-
-    function spinDelay() {
-        var motion;
-        var stamp = performance.now();
-        var interval = stamp - lastStamp;
-
-        if (interval <= 0) {
-            interval = this.spinUpdateInterval/2;
-            if (interval > delayLeft) {
-                interval = delayLeft;
-            }
-        }
-
-        if (initiallyReady && !this.ready) { // drive went not ready
-            inchesLeft = 0;
-            this.timer = setCallback(this.mnemonic, this, this.spinUpdateInterval, spinFinish);
-        } else {
-            delayLeft -= interval;
-            if (delayLeft > this.spinUpdateInterval) {
-                lastStamp = stamp;
-                this.timer = setCallback(this.mnemonic, this, this.spinUpdateInterval, spinDelay);
-            } else {
-                this.timer = setCallback(this.mnemonic, this, delayLeft, spinFinish);
-            }
-
-            motion = inchesLeft*interval/delayLeft;
-            if (inchesLeft*direction <= 0) { // inchesLeft crossed zero
-                motion = inchesLeft = 0;
-            } else if (motion*direction <= inchesLeft*direction) {
-                inchesLeft -= motion;
-            } else {
-                motion = inchesLeft;
-                inchesLeft = 0;
-            }
-
-            this.spinReel(motion);
-        }
-    }
-
-    spinDelay.call(this);
-};
-
-/**************************************/
-B220MagTapeDrive.prototype.moveTapeTo = function moveTapeTo(index, result) {
-    /* Advances the tape to the specified image index and returns a Promise
-    that will resolve when tape motion completes */
-
-    return new Promise((resolve, reject) => {
-        var len = index - this.imgIndex;    // number of words passed
-        var delay = len*this.millisPerWord; // amount of tape spin time
-
-        this.imgIndex = index;
-        this.moveTape(len*this.inchesPerWord, delay, resolve, result);
-    });
 };
 
 /**************************************/
@@ -476,6 +370,165 @@ B220MagTapeDrive.prototype.setTapeUnloaded = function setTapeUnloaded() {
             this.timer = 0;
         }
     }
+};
+
+/**************************************/
+B220MagTapeDrive.prototype.tapeRewind = function tapeRewind(laneNr, lockout) {
+    /* Rewinds the tape. Makes the drive not-ready and delays for an appropriate
+    amount of time depending on how far up-tape we are. Readies the unit again
+    when the rewind is complete unless lockout is truthy. Returns a Promise that
+    resolves when the rewind completes */
+
+    return new Promise((resolve, reject) => {
+        var lastStamp;
+
+        function rewindFinish() {
+            this.timer = 0;
+            this.tapeState = this.tapeLocal;
+            B220Util.removeClass(this.$$("MTRewindingLight"), "annunciatorLit");
+            this.rewindLock = (lockout ? true : false);
+            this.rwlLamp.set(this.rewindLock ? 1 : 0);
+            this.setTapeReady(!this.rewindLock);
+            resolve(this.setLane(laneNr, null));
+        }
+
+        function rewindDelay() {
+            var inches;
+            var stamp = performance.now();
+            var interval = stamp - lastStamp;
+
+            if (interval <= 0) {
+                interval = this.spinUpdateInterval/2;
+            }
+            if (this.tapeInches <= 0) {
+                this.setAtBOT(true);
+                this.timer = setCallback(this.mnemonic, this, 1000, rewindFinish);
+            } else {
+                inches = interval*this.rewindSpeed;
+                lastStamp = stamp;
+                this.timer = setCallback(this.mnemonic, this, this.spinUpdateInterval, rewindDelay);
+                this.spinReel(-inches);
+            }
+        }
+
+        function rewindStart() {
+            this.designatedLamp.set(0);
+            lastStamp = performance.now();
+            this.timer = setCallback(this.mnemonic, this, this.spinUpdateInterval, rewindDelay);
+        }
+
+        if (this.timer) {
+            clearCallback(this.timer);
+            this.timer = 0;
+        }
+
+        if (this.tapeState != this.tapeUnloaded && this.tapeState != this.tapeRewinding) {
+            this.busy = true;
+            this.tapeState = this.tapeRewinding;
+            this.setAtEOT(false);
+            B220Util.addClass(this.$$("MTRewindingLight"), "annunciatorLit");
+            this.timer = setCallback(this.mnemonic, this, 1000, rewindStart);
+        }
+    });
+};
+
+/**************************************/
+B220MagTapeDrive.prototype.spinReel = function spinReel(inches) {
+    /* Rotates the reel image icon an appropriate amount based on the "inches"
+    of tape to be moved. The rotation is limited to this.maxSpinAngle degrees
+    in either direction so that movement remains apparent to the viewer */
+    var circumference = this.reelCircumference*(1 - this.tapeInches/this.maxTapeInches/2);
+    var degrees = inches/circumference*360;
+
+    if (degrees > this.maxSpinAngle) {
+        degrees = this.maxSpinAngle;
+    } else if (degrees < -this.maxSpinAngle) {
+        degrees = -this.maxSpinAngle;
+    }
+
+    this.reelAngle = (this.reelAngle + degrees)%360;
+    this.reelIcon.style.transform = "rotate(" + this.reelAngle.toFixed(0) + "deg)";
+
+    this.tapeInches += inches;
+    if (this.tapeInches < this.maxTapeInches) {
+        this.reelBar.value = this.maxTapeInches - this.tapeInches;
+    } else {
+        this.reelBar.value = 0;
+    }
+};
+
+/**************************************/
+B220MagTapeDrive.prototype.moveTape = function moveTape(inches, delay, successor, param) {
+    /* Delays the I/O during tape motion, during which it animates the reel image
+    icon. At the completion of the "delay" time in milliseconds, "successor" is
+    called with "param" as a parameter */
+    var delayLeft = Math.abs(delay);    // milliseconds left to delay
+    var direction = (inches < 0 ? -1 : 1);
+    var inchesLeft = inches;            // inches left to move tape
+    var initiallyReady = this.ready;    // remember initial ready state to detect change
+    var lastStamp = performance.now();  // last timestamp for spinDelay
+
+    function spinFinish() {
+        this.timer = 0;
+        if (inchesLeft != 0) {
+            this.spinReel(inchesLeft);
+        }
+        successor.call(this, param);
+    }
+
+    function spinDelay() {
+        var motion;
+        var stamp = performance.now();
+        var interval = stamp - lastStamp;
+
+        if (interval <= 0) {
+            interval = this.spinUpdateInterval/2;
+            if (interval > delayLeft) {
+                interval = delayLeft;
+            }
+        }
+
+        if (initiallyReady && !this.ready) { // drive went not ready
+            inchesLeft = 0;
+            this.timer = setCallback(this.mnemonic, this, this.spinUpdateInterval, spinFinish);
+        } else {
+            delayLeft -= interval;
+            if (delayLeft > this.spinUpdateInterval) {
+                lastStamp = stamp;
+                this.timer = setCallback(this.mnemonic, this, this.spinUpdateInterval, spinDelay);
+            } else {
+                this.timer = setCallback(this.mnemonic, this, delayLeft, spinFinish);
+            }
+
+            motion = inchesLeft*interval/delayLeft;
+            if (inchesLeft*direction <= 0) { // inchesLeft crossed zero
+                motion = inchesLeft = 0;
+            } else if (motion*direction <= inchesLeft*direction) {
+                inchesLeft -= motion;
+            } else {
+                motion = inchesLeft;
+                inchesLeft = 0;
+            }
+
+            this.spinReel(motion);
+        }
+    }
+
+    spinDelay.call(this);
+};
+
+/**************************************/
+B220MagTapeDrive.prototype.moveTapeTo = function moveTapeTo(index, result) {
+    /* Advances the tape to the specified image index and returns a Promise
+    that will resolve when tape motion completes */
+
+    return new Promise((resolve, reject) => {
+        var len = index - this.imgIndex;    // number of words passed
+        var delay = len*this.millisPerWord; // amount of tape spin time
+
+        this.imgIndex = index;
+        this.moveTape(len*this.inchesPerWord, delay, resolve, result);
+    });
 };
 
 /**************************************/
@@ -968,66 +1021,6 @@ B220MagTapeDrive.prototype.unloadTape = function unloadTape() {
 };
 
 /**************************************/
-B220MagTapeDrive.prototype.tapeRewind = function tapeRewind(laneNr, lockout) {
-    /* Rewinds the tape. Makes the drive not-ready and delays for an appropriate
-    amount of time depending on how far up-tape we are. Readies the unit again
-    when the rewind is complete unless lockout is truthy. Returns a Promise that
-    resolves when the rewind completes */
-
-    return new Promise((resolve, reject) => {
-        var lastStamp;
-
-        function rewindFinish() {
-            this.timer = 0;
-            this.tapeState = this.tapeLocal;
-            B220Util.removeClass(this.$$("MTRewindingLight"), "annunciatorLit");
-            this.rewindLock = (lockout ? true : false);
-            this.rwlLamp.set(this.rewindLock ? 1 : 0);
-            this.setTapeReady(!this.rewindLock);
-            resolve(this.setLane(laneNr, null));
-        }
-
-        function rewindDelay() {
-            var inches;
-            var stamp = performance.now();
-            var interval = stamp - lastStamp;
-
-            if (interval <= 0) {
-                interval = this.spinUpdateInterval/2;
-            }
-            if (this.tapeInches <= 0) {
-                this.setAtBOT(true);
-                this.timer = setCallback(this.mnemonic, this, 1000, rewindFinish);
-            } else {
-                inches = interval*this.rewindSpeed;
-                lastStamp = stamp;
-                this.timer = setCallback(this.mnemonic, this, this.spinUpdateInterval, rewindDelay);
-                this.spinReel(-inches);
-            }
-        }
-
-        function rewindStart() {
-            this.designatedLamp.set(0);
-            lastStamp = performance.now();
-            this.timer = setCallback(this.mnemonic, this, this.spinUpdateInterval, rewindDelay);
-        }
-
-        if (this.timer) {
-            clearCallback(this.timer);
-            this.timer = 0;
-        }
-
-        if (this.tapeState != this.tapeUnloaded && this.tapeState != this.tapeRewinding) {
-            this.busy = true;
-            this.tapeState = this.tapeRewinding;
-            this.setAtEOT(false);
-            B220Util.addClass(this.$$("MTRewindingLight"), "annunciatorLit");
-            this.timer = setCallback(this.mnemonic, this, 1000, rewindStart);
-        }
-    });
-};
-
-/**************************************/
 B220MagTapeDrive.prototype.LoadBtn_onclick = function LoadBtn_onclick(ev) {
     /* Handle the click event for the LOAD button */
 
@@ -1218,6 +1211,16 @@ B220MagTapeDrive.prototype.startUpBackward = function startUpBackward(driveState
 };
 
 /**************************************/
+B220MagTapeDrive.prototype.reverseDirection = function reverseDirection(driveState) {
+    /* Generates a delay to allow the drive to stop and reverse direction.
+    Returns a Promise that resolves when the delay is complete */
+
+    return new Promise((resolve, reject) => {
+        setCallback(this.mnemonic, this, this.turnaroundTime, resolve, driveState);
+    });
+};
+
+/**************************************/
 B220MagTapeDrive.prototype.reposition = function reposition(driveState) {
     /* Reverses tape direction after a forward tape operation and repositions
     the head five words from the end of the prior block, giving room for
@@ -1245,6 +1248,7 @@ B220MagTapeDrive.prototype.reposition = function reposition(driveState) {
                 switch (state) {
                 case 1: // initial state: skip backwards until erase-gap or BOT flaw-marker words
                     if (lane[x] == this.markerEOB) {
+                        --x;
                         state = 2;
                     } else if (lane[x] == this.markerFlaw) {
                         state = 0;
@@ -1279,16 +1283,6 @@ B220MagTapeDrive.prototype.reposition = function reposition(driveState) {
 };
 
 /**************************************/
-B220MagTapeDrive.prototype.reverseDirection = function reverseDirection(driveState) {
-    /* Generates a delay to allow the drive to stop and reverse direction.
-    Returns a Promise that resolves when the delay is complete */
-
-    return new Promise((resolve, reject) => {
-        setCallback(this.mnemonic, this, this.turnaroundTime, resolve, driveState);
-    });
-};
-
-/**************************************/
 B220MagTapeDrive.prototype.scanBlock = function scanBlock(driveState, wordIndex) {
     /* Scans one block in a forward direction. Terminates with either the control
     word from an EOT or control block, or the category word from any other block
@@ -1318,6 +1312,7 @@ B220MagTapeDrive.prototype.scanBlock = function scanBlock(driveState, wordIndex)
                 switch (state) {
                 case 1: // initial state: skip over flaw and intra-block words
                     if (w == this.markerGap) {
+                        ++x;
                         state = 2;
                     } else {
                         ++x;
@@ -1397,6 +1392,7 @@ B220MagTapeDrive.prototype.scanBlock = function scanBlock(driveState, wordIndex)
 
                 case 7: // step through remaining words in the block until normal EOB
                     if (w == this.markerEOB) {
+                        ++x;
                         state = 8;
                     } else {
                         ++x;
@@ -1452,6 +1448,7 @@ B220MagTapeDrive.prototype.searchForwardBlock = function searchForwardBlock(driv
                 switch (state) {
                 case 1: // initial state: skip over flaw and intra-block words
                     if (w == this.markerGap) {
+                        ++x;
                         state = 2;
                     } else {
                         ++x;
@@ -1553,6 +1550,7 @@ B220MagTapeDrive.prototype.searchBackwardBlock = function searchBackwardBlock(dr
                 switch (state) {
                 case 1: // initial state: skip over flaw and magnetic EOT words
                     if (w == this.markerGap) {
+                        --x;
                         state = 2;
                     } else if (w == this.markerFlaw) {
                         --x;
@@ -1573,6 +1571,7 @@ B220MagTapeDrive.prototype.searchBackwardBlock = function searchBackwardBlock(dr
 
                 case 3: // search for start of block (first prior inter-block gap word)
                     if (w == this.markerGap) {
+                        --x;
                         state = 4;
                     } else if (w < 0) {
                         count = 0;
@@ -1650,6 +1649,7 @@ B220MagTapeDrive.prototype.readNextBlock = function readNextBlock(driveState, re
                 switch (state) {
                 case 1: // initial state: skip over flaw and intra-block words
                     if (w == this.markerGap) {
+                        ++x;
                         state = 2;
                     } else {
                         ++x;
@@ -1774,6 +1774,7 @@ B220MagTapeDrive.prototype.readNextBlock = function readNextBlock(driveState, re
 
                 case 7: // check for proper end-of-block
                     if (w == this.markerEOB) {
+                        ++x;
                         state = 9;
                     } else {
                         state = 0;      // block was longer than preface indicated
@@ -1784,6 +1785,7 @@ B220MagTapeDrive.prototype.readNextBlock = function readNextBlock(driveState, re
 
                 case 8: // step through remaining words in the block until normal EOB
                     if (w == this.markerEOB) {
+                        ++x;
                         state = 9;
                     } else {
                         ++x;
@@ -1801,6 +1803,7 @@ B220MagTapeDrive.prototype.readNextBlock = function readNextBlock(driveState, re
 
                 case 10: // step through remaining words in the block until EOB for error
                     if (w == this.markerEOB) {
+                        ++x;
                         state = 11;
                     } else {
                         ++x;
@@ -1856,6 +1859,7 @@ B220MagTapeDrive.prototype.overwriteBlock = function overwriteBlock(driveState, 
                 switch (state) {
                 case 1: // initial state: skip over flaw and intra-block words
                     if (w == this.markerGap) {
+                        ++x;
                         state = 2;
                     } else {
                         ++x;
@@ -1945,6 +1949,7 @@ B220MagTapeDrive.prototype.overwriteBlock = function overwriteBlock(driveState, 
 
                 case 6: // step through remaining words in the block until normal EOB
                     if (w == this.markerEOB) {
+                        ++x;
                         state = 7;
                     } else {
                         ++x;
@@ -1962,6 +1967,7 @@ B220MagTapeDrive.prototype.overwriteBlock = function overwriteBlock(driveState, 
 
                 case 8: // step through remaining words in the block until EOB for error
                     if (w == this.markerEOB) {
+                        ++x;
                         state = 9;
                     } else {
                         ++x;
@@ -2168,6 +2174,7 @@ B220MagTapeDrive.prototype.spaceForwardBlock = function spaceForwardBlock(driveS
                 switch (state) {
                 case 1: // initial state: skip over flaw and intra-block words
                     if (w == this.markerGap) {
+                        ++x;
                         state = 2;
                     } else {
                         ++x;
@@ -2184,6 +2191,7 @@ B220MagTapeDrive.prototype.spaceForwardBlock = function spaceForwardBlock(driveS
 
                 case 3: // found preface: search for end of block (next erase-gap word)
                     if (w == this.markerEOB) {
+                        ++x;
                         state = 4;
                     } else {
                         ++x;
@@ -2238,6 +2246,7 @@ B220MagTapeDrive.prototype.spaceBackwardBlock = function spaceBackwardBlock(driv
                 switch (state) {
                 case 1: // initial state: skip over flaw and magnetic EOT words
                     if (w == this.markerGap) {
+                        --x;
                         state = 2;
                     } else if (w == this.markerFlaw) {
                         --x;
@@ -2342,6 +2351,7 @@ B220MagTapeDrive.prototype.spaceEOIBlock = function spaceEOIBlock(driveState) {
 
                 case 3: // search for end of block (next erase-gap word)
                     if (w == this.markerEOB) {
+                        ++x;
                         state = 4;
                     } else {
                         ++x;

@@ -185,6 +185,20 @@
     top:                66px;
     width:              220px}
 
+#SpeedSwitch {
+    position:           absolute;
+    left:               60px;
+    top:                160px;
+    width:              24px}
+#WhippetSpeedCaption {
+    left:               48px;
+    top:                146px;
+    width:              48px}
+#TTYSpeedCaption {
+    left:               48px;
+    top:                190px;
+    width:              48px}
+
 #UnitSwitch0 {
     position:           absolute;
     left:               134px;

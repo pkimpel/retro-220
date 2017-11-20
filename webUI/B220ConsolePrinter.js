@@ -32,12 +32,13 @@ function B220ConsolePrinter(mnemonic, unitIndex, config) {
     this.unitSwitch = new Array(11);    // unit selection switch objects
     this.tabStop = [];                  // 0-relative tab stop positions
     this.zeroSuppress = 0;              // zero-suppression switch setting
+    this.charPeriod = 0;                // printer speed, ms/char
 
-    this.boundButton_Click = B220Util.bindMethod(this, B220ConsolePrinter.prototype.button_Click);
-    this.boundText_OnChange = B220Util.bindMethod(this, B220ConsolePrinter.prototype.text_OnChange);
-    this.boundFlipSwitch = B220Util.bindMethod(this, B220ConsolePrinter.prototype.flipSwitch);
-    this.boundReceiveSign = B220Util.bindMethod(this, B220ConsolePrinter.prototype.receiveSign);
-    this.boundReceiveChar = B220Util.bindMethod(this, B220ConsolePrinter.prototype.receiveChar);
+    this.boundButton_Click = B220ConsolePrinter.prototype.button_Click.bind(this);
+    this.boundText_OnChange = B220ConsolePrinter.prototype.text_OnChange.bind(this);
+    this.boundFlipSwitch = B220ConsolePrinter.prototype.flipSwitch.bind(this);
+    this.boundReceiveSign = B220ConsolePrinter.prototype.receiveSign.bind(this);
+    this.boundReceiveChar = B220ConsolePrinter.prototype.receiveChar.bind(this);
 
     this.clear();
 
@@ -58,8 +59,8 @@ function B220ConsolePrinter(mnemonic, unitIndex, config) {
 B220ConsolePrinter.offSwitchImage = "./resources/ToggleDown.png";
 B220ConsolePrinter.onSwitchImage = "./resources/ToggleUp.png";
 
-B220ConsolePrinter.charsPerSecond = 10; // Printer speed
-B220ConsolePrinter.charPeriod = 1000/B220ConsolePrinter.charsPerSecond;
+B220ConsolePrinter.ttySpeed = 10;       // TTY printer speed, char/sec
+B220ConsolePrinter.whippetSpeed = 200;  // Whippet printer speed, char/sec
                                         // Inter-character period, ms
 B220ConsolePrinter.pageSize = 66;       // lines/page for form-feed
 B220ConsolePrinter.maxScrollLines = 15000;
@@ -264,7 +265,7 @@ B220ConsolePrinter.prototype.flipSwitch = function flipSwitch(ev) {
         break;
     case "MapMemorySwitch":
         this.mapMemorySwitch.flip();
-        prefs.mapMemory, this.mapMemory = this.mapMemorySwitch.state;
+        prefs.mapMemory = this.mapMemory = this.mapMemorySwitch.state;
         break;
     case "RemoteKnob":
         this.remoteKnob.step();
@@ -275,6 +276,15 @@ B220ConsolePrinter.prototype.flipSwitch = function flipSwitch(ev) {
         this.formatKnob.step();
         prefs.format = this.formatKnob.position;
         this.format = this.formatKnob.position;
+        break;
+    case "SpeedSwitch":
+        this.speedSwitch.flip();
+        prefs.printerSpeed = this.speedSwitch.state;
+        if (this.speedSwitch.state) {
+            this.charPeriod = 1000/B220ConsolePrinter.whippetSpeed;
+        } else {
+            this.charPeriod = 1000/B220ConsolePrinter.ttySpeed;
+        }
         break;
     default:
         x = id.indexOf("UnitSwitch");
@@ -394,6 +404,14 @@ B220ConsolePrinter.prototype.printerOnLoad = function printerOnLoad() {
             B220ConsolePrinter.offSwitchImage, B220ConsolePrinter.onSwitchImage);
     this.mapMemorySwitch.set(prefs.mapMemory);
     this.mapMemory = this.mapMemorySwitch.state;
+    this.speedSwitch = new ToggleSwitch(body, null, null, "SpeedSwitch",
+            B220ConsolePrinter.offSwitchImage, B220ConsolePrinter.onSwitchImage);
+    this.speedSwitch.set(prefs.printerSpeed);
+    if (this.speedSwitch.state) {
+        this.charPeriod = 1000/B220ConsolePrinter.whippetSpeed;
+    } else {
+        this.charPeriod = 1000/B220ConsolePrinter.ttySpeed;
+    }
 
     mask = 0x001;
     this.unitMask = prefs.unitMask;
@@ -421,11 +439,11 @@ B220ConsolePrinter.prototype.printerOnLoad = function printerOnLoad() {
 
     // Events
     this.window.addEventListener("beforeunload",
-            B220ConsolePrinter.prototype.beforeUnload);
+            B220ConsolePrinter.prototype.beforeUnload, false);
     this.window.addEventListener("resize",
-            B220Util.bindMethod(this, B220ConsolePrinter.prototype.resizeWindow));
+            B220Util.bindMethod(this, B220ConsolePrinter.prototype.resizeWindow), false);
     this.paper.addEventListener("dblclick",
-            B220Util.bindMethod(this, B220ConsolePrinter.prototype.copyPaper));
+            B220Util.bindMethod(this, B220ConsolePrinter.prototype.copyPaper), false);
 
     this.$$("OpenPanelBtn").addEventListener("click", this.boundButton_Click);
     this.$$("ClosePanelBtn").addEventListener("click", this.boundButton_Click);
@@ -434,6 +452,7 @@ B220ConsolePrinter.prototype.printerOnLoad = function printerOnLoad() {
 
     this.zeroSuppressSwitch.addEventListener("click", this.boundFlipSwitch);
     this.mapMemorySwitch.addEventListener("click", this.boundFlipSwitch);
+    this.speedSwitch.addEventListener("click", this.boundFlipSwitch);
     this.remoteKnob.addEventListener("click", this.boundFlipSwitch);
     this.formatKnob.addEventListener("click", this.boundFlipSwitch);
     this.$$("Columns").addEventListener("change", this.boundText_OnChange);
@@ -459,7 +478,7 @@ B220ConsolePrinter.prototype.receiveSign = function receiveSign(char, successor)
     /* Receives the sign character from the processor and handles it according
     to the value of the sign and the setting of the Map Memory and LZ Suppress
     switches */
-    var delay = B220ConsolePrinter.charPeriod;  // default character delay
+    var delay = this.charPeriod;                // default character delay
     var stamp = performance.now();              // current time
 
     switch (true) {
@@ -506,7 +525,7 @@ B220ConsolePrinter.prototype.receiveSign = function receiveSign(char, successor)
 B220ConsolePrinter.prototype.receiveChar = function receiveChar(char, successor) {
     /* Receives a non-sign character from the processor and outputs it. Special handling
     is provided for tabs, carriage returns, form feeds, and end-of-word characters */
-    var delay = B220ConsolePrinter.charPeriod;  // default character delay
+    var delay = this.charPeriod;                // default character delay
     var nextReceiver = this.boundReceiveChar;   // default routine to receive next char
     var stamp = performance.now();              // current time
 
@@ -572,7 +591,7 @@ B220ConsolePrinter.prototype.shutDown = function shutDown() {
     }
 
     if (this.window) {
-        this.window.removeEventListener("beforeunload", B220ConsolePrinter.prototype.beforeUnload);
+        this.window.removeEventListener("beforeunload", B220ConsolePrinter.prototype.beforeUnload, false);
         this.window.close();
         this.window = null;
     }

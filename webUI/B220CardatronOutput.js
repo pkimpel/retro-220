@@ -758,7 +758,7 @@ B220CardatronOutput.prototype.deviceOnLoad = function deviceOnLoad() {
     this.window.addEventListener("beforeunload",
             B220CardatronOutput.prototype.beforeUnload, false);
     this.supply.addEventListener("dblclick",
-            B220Util.bindMethod(this, B220CardatronOutput.prototype.copySupply));
+            B220Util.bindMethod(this, B220CardatronOutput.prototype.copySupply), false);
     this.$$("COStopBtn").addEventListener("click",
             B220Util.bindMethod(this, B220CardatronOutput.prototype.COStopBtn_onClick), false);
     this.$$("COStartBtn").addEventListener("click",
@@ -772,7 +772,7 @@ B220CardatronOutput.prototype.deviceOnLoad = function deviceOnLoad() {
     this.$$("COSetZSBtn").addEventListener("click",
             B220Util.bindMethod(this, B220CardatronOutput.prototype.COSetZSBtn_onClick), false);
     this.$$("ClearBtn").addEventListener("click",
-            B220Util.bindMethod(this, B220CardatronOutput.prototype.ClearBtn_onClick));
+            B220Util.bindMethod(this, B220CardatronOutput.prototype.ClearBtn_onClick), false);
 
     if (!this.isPrinter) {
         this.$$("COEndOfSupplyBtn").innerHTML = "OUT OF<br>CARDS";
@@ -1031,7 +1031,7 @@ B220CardatronOutput.prototype.shutDown = function shutDown() {
     if (this.timer) {
         clearCallback(this.timer);
     }
-    this.window.removeEventListener("beforeunload", B220CardatronOutput.prototype.beforeUnload);
+    this.window.removeEventListener("beforeunload", B220CardatronOutput.prototype.beforeUnload, false);
     this.window.close();
     if (this.zsWindow && !this.zsWindow.closed) {
         this.zsWindow.close();

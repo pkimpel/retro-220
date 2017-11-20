@@ -76,7 +76,7 @@ B220SystemConfig.defaultConfig = {
 
     ConsoleOutput: {
         units: [
-            {type: "TTYA", unitMask: 0x001, remote: 1, format: 0, zeroSuppress: 0, mapMemory: 0,
+            {type: "TTYA", unitMask: 0x001, remote: 1, format: 0, zeroSuppress: 0, mapMemory: 0, printerSpeed: 0,
                            columns: 72, tabs: "9,17,25,33,41,49,57,65,73,81"},
             {type: "NONE"},
             {type: "NONE"},
@@ -460,6 +460,7 @@ B220SystemConfig.prototype.saveConfigDialog = function saveConfigDialog() {
             unit.remote = (unit.remote || 0);
             unit.zeroSuppress = (unit.zeroSuppress || 0);
             unit.mapMemory = (unit.mapMemory || 0);
+            unit.printerSpeed = (unit.printerSpeed || 0);
             e = this.$$(prefix + "Format");
             unit.format = (e.selectedIndex < 0 ? "NONE" : e.options[e.selectedIndex].value);
             unit.columns = (unit.columns ? unit.columns : 72);

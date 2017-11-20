@@ -256,7 +256,7 @@ function B220Processor(config, devices) {
 *   Global Constants                                                   *
 ***********************************************************************/
 
-B220Processor.version = "0.03c";
+B220Processor.version = "0.04";
 
 B220Processor.tick = 1000/200000;       // milliseconds per clock cycle (200KHz)
 B220Processor.cyclesPerMilli = 1/B220Processor.tick;
@@ -1164,6 +1164,41 @@ B220Processor.prototype.bcdAdd = function bcdAdd(a, d, digits, complement, initi
     } // for x
 
     return am;
+};
+
+/**************************************/
+B220Processor.prototype.clearAdd = function clearAdd(absolute) {
+    /* After accessing memory, algebraically add the addend (IB) to zero. If
+    "absolute" is true, then the sign-bit of the word from memory is forced to the
+    subtract toggle. All values are BCD with the sign in the 11th digit position.
+    Sets the Digit Check alarm as necessary */
+    var am = 0;                                 // augend mantissa
+    var dm;                                     // addend mantissa
+    var dSign;                                  // addend sign
+
+    this.opTime = 0.095;
+    this.E.set(this.CADDR);
+    this.readMemory();
+    if (this.MET.value) {               // invalid address
+        this.A.set(am);                 // sign is zero
+        return;                         // exit to Operation Complete
+    }
+
+    dm = this.IB.value % 0x10000000000;
+    dSign = ((this.IB.value - dm)/0x10000000000);
+    if (absolute) {                     // force sign bit to SUT
+        dSign = (dSign & 0x0E) | this.SUT.value;
+    } else if (this.SUT.value) {        // complement the sign bit
+        dSign = dSign ^ 0x01;
+    }
+
+    am = this.bcdAdd(am, dm, 11);
+
+    // Set toggles for display purposes and return the result
+    this.DST.set(dSign%2);
+    this.SGT.set(dSign%2);
+    this.D.set(dSign*0x10000000000 + dm);
+    this.A.set(dSign*0x10000000000 + am);
 };
 
 /**************************************/
@@ -3142,15 +3177,13 @@ B220Processor.prototype.execute = function execute() {
 
     case 0x10:      //--------------------- CAD/CAA Clear add/add absolute
         this.SUT.set(0);
-        this.A.value = this.IB.value - this.IB.value%0x10000000000;     // 0 with sign of IB
-        this.integerAdd(this.CCONTROL % 0x10 == 1, false);
+        this.clearAdd(this.CCONTROL % 0x10 == 1);
         this.operationComplete();
         break;
 
     case 0x11:      //--------------------- CSU/CSA Clear subtract/subtract absolute
         this.SUT.set(1);
-        this.A.value = this.IB.value - this.IB.value%0x10000000000;     // 0 with sign of IB
-        this.integerAdd(this.CCONTROL % 0x10 == 1, false);
+        this.clearAdd(this.CCONTROL % 0x10 == 1);
         this.operationComplete();
         break;
 
@@ -3451,7 +3484,7 @@ B220Processor.prototype.execute = function execute() {
             if (this.CCONTROL%0x10 == 1) {              // Load B complement
                 this.B.set(this.bcdAdd(this.IB.value, 0, 4, 1, 1));
             } else {                                    // Load B
-                this.B.set(this.IB.value);
+                this.B.set(this.IB.value%0x10000);
             }
         }
         this.operationComplete();
@@ -3538,9 +3571,14 @@ B220Processor.prototype.execute = function execute() {
     case 0x49:      //--------------------- SL*     Shift (rotate) left A/A and R/A with sign
         switch (this.CCONTROL%0x10) {
         case 1:         // SLT: Shift Left A and R
-            x = B220Processor.bcdBinary(this.CADDR % 0x20);
-            this.opTime = 0.210 - x*0.005;
-            this.DC.set(B220Processor.binaryBCD(x));
+            x = this.CADDR % 0x20;
+            if (x < 0x10) {
+                this.opTime = 0.210 - x*0.005;
+            } else {
+                this.opTime = 0.160 - (x-0x10)*0.005;
+            }
+
+            this.DC.set(x);
             w = this.R.value % 0x10000000000;           // R sign is not affected
             this.A.value %= 0x10000000000;              // discard the A sign
             while (this.DC.value < 0x20) {
@@ -3553,10 +3591,12 @@ B220Processor.prototype.execute = function execute() {
             this.R.set(this.R.value - this.R.value%0x10000000000 + w); // restore the R sign
             break;
         case 2:         // SLS: Shift Left A with Sign
-            x = B220Processor.bcdBinary(this.CADDR % 0x10);
+            x = this.CADDR % 0x10;
             this.opTime = 0.160 - x*0.005;
-            this.DC.set(B220Processor.binaryBCD(10+x));
+            this.DC.set(0x10+x);
             w = this.A.value % 0x100000000000;          // A sign is included
+            d = w % 0x10;                               // do one more rotate right
+            w = (w-d)/0x10 + d*0x10000000000;           //    than the count calls for
             while (this.DC.value < 0x20) {
                 d = w % 0x10;
                 w = (w-d)/0x10 + d*0x10000000000;
@@ -3565,9 +3605,9 @@ B220Processor.prototype.execute = function execute() {
             this.A.set(w);
             break;
         default:        // SLA: Shift Left A
-            x = B220Processor.bcdBinary(this.CADDR % 0x10);
+            x = this.CADDR % 0x10;
             this.opTime = 0.160 - x*0.005;
-            this.DC.set(B220Processor.binaryBCD(10+x));
+            this.DC.set(0x10+x);
             w = this.A.value % 0x10000000000;           // A sign is not affected
             while (this.DC.value < 0x20) {
                 d = w % 0x10;
@@ -3721,7 +3761,7 @@ B220Processor.prototype.execute = function execute() {
         } else if (this.magTape.controlBusy) {
             this.opTime = 0.01;
         } else {
-            opTime = 0.14;
+            this.opTime = 0.14;
             if (this.CCONTROL%0x10 == 1) {              // MIE
                 if (this.magTape.testUnitAtEOT(this.D.value)) {
                     this.P.set(this.CADDR);
@@ -4251,41 +4291,6 @@ B220Processor.prototype.powerDown = function powerDown() {
 B220Processor.prototype.loadDefaultProgram = function loadDefaultProgram() {
     /* Loads a set of default demo programs to the memory drum */
 
-    // TEMP // Tape tests
-    this.MM[   0] = 0x1008500000;       // MRW     1
-    this.MM[   1] = 0x1002580000;       // MPE     1
-    this.MM[   2] = 0x1000540000;       // MIW     0,1,10,100
-    this.MM[   3] = 0x1750540100;       // MIW     100,1,7,50
-    this.MM[   4] = 0x1500550079;       // MIR     79,1,5,00
-    this.MM[   5] = 0x1101542000;       // MIW     2000,1,1,1   // write an EOT block
-
-    this.MM[   6] = 0x1008500000;       // MRW     1
-    this.MM[   7] = 0x1000560000;       // MOW     0,1,10,100
-    this.MM[   8] = 0x1750560100;       // MOW     100,1,7,50
-    this.MM[   9] = 0x1500570079;       // MOR     79,1,5,00
-    //this.MM[  10] = 0x1101562000;       // MOW     2000,1,1,1
-    this.MM[  10] = 0x1110562000;       // MOW     2000,1,1,10  // TEMP: block-length=10, should fire EOT control word
-
-    this.MM[  11] = 0x1008500000;       // MRW     1
-    this.MM[  12] = 0x1000523000;       // MRD     3000,1,10,0
-    this.MM[  13] = 0x1700524000;       // MRD     4000,1,7,0
-    this.MM[  14] = 0x1500534350;       // MRR     4350,1,5,0
-    this.MM[  15] = 0x1100534800;       // MRR     4800,1,1,0   // should be an EOT block
-
-    this.MM[  16] = 0x1009500000;       // MDA     1
-    this.MM[  17] = 0x7777009999;       // HLT     9999,7777
-
-    this.MM[  79] = 0x1900000000;       // preface for 19 words, 80-98
-    this.MM[  99] = 0x4000000000;       // preface for 40 words, 100-139
-    this.MM[ 140] = 0x5800000000;       // preface for 58 words, 141-198
-    this.MM[ 199] = 0x9900000000;       // preface for 99 words, 200-298
-    this.MM[ 299] = 0x0000000000;       // preface for 100 words, 300-399
-
-    this.MM[2000] = 0x9920012002;       // end-of-tape control word
-    this.MM[2001] = 0x9999999999;       // storage for end-of-tape block state
-    this.MM[2002] = 0x9999008421;       // HLT: target for end-of-tape control branch
-    this.MM[2003] = 0x0000300011;       // branch to read test sequence
-
     // Simple counter speed test
     this.MM[  80] = 0x0000120082;       // ADD    82
     this.MM[  81] = 0x0000300080;       // BUN    80
@@ -4469,4 +4474,39 @@ B220Processor.prototype.loadDefaultProgram = function loadDefaultProgram() {
     this.MM[ 377]= 0x20202021616; // CR    CNST  20202021616     NEWLINES
 
     this.MM[1000]= 0x00000000000; // F     DEFN  *               ARRAY F[2800]
+
+    // TEMP // Tape tests
+    this.MM[ 400] = 0x1008500000; //       MRW     1
+    this.MM[ 401] = 0x1002580000; //       MPE     1
+    this.MM[ 402] = 0x1000540000; //       MIW     0,1,10,100
+    this.MM[ 403] = 0x1750540100; //       MIW     100,1,7,50
+    this.MM[ 404] = 0x1500550079; //       MIR     79,1,5,00
+    this.MM[ 405] = 0x1101542000; //       MIW     2000,1,1,1   // write an EOT block
+
+    this.MM[ 406] = 0x1008500000; //       MRW     1
+    this.MM[ 407] = 0x1000560000; //       MOW     0,1,10,100
+    this.MM[ 408] = 0x1750560100; //       MOW     100,1,7,50
+    this.MM[ 409] = 0x1500570079; //       MOR     79,1,5,00
+    //this.MM[ 410] = 0x1101562000; //       MOW     2000,1,1,1
+    this.MM[ 410] = 0x1110562000; //       MOW     2000,1,1,10  // TEMP: block-length=10, should fire EOT control word
+
+    this.MM[ 411] = 0x1008500000; //       MRW     1
+    this.MM[ 412] = 0x1000523000; //       MRD     3000,1,10,0
+    this.MM[ 413] = 0x1700524000; //       MRD     4000,1,7,0
+    this.MM[ 414] = 0x1500534350; //       MRR     4350,1,5,0
+    this.MM[ 415] = 0x1100534800; //       MRR     4800,1,1,0   // should be an EOT block
+
+    this.MM[ 416] = 0x1009500000; //       MDA     1
+    this.MM[ 417] = 0x7777009999; //       HLT     9999,7777
+
+    this.MM[  79] = 0x1900000000; //       preface for 19 words, 80-98
+    this.MM[  99] = 0x4000000000; //       preface for 40 words, 100-139
+    this.MM[ 140] = 0x5800000000; //       preface for 58 words, 141-198
+    this.MM[ 199] = 0x9900000000; //       preface for 99 words, 200-298
+    this.MM[ 299] = 0x0000000000; //       preface for 100 words, 300-399
+
+    this.MM[2000] = 0x9920012002; //       end-of-tape control word
+    this.MM[2001] = 0x9999999999; //       storage for end-of-tape block state
+    this.MM[2002] = 0x9999008421; //       HLT: target for end-of-tape control branch
+    this.MM[2003] = 0x0000300411; //       branch to read test sequence
 };

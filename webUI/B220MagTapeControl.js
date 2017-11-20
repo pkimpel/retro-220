@@ -126,30 +126,15 @@ B220MagTapeControl.prototype.clear = function clear() {
 };
 
 /**************************************/
-B220MagTapeControl.prototype.findDesignate = function findDesignate(u) {
-    /* Searches this.tapeUnit[] to find the internal index of the unit that is
-    designated as "u". If found, returns the internal index; if not found,
-    returns -1. If more than one ready unit with the same designate is found,
-    returns -2 */
-    var index = -1;
-    var unit;
-    var x;
+B220MagTapeControl.prototype.clearMisc = function clearMisc() {
+    /* Resets this.regMisc and the individual lamps for that register */
+    var bitNr;
+    var m = this.regMisc;
 
-    for (x=this.tapeUnit.length-1; x>=0; --x) {
-        unit = this.tapeUnit[x];
-        if (unit && unit.ready) {
-            if (unit.unitDesignate == u) {
-                if (index == -1) {
-                    index = x;
-                } else {
-                    index = -2;
-                    break;              // out of for loop
-                }
-            }
-        }
-    } // for x
-
-    return index;
+    m.update(0);
+    for (bitNr=m.bits-1; bitNr>= 0; --bitNr) {
+        m.lamps[bitNr].set(0);
+    }
 };
 
 /**************************************/
@@ -175,126 +160,73 @@ B220MagTapeControl.prototype.storeWord = function storeWord(initialStore, word) 
 };
 
 /**************************************/
-B220MagTapeControl.prototype.queuePendingOperation = function queuePendingOperation(callee, args) {
-    /* Queues a pending tape operation */
+B220MagTapeControl.prototype.reportStatus = function reportStatus(state) {
+    /* Sets bits in the MISC register to indicate various drive and control unit
+    status and error conditions */
 
-    //console.log(this.mnemonic + " queuePendingOperation: " + args[0].toString(16));
-    if (this.pendingCallee !== null) {
-        throw new Error("More than one pending tape control operation");
-    }
-
-    this.pendingCallee = callee;
-    this.pendingArgs = args;
-};
-
-/**************************************/
-B220MagTapeControl.prototype.dequeuePendingOperation = function dequeuePendingOperation() {
-    /* Dequeues and reinitiates a pending tape operation */
-    var args = this.pendingArgs;        // pending Arguments object
-    var callee = this.pendingCallee;    // pending method to call
-
-    this.pendingCallee = this.pendingArgs = null;
-    callee.apply(this, args);
-};
-
-/**************************************/
-B220MagTapeControl.prototype.loadCommand = function loadCommand(dReg, callee, args) {
-    /* If the control unit or the tape unit addressed by the unit field in dReg
-    are currently busy, queues the args parameter (an Arguments object) in
-    this.pendingCallee and -Args, and returns false. If the control is idle but
-    the tape unit is not ready or not present, or two units have the same designate,
-    calls this.releaseProcessor and returns false. If the control and tape unit
-    are ready for their next operation, loads the contents of the processor's
-    D register passed to the operation routines into the T, C, and MISC registers.
-    Sets this.unitNr, and this.unitIndex from the digits in T. Sets this.
-    currentUnit to the current tape unit object. Then returns true to inidicate
-    the I/O can proceed */
-    var c;                              // scratch
-    var proceed = false;                // return value: true => proceed with I/O
-    var t = dReg%0x10000000000;         // temp to partition fields of Processor's D register
-    var ux;                             // internal unit index
-
-    //console.log(this.mnemonic + " loadCommand: " + dReg.toString(16));
-    if (this.controlBusy) {
-        this.queuePendingOperation(callee, args);
-    } else {
-        this.T = t;
-        this.regT.update(this.T);
-        this.unitNr = (t - t%0x1000000000)/0x1000000000;
-        t = (t - t%0x10000)/0x10000;
-        c = t%0x10;                     // low-order digit of op code
-        t = (t - t%0x100)/0x100;        // control digits from instruction
-        this.C = this.unitNr*0x100000 + t*0x10 + c;
-        this.regC.update(this.C);
+    switch (state) {
+    case this.driveState.driveNoError:
         this.clearMisc();
-        this.unitIndex = ux = this.findDesignate(this.unitNr);
-        if (ux < 0) {
-            this.reportStatus(this.driveState.driveNotReady);   // drive not ready, not present
-            this.releaseProcessor(false, 0);
-        } else {
-            this.currentUnit = this.tapeUnit[ux];
-            if (this.currentUnit.busy || this.currentUnit.rewindLock) {
-                this.queuePendingOperation(callee, args);
-            } else {
-                proceed = true;
-                this.driveState.startTime = performance.now();
-                this.driveState.completionDelay = 0;
-                this.driveState.state = this.driveState.driveNoError;
+        break;
+    case this.driveState.driveNotReady:
+        this.TX2Lamp.set(1);
+        this.TX10Lamp.set(1);
+        break;
+    case this.driveState.drivePrefaceCheck:
+        this.p.setMagneticTapeCheck(1);
+        this.TPCLamp.set(1);
+        break;
+    case this.driveState.drivePrefaceMismatch:
+        this.p.setMagneticTapeCheck(1);
+        this.TCFLamp.set(1);
+        this.C = (this.C & 0x00FFFF) | 0xFF0000;
+        this.regC.update(this.C);
+        break;
+    case this.driveState.driveReadCheck:
+        this.p.setMagneticTapeCheck(1);
+        this.TYC1Lamp.set(1);
+        this.TYC2Lamp.set(1);
+        this.C = (this.C & 0xFFF00F) | 0x000F90;
+        this.regC.update(this.C);
+        break;
+    case this.driveState.driveInvalidBlockLength:
+        this.p.setMagneticTapeCheck(1);
+        this.TX2Lamp.set(1);
+        this.TX4Lamp.set(1);
+        this.C = (this.C & 0x000F0F) | 0xB010F0;
+        this.regC.update(this.C);
+        break;
+    case this.driveState.driveNotEditedTape:
+        this.p.setMagneticTapeCheck(1);
+        break;
+    } // switch code
+};
+
+/**************************************/
+B220MagTapeControl.prototype.findDesignate = function findDesignate(u) {
+    /* Searches this.tapeUnit[] to find the internal index of the unit that is
+    designated as "u". If found, returns the internal index; if not found,
+    returns -1. If more than one ready unit with the same designate is found,
+    returns -2 */
+    var index = -1;
+    var unit;
+    var x;
+
+    for (x=this.tapeUnit.length-1; x>=0; --x) {
+        unit = this.tapeUnit[x];
+        if (unit && unit.ready) {
+            if (unit.unitDesignate == u) {
+                if (index == -1) {
+                    index = x;
+                } else {
+                    index = -2;
+                    break;              // out of for loop
+                }
             }
         }
-    }
+    } // for x
 
-    return proceed;
-};
-
-/**************************************/
-B220MagTapeControl.prototype.releaseControl = function releaseControl(param) {
-    /* Releases the busy status of the control. If an error is present, sets the
-    bits in the MISC register and the Processor's Magnetic Tape Check alarm, as
-    appropriate. If another operation is pending, initiates that operation.
-    Returns but does not use its parameter so that it can be used with
-    Promise.then() */
-
-    this.TFLamp.set(0);
-    this.TBLamp.set(0);
-    this.controlBusy = false;
-    if (this.driveState.state != this.driveState.driveNoError) {
-        this.currentUnit.releaseUnit(this.driveState);
-        this.reportStatus(this.driveState.state);
-    }
-
-    if (this.pendingCallee !== null) {
-        this.dequeuePendingOperation();
-    }
-
-    return param;
-};
-
-/**************************************/
-B220MagTapeControl.prototype.cancelIO = function cancelIO(param) {
-    /* Terminates the current I/O operation by releasing the Processor, tape
-    unit, and tape control unit. Returns but does not use its parameter so it
-    can be used with Promise.then() */
-
-    this.releaseProcessor(false, 0);
-    this.currentUnit.releaseUnit();
-    this.releaseControl();
-    return param;
-};
-
-/**************************************/
-B220MagTapeControl.prototype.tapeUnitFinished = function tapeUnitFinished(param) {
-    /* Call-back function passed to tape unit methods to signal when the unit has
-    completed its asynchronous operation. Returns but does not use "param", so
-    that it can be used with Promise.then() */
-
-    if (!this.controlBusy) {            // if the control unit is currently idle...
-        if (this.pendingCallee !== null) {
-            this.dequeuePendingOperation();
-        }
-    }
-
-    return param;
+    return index;
 };
 
 /**************************************/
@@ -436,58 +368,126 @@ B220MagTapeControl.prototype.compareKeywordField = function compareKeywordField(
 };
 
 /**************************************/
-B220MagTapeControl.prototype.clearMisc = function clearMisc() {
-    /* Resets this.regMisc and the individual lamps for that register */
-    var bitNr;
-    var m = this.regMisc;
+B220MagTapeControl.prototype.queuePendingOperation = function queuePendingOperation(callee, args) {
+    /* Queues a pending tape operation */
 
-    m.update(0);
-    for (bitNr=m.bits-1; bitNr>= 0; --bitNr) {
-        m.lamps[bitNr].set(0);
+    //console.log(this.mnemonic + " queuePendingOperation: " + args[0].toString(16));
+    if (this.pendingCallee !== null) {
+        throw new Error("More than one pending tape control operation");
     }
+
+    this.pendingCallee = callee;
+    this.pendingArgs = args;
 };
 
 /**************************************/
-B220MagTapeControl.prototype.reportStatus = function reportStatus(state) {
-    /* Sets bits in the MISC register to indicate various drive and control unit
-    status and error conditions */
+B220MagTapeControl.prototype.dequeuePendingOperation = function dequeuePendingOperation() {
+    /* Dequeues and reinitiates a pending tape operation */
+    var args = this.pendingArgs;        // pending Arguments object
+    var callee = this.pendingCallee;    // pending method to call
 
-    switch (state) {
-    case this.driveState.driveNoError:
+    this.pendingCallee = this.pendingArgs = null;
+    callee.apply(this, args);
+};
+
+/**************************************/
+B220MagTapeControl.prototype.loadCommand = function loadCommand(dReg, callee, args) {
+    /* If the control unit or the tape unit addressed by the unit field in dReg
+    are currently busy, queues the args parameter (an Arguments object) in
+    this.pendingCallee and -Args, and returns false. If the control is idle but
+    the tape unit is not ready or not present, or two units have the same designate,
+    calls this.releaseProcessor and returns false. If the control and tape unit
+    are ready for their next operation, loads the contents of the processor's
+    D register passed to the operation routines into the T, C, and MISC registers.
+    Sets this.unitNr, and this.unitIndex from the digits in T. Sets this.
+    currentUnit to the current tape unit object. Then returns true to inidicate
+    the I/O can proceed */
+    var c;                              // scratch
+    var proceed = false;                // return value: true => proceed with I/O
+    var t = dReg%0x10000000000;         // temp to partition fields of Processor's D register
+    var ux;                             // internal unit index
+
+    //console.log(this.mnemonic + " loadCommand: " + dReg.toString(16));
+    if (this.controlBusy) {
+        this.queuePendingOperation(callee, args);
+    } else {
+        this.T = t;
+        this.regT.update(this.T);
+        this.unitNr = (t - t%0x1000000000)/0x1000000000;
+        t = (t - t%0x10000)/0x10000;
+        c = t%0x10;                     // low-order digit of op code
+        t = (t - t%0x100)/0x100;        // control digits from instruction
+        this.C = this.unitNr*0x100000 + t*0x10 + c;
+        this.regC.update(this.C);
         this.clearMisc();
-        break;
-    case this.driveState.driveNotReady:
-        this.TX2Lamp.set(1);
-        this.TX10Lamp.set(1);
-        break;
-    case this.driveState.drivePrefaceCheck:
-        this.p.setMagneticTapeCheck(1);
-        this.TPCLamp.set(1);
-        break;
-    case this.driveState.drivePrefaceMismatch:
-        this.p.setMagneticTapeCheck(1);
-        this.TCFLamp.set(1);
-        this.C = (this.C & 0x00FFFF) | 0xFF0000;
-        this.regC.update(this.C);
-        break;
-    case this.driveState.driveReadCheck:
-        this.p.setMagneticTapeCheck(1);
-        this.TYC1Lamp.set(1);
-        this.TYC2Lamp.set(1);
-        this.C = (this.C & 0xFFF00F) | 0x000F90;
-        this.regC.update(this.C);
-        break;
-    case this.driveState.driveInvalidBlockLength:
-        this.p.setMagneticTapeCheck(1);
-        this.TX2Lamp.set(1);
-        this.TX4Lamp.set(1);
-        this.C = (this.C & 0x000F0F) | 0xB010F0;
-        this.regC.update(this.C);
-        break;
-    case this.driveState.driveNotEditedTape:
-        this.p.setMagneticTapeCheck(1);
-        break;
-    } // switch code
+        this.unitIndex = ux = this.findDesignate(this.unitNr);
+        if (ux < 0) {
+            this.reportStatus(this.driveState.driveNotReady);   // drive not ready, not present
+            this.releaseProcessor(false, 0);
+        } else {
+            this.currentUnit = this.tapeUnit[ux];
+            if (this.currentUnit.busy || this.currentUnit.rewindLock) {
+                this.queuePendingOperation(callee, args);
+            } else {
+                proceed = true;
+                this.driveState.startTime = performance.now();
+                this.driveState.completionDelay = 0;
+                this.driveState.state = this.driveState.driveNoError;
+            }
+        }
+    }
+
+    return proceed;
+};
+
+/**************************************/
+B220MagTapeControl.prototype.releaseControl = function releaseControl(param) {
+    /* Releases the busy status of the control. If an error is present, sets the
+    bits in the MISC register and the Processor's Magnetic Tape Check alarm, as
+    appropriate. If another operation is pending, initiates that operation.
+    Returns but does not use its parameter so that it can be used with
+    Promise.then() */
+
+    this.TFLamp.set(0);
+    this.TBLamp.set(0);
+    this.controlBusy = false;
+    if (this.driveState.state != this.driveState.driveNoError) {
+        this.currentUnit.releaseUnit(this.driveState);
+        this.reportStatus(this.driveState.state);
+    }
+
+    if (this.pendingCallee !== null) {
+        this.dequeuePendingOperation();
+    }
+
+    return param;
+};
+
+/**************************************/
+B220MagTapeControl.prototype.cancelIO = function cancelIO(param) {
+    /* Terminates the current I/O operation by releasing the Processor, tape
+    unit, and tape control unit. Returns but does not use its parameter so it
+    can be used with Promise.then() */
+
+    this.releaseProcessor(false, 0);
+    this.currentUnit.releaseUnit();
+    this.releaseControl();
+    return param;
+};
+
+/**************************************/
+B220MagTapeControl.prototype.tapeUnitFinished = function tapeUnitFinished(param) {
+    /* Call-back function passed to tape unit methods to signal when the unit has
+    completed its asynchronous operation. Returns but does not use "param", so
+    that it can be used with Promise.then() */
+
+    if (!this.controlBusy) {            // if the control unit is currently idle...
+        if (this.pendingCallee !== null) {
+            this.dequeuePendingOperation();
+        }
+    }
+
+    return param;
 };
 
 /**************************************/
@@ -568,7 +568,7 @@ B220MagTapeControl.prototype.magTapeOnLoad = function magTapeOnLoad() {
 
 
     // Events
-    this.window.addEventListener("beforeunload", B220MagTapeControl.prototype.beforeUnload);
+    this.window.addEventListener("beforeunload", B220MagTapeControl.prototype.beforeUnload, false);
     this.$$("ClearBtn").addEventListener("click", this.boundSwitch_Click, false);
     this.regMisc.rightClearBar.addEventListener("click", this.boundSwitch_Click, false);
     this.regC.rightClearBar.addEventListener("click", this.boundSwitch_Click, false);

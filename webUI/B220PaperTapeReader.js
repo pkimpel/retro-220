@@ -247,7 +247,7 @@ B220PaperTapeReader.prototype.readerOnload = function readerOnload() {
     body = this.$$("PaperTapeReader")
     this.remoteSwitch = new ToggleSwitch(body, null, null, "RemoteSwitch",
             B220PaperTapeReader.offSwitchImage, B220PaperTapeReader.onSwitchImage);
-    this.remoteSwitch.set(prefs.remote);
+    this.remoteSwitch.set(0);           // ignore prefs.remote, always initialize as LOCAL
 
     this.readyLamp = new ColoredLamp(body, null, null, "ReadyLamp", "blueLamp lampCollar", "blueLit");
     this.setReaderReady(this.remoteSwitch.state != 0);
@@ -360,36 +360,30 @@ B220PaperTapeReader.prototype.readTapeChar = function readTapeChar(receiver) {
         this.window.focus();            // call attention to the tape reader
     } else {
         this.busy = false;
-        do {
-            if (x >= bufLength) {       // end of buffer -- send finish
-                this.sendTapeChar(0x20, 0x35, receiver);
-                this.setReaderEmpty();
-                break; // out of do loop
-            } else {
-                c = this.buffer.charCodeAt(x) % 0x100;
-                if (c == 0x0D) { // carriage return -- send EOW and check for LF
-                    if (++x < bufLength && this.buffer.charCodeAt(x) == 0x0A) {
-                        ++x;
-                    }
-                    this.sendTapeChar(0x20, 0x35, receiver);
-                    if (x >= bufLength) {
-                        this.setReaderEmpty();
-                    }
-                    break; // out of do loop
-                } else if (c == 0x0A) { // line feed -- send EOW
+        if (x >= bufLength) {       // end of buffer -- send finish
+            this.sendTapeChar(0x20, 0x35, receiver);
+            this.setReaderEmpty();
+        } else {
+            c = this.buffer.charCodeAt(x) % 0x100;
+            if (c == 0x0D) { // carriage return -- send EOW and check for LF
+                if (++x < bufLength && this.buffer.charCodeAt(x) == 0x0A) {
                     ++x;
-                    this.sendTapeChar(0x20, 0x35, receiver);
-                    if (x >= bufLength) {
-                        this.setReaderEmpty();
-                    }
-                    break; // out of do loop
-                } else {                // translate character and send its code
-                    ++x;
-                    this.sendTapeChar(c, B220PaperTapeReader.xlate220[c], receiver);
-                    break; // out of do loop
                 }
+                this.sendTapeChar(0x20, 0x35, receiver);
+                if (x >= bufLength) {
+                    this.setReaderEmpty();
+                }
+            } else if (c == 0x0A) { // line feed -- send EOW
+                ++x;
+                this.sendTapeChar(0x20, 0x35, receiver);
+                if (x >= bufLength) {
+                    this.setReaderEmpty();
+                }
+            } else {                // translate character and send its code
+                ++x;
+                this.sendTapeChar(c, B220PaperTapeReader.xlate220[c], receiver);
             }
-        } while (true);
+        }
 
         this.tapeSupplyBar.value = bufLength-x;
         this.bufIndex = x;

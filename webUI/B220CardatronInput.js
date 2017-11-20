@@ -615,21 +615,21 @@ B220CardatronInput.prototype.readerOnLoad = function readerOnLoad() {
     this.clearUnit();                   // will actually set the state and lamps correctly
 
     this.window.addEventListener("beforeunload",
-            B220CardatronInput.prototype.beforeUnload);
+            B220CardatronInput.prototype.beforeUnload, false);
     this.$$("CIFileSelector").addEventListener("change",
-            B220Util.bindMethod(this, B220CardatronInput.prototype.fileSelector_onChange));
+            B220Util.bindMethod(this, B220CardatronInput.prototype.fileSelector_onChange), false);
     this.$$("FormatColumn").addEventListener("change",
-            B220Util.bindMethod(this, B220CardatronInput.prototype.format_onChange));
+            B220Util.bindMethod(this, B220CardatronInput.prototype.format_onChange), false);
     this.$$("FormatSelect").addEventListener("change",
-            B220Util.bindMethod(this, B220CardatronInput.prototype.format_onChange));
+            B220Util.bindMethod(this, B220CardatronInput.prototype.format_onChange), false);
     this.$$("CIStartBtn").addEventListener("click",
-            B220Util.bindMethod(this, B220CardatronInput.prototype.CIStartBtn_onClick));
+            B220Util.bindMethod(this, B220CardatronInput.prototype.CIStartBtn_onClick), false);
     this.$$("CIStopBtn").addEventListener("click",
-            B220Util.bindMethod(this, B220CardatronInput.prototype.CIStopBtn_onClick));
+            B220Util.bindMethod(this, B220CardatronInput.prototype.CIStopBtn_onClick), false);
     this.$$("ClearBtn").addEventListener("click",
-            B220Util.bindMethod(this, B220CardatronInput.prototype.ClearBtn_onClick));
+            B220Util.bindMethod(this, B220CardatronInput.prototype.ClearBtn_onClick), false);
     this.hopperBar.addEventListener("click",
-            B220Util.bindMethod(this, B220CardatronInput.prototype.CIHopperBar_onClick));
+            B220Util.bindMethod(this, B220CardatronInput.prototype.CIHopperBar_onClick), false);
 
     this.window.resizeBy(de.scrollWidth - this.window.innerWidth + 4, // kludge for right-padding/margin
                          de.scrollHeight - this.window.innerHeight);
@@ -896,6 +896,6 @@ B220CardatronInput.prototype.shutDown = function shutDown() {
     if (this.timer) {
         clearCallback(this.timer);
     }
-    this.window.removeEventListener("beforeunload", B220CardatronInput.prototype.beforeUnload);
+    this.window.removeEventListener("beforeunload", B220CardatronInput.prototype.beforeUnload, false);
     this.window.close();
 };

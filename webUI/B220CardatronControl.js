@@ -164,9 +164,9 @@ B220CardatronControl.prototype.cardatronOnLoad = function cardatronOnLoad() {
 
     // Events
 
-    this.window.addEventListener("beforeunload", B220CardatronControl.prototype.beforeUnload);
+    this.window.addEventListener("beforeunload", B220CardatronControl.prototype.beforeUnload, false);
     this.$$("ClearBtn").addEventListener("click",
-            B220Util.bindMethod(this, B220CardatronControl.prototype.ClearBtn_onClick));
+            B220Util.bindMethod(this, B220CardatronControl.prototype.ClearBtn_onClick), false);
 
     this.clear();
 
@@ -305,6 +305,6 @@ B220CardatronControl.prototype.shutDown = function shutDown() {
         }
     }
 
-    this.window.removeEventListener("beforeunload", B220CardatronControl.prototype.beforeUnload);
+    this.window.removeEventListener("beforeunload", B220CardatronControl.prototype.beforeUnload, false);
     this.window.close();
 };
