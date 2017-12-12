@@ -177,7 +177,7 @@ SEQ  PLAC ADDR  WORD                   LABEL       OPCODE  OPERAND      ' IS A 4
  171      0119  1 0000 10 1778                    -CAD     INPUT
  172      0120  0 0000 42 0133                     LDB     SCNCT.1
  173      0121  0 0160 21 0126                     DBB     40F,160
- 174      0122  1 0000 49 0002                    -SLA      2
+ 174      0122  1 0000 49 0002                    -SLA     2
  175      0123  0 0000 17 2270                     EXT     =11=
  176      0124  0 0000 36 0117                     BZA     3B
  177      0125  0 0000 30 0125         CHARACTER   BUN     CHARACTER
@@ -351,7 +351,7 @@ SEQ  PLAC ADDR  WORD                   LABEL       OPCODE  OPERAND      ' IS A 4
  333      0260  0 0001 26 0265                     IFL     THEPUNCHLIBRARYBIT/00,1
  334      0261  0 0000 44 0350                     DO      BASICNUMSCAN
           0262  0 0000 30 0337
- 335      0263  0 0000 40 3505                     STA     3500+(NUMBEROFWORDS//100)(02)
+ 335      0263  0 0000 40 3505                     STA     3500+(NUMBERWORDS//100)(02)
  336      0264  0 0000 30 0134                     BUN     COMMENT
  337                                   THEPUNCHLIBRARYBIT
  338      0265  0 0000 00 0000                     (0)
@@ -401,7 +401,7 @@ SEQ  PLAC ADDR  WORD                   LABEL       OPCODE  OPERAND      ' IS A 4
           0301  0 0000 30 0376
  379      0302  0 0000 30 0134                     BUN     COMMENT
  380      0303  0 0000 00 0004         1           (4)
- 381      0304  0 0000 17 0045                    ((HDNG/100)(04)+(HDNG//100)(64)
+ 381      0304  0 0000 17 0045                    ((HDNG/100)(04)+(HDNG//100)(64))
  382      0305  0 0000 67 4517                     HPI     HDNG
  383      0306  0 0000 22 0045                    (((HDNG+5)/100)(04)+((HDNG+5)//100)(64))
  384      0307  4 4523 30 9898                    4BUN     9898,(HDNG+6)(44)
@@ -817,7 +817,7 @@ SEQ  PLAC ADDR  WORD                   LABEL       OPCODE  OPERAND      ' IS A 4
  778
  779
  780      0943  0 0001 45 0000         99          CLA
- 781      0944  1 0000 12 1677                    -AD      IA
+ 781      0944  1 0000 12 1677                    -ADD     IA
  782      0945  1 0000 40 1677                    -STA     IA
  783      0946  0 0000 30 0931                     BUN     98B
  784
@@ -894,7 +894,7 @@ SEQ  PLAC ADDR  WORD                   LABEL       OPCODE  OPERAND      ' IS A 4
  855      1006  0 0000 44 1448                     DO      W
           1007  0 0000 30 1424
  856      1008  0 0000 32 1004                     BRP     $-4
- 857      1009  0 0000 44 1192         RDSTP       RDEX
+ 857      1009  0 0000 44 1192         RD          STP     RDEX
  858      1010  0 0000 30 1184                     BUN     RDE
  859      1011  0 0002 33 1015                     BSA     RDP,2
  860      1012  0 0040 09 2331                     SPO     R'MISSING NAME CARD'II
@@ -964,7 +964,7 @@ SEQ  PLAC ADDR  WORD                   LABEL       OPCODE  OPERAND      ' IS A 4
  924      1073  0 0103 27 1826         2           DFL     RR3/01,3
  925
  926
- 927      1074  0 6400 28 1795         NAME2       L/64
+ 927      1074  0 6400 28 1795         NAME2       DLB     L/64
  928      1075  1 0000 46 0000                    -CLL     0
  929      1076  0 0000 10 1825                     CAD     RR2
  930      1077  1 2110 40 0000                    -STA     0/21
@@ -1035,7 +1035,7 @@ SEQ  PLAC ADDR  WORD                   LABEL       OPCODE  OPERAND      ' IS A 4
  995      1137  0 0000 35 1142                     BCE     4F
  996      1138  0 0000 34 1142                     BCH     4F
  997      1139  0 0030 09 2319                     SPO     R'SEQUENCE ERROR'
- 998      1140  1 1370 00 7310                     HLT     7310,1370(44)
+ 998      1140  0 1370 00 7310                     HLT     7310,1370(44)
  999      1141  0 0000 30 1140                     BUN     $-1
 1000      1142  0 4400 28 1815         4           DLB     READ+8/44
 1001      1143  1 0000 10 1816                    -CAD     READ+9
@@ -1066,7 +1066,7 @@ SEQ  PLAC ADDR  WORD                   LABEL       OPCODE  OPERAND      ' IS A 4
 1026      1166  0 6291 36 1152                     BFA     7B/62,91
 1027      1167  0 6201 36 1149                     BFA     0B/62,01
 1028      1168  0 6202 36 1149                     BFA     0B/62,02
-1029      1169  0 6203 36 1149                     BFA     0B/62/03
+1029      1169  0 6203 36 1149                     BFA     0B/62,03
 1030      1170  0 6204 36 1149                     BFA     0B/62,04
 1031      1171  0 0040 09 2361                     SPO     R'IMPROPER PSEUDO-OP'I
 1032      1172  0 1370 00 7310                     HLT     7310,1370(44)
@@ -1455,7 +1455,7 @@ SEQ  PLAC ADDR  WORD                   LABEL       OPCODE  OPERAND      ' IS A 4
 1412      1826  0 0000 00 0000         RR3         (0)
 1413      1827  0 1000 00 0000         SCRATCHML   (1)(11)
 1414                                   SCRATCHDUMP
-1415      1828  0 1010 00 0000                     (101)(33)
+1415      1828  0 1010 00 0000                    (101)(33)
 1416
 1417
 1418      1829  0 0000 00 0000         SYMBOL      FILL    0,10
@@ -1474,7 +1474,7 @@ SEQ  PLAC ADDR  WORD                   LABEL       OPCODE  OPERAND      ' IS A 4
 1431      2206  0 9816 77 1776                     FILL    98(23)+IA(64)+(IA+99)(04),1
 1432      2207  0 9816 77 1777                     FILL    98(23)+IA(64)+(IA+100)(04),2
 1433      2209  0 9916 77 1777                     FILL    99(23)+IA(64)+(IA+100)(04),31
-1434      2240  0 9916 77 1776                     FILL    98(23)+IA(64)+(IA+99)(04),1
+1434      2240  0 9816 77 1776                     FILL    98(23)+IA(64)+(IA+99)(04),1
 1435
 1436      2241  2 4649 67 0000         PRTABLE    'FIX'
 1437      2242  0 0042 22 0000                    (SCRTB+106)(64)
@@ -1824,7 +1824,7 @@ SEQ  PLAC ADDR  WORD                   LABEL       OPCODE  OPERAND      ' IS A 4
 1581 1109 3609  0 0004 33 1120                     BSA     PSDO,4
 1582 1110 3610  0 0000 46 1127                     CLL     CNST
 1583 1111 3611  0 0000 41 1004                     LDR     WC
-1584 1112 3612  0 0111 18 1005                     CFR     NUMBEROFWORDS/01
+1584 1112 3612  0 0111 18 1005                     CFR     NUMBERWORDS/01
 1585 1113 3613  0 0000 35 1117                     BCE     9F
 1586 1114 3614  0 0000 44 1131                     DO      GET.1
      1115 3615  0 0000 30 1128
@@ -1890,7 +1890,7 @@ SEQ  PLAC ADDR  WORD                   LABEL       OPCODE  OPERAND      ' IS A 4
 1641 1167 3667  0 3100 36 1164                     BFA     1B/31,0
 1642 1168 3668  0 0000 49 0002                     SLA     2
 1643 1169 3669  0 8810 40 1012                     STA     BUFAREA+2/88
-1644 1170 3670  0 0000 10 1005                     CAD     NUMBEROFWORDS
+1644 1170 3670  0 0000 10 1005                     CAD     NUMBERWORDS
 1645 1171 3671  0 0000 49 0006                     SLA     6
 1646 1172 3672  0 4210 40 1173                     STA     1F/42
 1647 1173 3673  0 4400 26 1007         1           IFL     RLOC/44,0

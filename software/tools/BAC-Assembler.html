@@ -10,7 +10,7 @@
 * Licensed under the MIT License, see
 *       http://www.opensource.org/licenses/mit-license.php
 ************************************************************************
-* Cross-Assembler for the Burroughs 220 Algebraic Compiler (BALGOL)
+* Cross-Assembler for the Burroughs 220 Algebraic Compiler (BALGOL).
 *
 * Assembles source for 220 machine language programs as used in the
 * BALGOL compiler. Source is read from an emulated card deck -- a text
@@ -18,13 +18,13 @@
 *
 *     col 1     Cardatron format band selection digit. Can be anything,
 *               but is typically 1.
-*     col 5-9   symbolic label or point label (*label)
-*     col 11-14 symbolic op code (standard 220 mnemonics)
-*     col 15    override sign (0-9, +, -), blank => 0
-*     col 17... operands (terminated by first free space)
-*     col 73-80 sequence and identification
+*     col 5-9   symbolic label or point label (*label).
+*     col 11-14 symbolic op code (standard 220 mnemonics).
+*     col 15    override sign (0-9, +, -), blank => 0.
+*     col 17... operands (terminated by first free space).
+*     col 73-80 sequence and identification.
 *
-* all other columns are ignored by this assembler.
+* All other columns are ignored by this assembler.
 *
 * Output is a simulated line printer listing in the <iframe> of the web
 * page from which the assembler is run. The output of Pass 1 is designed
@@ -160,15 +160,15 @@ window.addEventListener("load", function() {
         text:           ""}
 
     // Token.type values
-    var tokEmpty = 0                    // empty primary
-    var tokLocation = 1                 // *, the current location counter
-    var tokInteger = 2                  // integer constant
-    var tokLabel = 3                    // regular label
-    var tokBackwardPoint = 4            // backward point label (without the leading * or the trailing -)
-    var tokForwardPoint = 5             // forward point label  (ditto, without the trailing +)
-    var tokConstant = 6;                // pool constant, 1-11 digit number with a leading + or -)
-    var tokIncompleteString = 7;        // unterminated $-delimited string constant (probably continued on next card)
-    var tokString = 8;                  // $-delimited string constant
+    var tokEmpty = 0;                   // empty primary
+    var tokLocation = 1;                // *, the current location counter
+    var tokInteger = 2;                 // integer literal
+    var tokLabel = 3;                   // regular label
+    var tokBackwardPoint = 4;           // backward point label (without the leading * or the trailing -)
+    var tokForwardPoint = 5;            // forward point label  (ditto, without the trailing +)
+    var tokLiteral = 6;                 // pool literal, 1-11 digit number with a leading + or -)
+    var tokIncompleteString = 7;        // unterminated $-delimited string literal (probably continued on next card)
+    var tokString = 8;                  // $-delimited string literal
 
     // token structure for operand parsing
     var token = {
@@ -184,7 +184,7 @@ window.addEventListener("load", function() {
     var errorTank = [];                 // holding area for errors on current line
     var location = 0;                   // current instruction address
     var pointTab = {};                  // Point-label table: holds the current sequence number for each point label
-    var poolTab = {};                   // Pool constant table: holds address of the constant word
+    var poolTab = {};                   // Pool literal table: holds address of the literal word
     var symTab = {};                    // Symbol table: holds the address value for each label
 
     var p10 = [     1,                  // powers of 10 table
@@ -228,7 +228,7 @@ window.addEventListener("load", function() {
     * Opcode table:
     *    Each 220 assembler op code is defined by an array with a variable number
     *    of elements. The first element is the operation code, including any variant
-    *    digit in (41) and is always required. The variant digit may be overlayed by
+    *    digit in (41) and is always required. The variant digit may be overlaid by
     *    other fields in the instruction. If the code is negative, it indicates a
     *    pseudo-operator or other special handling.
     *
@@ -380,13 +380,13 @@ window.addEventListener("load", function() {
                         19, -1],
         "LOCN": [pseudoLOCN,                    // set location counter
                         19, -1],
-        "CNST": [pseudoCNST],                   // assemble list of constant values
+        "CNST": [pseudoCNST],                   // assemble list of literal values
         "F244": [pseudoF244,                    // assemble word from 22-64-04 fields
                          7,  0, 12,  0,  1,  0],
         "F424": [pseudoF424,                    // assemble word from 44-62-04 fields
                          3,  0, 11,  0,  1,  0],
         "FBGR": [pseudoFBGR],                   // assemble Cardatron format band
-        "FINI": [pseudoFINI,                    // finish assembly, output constant pool
+        "FINI": [pseudoFINI,                    // finish assembly, output literal pool
                          1,  0]
     };
 
@@ -586,7 +586,7 @@ window.addEventListener("load", function() {
 
         labelID = label + padLeft(pointNr, 5-label.length, ".");
         if (labelID in symTab) {
-            printError("DUPLICATE POINT LABEL -- IMPOSSIBLE")
+             printError("DUPLICATE POINT LABEL -- IMPOSSIBLE: " + labelID);
         } else {
             symTab[labelID] = location;
         }
@@ -644,7 +644,7 @@ window.addEventListener("load", function() {
         }
 
         if (raw.length > 11) {
-            printError("NUMERIC CONSTANT LONGER THAN 11 DIGITS: " + raw);
+            printError("NUMERIC LITERAL LONGER THAN 11 DIGITS: " + raw);
             raw = raw.substring(raw.length-11);
         } else if (raw.length < 11) {
             raw = sign.toString() + padLeft(raw, 10, "0");
@@ -761,7 +761,7 @@ window.addEventListener("load", function() {
         var c;                          // current parse character
         var length = text.length;       // length of operand text
         var raw = "";                   // raw text of parsed token
-        var val = 0;                    // temp used with numeric pool constants
+        var val = 0;                    // temp used with numeric pool literals
         var x = token.offset;           // current offset into operand string
 
         if (x >= length) {                      // empty primary
@@ -777,11 +777,11 @@ window.addEventListener("load", function() {
                 token.newOffset = x+1;
                 break;
 
-            case (c >= "0" && c <= "9"):        // parse integer constant
+            case (c >= "0" && c <= "9"):        // parse integer literal
                 val = parseNumber(text, token, 0);
                 token.type = tokInteger;
                 if (val > 9999) {
-                    printError("INTEGER CONSTANT LONGER THAN 4 DIGITS: " + token.text);
+                    printError("INTEGER LITERAL LONGER THAN 4 DIGITS: " + token.text);
                 }
                 break;
 
@@ -829,11 +829,11 @@ window.addEventListener("load", function() {
                 token.newOffset = x;
                 break;
 
-            case (c == "+"):                    // parse pool numeric constant
+            case (c == "+"):                    // parse pool numeric literal
             case (c == "-"):
                 raw = c;
                 if (++x >= length) {
-                    printError("INVALID POOL CONSTANT SYNTAX");
+                    printError("INVALID POOL LITERAL SYNTAX");
                     token.newOffset = x;
                 } else {
                     token.offset = x;
@@ -841,11 +841,11 @@ window.addEventListener("load", function() {
                     if (c >= "0" && c <= "9") {
                         parseNumber(text, token, "");
                         if (token.text.length > 10) {
-                            printError("POOL CONSTANT LONGER THAN 10 DIGITS: " + token.text);
+                            printError("POOL LITERAL LONGER THAN 10 DIGITS: " + token.text);
                         }
                         token.text = raw + padLeft(token.text, 10, "0");
                     } else if (c == " " || c == ",") {
-                        printError("EMPTY POOL CONSTANT");
+                        printError("EMPTY POOL LITERAL");
                     } else {
                         val = evaluateAddress(text, token, resolved);
                         if (val >= 0) { // a resolved address
@@ -856,13 +856,13 @@ window.addEventListener("load", function() {
                     }
                 }
 
-                token.type = tokConstant;
+                token.type = tokLiteral;
                 break;
 
-            case (c == "$"):                    // parse pool string constant
+            case (c == "$"):                    // parse pool string literal
                 parseString(text, token, true, false);
                 token.text = "$" + token.text.substring(0, 5);
-                token.type = tokConstant;
+                token.type = tokLiteral;
                 break;
 
             case (c == " "):                    // empty primary
@@ -905,7 +905,7 @@ window.addEventListener("load", function() {
             case tokLocation:           // *, current location counter
                 val = location;
                 break;
-            case tokInteger:            // integer constant
+            case tokInteger:            // integer literal
                 val = parseInt(token.text, 10);
                 break;
             case tokLabel:              // regular label
@@ -922,13 +922,13 @@ window.addEventListener("load", function() {
             case tokBackwardPoint:      // backward point label
             case tokForwardPoint:       // forward point label
                 label = "*" + token.text;
-                val = fetchPointLabel(label, token.type == 5);
+                val = fetchPointLabel(label, token.type == tokForwardPoint);
                 if (val < 0) {
                     val = -1;
                     unresolvable = true;
                 }
                 break;
-            case tokConstant:           // pool constant
+            case tokLiteral:            // pool literal
                 if (token.text in poolTab) {
                     val = poolTab[token.text];
                     if (val < 0) {
@@ -1689,7 +1689,7 @@ window.addEventListener("load", function() {
         poolTab = {};
         symTab = {};
         symTab["RLO"] = 1;              // kludge for CWR reload-lockout field
-        symTab["BMOD"] = 1;             // kludge for MTR B-modify address field
+        symTab["BMOD"] = 1;             // kludge for MRD B-modify address field
 
         clearPanel();
         startPass1();
@@ -1719,7 +1719,7 @@ window.addEventListener("load", function() {
                     break;
                 default:
                     done = true;
-                    setTimeout(assemblePass1, 100);
+                    Promise.resolve().then(assemblePass1);
                     break;
                 }
             }
@@ -1749,7 +1749,7 @@ window.addEventListener("load", function() {
 
     /**************************************/
     function buildPoolPass1() {
-        /* Builds the initial constant pool from symbols encountered in Pass 1 */
+        /* Builds the initial literal pool from symbols encountered in Pass 1 */
         var label;
         var text;
 
@@ -1907,7 +1907,7 @@ window.addEventListener("load", function() {
         } while (!done);
 
         if (!finito) {
-            setTimeout(assemblePass1, 100);
+            Promise.resolve().then(assemblePass1);
         } else {
             // Wrap up Pass 1 and check for undefined symbols.
             // Oddly, undefined symbols appear to have been implicitly defined at the end,
@@ -1930,7 +1930,7 @@ window.addEventListener("load", function() {
             }
 
             if (errorCount == 0) {      // advance to Pass 2
-                setTimeout(initializePass2, 100);
+                Promise.resolve().then(initializePass2);
             } else {                    // we're done -- remove the spinner image
                 $$("TextDiv").removeChild($$("Spinner"));
             }
@@ -1976,7 +1976,7 @@ window.addEventListener("load", function() {
                     break;
                 default:
                     done = true;
-                    setTimeout(assemblePass2, 100);
+                    Promise.resolve().then(assemblePass2);
                     break;
                 }
             }
@@ -2026,7 +2026,7 @@ window.addEventListener("load", function() {
 
     /**************************************/
     function buildPoolPass2() {
-        /* Builds the final constant pool */
+        /* Builds the final literal pool */
         var keys;                       // addresses for pool words
         var label;                      // pool entry ID
         var text;                       // scratch string
@@ -2037,11 +2037,11 @@ window.addEventListener("load", function() {
         // First, extract all the viable pool entries for sorting
         for (label in poolTab) {
             if (!(label in symTab)) {
-                printError("POOL CONSTANT NOT IN SYMBOL TABLE: " + label);
+                printError("POOL LITERAL NOT IN SYMBOL TABLE: " + label);
             } else {
                 location = symTab[label];
                 if (location < 0) {
-                    printError("POOL CONSTANT LOCATION NOT ASSIGNED: " + label);
+                    printError("POOL LITERAL LOCATION NOT ASSIGNED: " + label);
                 } else {
                     text = padLeft(location, 4, "0");
                     xref[text] = label;
@@ -2067,7 +2067,7 @@ window.addEventListener("load", function() {
             printPass2("", null, location, values[0], "", "", "", label);
             emitWord(location, values[0]);
         } // for x
-}
+    }
 
     /**************************************/
     function assemblePass2() {
@@ -2229,7 +2229,7 @@ window.addEventListener("load", function() {
         } while (!done);
 
         if (!finito) {
-            setTimeout(assemblePass2, 100);
+            Promise.resolve().then(assemblePass2);
         } else {
             // dump the auto-defined symbols
             for (label in autoSymTab) {
@@ -2258,18 +2258,19 @@ window.addEventListener("load", function() {
         /* Checks whether this browser can support the necessary stuff */
         var missing = "";
 
-        if (!window.File) {missing += ", File"}
-        if (!window.FileReader) {missing += ", FileReader"}
-        if (!window.FileList) {missing += ", FileList"}
+        if (!window.File        ) {missing += ", File"}
+        if (!window.FileReader  ) {missing += ", FileReader"}
+        if (!window.FileList    ) {missing += ", FileList"}
         if (!window.DOMTokenList) {missing += ", DOMTokenList"}
-        if (!window.ArrayBuffer) {missing += ", ArrayBuffer"}
-        if (!window.DataView) {missing += ", DataView"}
-        if (!(window.performance && "now" in performance)) {missing += ", performance.now"}
+        if (!window.ArrayBuffer ) {missing += ", ArrayBuffer"}
+        if (!window.DataView    ) {missing += ", DataView"}
+        if (!window.Promise     ) {missing += ", Promise"}
 
         if (missing.length == 0) {
             return false;
         } else {
-            alert("No can do... your browser does not support the following features:\n" + missing.substring(2));
+            alert("No can do... your browser does not\n" +
+                  "support the following features:\n" + missing.substring(2));
             return true;
         }
     }

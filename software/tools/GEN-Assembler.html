@@ -1,0 +1,2999 @@
+<!DOCTYPE html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<title>GEN-220 Assembler</title>
+<!--
+/***********************************************************************
+* 220/software/tools GEN-Assembler.html
+************************************************************************
+* Copyright (c) 2017, Paul Kimpel.
+* Licensed under the MIT License, see
+*       http://www.opensource.org/licenses/mit-license.php
+************************************************************************
+* Cross-Assembler for the Burroughs 220 Algebraic Compiler (BALGOL)
+* Generator utility.
+*
+* Assembles source for the 220 machine language generator utility for the
+* BALGOL compiler. Source is read from an emulated card deck -- a text
+* file with the following format:
+*
+*     col 1     Cardatron format band selection digit. Can be anything,
+*               but is typically 1.
+*     col 5...  symbolic label or point label (numeric): may extend past
+*               op code field with remainder of instruction on next card.
+*     col 16    sign digit (or -) or start of constant value.
+*     col 17-24 symbolic op code (standard 220 mnemonics).
+*     col 25... operands (terminated by first free space).
+*     col 73-80 sequence and identification.
+*
+* All other columns are ignored by this assembler.
+*
+* Output is a simulated line printer listing in the <iframe> of the web
+* page from which the assembler is run. The output of Pass 2 is a
+* traditional assembler listing, with words of generated object code
+* and data. It is designed to match the listing from which the compiler
+* was transcribed, so that it may be compared for proofing purposes.
+*
+* Output of the generated code and data is... *TBD*
+*
+************************************************************************
+* 2017-12-02  P.Kimpel
+*   Original version, cloned from retro-220 BAC-Assembler.html.
+***********************************************************************/
+-->
+<meta name="Author" content="Paul Kimpel">
+<meta http-equiv="Content-Script-Type" content="text/javascript">
+<meta http-equiv="Content-Style-Type" content="text/css">
+
+<style>
+HTML {
+    height:             100%}
+
+BODY {
+    position:           relative;
+    height:             100%;
+    margin:             1ex}
+
+DIV.heading {
+    margin-top:         12px;
+    margin-bottom:      6px;
+    font-weight:        bold}
+
+#CardReaderPanel {
+    position:           relative;
+    color:              white;
+    background-color:   #666;
+    width:              600px;
+    height:             40px;
+    border:             1px solid black;
+    border-radius:      8px;
+    padding:            0;
+    vertical-align:     top}
+
+#OptionsPanel {
+    position:           relative;
+    margin-top:         4px;
+    margin-bottom:      4px}
+
+#CRFileSelector {
+    position:           absolute;
+    top:                8px;
+    left:               8px;
+    width:              580px;
+    border:             1px solid white}
+
+#TextPanel {
+    position:           absolute;
+    top:                90px;
+    left:               0;
+    bottom:             200px;
+    width:              640px;
+    overflow:           scroll;
+    padding:            4px;
+    border:             1px solid black;
+    color:              black;
+    background-color:   white;
+    font-family:        DejaVu Sans Mono, Consolas, Courier, monospace;
+    font-size:          8pt;
+    font-weight:        normal}
+
+#Spinner {
+    position:           absolute;
+    top:                200px;
+    left:               200px;
+    z-index:            10}
+</style>
+</head>
+
+<body>
+<div class=heading>
+    Assembler for the Burroughs 220 BAC Generator
+</div>
+
+<div id=CardReaderPanel>
+    <input id=CRFileSelector type=file size=90>
+</div>
+
+<div id=OptionsPanel>
+    <input id=Pass1ListCheck type=checkbox value=1>
+    <label for=Pass1ListCheck>Pass 1 Listing</label>
+    &nbsp;&nbsp;
+    <input id=Pass2ListCheck type=checkbox value=1 CHECKED>
+    <label for=Pass2ListCheck>Pass 2 Listing</label>
+</div>
+
+<div id=TextDiv>
+    <pre id=TextPanel></pre>
+</div>
+
+
+<script>
+"use strict";
+
+window.addEventListener("load", function() {
+
+    // Card reader properties
+    var buffer = "";
+    var bufferLength = 0;
+    var bufferOffset = 0;
+    var eolRex = /([^\n\r\f]*)((:?\r[\n\f]?)|\n|\f)?/g;
+    var isNumericRex = /^[0-9]/;
+    var isAlphaRex = /^[A-Z]/;
+    var isLabelRex = /^[A-Z.0-9]/;
+    var labelRex = /^([0-9]+|[A-Z][0-9.A-Z]*)(\-[0-9]+)? +/;
+    var rTrimRex = /\s*$/;
+    var spoStringRex = /^[ILRT]*'/;
+
+    // Card 0-relative column offsets
+    var labelIndex = 4;
+    var signIndex = labelIndex + 11;
+    var opCodeIndex = labelIndex + 12;
+    var operandIndex = labelIndex + 20;
+    var sequenceIndex = 72;
+    var operandLength = 48;
+
+    // Card data structure
+    var cardData = {
+        atEOF:          false,          // buffer exhausted
+        fileOffset:     0,              // bufferOffset at start of file
+        offset:         0,              // current bufferOffset
+        length:         0,              // length of card image, including delimiters
+        serial:         0,              // serial number within file
+        text:           ""}             // padded card image
+
+    // Output listing column offsets
+    var serialIndex = 0;
+    var wordIndex = 5;
+    var flagIndex = 34;
+    var cardIndex = 39;
+
+    var printFlag = "";
+    var pass1List = false;
+    var pass2List = true;
+    var listPass = false;
+
+    var panel = $$("TextPanel");
+    var sprintLimit = 100;              // cards processed before yielding control
+
+    // Token.type values
+    var tokEmpty = 0;                   // empty primary
+    var tokLocation = 1;                // $: the current location counter
+    var tokInteger = 2;                 // integer literal
+    var tokLabel = 3;                   // regular label
+    var tokBackwardPoint = 4;           // backward point label (without the leading * or the trailing -)
+    var tokForwardPoint = 5;            // forward point label  (ditto, without the trailing +)
+    var tokLiteral = 6;                 // pool literal, 1-11 digit number or string)
+    var tokIncompleteString = 7;        // unterminated '-delimited string literal (probably continued on next card)
+    var tokString = 8;                  // '-delimited string literal
+
+    // token structure for operand parsing
+    var token = {
+        type: tokEmpty,                 // token type
+        offset: 0,                      // offset into card source image
+        newOffset: 0,                   // next offset after token scanned
+        text: "",                       // token text
+        word: 0,                        // token 220 word value
+        value: 0};                      // token arithmetic value
+
+    // Assembled code data structure
+    var assembly = {
+        label:          "",             // any label for this instruction
+        location:       0,              // assembled memory address
+        opCode:         NaN,            // assembled opCode value from opTab[][0]
+        placeLoc:       0,              // offset to physical assembled location
+        count:          0,              // number of words assembled in "words"
+        words:                          // assembled words for the command
+                        [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]};
+
+    // Assembly storage
+    var autoSymTab = {};                // auto-declared (undefined) symbol table
+    var djList = [0];                   // sL values for DJ field definitions
+    var errorCount = 0;                 // assembler error count
+    var errorTank = [];                 // holding area for errors on current line
+    var location = 0;                   // current instruction address
+    var nextLocation = 0;               // next instruction address
+    var placeOffset = 0;                // PLACE address offset
+    var pointTab = {};                  // point-label table: holds the current sequence number for each point label
+    var poolData = [];                  // pool data table: holds words for literals
+    var poolLocation = NaN;             // address of the current pool
+    var poolUnresolved = 0;             // count of unresolved pool literal values
+    var symTab = {};                    // symbol table: holds the address value for each label
+
+    var p10 = [     1,                  // powers of 10 table
+                   10,
+                  100,
+                 1000,
+                10000,
+               100000,
+              1000000,
+             10000000,
+            100000000,
+           1000000000,
+          10000000000,
+         100000000000,
+        1000000000000,
+       10000000000000,
+      100000000000000,
+     1000000000000000,
+    10000000000000000];
+
+    var asciiFilter = [ // translate ASCII to 220 internal character codes
+        // 0   1   2   3   4   5   6   7   8   9   A   B   C   D   E   F
+           0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  //  0-0F
+           0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  // 10-1F
+           0,  0,  0, 33, 13, 24, 10, 34, 24,  4, 14,  0, 23, 20,  3, 21,  // 20-2F
+          80, 81, 82, 83, 84, 85, 86, 87, 88, 89,  0, 13,  4,  0,  0,  0,  // 30-3F
+          34, 41, 42, 43, 44, 45, 46, 47, 48, 49, 51, 52, 53, 54, 55, 56,  // 40-4F
+          57, 58, 59, 62, 63, 64, 65, 66, 67, 68, 69,  0,  0,  0,  0,  0,  // 50-5F
+           0, 41, 42, 43, 44, 45, 46, 47, 48, 49, 51, 52, 53, 54, 55, 56,  // 60-6F
+          57, 58, 59, 62, 63, 64, 65, 66, 67, 68, 69,  0,  0,  0,  0,  0]; // 70-7F
+
+    var xlate220ASCII = [ // translate internal B220 code to ASCII
+        " ", "?", "9", ".", "\u00A4", "?",  "?",  "?", "?", "?",  // 00-09
+        "+", "?", "?", "$", "*",      "*",  "$",  "?", "?", "?",  // 10-19
+        "-", "/", "?", ",", "(",      "?",  ",",  "?", "?", "?",  // 20-29
+        "?", "?", "?", "=", "@",      "\\", "?",  "?", "?", "?",  // 30-39
+        "?", "A", "B", "C", "D",      "E",  "F",  "G", "H", "I",  // 40-49
+        "?", "J", "K", "L", "M",      "N",  "O",  "P", "Q", "R",  // 50-59
+        "?", "?", "S", "T", "U",      "V",  "W",  "X", "Y", "Z",  // 60-69
+        "?", "?", "?", "?", "?",      "?",  "?",  "?", "?", "?",  // 70-79
+        "0", "1", "2", "3", "4",      "5",  "6",  "7", "8", "9",  // 80-89
+        "?", "?", "?", "?", "?",      "?",  "?",  "?", "?", "?"]; // 90-99
+
+    var signValues = {                  // numeric values of sign column
+        " ": 0, "+": 0, "0": 0,
+        "-": 1, "1": 1,
+        "2": 2,
+        "3": 3,
+        "4": 4,
+        "5": 5,
+        "6": 6,
+        "7": 7,
+        "8": 8,
+        "9": 9};
+
+    /*******************************************************************
+    * Opcode table:
+    *    Each 220 assembler op code is defined by an array with a variable number
+    *    of elements. The first element is the operation code, including any variant
+    *    digits in (45) and is always required. The variant digit may be overlaid by
+    *    other fields in the instruction. If the code is negative, it indicates a
+    *    pseudo-operator or other special handling.
+    *
+    *    The remainder of the array consists of number pairs, one for each comma-
+    *    delimited operand field that may be present. The first number is a code
+    *    indicating the type of field, the second is the default value for that
+    *    field if it is not specified (or is empty) in the operand area of the
+    *    instruction. If the default value is negative, that operand is not optional
+    *    and must be specified.
+    *
+    *    Any additional parameters in the operand field after those defined for
+    *    an op code must have a "(sL)" suffix to designate the partial field in
+    *    the instruction word to which that parameter will be applied.
+    *
+    *    Type codes:
+    *        1 = address in /04, no /sL allowed
+    *        2 = address in /04, /sL in /22 required
+    *        3 = address in/04, /sL in /22 optional, if specified sets /31=1
+    *        4 = unit or count digit inserted in /11
+    *        5 = variant digit inserted in /41
+    *        6 = value in /32
+    *        7 = value in /42
+    *        8 = control digit in /11, if specified sets /41=1
+    *        9 = value in /44
+    *       10 = tape unit/lane using LLU format in /33
+    *       11 = count in /21
+    *       12 = format band digit in high-order 3 bits of /41: (B-1)*2
+    *       13 = SPO operand: special string or address,count pair
+    *       19 = resolved address only
+    *******************************************************************/
+
+    // Pseudo-instruction codes
+    var pseudoEND =     -1;
+    var pseudoIS =      -2;
+    var pseudoORIGIN =  -3;
+    var pseudoPLACE =   -4;
+    var pseudoPLACED =  -5;
+    var pseudoFORGET =  -6;
+    var pseudoFORMAT =  -7;
+    var pseudoFILL =    -8;
+    var pseudoPOOL =    -9;
+    var pseudoDO =     -10;
+    var pseudoDJ =     -11;
+    var pseudoJ =      -12;
+    var pseudoWord =   -13;
+    var pseudoREM =    -14;
+
+    var opTab = {
+        "HLT    ": [      0,  1, 0],
+        "NOP    ": [      1,  1, 0],
+        "PNC    ": [      3,  1,-1,   4,-1,   6, 0],
+        "PRD    ": [    103,  1,-1,   4,-1,   6, 0],
+        "PRB    ": [      4,  1,-1,   4,-1,   5, 0],
+        "PRI    ": [      5,  1,-1,   4,-1,   6, 0,   5, 0],
+        "PWR    ": [      6,  1,-1,   4,-1,   6, 0],
+        "PWI    ": [      7,  1, 0],
+        "KAD    ": [      8,  1, 0],
+        "SPO    ": [      9, 13,-1],
+        "CAD    ": [     10,  1, 0],
+        "CAA    ": [    110,  1, 0],
+        "CSU    ": [     11,  1, 0],
+        "CSA    ": [    111,  1, 0],
+        "ADD    ": [     12,  1, 0],
+        "ADA    ": [    112,  1, 0],
+        "SUB    ": [     13,  1, 0],
+        "SUA    ": [    113,  1, 0],
+        "MUL    ": [     14,  1, 0],
+        "DIV    ": [     15,  1, 0],
+        "RND    ": [     16,  1, 0],
+        "EXT    ": [     17,  1, 0],
+        "CFA    ": [     18,  3, 0],
+        "CFR    ": [    118,  3, 0],
+        "ADL    ": [     19,  1, 0],
+        "IBB    ": [     20,  1,-1,   9, 0],
+        "DBB    ": [     21,  1,-1,   9, 0],
+        "FAD    ": [     22,  1,-1,   4, 0],
+        "FAA    ": [    122,  1,-1,   4, 0],
+        "FSU    ": [     23,  1,-1,   4, 0],
+        "FSA    ": [    123,  1,-1,   4, 0],
+        "FMU    ": [     24,  1, 0],
+        "FDV    ": [     25,  1, 0],
+        "IFL    ": [     26,  2,-1,   7, 0],
+        "DFL    ": [     27,  2,-1,   7, 0],
+        "DLB    ": [     28,  2,-1,   7, 0],
+        "RTF    ": [     29,  1,-1,   6, 0],
+        "BUN    ": [     30,  1, 0],
+        "BOF    ": [     31,  1, 0],
+        "BRP    ": [     32,  1, 0],
+        "BSA    ": [     33,  1,-1,   5,-1],
+        "BPA    ": [     33,  1, 0],
+        "BMA    ": [    133,  1, 0],
+        "BCH    ": [     34,  1, 0],
+        "BCL    ": [    134,  1, 0],
+        "BCE    ": [     35,  1, 0],
+        "BCU    ": [    135,  1, 0],
+        "BFA    ": [     36,  2,-1,   7,-1],
+        "BZA    ": [     36,  1, 0],
+        "BFR    ": [     37,  2,-1,   7,-1],
+        "BZR    ": [     37,  1,-1],
+        "BCS    ": [     38,  1,-1,   4,-1],
+        "SOR    ": [     39,  1, 0],
+        "SOH    ": [    139,  1, 0],
+        "IOM    ": [    239,  1, 0],
+        "STA    ": [     40,  3, 0],
+        "STR    ": [    140,  3, 0],
+        "STB    ": [    240,  3, 0],
+        "LDR    ": [     41,  1, 0],
+        "LDB    ": [     42,  1, 0],
+        "LBC    ": [    142,  1, 0],
+        "LSA    ": [     43,  5,-1],
+        "STP    ": [     44,  1, 0],
+        "CLA    ": [    145,  1, 0],
+        "CLR    ": [    245,  1, 0],
+        "CAR    ": [    345,  1, 0],
+        "CLB    ": [    445,  1, 0],
+        "CAB    ": [    545,  1, 0],
+        "CRB    ": [    645,  1, 0],
+        "CLT    ": [    745,  1, 0],
+        "CLL    ": [     46,  1, 0],
+        "SRA    ": [     48,  1, 0],
+        "SRT    ": [    148,  1, 0],
+        "SRS    ": [    248,  1, 0],
+        "SLA    ": [     49,  1, 0],
+        "SLT    ": [    149,  1, 0],
+        "SLS    ": [    249,  1, 0],
+        "MTS    ": [     50,  1, 0,  10,-1],
+        "MFS    ": [4000050,  1, 0,  10,-1],
+        "MLS    ": [    450,  10,-1],
+        "MRW    ": [    850,  10,-1],
+        "MDA    ": [    950,  10,-1],
+        "MTC    ": [     51,  1, 0,  10,-1],
+        "MFC    ": [4000051,  1, 0,  10,-1],
+        "MRD    ": [     52,  1,-1,   4,-1,  11, 0,   5, 0],
+        "MNC    ": [    152,  1,-1,   4,-1,  11, 0,   5, 1],
+        "MRR    ": [     53,  1,-1,   4,-1,  11, 0,   5, 0],
+        "MIW    ": [     54,  1,-1,   4,-1,  11, 0,   7, 0],
+        "MIR    ": [     55,  1,-1,   4,-1,  11, 0],
+        "MOW    ": [     56,  1,-1,   4,-1,  11, 0,   7, 0],
+        "MOR    ": [     57,  1,-1,   4,-1,  11, 0],
+        "MPF    ": [     58,  4,-1,  11, 0],
+        "MPB    ": [    158,  4,-1,  11, 0],
+        "MPE    ": [    258,  4,-1],
+        "MIB    ": [     59,  4,-1],
+        "MIE    ": [    159,  4,-1],
+        "CRD    ": [     60,  1,-1,   4,-1,   5, 0,   6, 0],
+        "CNC    ": [   1060,  1,-1,   4,-1],
+        "CNCL   ": [   1160,  1,-1,   4,-1],
+        "CWR    ": [     61,  1,-1,   4,-1,  12,-1,   6, 0],
+        "CRF    ": [     62,  1,-1,   4,-1,  12,-1],
+        "CRFL   ": [    162,  1,-1,   4,-1,  12,-1],
+        "CWF    ": [     63,  1,-1,   4,-1,  12,-1],
+        "CRI    ": [     64,  1,-1,   4,-1],
+        "CWI    ": [     65,  1,-1,   4,-1],
+        "HPW    ": [     66,  1,-1,   6,-1],
+        "HPI    ": [     67,  1, 0],
+
+        // Pseudo-ops
+        "IS     ":                      // define symbol
+                    [pseudoIS,      19, -1],
+        "ORIGIN ":                      // set location counter
+                    [pseudoORIGIN,  19, -1],
+        "FORMAT ":                      // assemble Cardatron format band
+                    [pseudoFORMAT],
+        "PLACE  ":                      // define address where code will be loaded
+                    [pseudoPLACE],
+        "PLACED ":                      // end physical load offset
+                    [pseudoPLACED],
+        "FORGET ":                      // discard internal tables (e.g., NAMES)
+                    [pseudoFORGET],
+        "FILL   ":                      // fill words with same value
+                    [pseudoFILL],
+        "POOL   ":                      // define literal pool location
+                    [pseudoPOOL],
+        "DO     ":                      // STP/BUN subroutine call
+                    [pseudoDO],
+        "DJ     ":                      // define "join" fields for a word
+                    [pseudoDJ],
+        "J      ":                      // build a word from "join" fields
+                    [pseudoJ],
+        "END    ":                      // finish assembly, output literal pool
+                    [pseudoEND,     1,  0]
+    };
+
+
+    /*******************************************************************
+    * Miscellaneous Utilities                                          *
+    *******************************************************************/
+
+    /**************************************/
+    function $$(id) {
+        return document.getElementById(id);
+    }
+
+    /**************************************/
+    function padTo(s, len) {
+        /* Pads the string "s" on the right with spaces or truncates it as
+        necessary to a length of "len" */
+        var result = s;
+
+        if (result.length > len) {
+            result = result.substring(0, len);
+        } else {
+            while (result.length-len > 8) {
+                result += "        ";
+            }
+
+            while (result.length < len) {
+                result += " ";
+            }
+        }
+
+        return result;
+    }
+
+    /**************************************/
+    function padLeft(s, len, fill) {
+        /* Pads the string "s" on the left to length "len" with the filler character
+        "fill". If fill is empty or missing, space is used. If the initial string is
+        longer than "len", it is truncated on the left to that length */
+        var pad = (fill || " ").charAt(0);
+        var result = s.toString();
+        var rLen = result.length;
+
+        if (rLen > len) {
+            result = result.substring(rLen-len);
+        } else {
+            while (rLen < len) {
+                result = pad + result;
+                ++rLen;
+            }
+        }
+
+        return result;
+    }
+
+    /**************************************/
+    function padRight(s, len, fill) {
+        /* Pads the string "s" on the right to length "len" with the filler character
+        "fill". If fill is empty or missing, space is used. If the initial string is
+        longer than "len", it is truncated on the right to that length */
+        var pad = (fill || " ").charAt(0);
+        var result = s.toString();
+        var rLen = s.length;
+
+        if (rLen > len) {
+            result = result.substring(0, len);
+        } else {
+            while (rLen < len) {
+                result = result + pad;
+                ++rLen;
+            }
+        }
+
+        return result;
+    }
+
+    /**************************************/
+    function rTrim(s) {
+        /* Returns the string "s" stripped of any trailing whitespace */
+        var x = s.search(rTrimRex);
+
+        if (x < 0 ) {
+            return s;
+        } else if (x < 1) {
+            return "";
+        } else {
+            return s.substring(0, x);
+        }
+    }
+
+    /**************************************/
+    function tensComp(value) {
+        /* If "value" is algebraically negative, returns its 11-digit tens
+        complement. Otherwise returns the 11-digit value */
+
+        if (value < 0) {
+            return p10[11] + value%p10[11];
+        } else {
+            return value%p10[11];
+        }
+    }
+
+    /**************************************/
+    function applySign(word, sign) {
+        /* Applies an unsigned "sign" digit to a 220 "word" value. If the word
+        value is algebraically negative, it is first converted to a 10-digit
+        number with a 220 sign in the 11-th high-order digit. The low-order bit
+        of "sign" and the low-order bit of the word's sign digit are XOR-ed so
+        that each of those bits designates negation. Returns the new value as an
+        11-digit unsigned 220 word in binary */
+        var s = 0;
+        var value = 0;
+
+        if (word < 0) {
+            value = (-word)%p10[10];
+            s = 1;
+        } else {
+            value = word%p10[10];
+            s = (word%p10[11] - value)/p10[10];
+        }
+
+        return (sign%10 ^ s)*p10[10] + value;
+    }
+
+    /**************************************/
+    function getField(word, sL) {
+        /* Extracts an n-digit value from an 11-digit "word" and returns it.
+        "sL" is the same as for putField(). The word is a Javascript Number
+        object, but is treated as if it represents an 11-digit decimal integer */
+        var L = sL%10;
+        var s = (sL%100 - L)/10;
+        var result = applySign(word, 0);
+
+        s = (s == 0 ? 0 : 10-s);
+        L = (L == 0 ? 10 : L);
+
+        if (sL < 0 || sL > 99 || s+L > 11) {
+            result = -1;
+        } else {
+            result = (result%p10[s+L] - result%p10[s])/p10[s];
+        }
+
+        return result;
+    }
+
+    /**************************************/
+    function putField(word, value, sL) {
+        /* Inserts an n-digit "value" into designated digits of an 11-digit
+        "word". "sL" is the partial-word field in standard 220 start-Length
+        notation. Note that Javascript flags literal integers of the form "0n"
+        as the old C-style octal literal notation is deprecated. This routine
+        uses only the two low-order digits of "sL", however, so you can pass sL
+        literal values like 104 (or even 57321604) for /04 without ill effect.
+        The "value" and "word" are Javascript Number objects, but are treated as
+        if they represent 11-digit decimal integers. If value is negative, it is
+        converted to its 10s-complement value before insertion into word.
+        Returns a new word with the inserted field */
+        var L = sL%10;
+        var s = (sL%100 - L)/10;
+        var upperPart = 0;
+        var lowerPart = 0;
+        var result = applySign(word, 0);
+
+        s = (s == 0 ? 0 : 10-s);
+        L = (L == 0 ? 10 : L);
+
+        if (sL < 0 || s+L > 11) {
+            printError("INVALID /SL VALUE: ", sL);
+        } else {
+            upperPart = result%p10[11] - result%p10[s+L];
+            if (s > 0) {
+                lowerPart = result%p10[s];
+            }
+
+            result = (tensComp(value)%p10[L])*p10[s] + upperPart + lowerPart;
+        }
+
+        return result;
+    }
+
+
+    /*******************************************************************
+    * Card Reader Input Module                                         *
+    *******************************************************************/
+
+    /**************************************/
+    function readACard() {
+        /* Reads one card image from the buffer, pads or trims the image as
+        necessary to 80 columns, and fills in the global "cardData" structure
+        with the text and its location in the reader's buffer */
+        var bx = bufferOffset;          // current buffer offset
+        var card;                       // card image, padded/truncated to 80 columns
+        var cardLength;                 // original delimited card image length
+        var match;                      // regular expression match result
+
+        cardData.offset = bx;
+        if (bx >= bufferLength) {
+            cardData.atEOF = true;
+            cardData.length = 0;
+            cardData.text = "7         <<EOF>>";
+        } else {
+            eolRex.lastIndex = bx;
+            match = eolRex.exec(buffer);
+            if (!match) {
+                card = "";
+            } else {
+                bx += match[0].length;
+                card = match[1];
+            }
+
+            cardLength = card.length;
+            if (cardLength > 80) {
+                card = card.substring(0, 80);
+            } else {
+                while (card.length <= 70) {
+                    card += "          ";
+                }
+                while (card.length < 80) {
+                    card += " ";
+                }
+            }
+
+            cardData.length = bx - bufferOffset;
+            ++cardData.serial;
+            cardData.text = card;
+            bufferOffset = bx;
+        }
+    }
+
+    /**************************************/
+    function fileLoader_onLoad(ev) {
+        /* Handles the onload event for a readAsText FileReader */
+
+        buffer = ev.target.result;
+        bufferOffset = 0;
+        bufferLength = buffer.length;
+        $$("CRFileSelector").value = null;
+        $$("TextDiv").removeChild($$("Spinner"));
+        assembleFile();
+    }
+
+    /**************************************/
+    function fileSelector_onChange(ev) {
+        /* Handle the <input type=file> onchange event when a file is selected */
+        var e;                          // spinner image DOM element
+        var f = ev.target.files[0];
+        var reader = new FileReader();
+
+        /********************
+        alert("File selected: " + f.name +
+                "\nModified " + f.lastModifiedDate +
+                "\nType=" + f.type + ", Size=" + f.size + " octets");
+        ********************/
+
+        // initiate the spinner to run while compiling
+        e = document.createElement("img");
+        e.src = "../../webUI/resources/ajax-spinner.gif";
+        e.id = "Spinner";
+        $$("TextDiv").appendChild(e);
+
+        reader.onload = fileLoader_onLoad;
+        reader.readAsText(f);
+    }
+
+
+    /*******************************************************************
+    * Output Listing Interface                                         *
+    *******************************************************************/
+
+    /**************************************/
+    function clearPanel() {
+        /* Clears the text panel */
+        var kid;
+
+        while (kid = panel.firstChild) {
+            panel.removeChild(kid);
+        }
+    }
+
+    /**************************************/
+    function xlate220Word(word) {
+        /* Translate 10 digits in a 220 word to five ASCII characters */
+        var chars = "";                 // translated characters
+        var code = 0;                   // current 220 character code
+        var count = 5;                  // chars/word
+
+        while (count > 0) {
+            code = word%100;
+            chars = xlate220ASCII[code] + chars;
+            word = (word - code)/100;
+            --count;
+        }
+
+        return chars;
+    }
+
+    /**************************************/
+    function printLine(text) {
+        /* Appends "text"+NL as a new text node to the panel DOM element */
+        var e = document.createTextNode(rTrim(text) + "\n");
+
+        panel.appendChild(e);
+        panel.scrollTop += 30
+    }
+
+    /**************************************/
+    function printWord(location, placeLoc, word) {
+        /* Formats the printer columns for one assembled word and returns the
+        resulting string */
+        var text = "";
+
+        if (placeLoc != location) {
+            text += padLeft(location, 4, "0");
+        } else {
+            text += "    ";
+        }
+
+        text += " " + padLeft(placeLoc, 4, "0");
+        if (isNaN(word)) {
+            text += "  - ---- -- ----";
+        } else {
+            text += padLeft((word -         word%p10[10])/p10[10], 3)      + " " +
+                    padLeft((word%p10[10] - word%p10[ 6])/p10[ 6], 4, "0") + " " +
+                    padLeft((word%p10[ 6] - word%p10[ 4])/p10[ 4], 2, "0") + " " +
+                    padLeft((word%p10[ 4]), 4, "0");
+        }
+
+        return text;
+    }
+
+    /**************************************/
+    function printAssembly(card, assembly, flag) {
+        /* Prints the card image, assembly data, and any flag field to the panel */
+        var text = padTo("", serialIndex);
+        var x = 0;
+
+        if (card) {
+            text += padLeft(card.serial, 4);
+        }
+
+        if (assembly) {
+            text = padTo(text, wordIndex) +
+                    printWord(assembly.location, assembly.placeLoc, assembly.words[0]);
+        }
+
+        if (flag) {
+            text = padTo(text, flagIndex) + flag;
+        } else if (printFlag) {
+            text = padTo(text, flagIndex) + printFlag;
+            printFlag = "";
+        }
+
+        if (card) {
+            text = padTo(text, cardIndex) + card.text.substring(4);
+        }
+
+        printLine(text);
+        if (assembly) {
+            for (x=1; x<assembly.count; ++x) {
+                text = padTo("", wordIndex) +
+                        printWord(assembly.location+x, assembly.placeLoc+x, assembly.words[x]);
+                printLine(text);
+            } // for x
+        }
+    }
+
+    /**************************************/
+    function printError(msg) {
+        /* Prints an error message to the text panel and bumps the error count */
+
+        ++errorCount;
+        errorTank.push("******** " + msg);
+    }
+
+    /**************************************/
+    function dumpErrorTank() {
+        /* Dumps the tank of error messages to the text panel */
+        var x;
+
+        if (errorTank.length > 0) {
+            if (!listPass) {
+                printAssembly(cardData, null, null);
+            }
+
+            for (x=0; x<errorTank.length; ++x) {
+                printLine(errorTank[x]);
+            }
+
+            printLine("");
+            errorTank = [];
+        }
+    }
+
+    /**************************************/
+    function dumpSymbolTable() {
+        /* Dumps the contents of the symbol table to the text panel */
+        var addr = 0;                   // symbol address
+        var keys = null;                // sorted symbol table keys
+        var offset = 0;                 // print line offset
+        var text = "";                  // print line
+        var x;                          // scratch index
+
+        printLine("");
+        printLine("SYMBOL TABLE");
+        printLine("");
+
+        keys = Object.keys(symTab).sort();
+        for (x=0; x<keys.length; ++x) {
+            if (offset + keys[x].length + 5 > 100) {
+                printLine(text);
+                text = "";
+                offset = 0;
+            }
+
+            addr = symTab[keys[x]];
+            if (isNaN(addr)) {
+                text += padLeft("****", offset-text.length+5);
+            } else {
+                text += padLeft(addr, offset-text.length+5);
+            }
+
+            text += " " + keys[x];
+            offset = Math.floor((text.length+19)/20)*20;
+        }
+
+        printLine(text);
+        printLine("");
+        printLine("");
+    }
+
+
+    /*******************************************************************
+    * Parsing Primitives                                               *
+    *******************************************************************/
+
+    /**************************************/
+    function setLocation() {
+        /* Establishes the current assembly location from "nextLocation" */
+
+        location = nextLocation;
+        assembly.location = location;
+        assembly.placeLoc = location + placeOffset;
+        assembly.count = 0;
+        assembly.words[0] = 0;
+    }
+
+    /**************************************/
+    function declareLabel(label, location) {
+        /* Specifies the the location of a symbolic label, creating it first
+        if necessary */
+
+        symTab[label] = location;
+    }
+
+    /**************************************/
+    function fetchLabel(label, errorMsg) {
+        /* Fetches the value of a symbolic label. If the label does not exist,
+        creates it first and sets its value to NaN */
+
+        if (label in symTab) {
+            return symTab[label];
+        } else {
+            if (errorMsg) {
+                printError(errorMsg + ": " + label);
+            }
+            return (symTab[label] = NaN);
+        }
+    }
+
+    /**************************************/
+    function buildPointLabelID(label, pointNr) {
+        /* Constructs the internal symbol table ID for a point label instance */
+
+        return label + padLeft(pointNr, 6-label.length, ".");;
+    }
+
+    /**************************************/
+    function declarePointLabel(label, location) {
+        /* For each instance of a "point" label in the label field (i.e., a
+        numeric label that is referenced locally as nF or nB), creates a
+        pseudo-label in the symbol table with the next number for that point */
+        var labelID = "";               // unique symbol for the point label instance
+        var pointNr = 0;                // current point number
+
+        if (label in pointTab) {
+            pointNr = ++pointTab[label];
+        } else {
+            pointNr = pointTab[label] = 1;
+        }
+
+        labelID = buildPointLabelID(label, pointNr);
+        if (labelID in symTab) {
+            printError("DUPLICATE POINT LABEL -- IMPOSSIBLE: " + labelID);
+        } else {
+            declareLabel(labelID, location);
+        }
+    }
+
+    /**************************************/
+    function advancePointLabel(label) {
+        /* Advances the symbol table to the next instance of a specified "point"
+        label. Returns the current label location */
+        var labelID = "";               // unique symbol for the point label instance
+        var pointNr = 0;                // current point number
+
+        if (label in pointTab) {
+            pointNr = ++pointTab[label];
+        } else {
+            pointNr = pointTab[label] = 1;
+        }
+
+        labelID = buildPointLabelID(label, pointNr);
+        if (labelID in symTab) {
+            return symTab[labelID];
+        } else {
+            printError("LOST POINT LABEL: " + labelID);
+            return NaN;
+        }
+    }
+
+    /**************************************/
+    function fetchPointLabel(label, forward) {
+        /* Accesses the location of the specified point label in the forward or
+        backward direction. Returns the location of that label, or NaN if the
+        label is currently undefined */
+        var addr = 0;                   // referenced label address
+        var labelID = "";               // unique symbol for the point label instance
+        var pointNr = 0;                // current point number
+
+        if (label in pointTab) {
+            pointNr = pointTab[label];
+        } else {
+            pointNr = pointTab[label] = 0;
+            if (!forward) {
+                printError("BACKWARD REFERENCE TO UNDECLARED POINT LABEL: " + label);
+            }
+        }
+
+        if (forward) {
+            ++pointNr;
+        }
+
+        // If this point label refers to the current location, use the prior one.
+        do {
+            labelID = buildPointLabelID(label, pointNr);
+            if (labelID in symTab) {
+                addr = symTab[labelID];
+                if (addr == location) {
+                    --pointNr;
+                }
+            } else {
+                addr = NaN;
+            }
+        } while (addr == location);
+
+        return addr;
+    }
+
+    /**************************************/
+    function insertPool(values) {
+        /* Searches "poolData" for a sequence of words that matches the words in
+        "values". If a match is found, returns the index of the first (or only)
+        word in the sequence. If no match is found, appends "values" to
+        "poolData". Returns the index of the new or existing entry */
+        var done = true;                // optimistic loop control
+        var index = 0;                  // current poolData[] index
+        var length = values.length;     // length of new entry
+        var x = 0;                      // scratch index
+
+        do {
+            done = true;
+            if (poolData.length - index < length) {
+                index = -1;
+            } else {
+                index = poolData.indexOf(values[x], index);
+            }
+
+            if (index < 0) {
+                // No matching entry found, append the new entry.
+                index = poolData.length;
+                for (x=0; x<length; ++x) {
+                    poolData.push(values[x]);
+                }
+            } else {
+                // Check this entry for the remaining words in values[].
+                for (x=1; x<length; ++x) {
+                    if (poolData[index+x] !== values[x]) {
+                        done = false;
+                        ++index;
+                        break; // out of for loop to continue while loop
+                    }
+                }
+            }
+        } while (!done);
+
+        return index;
+    }
+
+    /**************************************/
+    function parseLabel(token, pass2) {
+        /* Parses any label on the current card image. If the initial column is
+        blank, there is no label, and sets token.type to tokEmpty. If the label
+        begins with a letter, sets token.type to tokLabel. If the label begins
+        with a number, sets token.type to tokForwardPoint. Anything else
+        generates an error. Fills in token.text with the label and token.value
+        with the assigned location */
+        var c = cardData.text.substring(labelIndex, signIndex).trim();
+        var match = null;
+        var offset = 0;
+        var pass1Loc = 0;
+
+        token.offset = labelIndex;
+        token.text = "";
+        token.value = nextLocation;
+
+        if (c.length < 1) {             // only spaces in the label field
+            token.type = tokEmpty;
+        } else {                        // something is in the label field
+            match = labelRex.exec(cardData.text.substring(labelIndex));
+            if (!match) {               // whatever it is, it's not a label
+                printError("INVALID LABEL: " + c);
+            } else {                    // have a valid label
+                token.text = match[1];
+                token.newOffset = token.offset + match[0].length;
+                if (match[2]) {         // label has offset value
+                    offset = parseInt(match[2], 10);
+                    token.value -= offset;
+                }
+
+                if (isNumericRex.test(token.text)) { // a "point" label
+                    token.type = tokForwardPoint;
+                    if (pass2) {
+                        pass1Loc = advancePointLabel(token.text);
+                        if (pass1Loc != token.value) {
+                            printError("POINT LOCATION MISMATCH: PASS1=" + pass1Loc +
+                                    ", PASS2=" + token.value);
+                        }
+                    } else {
+                        declarePointLabel(token.text, token.value);
+                    }
+                } else {                // a regular label
+                    token.type = tokLabel;
+                    pass1Loc = fetchLabel(token.text);
+                    if (pass2) {
+                        if (pass1Loc != token.value) {
+                            printError("LABEL LOCATION MISMATCH: PASS1=" + pass1Loc +
+                                    ", PASS2=" + token.value);
+                        }
+                    } else {            // define the label location
+                        if (isNaN(pass1Loc)) {
+                            declareLabel(token.text, token.value);
+                        } else if (pass1Loc != token.value) {
+                            printFlag = "HMM..";
+                            //printError("DUPLICATE LABEL DEFINITION: " + token.text +
+                            //        ", OLD=" + pass1Loc + ", NEW=" + token.value);
+                            if (!isNaN(pass1Loc)) {
+                                nextLocation = pass1Loc + offset;
+                            }
+                        }
+                    }
+                }
+
+                if (token.newOffset < signIndex) {
+                    printError("INVALID TEXT IN LABEL FIELD: " +
+                            cardData.text.substring(token.newOffset, signIndex));
+                } else if (token.newOffset > opCodeIndex) { // overflowed to next card
+                    if (listPass) {
+                        printAssembly(cardData, null, null);
+                    }
+
+                    readACard();
+                    token.newOffset = signIndex;
+                }
+            }
+        }
+    }
+
+    /**************************************/
+    function parseInteger(text, token) {
+        /* Parses a decimal number up to 11 digits in length starting at the
+        current offset in "text". Returns the 11-digit decimal string in
+        token.text and the arithmetic value as the function result */
+        var c = "";                     // current parse character
+        var length = text.length;       // length of operand string
+        var raw = "";                   // raw parsed token text
+        var result = 0;                 // arithmetic result (binary)
+        var x = token.offset;           // current offset into operand string
+
+        token.type = tokInteger;
+        while (x < length) {
+            c = text.charAt(x);
+            if (c >= "0" && c <= "9") {
+                ++x;
+                raw += c;
+            } else {
+                break; // out of while loop
+            }
+        }
+
+        token.newOffset = x;
+        if (raw.length > 11) {
+            printError("NUMERIC LITERAL LONGER THAN 11 DIGITS: " + raw);
+            raw = raw.substring(raw.length-11);
+        }
+
+        token.word = result = parseInt(raw, 10);
+        token.text = padLeft(result, 11, "0");
+        token.value = result;
+        return result;
+    }
+
+    /**************************************/
+    function parseString(text, token, singleWord) {
+        /* Parses a '-delimited string starting at the current offset in "text".
+        Returns the text of the string in token.text and an array of binary words
+        with the string translated to 220 character code as the function result.
+        The binary words will all have sign digits set to 2.
+        Complete strings less than multiple of five characters are padded to a
+        multiple of five with spaces (binary zeroes). If "singleWord" is true,
+        the string must be five or fewer characters in length */
+        var c;                          // current parse character
+        var code;                       // current 220 char code
+        var count = 0;                  // chars in current word
+        var length = text.length;       // length of operand text
+        var raw = "";                   // raw (ASCII) parsed string text
+        var values = [];                // words of 220 char codes
+        var word = 2;                   // current 220 word with sign of 2
+        var x = token.offset;           // current parsing offset
+
+        function appendCode(code) {
+            if (count >= 5) {       // push out the full word
+                values.push(word);
+                word = 2;
+                count = 0;
+            }
+
+            word = word*100 + code;
+            ++count;
+        }
+
+        ++x;                            // bypass the initial "'"
+
+        while (x < length) {
+            c = text.charAt(x);
+            if (c == "'") {
+                break;
+            } else {
+                ++x;
+                raw += c;
+                code = c.charCodeAt(0);
+                appendCode((code < asciiFilter.length ? asciiFilter[code]
+                                                      : (code == 0xA4 ? 4 : 0))); // the lozenge
+            }
+        }
+
+        if (x >= length) {
+            token.type = tokIncompleteString;
+            // printError("'-STRING NOT TERMINATED");
+        } else {
+            token.type = tokString;     // string is complete, so...
+            ++x;                        // bypass the terminating "'"
+            while (count < 5) {         // pad out final word with spaces
+                appendCode(0);
+            }
+
+            values.push(word);          // push out final word
+            if (singleWord && raw.length > 5) {
+                printError("STRING OCCUPIES MORE THAN ONE WORD");
+            }
+        }
+
+        token.newOffset = x;
+        token.text = raw;
+        token.word = word;              // save any partial word for continuation
+        token.value = 0;
+        return values;
+    }
+
+    /**************************************/
+    function parsePrimaryToken(token, pass2) {
+        /* Parses the next primary token from the card starting at "token.offset",
+        returning the parsed item in "token.text" and the updated parse offset
+        in "token.newOffset". "token.type" indicates the type */
+        var c;                          // current parse character
+        var raw = "";                   // raw text of parsed token
+        var text = cardData.text;       // card image
+        var val = 0;                    // temp used with numeric pool literals
+        var values = null;              // array reference for pool data
+        var x = token.offset;           // current offset into operand string
+
+        if (x >= sequenceIndex) {               // empty primary
+            token.type = tokEmpty;
+            token.newOffset = sequenceIndex;
+            token.text = "";
+        } else {
+            c = text.charAt(x);
+            switch (true) {
+            case (c >= "A" && c <= "Z"):        // parse regular label
+                token.type = tokLabel;
+                raw = c;
+                while (++x < sequenceIndex) {
+                    c = text.charAt(x);
+                    if (c >= "A" && c <= "Z") {
+                        raw += c;
+                    } else if (c >= "0" && c <= "9") {
+                        raw += c;
+                    } else if (c == ".") {
+                        raw += c;
+                    } else {
+                        break;  // out of while loop
+                    }
+                }
+
+                token.text = raw;
+                token.newOffset = x;
+                break;
+
+            case (c >= "0" && c <= "9"):        // parse integer literal or point label
+                token.type = tokInteger;
+                val = parseInteger(text, token);
+                if (token.newOffset < sequenceIndex) {
+                    c = text.charAt(token.newOffset);
+                    if (c == "F") {
+                        token.type = tokForwardPoint;
+                        token.text = text.substring(x, token.newOffset);
+                        ++token.newOffset;
+                    } else if (c == "B") {
+                        token.type = tokBackwardPoint;
+                        token.text = text.substring(x, token.newOffset);
+                        ++token.newOffset;
+                    }
+                }
+                break;
+
+            case (c == "-"):                    // parse signed integer literal
+                token.type = tokInteger;
+                ++token.offset;
+                val = -parseInteger(text, token);
+                break;
+
+            case (c == "$"):                    // parse current location counter
+                token.type = tokLocation;
+                token.text = c;
+                token.value = location;
+                token.newOffset = x+1;
+                break;
+
+            case (c == "="):                    // parse pool numeric literal
+                raw = c;
+                ++x;
+                if (x >= sequenceIndex) {
+                    printError("INVALID POOL LITERAL SYNTAX");
+                    token.newOffset = x;
+                } else {
+                    token.offset = x;
+                    val = parseExpression(token, pass2, false);
+                    if (token.newOffset < sequenceIndex && text.charAt(token.newOffset) == "=") {
+                        ++token.newOffset;
+                    } else {
+                        printError("NUMERIC LITERAL NOT TERMINATED BY \"=\"");
+                    }
+                }
+
+                values = [val];
+                token.type = tokLiteral;
+                token.text = "=" + padLeft(applySign(val, 0), 11, "0") + "=";
+                break;
+
+            case (c == "'"):                    // parse pool string literal
+                values = parseString(text, token, true);
+                token.type = tokLiteral;                // parseString sets type to tokString
+                token.text = "'" + token.text + "'";
+                break;
+
+            case (c == " "):                    // empty primary
+                token.type = tokEmpty;
+                token.newOffset = x;
+                token.text = "";
+                break;
+
+            default:                            // not valid
+                printError("PRIMARY CANNOT START WITH \"" + c + "\"");
+                token.type = tokEmpty;
+                token.newOffset = x;
+                token.text = "";
+                break;
+            } // switch true
+        }
+
+        return values;
+    }
+
+    /**************************************/
+    function parsePrimary(token, pass2) {
+        /* Evaluates the current offset in the card image as an expression
+        primary and returns its binary value. If "pass2" is true, the address
+        must resolve to a known address, otherwise an error is issued. If the
+        address cannot be resolved, returns NaN */
+        var sL = 0;                     // field start-length
+        var val = NaN;                  // value of primary
+        var values = null;              // literal pool words, if any
+
+        if (token.offset >= sequenceIndex) {
+            val = token.value = 0;
+            token.text = "";
+            token.type = tokEmpty;
+        } else if (cardData.text.charAt(token.offset) == " ") {
+            val = token.value = 0;
+            token.text = "";
+            token.type = tokEmpty;
+        } else if (cardData.text.charAt(token.offset) == "(") {
+            ++token.offset;
+            val = parseExpression(token, pass2, false);
+            if (token.newOffset < sequenceIndex && cardData.text.charAt(token.newOffset) == ")") {
+                ++token.newOffset;
+            } else {
+                printError("NESTED EXPRESSION MUST END WITH \")\"");
+            }
+        } else {
+            values = parsePrimaryToken(token, pass2);
+            switch (token.type) {
+            case tokLocation:           // $: current location counter
+                val = token.value;
+                break;
+
+            case tokInteger:            // integer literal
+                val = token.value;
+                break;
+
+            case tokLabel:              // regular label
+                val = fetchLabel(token.text);
+                break;
+
+            case tokBackwardPoint:      // backward point label
+            case tokForwardPoint:       // forward point label
+                val = fetchPointLabel(token.text, token.type == tokForwardPoint);
+                break;
+
+            case tokLiteral:            // pool literal
+                val = values[0];
+                if (isNaN(val)) {
+                    ++poolUnresolved;
+                } else {
+                    val = insertPool(values) + poolLocation;
+                }
+                break;
+
+            default:
+                val = NaN;
+                printError("INVALID ADDRESS TOKEN TYPE CODE: " + token.type);
+                break;
+            } // switch token.type
+
+            if (pass2 && isNaN(val)) {
+                printError("MUST BE A RESOLVED ADDRESS: " + token.text);
+            }
+        }
+
+        token.offset = token.newOffset;
+        if (token.offset < sequenceIndex && cardData.text.charAt(token.offset) == "(") {
+            ++token.offset;
+            sL = parseInteger(cardData.text, token);
+            if (token.newOffset < sequenceIndex && cardData.text.charAt(token.newOffset) == ")") {
+                ++token.newOffset;
+                val = putField(0, val, sL);
+            } else {
+                printError("INVALID PRIMARY (SL) SUFFIX SYNTAX");
+            }
+        }
+
+        return val;
+    }
+
+    /**************************************/
+    function parseExpression(token, pass2, inhibitDivision) {
+        /* Parses a literal or address expresssion from "token" and returns its
+        binary value. If "inhibitDivision" is true, a single "/" is treated as
+        end of expression, to allow for partial-word (/sL) notation in first-
+        level address expressions */
+        var done = false;               // loop control
+        var value = 0;                  // expression value
+        var value2 = NaN;               // RHS value for dyadic operator
+
+        value = parsePrimary(token, pass2);
+        while (token.newOffset < sequenceIndex && !done) {
+            token.offset = token.newOffset;
+            switch (cardData.text.charAt(token.offset)) {
+            case "+":
+                ++token.offset;
+                value += parsePrimary(token, pass2);
+                break;
+            case "-":
+                ++token.offset;
+                value -= parsePrimary(token, pass2);
+                break;
+            case "*":
+                ++token.offset;
+                if (token.offset < sequenceIndex && cardData.text.charAt(token.offset) == "*") {
+                    ++token.offset;
+                    value *= parsePrimary(token, pass2);
+                } else {
+                    done = true;
+                    token.newOffset = token.offset+1;
+                    printError("INVALID PRIMARY * OPERATOR: " + cardData.text.charAt(token.offset));
+                }
+                break;
+            case "/":
+                if (token.offset+1 < sequenceIndex && cardData.text.charAt(token.offset+1) == "/") {
+                    token.offset += 2;
+                    value %= parsePrimary(token, pass2);
+                } else if (inhibitDivision) {
+                    done = true;
+                } else {
+                    ++token.offset;
+                    value2 = parsePrimary(token, pass2);
+                    value = (value - value%value2)/value2; // integer division with truncation
+                }
+                break;
+            default:
+                done = true;
+                break;
+            } // switch
+        } // while token.offset
+
+        return value;
+    }
+
+    /**************************************/
+    function parseSPOOperand(token, pass2, opCode) {
+        /* Parses the special SPO operand, which can be an address,count pair or
+        a multi-part string with interspersed letter codes for carriage-control
+        characters. The string version can be continued across multiple cards by
+        placing " ..." after the last phrase on the line. Returns the updated
+        op code with address and count inserted. Leaves the v and d digits for
+        decimal-point insertion undisturbed */
+        var addr = 0;                   // text buffer address
+        var c = "";                     // current parse character
+        var count = 0;                  // chars in current word
+        var done = false;               // loop control
+        var raw = "";                   // raw (ASCII) parsed string text
+        var subValues = null;           // words of 220 char codes from a sub-string
+        var values = [];                // words of 220 char codes
+        var word = 2;                   // current 220 word with sign of 2
+        var x = token.offset;           // current parsing offset
+
+        var subToken = {
+            type: tokEmpty,
+            offset: 0,
+            newOffset: 0,
+            text: "",
+            word: 0,
+            value: 0};
+
+
+        function appendCode(code) {
+            if (count >= 5) {       // push out the full word
+                values.push(word);
+                word = 2;
+                count = 0;
+            }
+
+            word = word*100 + code;
+            ++count;
+        }
+
+        function appendSubstring(values, count) {
+            var code = 0;
+            var subCount = 0;
+            var subWord = values[0];
+            var x = 0;
+
+            while (count > 0) {
+                --count;
+                code = (subWord%p10[10] - subWord%p10[8])/p10[8];
+                appendCode(code);
+                if (++subCount < 5) {
+                    subWord = (subWord%p10[8])*100;
+                } else {
+                    subCount = 0;
+                    subWord = subValues[++x];
+                }
+            } // while count
+        }
+
+        if (!spoStringRex.test(cardData.text.substring(token.offset))) {
+            // Not a SPO string -- parse the address,count pair.
+            addr = parseExpression(token, pass2, false);
+            if (token.newOffset >= sequenceIndex || cardData.text.charAt(token.newOffset) != ",") {
+                printError("COUNT REQUIRED FOR SPO ADDRESS OPERAND");
+            } else {
+                token.offset = token.newOffset+1;
+                count = parseExpression(token, true, false);
+            }
+        } else {
+            // Special SPO multi-part string parameter that can continue accross cards.
+            while (!done) {
+                c = cardData.text.charAt(x);
+                switch (c) {
+                case "I":               // non-printing space
+                    raw += "9";
+                    appendCode( 2);
+                    ++x;
+                    break;
+                case "L":               // form feed
+                    raw += "*";
+                    appendCode(15);
+                    ++x;
+                    break;
+                case "R":               // carriage-return/line-feed
+                    raw += "$";
+                    appendCode(16);
+                    ++x;
+                    break;
+                case "T":               // horizontal tab
+                    raw += ",";
+                    appendCode(26);
+                    ++x;
+                    break;
+                case "'":
+                    subToken.offset = x;
+                    subValues = parseString(cardData.text, subToken, false);
+                    raw += subToken.text;
+                    token.offset = x = subToken.newOffset;
+                    appendSubstring(subValues, subToken.text.length);
+                    break;
+                case " ":
+                    if (x >= sequenceIndex-4 || cardData.text.indexOf(" ...", x) != x) {
+                        done = true;
+                    } else {
+                        if (listPass) {
+                            printAssembly(cardData, null, null);
+                        }
+
+                        readACard();
+                        token.offset = x = operandIndex;
+                    }
+                    break;
+                default:
+                    printError("INVALID SPO STRING CODE: \"" + c + "\"");
+                    done = true;
+                    break;
+                } // switch c
+            }
+
+            while (count < 5) {         // pad out final word with spaces
+                appendCode(0);
+            }
+
+            values.push(word);          // push out final word
+            addr = insertPool(values) + poolLocation;
+            count = values.length;      // set length for the SPO op code
+            token.value = addr;         // literal pool address
+            token.text = raw;
+            token.type = tokLiteral;
+            token.newOffset = x;
+        }
+
+        token.word = 0;
+        word = putField(opCode, addr, 4);
+        word = putField(word, count, 32);
+        return word;
+
+    }
+
+    /**************************************/
+    function parsePartialWordDesignator(token) {
+        /* Parses an optional partial-word designator in /sL format. If the
+        designatort is present, returns sL as a non-negative integer. If not,
+        returns -1 */
+        var sL = -1;
+        var x = token.offset;
+
+        if (x < sequenceIndex-3 && cardData.text.charAt(x) == "/") {
+            ++x;
+            if (isNumericRex.test(cardData.text.charAt(x))) {
+                if (isNumericRex.test(cardData.text.charAt(x+1))) {
+                    sL = parseInt(cardData.text.substring(x, x+2), 10);
+                    token.newOffset = x+2;
+                }
+            }
+        }
+
+        return sL;
+    }
+
+    /**************************************/
+    function parseOperandField(token, word, pass2, operandType, defaultValue) {
+        /* Parses one comma-delimited field from the operand string. "word" is
+        the word assembled thus far; "pass2" is true if this is the second
+        assembly pass; "operandType" is the type code from opTable;
+        "defaultValue" is the default operand value if it is not specified. If
+        "operandType" is null, then this is an additional field and must be
+        suffixed with the field position as "(sL)". Returns the word updated
+        by the new field value */
+        var result = word;              // result word modified by this field
+        var sL = 0;                     // partial-word designator
+        var val = 0;                    // operand field value
+
+        switch (operandType) {
+        case 13: // special SPO address or string paramter
+            val = NaN;                  // parsed specially below
+            break;
+        default:
+            val = parseExpression(token, pass2, true);
+            break;
+        } // switch operandType 1
+
+        switch (operandType) {
+        case  1: // address in /04, no /sL allowed
+            result = putField(result, val, 4);
+            break;
+
+        case  2: // address in /04, /sL in /22 required
+            result = putField(result, val, 4);
+            sL = parsePartialWordDesignator(token);
+            if (sL < 0) {
+                printError("/SL REQUIRED AFTER ADDRESS");
+            } else {
+                result = putField(result, sL, 22);
+            }
+            break;
+
+        case  3: // address in/04, /sL in /22 optional, if specified sets /31=1
+            result = putField(result, val, 4);
+            sL = parsePartialWordDesignator(token);
+            if (sL >= 0) {
+                result = putField(result, sL, 22);
+                result = putField(result,  1, 31);
+            }
+            break;
+
+        case  4: // unit or count digit inserted in /11
+            result = putField(result, val, 11);
+            break;
+
+        case  5: // variant digit inserted in /41
+            result = putField(result, val, 41);
+            break;
+
+        case  6: // value in /32
+            result = putField(result, val, 32);
+            break;
+
+        case  7: // value in /42
+            result = putField(result, val, 42);
+            break;
+
+        case  8: // control digit in /11, if specified sets /41=1
+            if (val >= 0 && val < 10) {
+                result = putField(result, val, 11);
+                result = putField(result,   1, 41);
+            }
+            break;
+
+        case  9: // value in /44
+            result = putField(result, val, 44);
+            break;
+
+        case 10: // tape unit/lane using LLU format in /33
+            val = (val%10)*100 + (val%1000 - val%10)/10;        // convert from LLU to ULL
+            result = putField(result, val, 33);
+            break;
+
+        case 11: // count in /21
+            result = putField(result, val, 21);
+            break;
+
+        case 12: // format band digit in high-order 3 bits of /41: (B-1)*2
+            val = (val-1)*2 + getField(result, 41)%2;
+            result = putField(result, val, 41);
+            break;
+
+        case 13: // special SPO address or string parameter
+            result = parseSPOOperand(token, pass2, result);
+            break;
+
+        case 19: // resolved address only
+            if (isNaN(val)) {
+                printError("MUST HAVE FULLY-RESOLVED ADDRESS");
+            } else {
+                result = putField(result, val, 4);
+            }
+            break;
+
+        default:
+            printError("INVALID OPERAND TYPE: " + operandType);
+            break;
+        } // switch operandType 2
+
+        return result;
+    }
+
+
+    /*******************************************************************
+    * Pseudo-operators                                                 *
+    *******************************************************************/
+
+    /**************************************/
+    function assembleFormatBand(token) {
+        /* Generates the 29 words of a Cardatron format band from the operand
+        text and returns an array of 29 words with band data. Examples:
+
+            FBGR  INPUT,16(P5A),P10Z
+            FBGR  PRINT,49B,T5A,T1A1B2A4Z,T10N,T8Z1A,XB6Z2A,48B MONITOR
+            FBGR  PRINT,32B,11(T5A),33B        ERROR MESSAGE FORMAT BAND
+            FBGR  INPUT,T2Z1B4A,15(T5A)
+            FBGR  INPUT,16(P5A),P10Z
+            FBGR  PRINT,49B,TZZZZZZNNNN,BBB,SBNNNNBNNBNNNN,BT5A,44B
+            FBGR  PRINT,49B,TZZZZZZNNNN,BBB,SBNNNNBNNBZZZZ,5BT5A,44B
+            FBGR  PRINT,49B,TZZZZZZNNNN,BBB,T6Z10BNNNN,50B
+            FBGR  PRINT,7(T5A),85B
+            FBGR  PRINT,TZZNNNNZZZZ,4B,16(T5A),32B
+
+        The first parameter can be "INPUT", "PUNCH", or "PRINT". The first two
+        values generate bands for 80 card columns; the third generates a band
+        for 120 print columns. The remaining comma-delimited parameters are
+        format phrases, one per 220 word. Each phrase may be prefixed by a
+        numeric repeat count. Allowable format codes are:
+
+            A:  copy two zone/numeric digits (one character)
+            B:  input:  ignore two digits in memory
+                output: supply two zero zone/numeric digits on output
+            N:  copy one digit to/from memory and a card column, normally
+                supplying a zero for the zone
+            P:  input:  store a zero for the sign digit
+                output: ignore sign digit in memory
+            S:  input:  same as P
+                output: copy zone digit as a separate column
+            T:  input:  like P, but store a 2 for the sign instead of zero
+                output: same as P
+            X:  input:  store zone digit in memory
+                output: copy a zone digit as an overpunch for next code
+            Z:  input:  store zero digit in memory
+                output: supply a zero zone/numeric digit to the device
+            (:  start of repeating group
+            ):  end of repeating group
+
+        This generator works by expanding all repeat counts and groups to a linear
+        string of format codes, then walking that string backwards to generate the
+        Cardatron format band digits. If this is an input format, the result is
+        padded with 11 zero codes to push the final word into the 220's D register.
+        For both input and output bands, the result is padded with 3 (delete) codes
+        out to a total of 29 words. Note that the band words are returned in
+        reverse order, to match the right-to-left processing of card columns by the
+        Cardatron and the order in which the 220 fetched words from memory when
+        loading format bands. If all that sounds very confusing, it's why we have
+        format band generators */
+        var band = [];                  // generated format band words
+        var bandType;                   // band type: INPUT, PRINT, PUNCH
+        var codes = "";                 // expanded format band phrases
+        var cx = 0;                     // current operand char offset
+        var dx = 0;                     // band word digit index
+        var oLen;                       // length of phrase text in operand
+        var operand = cardData.text.substring(token.offset, sequenceIndex);
+        var word = 0;                   // generated band word
+        var wx = 0;                     // band word digit index (power of 10)
+        var x;                          // scratch index
+
+        //--------------------------------------
+        function emitBandDigits(digits, count) {
+            /* Moves digits into format band words starting at the low-order
+            digit of the word. Handles overflow to the next word */
+            var digit;                  // current output digit
+
+            while (count > 0) {
+                --count;
+                digit = digits%10;
+                digits = (digits-digit)/10;
+                if (wx < 11) {
+                    word += digit*p10[wx];
+                    ++wx;
+                } else {
+                    band.unshift(word);
+                    word = digit;
+                    wx = 1;
+                }
+            }
+        }
+
+        //--------------------------------------
+        function flushBandWord(digit) {
+            /* If a partial word exists, fill the remainder with "digit" values,
+            then push it to the band array */
+
+            while (wx < 11) {
+                emitBandDigits(digit, 1);
+            }
+
+            band.unshift(word);
+            wx = 0;
+            word = 0;
+        }
+
+        //--------------------------------------
+        function expandPhrase(cx, level) {
+            /* Expands repeat counts and groups to a string of individual phrase
+            codes in "codes"; adjusts phrase codes for X-code zone-digit behavior */
+            var c;                      // current phrase character
+            var count = 0;              // repeat count
+            var done = false;           // loop control
+            var overpunch = false;      // X-code zone punch flag
+            var px = cx;                // current phrease char offset
+            var tx;                     // temp offset for repeating groups
+
+            do {
+                if (px >= oLen) {
+                    done = true;
+                } else {
+                    c = operand.charAt(px);
+                    ++px;
+                    switch (c) {
+                    case "0":
+                    case "1":
+                    case "2":
+                    case "3":
+                    case "4":
+                    case "5":
+                    case "6":
+                    case "7":
+                    case "8":
+                    case "9":
+                        count = count*10 + (c.charCodeAt(0) - ("0").charCodeAt(0));
+                        break;
+                    case "A":
+                    case "P":
+                    case "T":
+                    case "Z":
+                        do {
+                            --count;
+                            codes += c;
+                        } while (count > 0);
+                        count = 0;
+                        break;
+                    case "B":
+                        do {
+                            --count;
+                            if (overpunch) {
+                                codes += "S";   // half column: standalone sign
+                                overpunch = false;
+                            } else {
+                                codes += c;
+                            }
+                        } while (count > 0);
+                        count = 0;
+                        break;
+                    case "N":
+                        do {
+                            --count;
+                            if (overpunch) {
+                                codes += "D";   // half column: overpunched sign
+                                overpunch = false;
+                            } else {
+                                codes += c;
+                            }
+                        } while (count > 0);
+                        count = 0;
+                        break;
+                    case "S":
+                        codes += "XS";          // acts like XB
+                        count = 0;
+                        break;
+                    case "X":
+                        overpunch = true;
+                        codes += c;             // half-column: zone digit
+                        count = 0;
+                        break;
+                    case "(":
+                        do {
+                            --count;
+                            tx = expandPhrase(px, level+1);
+                        } while (count > 0);
+                        count = 0;
+                        px = tx;
+                        break;
+                    case ")":
+                        if (level < 1) {
+                            printError("EXCESS RIGHT PARENTHESIS");
+                        }
+                        done = true;
+                        break;
+                    case ",":
+                        if (level > 0) {
+                            printError("COMMA IN NESTED PHRASE");
+                        }
+                        codes += c;
+                        count = 0;
+                        break;
+                    default:
+                        printError("INVALID FORMAT BAND CHARACTER: " + c);
+                        break;
+                    } // switch c
+                }
+            } while (!done);
+
+            return px;
+        }
+
+        //--------------------------------------
+        function buildInputBand(cols) {
+            /* Builds an input band from the expanded phrase code string
+            in "codes", placing the result in the "band" array */
+            var c;                      // current phrase code
+            var colCount = 0;           // number of card columns
+            var cx;                     // current offset into codes
+            var dx = 0;                 // current memory word digit index
+
+            for (cx=codes.length-1; cx>=0; --cx) {
+                c = codes.charAt(cx);
+                switch (c) {
+                case "A":               // copy alphanumeric column
+                    if (dx & 1) {
+                        printError("A CODE ON ODD DIGIT: " + cx);
+                    } else if (dx > 9) {
+                        printError("A CODE ON SIGN DIGIT: " + cx);
+                    } else {
+                        emitBandDigits(11, 2);
+                    }
+                    colCount += 1;
+                    dx += 2;
+                    break;
+                case "B":               // ignore column
+                    emitBandDigits(33, 2);
+                    colCount += 1;
+                    break;
+                case "D":               // copy numeric half-column for overpunched sign
+                    emitBandDigits(1, 1);
+                    colCount +=1;
+                    dx += 1;
+                    break;
+                case "N":               // copy numeric column
+                    emitBandDigits(31, 2);
+                    colCount += 1;
+                    dx += 1;
+                    break;
+                case "P":               // insert zero in memory word for sign
+                    if (dx < 10) {
+                        printError("P CODE NOT FOR SIGN DIGIT: " + cx);
+                    }
+                    emitBandDigits(0, 1);
+                    dx += 1;
+                    break;
+                case "S":               // delete numeric half-column for standalone sign
+                    if (dx < 10) {
+                        printError("P CODE NOT FOR SIGN DIGIT: " + cx);
+                    }
+                    emitBandDigits(3, 1);
+                    colCount += 1;
+                    break;
+                case "T":               // insert 2 in memory word sign
+                    if (dx < 10) {
+                        printError("T CODE NOT FOR SIGN DIGIT: " + cx);
+                    }
+                    emitBandDigits(2, 1);
+                    dx += 1;
+                    break;
+                case "X":               // copy zone half-column for sign
+                    emitBandDigits(1, 1);
+                    dx += 1;
+                    break;
+                case "Z":               // insert zero in memory word
+                    emitBandDigits(0, 1);
+                    dx += 1;
+                    break;
+                case ",":               // check that phrase/word boundaries match
+                    if (dx > 0) {
+                        printError("WRONG NUMBER OF DIGITS IN WORD: " + dx);
+                    }
+                    break;
+                default:
+                    printError("INVALID INPUT BAND CODE: " + c);
+                    break;
+                } // switch c
+
+                if (dx > 10) {
+                    if (dx > 11) {
+                        printError("EXCESS NUMBER OF DIGITS IN WORD: " + dx);
+                    }
+                    dx = 0;
+                }
+            } // for cx
+
+            if (dx > 0) {
+                printError("FINAL BAND WORD INCOMPLETE: " + dx);
+            }
+
+            if (colCount != cols) {
+                printError("WRONG NUMBER OF COLUMNS: " + colCount);
+            }
+
+            emitBandDigits(0, 11);      // push out last word from Cardatron
+            flushBandWord(3);           // pad out the last word with 3s
+        }
+
+        //--------------------------------------
+        function buildOutputBand(cols) {
+            /* Builds an output band from the expanded phrase code string
+            in "codes", placing the result in the "band" array */
+            var c;                      // current phrase code
+            var colCount = 0;           // number of columns on card/line
+            var cx;                     // current offset into codes
+            var dx = 0;                 // current memory word digit index
+
+            for (cx=codes.length-1; cx>=0; --cx) {
+                c = codes.charAt(cx);
+                switch (c) {
+                case "A":               // copy alphanumeric column
+                    if (dx & 1) {
+                        printError("A CODE ON ODD DIGIT: " + cx);
+                    } else if (dx > 9) {
+                        printError("A CODE ON SIGN DIGIT: " + cx);
+                    } else {
+                        emitBandDigits(11, 2);
+                    }
+                    colCount += 1;
+                    dx += 2;
+                    break;
+                case "B":               // supply zeroes for blank column
+                    emitBandDigits(0, 2);
+                    colCount += 1;
+                    break;
+                case "D":               // copy numeric half-column for overpunched sign
+                    emitBandDigits(1, 1);
+                    colCount +=1;
+                    dx += 1;
+                    break;
+                case "N":               // copy numeric column
+                    emitBandDigits(2, 1);
+                    colCount += 1;
+                    dx += 1;
+                    break;
+                case "P":               // ignore sign digit in word
+                case "T":
+                    if (dx < 10) {
+                        printError("P,T CODE NOT FOR SIGN DIGIT: " + cx);
+                    }
+                    emitBandDigits(3, 1);
+                    dx += 1;
+                    break;
+                case "S":               // supply numeric half-column for standalone sign
+                    if (dx < 10) {
+                        printError("P,T CODE NOT FOR SIGN DIGIT: " + cx);
+                    }
+                    emitBandDigits(0, 1);
+                    colCount += 1;
+                    break;
+                case "X":               // copy zone digit for sign
+                    emitBandDigits(1, 1);
+                    dx += 1;
+                    break;
+                case "Z":               // ignore digit in memory word
+                    emitBandDigits(3, 1);
+                    dx += 1;
+                    break;
+                case ",":               // check that phrase/word boundaries match
+                    if (dx > 0) {
+                        printError("WRONG NUMBER OF DIGITS IN WORD: " + dx);
+                    }
+                    break;
+                default:
+                    printError("INVALID OUTPUT BAND CODE: " + c);
+                    break;
+                } // switch c
+
+                if (dx > 10) {
+                    if (dx > 11) {
+                        printError("EXCESS NUMBER OF DIGITS IN WORD: " + dx);
+                    }
+                    dx = 0;
+                }
+            } // for cx
+
+            if (dx > 0) {
+                printError("FINAL BAND WORD INCOMPLETE: " + dx);
+            }
+
+            if (colCount != cols) {
+                printError("WRONG NUMBER OF COLUMNS: " + colCount);
+            }
+
+            flushBandWord(3);           // pad out the last word with 3s
+        }
+
+        //-------------------------------------- start of generateFormatBand()
+        x = operand.indexOf(" ");
+        oLen = (x < 0 ? operand.length : x);
+
+        x = operand.indexOf(",");
+        bandType = (x < 0 ? "" : operand.substring(0,x));
+
+        cx = x+1;
+        while (cx < oLen) {
+            cx = expandPhrase(cx, 0);
+        }
+
+        //printLine(codes);               // DEBUG
+
+        switch (bandType) {
+        case "INPUT":
+            buildInputBand(80);
+            break;
+        case "PUNCH":
+            buildOutputBand(80);
+            break;
+        case "PRINT":
+            buildOutputBand(120);
+            break;
+        default:
+            printError("INVALID FORMAT BAND TYPE: " + bandType);
+            break;
+        }
+
+        while (band.length < 29) {
+            band.unshift(33333333333);
+        }
+
+        return band;
+    }
+
+
+    /*******************************************************************
+    * Assembly Drivers                                                 *
+    *******************************************************************/
+
+    /**************************************/
+    function emitAssembly() {
+        /* Outputs the current assembled code structure to the object program */
+
+        //*** STUB FOR NOW ***//
+        return;
+    }
+
+    /**************************************/
+    function buildPool(pass2) {
+        /* Builds the final literal pool */
+        var flag = "";                  // ASCII version of pool word
+        var text = "";                  // scratch string
+        var word = 0;                   // current pool word
+        var x = 0;                      // scratch index
+
+        setLocation();
+        nextLocation = location + poolData.length;
+        if (location != poolLocation) {
+            printError("POOL LOCATION MOVED: WAS=" + poolLocation + ", NOW=" + location);
+        }
+
+        for (x=0; x<poolData.length; ++x) {
+            word = poolData[x];
+            assembly.words[assembly.count++] = word;
+            if (listPass) {
+                if (word - word%p10[10] == 20000000000) {
+                    flag = xlate220Word(poolData[x]);
+                } else {
+                    flag = "";
+                }
+
+                if (x == 0) {
+                    printAssembly(cardData, assembly, flag);
+                } else {
+                    text = padTo(text, wordIndex) +
+                            printWord(assembly.location+x, assembly.placeLoc+x, word);
+                    if (flag) {
+                        text = padTo(text, flagIndex) + flag;
+                    }
+                    printLine(text);
+                }
+            }
+        } // for x
+
+        if (pass2) {
+            emitAssembly();
+        }
+    }
+
+    /**************************************/
+    function assembleLiteralList(token, numericSign, pass2) {
+        /* Parses the text for a comma-delimited list of literals and returns an
+        array of binary values in assembly.words with the values found */
+        var c = "";                     // current parse character
+        var text = cardData.text;       // operand text
+        var values = null;              // temp array of result words from parsing strings
+        var x = 0;                      // scratch index
+
+        setLocation();
+        while (token.offset < sequenceIndex) { // parse comma-delimited values
+            c = text.charAt(token.offset);
+            if (c == "'") {
+                values = parseString(text, token, false);
+                for (x=0; x<values.length; ++x) {
+                    assembly.words[assembly.count++] = values[x];
+                }
+            } else if (c == ",") {
+                assembly.words[assembly.count++] = 0;
+            } else  {
+                assembly.words[assembly.count++] =
+                        applySign(parseExpression(token, pass2, false), numericSign);
+                numericSign = 0;        // only apply the sign column to first word in the list
+            }
+
+            if (token.newOffset < sequenceIndex) {
+                c = text.charAt(token.newOffset);
+                if (c == ",") {
+                    ++token.newOffset;  // continue with next value
+                } else if (c == " ") {
+                    break; // out of while loop
+                } else {
+                    printError("INVALID CONSTANT LIST: " + c);
+                    break; // out of while loop
+                }
+            }
+
+            token.offset = token.newOffset;
+        } // while x
+
+        //for (x=0; x<values.length; ++x) {
+        //    printLine("                                                         DEBUG: " + padLeft(values[x], 11));
+        //}
+
+        if (listPass) {
+            printAssembly(cardData, assembly, null);
+        }
+
+        if (pass2) {
+            emitAssembly();
+        }
+
+        nextLocation = location + assembly.count;
+    }
+
+    /**************************************/
+    function assemblePseudoOp(token, opDesc, sign, pass2) {
+        /* Processes a pseudo-operation and emits code as required. Enters with
+        any label for the command in token.text */
+        var printed = !listPass;        // true if has been or shouldn't be printed
+        var match = null;               // regex.exec() result
+        var word = 0;                   // result word from op
+        var x = 0;                      // scratch
+
+        assembly.opCode = opDesc[0];
+        token.word = 0;
+
+        switch (assembly.opCode) {
+        case pseudoEND:                 // end of assembly
+            token.value = tensComp(parseExpression(token, pass2, false))%10000; // dunno how this should be used
+            break;
+
+        case pseudoIS:                  // equate symbol to address
+            if (assembly.label.length < 1) {
+                printError("VALUE MUST BE EQUATED TO A LABEL");
+            } else {
+                declareLabel(assembly.label, parseExpression(token, pass2, false));
+            }
+            break;
+
+        case pseudoORIGIN:
+            x = tensComp(parseExpression(token, true, false))%10000;
+            if (!isNaN(x)) {
+                token.value = nextLocation = x;
+                if (assembly.label.length > 0) {
+                    declareLabel(assembly.label, nextLocation);
+                }
+            }
+            break;
+
+        case pseudoPLACE:
+            x = tensComp(parseExpression(token, true, false))%10000;
+            if (!isNaN(x)) {
+                token.value = placeOffset = x-nextLocation;
+            }
+            break;
+
+        case pseudoPLACED:
+            placeOffset = 0;
+            break;
+
+        case pseudoFORGET:
+            token.text = cardData.text.substring(operandIndex, operandIndex+5);
+            if (token.text != "NAMES") {
+                printError("UNSUPPORTED FORGET OPTION: " + token.text);
+            } else {
+                dumpSymbolTable();
+                buildPool(pass2);
+                autoSymTab = {};
+                pointTab = {};
+                poolData = [];
+                poolLocation = NaN;
+                symTab = {};
+            }
+            break;
+
+        case pseudoFORMAT:
+            setLocation();
+            assembly.words = assembleFormatBand(token);
+            assembly.count = assembly.words.length;
+            if (listPass) {
+                printAssembly(cardData, assembly, null);
+                printed = true;
+            }
+
+            if (pass2) {
+                emitAssembly(assembly);
+            }
+
+            nextLocation = location + assembly.count;
+            break;
+
+        case pseudoFILL:
+            setLocation();
+            word = applySign(parseExpression(token, pass2, false), sign);
+            x = token.offset = token.newOffset;
+            if (!(x < sequenceIndex && cardData.text.charAt(x) == ",")) {
+                printError("FILL COUNT REQUIRED");
+            } else {
+                ++token.offset;
+                x = parseExpression(token, true, false);
+                if (isNaN(x) || x < 1) {
+                    printError("FILL COUNT MUST BE NUMBER GREATER THAN ZERO: " + x);
+                } else {
+                    while (x > 0) {
+                        assembly.words[assembly.count++] = word;
+                        --x;
+                    }
+                }
+            }
+
+            if (listPass) {
+                x = assembly.count;     // only print the first word
+                assembly.count = 1;
+                printAssembly(cardData, assembly, null);
+                assembly.count = x;
+                printed = true;
+            }
+
+            if (pass2) {
+                emitAssembly(assembly);
+            }
+
+            nextLocation = location + assembly.count;
+            break;
+
+        case pseudoPOOL:
+            buildPool(pass2);
+            break;
+
+        case pseudoDO:
+            // DO XXXXX   => enter at XXXXX.1, return at XXXXX
+            // DO XXXXX.n => enter at XXXXX.n, return at XXXXX
+            setLocation();
+            word = parsePrimary(token, pass2);
+            if (token.type != tokLabel) {
+                printError("LABEL REQUIRED");
+            } else {
+                // Make x the entry location and word the return location
+                x = token.text.lastIndexOf(".");
+                if (x < 0) {
+                    x = fetchLabel(token.text + ".1");
+                } else {
+                    match = token.text.substring(0, x);
+                    x = word;
+                    word = fetchLabel(match);
+                }
+
+                assembly.words[assembly.count++] = putField(word, 44, 67); // STP XXXXX
+                assembly.words[assembly.count++] = putField(   x, 30, 67); // BUN XXXXX.n
+            }
+
+            if (listPass) {
+                printAssembly(cardData, assembly, null);
+                printed = true;
+            }
+
+            if (pass2) {
+                emitAssembly(assembly);
+            }
+
+            nextLocation = location + assembly.count;
+            break;
+
+        case pseudoDJ:
+            match = labelRex.exec(cardData.text.substring(token.offset, sequenceIndex));
+            if (!match || !isNumericRex.test(match[1])) {
+                printError("FIELD LIST INTEGER REQUIRED");
+            } else {
+                djList = [];
+                x = match[1].length;
+                while (x > 0) {
+                    if (x > 1) {
+                        djList.push(parseInt(match[1].substring(x-2, x), 10));
+                    } else {
+                        djList.push(parseInt(match[1].substring(x-1, x), 10));
+                    }
+                    x -= 2;
+                }
+            }
+            break;
+
+        case pseudoJ:
+            setLocation();
+            for (x=0; x<djList.length; ++x) {
+                word = putField(word, parseExpression(token, pass2, false), djList[x]);
+                token.offset = token.newOffset;
+                if (token.offset < sequenceIndex && cardData.text.charAt(token.offset) == ",") {
+                    ++token.offset;
+                }
+            } // for x
+
+            assembly.words[assembly.count++] = applySign(word, sign);
+            if (listPass) {
+                printAssembly(cardData, assembly, null);
+                printed = true;
+            }
+
+            if (pass2) {
+                emitAssembly();
+            }
+
+            nextLocation = location+1;
+            if (token.newOffset < sequenceIndex && cardData.text.charAt(token.newOffset) != " ") {
+                printError("EXTRANEOUS TEXT AFTER J-FIELD LIST");
+            }
+            break;
+
+        case pseudoWord:
+            printError("OOPS... WORD LITERAL SHOULD HAVE BEEN HANDLED ALREADY");
+            break;
+
+        default:
+            printError("INVALID PSEUDO-OP CODE: " + assembly.opCode);
+            break;
+        } // switch opCode
+
+        if (listPass && !printed) {
+            printAssembly(cardData, null, null);
+        }
+
+        if (pass2) {
+            emitAssembly();
+        }
+    }
+
+    /**************************************/
+    function assembleOpCode(token, opDesc, sign, pass2) {
+        /* Assembles a 220 instruction. "opDesc" is the opTab entry for the
+        symbolic opCode. "sign" is the numeric sign. "pass2" is true if this
+        is the second assembly pass */
+        var c = "";                     // current character
+        var field = 0;                  // value of current operand field
+        var word = opDesc[0]*p10[4];    // initial instruction word
+        var x = 0;                      // operand index
+
+        setLocation();
+        word = applySign(word, sign);
+        assembly.opCode = opDesc[0];
+        token.newOffset = token.offset;
+        token.word = token.value = 0;
+
+        // Parse the operands
+        for (x=1; x<opDesc.length; x+=2) {
+            token.offset = token.newOffset;
+            word = parseOperandField(token, word, pass2, opDesc[x], opDesc[x+1]);
+            if (token.newOffset < sequenceIndex) {
+                c = cardData.text.charAt(token.newOffset);
+                if (c == ",") {
+                    ++token.newOffset;
+                } else if (c != " ") {
+                    printError("COMMA EXPECTED: " + c);
+                }
+            }
+        } // for x
+
+        // The values of any additional fields not defined by opDesc are simply
+        // added to the instruction word. Normally these will be partial-word
+        // expressions positioned into the unused digits of the instruction,
+        // which are by default zero.
+
+        while (token.newOffset < sequenceIndex) {
+            token.offset = token.newOffset;
+            if (cardData.text.charAt(token.offset) == " ") {
+                break; // out of while loop
+            } else {
+                word += parseExpression(token, pass2, false);
+                if (token.newOffset < sequenceIndex) {
+                c = cardData.text.charAt(token.newOffset);
+                    if (c == " ") {
+                        break; // out of while loop
+                    } else if (c == ",") {
+                        ++token.newOffset;
+                    } else {
+                        printError("COMMA EXPECTED: " + c);
+                        break; // out of while loop
+                    }
+                }
+            }
+        } // while remaining fields
+
+        nextLocation = location+1;
+        assembly.words[0] = word;
+        assembly.count = 1;
+        if (listPass) {
+            printAssembly(cardData, assembly, null);
+        }
+
+        if (pass2) {
+            emitAssembly();
+        }
+    }
+
+    /**************************************/
+    function assembleCommand(pass2) {
+        /* Assembles one instruction or pseudo operation. Enter with the current
+        memory location in "location" and card image in the "cardData" structure.
+        Fills in the "assembly" structure */
+        var card = "";                  // current card to be assembled
+        var opCode = "";                // op code field from the card
+        var opDesc = null;              // array of op code description words from opTab{}
+        var sign = "";                  // sign-override field from the card
+        var numericSign = 0;            // numeric sign value
+
+        parseLabel(token, pass2);
+        assembly.label = token.text;
+        assembly.opCode = pseudoWord;   // literal word by default
+        card = cardData.text;
+        sign = card.substring(signIndex, signIndex+1);
+        opCode = card.substring(opCodeIndex, opCodeIndex+7);
+
+        numericSign = signValues[sign];
+        if (sign == " " && opCode == "REM    ") {
+            assembly.opCode = pseudoREM;
+            if (listPass) {
+                cardData.text = padRight(cardData.text.substring(0, opCodeIndex), operandIndex) +
+                                cardData.text.substring(operandIndex);
+                printAssembly(cardData, null, null);
+            }
+        } else if (!(sign in signValues)) {
+            token.offset = signIndex;
+            assembleLiteralList(token, 0, pass2);
+        } else if (sign == " " && isNumericRex.test(opCode)) {
+            token.offset = opCodeIndex;
+            assembleLiteralList(token, 0, pass2);
+        } else if (isNumericRex.test(opCode)) {
+            token.offset = signIndex;
+            assembleLiteralList(token, 0, pass2);
+        } else if (opCode.charAt(0) == "(") {
+            token.offset = opCodeIndex;
+            assembleLiteralList(token, numericSign, pass2);
+        } else {
+            opDesc = opTab[opCode];
+            if (!opDesc) {
+                token.offset = opCodeIndex;
+                assembleLiteralList(token, numericSign, pass2);
+            } else if (opDesc[0] < 0) {
+                token.offset = operandIndex;
+                assemblePseudoOp(token, opDesc, numericSign, pass2);
+            } else {
+                token.offset = operandIndex;
+                assembleOpCode(token, opDesc, numericSign, pass2);
+            }
+        }
+
+        dumpErrorTank();
+    }
+
+
+    /*******************************************************************
+    * Pass One                                                         *
+    *******************************************************************/
+
+    /**************************************/
+    function assemblePass1() {
+        /* Processes card images for Pass 1 of the assembler. Enters with the
+        first card in "cardData */
+        var label = "";                 // **** TEMP DEBUG **** //
+
+        assembleCommand(false);
+        if (assembly.opCode != pseudoEND) {
+            readACard();
+            if (cardData.atEOF) {
+                printError("EOF encountered before END in Pass 1");
+            } else {
+                Promise.resolve(false).then(assemblePass1);
+            }
+        } else {
+            // Wrap up Pass 1 and check for undefined symbols.
+            // Oddly, undefined symbols appear to have been implicitly defined at the end,
+            // so build a table of them and assign locations.
+            for (label in symTab) {
+                if (isNaN(symTab[label])) {
+                    autoSymTab[label] = location;
+                    declareLabel(label, location);
+                    ++location;
+                }
+            }
+
+            dumpErrorTank();
+            printLine("END OF PASS 1, ERRORS = " + errorCount);
+            printLine("UNRESOLVED POOL LITERAL EXPRESSIONS = " + poolUnresolved);
+            if (pass1List || pass2List) {
+                dumpSymbolTable();
+            }
+
+            if (errorCount == 0) {      // advance to Pass 2
+                startPass2();
+            }
+        }
+    }
+
+    /**************************************/
+    function startPass1() {
+        /* Reads the control cards and then passes control to Pass 1 of the assembler */
+        var done = false;               // loop control
+        var opCode;                     // op code field of current card
+
+        listPass = pass1List;
+        do {
+            readACard();
+            if (cardData.atEOF) {
+                done = true;
+                printError("EOF ENCOUNTERED BEFORE PASS 1");
+            } else {
+                opCode = rTrim(cardData.text.substring(opCodeIndex, operandIndex));
+                switch (opCode) {
+                case "LOAD":
+                    printAssembly(cardData, null, null);
+                    break;
+                case "ON":
+                    printAssembly(cardData, null, null);
+                    break;
+                default:
+                    done = true;
+                    assemblePass1();
+                    break;
+                }
+            }
+        } while (!done);
+    }
+
+
+    /*******************************************************************
+    * Pass Two                                                         *
+    *******************************************************************/
+
+    /**************************************/
+    function assemblePass2() {
+        /* Processes card images for Pass 2 of the assembler. Enters with the
+        first card in "cardData. Every "sprintCount" cards, this routine reschedules
+        itself after a short delay and then exits. This allows the text panel to be
+        updated in the browser window */
+        var card;                       // current card to be assembled
+        var continuedString = false;    // true if processing a string split across cards
+        var done = false;               // loop control
+        var finito = false;             // true if the FINI pseudo-op has been sensed
+        var label;                      // label symbol from the card
+        var opCode;                     // op code field from the card
+        var opDesc;                     // array of op code description words from opTab{}
+        var operand;                    // operand field from the card
+        var origLoc;                    // original location for this line
+        var seq;                        // sequence field from the card
+        var serial;                     // card serial number for printPass2()
+        var sign;                       // sign-override field from the card
+        var sprintCount = 0;            // counter for periodic refreshing of the text panel
+        var text;                       // scratch string
+        var thisLoc;                    // current location for this line (changed by DEFN)
+        var values;                     // array of address or word values from parsing operands
+        var word;                       // assembled instruction word
+        var x;                          // scratch index
+
+        do {
+            card = cardData.text;
+            label = card.substring(labelIndex, labelIndex+5).trim();
+            opCode = card.substring(opCodeIndex, opCodeIndex+4).trim();
+            operand = card.substring(operandIndex, operandIndex+operandLength);
+            seq = card.substring(72, 80);
+            serial = cardData.serial;
+            sign = card.substring(opCodeIndex+4, opCodeIndex+5);
+            origLoc = thisLoc = location;
+
+            if (opCode == "REM") {
+                printPass2(seq, serial, location, word, label, null, sign, operand);
+                readACard();
+            } else {
+                token.offset = 0;
+                if (opCode.length <= 0) {       // treat line a CNST pseudo-op
+                    opDesc = opTab["CNST"];
+                } else if (!(opCode in opTab)) {// treat like a NOP
+                    printError("INVALID OP CODE");
+                    opDesc = opTab["NOP"];
+                } else {
+                    opDesc = opTab[opCode];
+                }
+
+                if (opDesc[0] >= 0) {   // normal instruction
+                    values = evaluateOperand(operand, token, true);
+                    word = generateInstructionWord(opDesc, sign, values);
+                    printPass2(seq, serial, origLoc, word, label, opCode, sign, operand);
+                    emitAssembly(location, word);
+                    ++location;         // normal instructions bump the location counter
+                    readACard();
+                } else {
+                    // Parse the pseudo-op
+                    switch (opDesc[0]) {
+                    case pseudoDEFN:
+                        values = evaluateOperand(operand, token, true);
+                        if (values.length > 0) {
+                            thisLoc = values[0];
+                        } else {
+                            printError("OPERAND ADDRESS REQUIRED");
+                        }
+                        printPass2(seq, serial, origLoc, null, label, opCode, sign, operand);
+                        readACard();
+                        break;
+                    case pseudoLOCN:
+                        values = evaluateOperand(operand, token, true);
+                        if (values.length < 1) {
+                            printError("OPERAND ADDRESS REQUIRED");
+                        } else if (values[0] >= 0) {
+                            location = values[0];
+                        }
+                        printPass2(seq, serial, origLoc, null, label, opCode, sign, operand);
+                        readACard();
+                        break;
+                    case pseudoCNST:
+                        values = assembleLiteralList(operand, token, continuedString);
+                        printPass2(seq, serial, origLoc, values[0], label, opCode, sign, operand);
+                        emitAssembly(location, values[0]);
+                        ++location;
+                        for (x=1; x<values.length; ++x) {
+                            printPass2("", null, origLoc+x, values[x], "", "", "", "", "");
+                            emitAssembly(location, values[x]);
+                            ++location;
+                        }
+                        continuedString = (token.type == tokIncompleteString);
+                        readACard();
+                        if (continuedString) {
+                            if (cardData.atEOF) {
+                                printError("'-STRING NOT TERMINATED AT EOF");
+                            } else {
+                                text = cardData.text.substring(opCodeIndex, opCodeIndex+4).trim();
+                                if (text.length > 0) {
+                                    printError("'-STRING NOT TERMINATED");
+                                } else {        // extract the partial word of the incomplete string
+                                    x = token.text.length % 5;
+                                    token.text = token.text.substring(token.text.length - x);
+                                }
+                            }
+                        }
+                        break;
+                    case pseudoF244:
+                    case pseudoF424:
+                        values = evaluateOperand(operand, token, true);
+                        word = generateInstructionWord(opDesc, sign, values);
+                        printPass2(seq, serial, origLoc, word, label, opCode, sign, operand);
+                        emitAssembly(location, word);
+                        ++location;
+                        readACard();
+                        break;
+                    case pseudoFBGR:
+                        values = generateFormatBand(operand);
+                        printPass2(seq, serial, origLoc, values[0], label, opCode, sign, operand);
+                        emitAssembly(location, values[0]);
+                        ++location;
+                        for (x=1; x<values.length; ++x) {
+                            printPass2("", null, origLoc+x, values[x], "", "", "", "");
+                            emitAssembly(location, values[x]);
+                            ++location;
+                        }
+                        readACard();
+                        break;
+                    case pseudoFINI:
+                        done = finito = true;
+                        values = evaluateOperand(operand, token, true);
+                        printPass2(seq, serial, origLoc, null, label, opCode, sign, operand);
+                        break;
+                    default:
+                        printError("INVALID PSEUDO INSTRUCTION CODE: " + opDesc[0]);
+                        readACard();
+                    } // switch
+                }
+
+                if (label.length > 0) {         // increment any point label counter
+                    if (label.charAt(0) == "*") {
+                        if (label in pointTab) {
+                            ++pointTab[label];
+                        } else {
+                            pointTab[label] = 1;
+                        }
+                    }
+                }
+            }
+
+            if (cardData.atEOF) {
+                done = true;
+                if (!finito) {
+                    finito = true;
+                    printError("EOF encountered before FINI in Pass 2");
+                }
+            } else if (++sprintCount > sprintLimit && !continuedString) {
+                done = true;
+            }
+        } while (!done);
+
+        if (!finito) {
+            setTimeout(assemblePass2, 100);
+        } else {
+            // dump the auto-defined symbols
+            for (label in autoSymTab) {
+                printPass2("", null, autoSymTab[label], 0, label, "", "", "");
+            }
+
+            // Wrap up Pass 2, check again for undefined symbols (shouldn't be any)
+            for (text in symTab) {
+                if (isNaN(symTab[text])) {
+                    printError("SYMBOL NOT DEFINED: " + text);
+                }
+            }
+
+            buffer = "";                // release the card buffer area
+            dumpErrorTank();
+            printLine("");
+            printLine("END OF PASS 2, ERRORS = " + errorCount);
+            $$("TextDiv").removeChild($$("Spinner"));   // remove the spinner image
+        }
+    }
+
+    /**************************************/
+    function startPass2() {
+        /* Sets up for Pass 2 of the assembly and initiates it */
+        var done = false;               // loop control
+        var opCode;                     // op code parsed from card
+
+        listPass = pass2List;
+        do {
+            readACard();
+            if (cardData.atEOF) {
+                done = true;
+                printError("EOF encountered before Pass 2");
+            } else {
+                opCode = cardData.text.substring(opCodeIndex, opCodeIndex+5).trim();
+                switch (opCode) {
+                case "ASMBL":
+                    break;
+                case "REORD":
+                    break;
+                default:
+                    done = true;
+                    setTimeout(assemblePass2, 100);
+                    break;
+                }
+            }
+        } while (!done);
+    }
+
+    /**************************************/
+    function initializePass2() {
+        /* Reinitializes the assembler to reread the input file for Pass 2 */
+        var e;                          // point label ID
+
+        errorCount = 0;
+        errorTank = [];
+        location = 0;
+        nextLocation = 0;
+        poolUnresolved = 0;
+        bufferOffset = cardData.fileOffset;
+        cardData.atEOF = false;
+        cardData.serial = 0;
+        for (e in pointTab) {           // reset the point label table
+            pointTab[e] = 0;
+        }
+
+        printLine("");
+        startPass2();
+    }
+
+
+    /*******************************************************************
+    * Iniialization                                                    *
+    *******************************************************************/
+
+    /**************************************/
+    function assembleFile() {
+        /* Initializes or reinitializes the assembler for a new file and starts
+        the assembly of pass 1 */
+
+        errorCount = 0;
+        errorTank = [];
+        location = 0;
+        assembly.location = 0;
+        assembly.placeLoc = 0;
+        assembly.opCode = pseudoEND;
+        assembly.count = 0;
+        cardData.atEOF = false;
+        cardData.fileOffset = bufferOffset;
+        cardData.serial = 0;
+        autoSymTab = {};
+        pointTab = {};
+        poolData = [];
+        poolLocation = NaN;
+        poolUnresolved = 0;
+        symTab = {};
+
+        clearPanel();
+        startPass1();
+    }
+
+    /**************************************/
+    function checkBrowser() {
+        /* Checks whether this browser can support the necessary stuff */
+        var missing = "";
+
+        if (!window.File        ) {missing += ", File"}
+        if (!window.FileReader  ) {missing += ", FileReader"}
+        if (!window.FileList    ) {missing += ", FileList"}
+        if (!window.DOMTokenList) {missing += ", DOMTokenList"}
+        if (!window.ArrayBuffer ) {missing += ", ArrayBuffer"}
+        if (!window.DataView    ) {missing += ", DataView"}
+        if (!window.Promise     ) {missing += ", Promise"}
+
+        if (missing.length == 0) {
+            return false;
+        } else {
+            alert("No can do... your browser does not\n" +
+                  "support the following features:\n" + missing.substring(2));
+            return true;
+        }
+    }
+
+    /******************** Start of window.onload() ********************/
+    if (checkBrowser()) {
+        return;
+    }
+
+    $$("CRFileSelector").value = null;  // clear any prior file selection
+    $$("CRFileSelector").addEventListener("change", fileSelector_onChange, false);
+    pass1List = $$("Pass1ListCheck").checked;
+    $$("Pass1ListCheck").addEventListener("click", function(ev) {pass1List = ev.target.checked});
+    pass2List = $$("Pass2ListCheck").checked;
+    $$("Pass2ListCheck").addEventListener("click", function(ev) {pass2List = ev.target.checked});
+}, false);
+</script>
+
+</body>
+</html>
