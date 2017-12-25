@@ -1,0 +1,67 @@
+
+
+Assembler for the Burroughs 220 BALGOL Compiler & Library -- 2017-12-21 07:59
+
+Source File: COS.card
+
+START PASS 1
+
+   .00.0     0000   SIN   DEFN  100
+   .00.0     0000   COS   CRB
+   .00.0     0001         LDR 8 COS
+   .00.0     0002         STR 6 SIN,04
+   .00.0     0003         LDR 8 COS2
+   .00.0     0004         FAD 8 +5078539816
+   .00.0     0005         FAD 8 +5078539816
+   .00.0     0006         BUN 6 SIN+2
+   .00.0     0007   COS2  HLT 8 COS1
+   .00.0     0008   COS1  CNST  $COS$
+   .00.0     0009   LOCN  LOCN  *+1
+   .00.0     0010         CNST  40000990000
+   .00.0     0011         CNST  $COS,REAL(REAL) SIN=1 $
+   .00.0     0016         CNST  90000000000
+   .00.0     0017         LOCN  LOCN
+   .00.0     0009         FINI  COS
+             0009               +5078539816
+
+
+SYMBOL TABLE
+
+    9 +5078539816       8 BMOD              0 COS               8 COS1              7 COS2
+    9 LOCN              1 RLO             100 SIN
+
+END PASS 1, ERRORS = 0
+
+
+START PASS 2
+
+   .00.0     1      0000                   SIN   DEFN  100
+   .00.0     2      0000  0 0006 45 0000   COS   CRB
+   .00.0     3      0001  8 0000 41 0000         LDR 8 COS
+   .00.0     4      0002  6 0411 40 0100         STR 6 SIN,04
+   .00.0     5      0003  8 0000 41 0007         LDR 8 COS2
+   .00.0     6      0004  8 0000 22 0009         FAD 8 +5078539816
+   .00.0     7      0005  8 0000 22 0009         FAD 8 +5078539816
+   .00.0     8      0006  6 0000 30 0102         BUN 6 SIN+2
+   .00.0     9      0007  8 0000 00 0008   COS2  HLT 8 COS1
+   .00.0    10      0008  2 4356 62 0000   COS1  CNST  $COS$
+   .00.0    11      0009                   LOCN  LOCN  *+1
+   .00.0    12      0010  4 0000 99 0000         CNST  40000990000
+   .00.0    13      0011  2 4356 62 2359         CNST  $COS,REAL(REAL) SIN=1 $
+                    0012  2 4541 53 2459
+                    0013  2 4541 53 0400
+                    0014  2 6249 55 0081
+                    0015  2 0000 00 0000
+   .00.0    14      0016  9 0000 00 0000         CNST  90000000000
+   .00.0    15      0017                         LOCN  LOCN
+   .00.0    16      0009                         FINI  COS
+                    0009  0 5078 53 9816               +5078539816
+
+
+SYMBOL TABLE
+
+    9 +5078539816       8 BMOD              0 COS               8 COS1              7 COS2
+    9 LOCN              1 RLO             100 SIN
+
+END PASS 2, ERRORS = 0
+

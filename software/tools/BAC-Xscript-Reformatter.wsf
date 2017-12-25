@@ -7,7 +7,7 @@
 
 Option Explicit
 '-----------------------------------------------------------------------
-' retro-205 BAC-Xscript-Reformatter.wsf
+' retro-220 BAC-Xscript-Reformatter.wsf
 ' Copyright (c) 2017, Paul Kimpel,
 ' Licensed under the MIT License, see
 '       http://www.opensource.org/licenses/mit-license.php
@@ -141,16 +141,16 @@ Sub ExtractCode(byVal xScriptName, byVal deckName)
   Const operandCol = 33
   Const lastCol = 90
 
+  Set cardFile = fso.OpenTextFile(deckName, ForWriting, True, True)
   Set xFile = fso.OpenTextfile(xScriptName, ForReading, False, False)
   lineNr = 1
-
-  Set cardFile = fso.OpenTextFile(deckName, ForWriting, True, True)
   line = xFile.ReadLine
+
   If Mid(line, addrCol, 2) = "  " Then
     text = Mid(line, addrCol+2, opCodeCol-addrCol-2)
     If Len(Trim(text)) > 0 Then
-      '-- assume it's a heading line and convert to a REM card
-      WriteCard cardFile, Mid(line, 1, 8), "1" & Space(9) & "REM   " & Mid(line, addrCol+2, lastCol-addrCol+2)
+      '-- assume it's a heading line and convert to a HEAD card
+      WriteCard cardFile, Mid(line, 1, 8), "1" & Space(9) & "HEAD  " & Mid(line, addrCol+2, lastCol-addrCol+2)
       line = xFile.ReadLine
     End If
   End If
@@ -196,13 +196,13 @@ lastSeq = "01 0"
 
 Set args = WScript.Arguments
 For Each deckName In args
-If UCase(Trim(deckName)) = "/Q" Then
-  quietMode = True
-ElseIf Len(fileName) = 0 Then
-  fileName = Trim(deckName)
-Else
-  lastSeq = Trim(deckName)
-End If
+  If UCase(Trim(deckName)) = "/Q" Then
+    quietMode = True
+  ElseIf Len(fileName) = 0 Then
+    fileName = Trim(deckName)
+  Else
+    lastSeq = Trim(deckName)
+  End If
 Next
 
 Set args = Nothing
@@ -218,7 +218,7 @@ Else
     deckName = fso.BuildPath(fso.GetParentFolderName(fileName), fso.GetBaseName(fileName)) & ".card"
     ExtractCode fileName, deckName
     If not quietMode Then
-      MsgBox "BAC Assembler card deck created: " & vbCrLf & deckName
+      MsgBox "BAC-Assembler card deck created: " & vbCrLf & deckName
     End If
 
     WScript.Quit 0

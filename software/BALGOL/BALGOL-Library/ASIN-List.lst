@@ -1,0 +1,77 @@
+
+
+Assembler for the Burroughs 220 BALGOL Compiler & Library -- 2017-12-21 07:56
+
+Source File: ASIN.card
+
+START PASS 1
+
+   .00.0     0000   ATAN  DEFN  100
+   .00.0     0000   ROMXX DEFN  200
+   .00.0     0000   ERROR DEFN  300
+   .00.0     0000   ASIN  NOP
+   .00.0     0001         STA 6 ERROR+52
+   .00.0     0002         LDR 8 ASIN2
+   .00.0     0003         STP 6 ROMXX
+   .00.0     0004         BUN 6 ROMXX+4
+   .00.0     0005         LDB 8 ASIN
+   .00.0     0006         BZA 6 ROMXX+39
+   .00.0     0007         STA 6 ERROR+49      B
+   .00.0     0008         CAD 6 ERROR+52
+   .00.0     0009         FDV 6 ERROR+49      B
+   .00.0     0010         BUN 6 ATAN+2
+   .00.0     0011   ASIN2 HLT 8 ASIN1
+   .00.0     0012   ASIN1 CNST  $ASIN$
+   .00.0     0013         CNST  40000990000
+   .00.0     0014         CNST  $ARCSIN,REAL(REAL) ARCTAN=1 ROMXX=2 ERROR=3 $
+   .00.0     0023         CNST  90000000000
+   .00.0     0024         FINI  ASIN
+
+
+SYMBOL TABLE
+
+    0 ASIN             12 ASIN1            11 ASIN2           100 ATAN              8 BMOD
+  300 ERROR             1 RLO             200 ROMXX
+
+END PASS 1, ERRORS = 0
+
+
+START PASS 2
+
+   .00.0     1      0000                   ATAN  DEFN  100
+   .00.0     2      0000                   ROMXX DEFN  200
+   .00.0     3      0000                   ERROR DEFN  300
+   .00.0     4      0000  0 0000 01 0000   ASIN  NOP
+   .00.0     5      0001  6 0000 40 0352         STA 6 ERROR+52
+   .00.0     6      0002  8 0000 41 0011         LDR 8 ASIN2
+   .00.0     7      0003  6 0000 44 0200         STP 6 ROMXX
+   .00.0     8      0004  6 0000 30 0204         BUN 6 ROMXX+4
+   .00.0     9      0005  8 0000 42 0000         LDB 8 ASIN
+   .00.0    10      0006  6 0000 36 0239         BZA 6 ROMXX+39
+   .00.0    11      0007  6 0000 40 0349         STA 6 ERROR+49      B
+   .00.0    12      0008  6 0000 10 0352         CAD 6 ERROR+52
+   .00.0    13      0009  6 0000 25 0349         FDV 6 ERROR+49      B
+   .00.0    14      0010  6 0000 30 0102         BUN 6 ATAN+2
+   .00.0    15      0011  8 0000 00 0012   ASIN2 HLT 8 ASIN1
+   .00.0    16      0012  2 4162 49 5500   ASIN1 CNST  $ASIN$
+   .00.0    17      0013  4 0000 99 0000         CNST  40000990000
+   .00.0    18      0014  2 4159 43 6249         CNST  $ARCSIN,REAL(REAL) ARCTAN=1 ROMXX=2 ERROR=3 $
+                    0015  2 5523 59 4541
+                    0016  2 5324 59 4541
+                    0017  2 5304 00 4159
+                    0018  2 4363 41 5500
+                    0019  2 8100 59 5654
+                    0020  2 6767 00 8200
+                    0021  2 4559 59 5659
+                    0022  2 0083 00 0000
+   .00.0    19      0023  9 0000 00 0000         CNST  90000000000
+   .00.0    20      0024                         FINI  ASIN
+
+
+SYMBOL TABLE
+
+    0 ASIN             12 ASIN1            11 ASIN2           100 ATAN              8 BMOD
+  300 ERROR             1 RLO             200 ROMXX
+
+END PASS 2, ERRORS = 0
+

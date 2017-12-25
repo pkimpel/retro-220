@@ -17,7 +17,7 @@
    .00.0     0014   COSH1 CNST  $COSH$
    .00.0     0015   LOCN  LOCN  *+1
    .00.0     0016         CNST  40000990000
-   .00.0     0017         CMST  $COSH,REAL(REAL) EXP=1 ERROR=2 $
+   .00.0     0017         CNST  $COSH,REAL(REAL) EXP=1 ERROR=2 $
    .00.0     0023         CNST  90000000000
    .00.0     0024         LOCN  LOCN
    .00.0     0015         FINI  COSH

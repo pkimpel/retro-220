@@ -1,0 +1,105 @@
+
+
+Assembler for the Burroughs 220 BALGOL Compiler & Library -- 2017-12-21 17:33
+
+Source File: TANH.card
+
+START PASS 1
+
+   .00.0     0000   SINH  DEFN  100
+   ,00,0     0000   COSH  DEFN  200
+   .00.0     0000   ERROR DEFN  300
+   .00.0     0000   TANH  NOP
+   .00.0     0001         STA 8 X
+   .00.0     0002         LDR 8 TANH2
+   .00.0     0003         CFA 8 +5250000000,00
+   .00.0     0004         BCH 8 B+
+   .00.0     0005         STP 6 COSH
+   .00.0     0006         BUN 6 COSH+2
+   .00.0     0007         STA 8 COSHX
+   .00.0     0008         BZA 8 A+
+   .00.0     0009         CAD 8 X
+   .00.0     0010         STP 6 SINH
+   .00.0     0011         BUN 6 SINH
+   .00.0     0012         FDV 8 COSHX
+   .00.0     0013   *A    LDB 8 TANH
+   .00.0     0014         BUN - 0
+   .00.0     0015   *B    CAD 6 ERROR+51      =1.0=
+   .00.0     0016         LDR 8 X
+   .00.0     0017         SLT   0
+   .00.0     0018         BUN 8 A-
+   .00.0     0019   X     CNST  0
+   .00.0     0020   COSHX CNST  0
+   .00.0     0021   TANH2 HLT 8 TANH1
+   .00.0     0022   TANH1 CNST  $TANH$
+   .00.0     0023   LOCN  LOCN  *+1
+   .00.0     0024         CNST  40000990000
+   .00.0     0025         CNST  $TANH,REAL(REAL) SINH=1 COSH=2 ERROR=3 $
+   .00.0     0033         CNST  90000000000
+   .00.0     0034         LOCN  LOCN
+   .00.0     0023         FINI  TANH
+             0023   TANH1
+             0024               +5250000000
+
+
+SYMBOL TABLE
+
+   13 *A..1            15 *B..1            24 +5250000000       8 BMOD            200 COSH
+   20 COSHX           300 ERROR            23 LOCN              1 RLO             100 SINH
+   22 TAHN1             0 TANH             23 TANH1            21 TANH2            19 X
+
+END PASS 1, ERRORS = 0
+
+
+START PASS 2
+
+   .00.0     1      0000                   SINH  DEFN  100
+   ,00,0     2      0000                   COSH  DEFN  200
+   .00.0     3      0000                   ERROR DEFN  300
+   .00.0     4      0000  0 0000 01 0000   TANH  NOP
+   .00.0     5      0001  8 0000 40 0019         STA 8 X
+   .00.0     6      0002  8 0000 41 0021         LDR 8 TANH2
+   .00.0     7      0003  8 0010 18 0024         CFA 8 +5250000000,00
+   .00.0     8      0004  8 0000 34 0015         BCH 8 B+
+   .00.0     9      0005  6 0000 44 0200         STP 6 COSH
+   .00.0    10      0006  6 0000 30 0202         BUN 6 COSH+2
+   .00.0    11      0007  8 0000 40 0020         STA 8 COSHX
+   .00.0    12      0008  8 0000 36 0013         BZA 8 A+
+   .00.0    13      0009  8 0000 10 0019         CAD 8 X
+   .00.0    14      0010  6 0000 44 0100         STP 6 SINH
+   .00.0    15      0011  6 0000 30 0100         BUN 6 SINH
+   .00.0    16      0012  8 0000 25 0020         FDV 8 COSHX
+   .00.0    17      0013  8 0000 42 0000   *A    LDB 8 TANH
+   .00.0    18      0014  1 0000 30 0000         BUN - 0
+   .00.0    19      0015  6 0000 10 0351   *B    CAD 6 ERROR+51      =1.0=
+   .00.0    20      0016  8 0000 41 0019         LDR 8 X
+   .00.0    21      0017  0 0001 49 0000         SLT   0
+   .00.0    22      0018  8 0000 30 0013         BUN 8 A-
+   .00.0    23      0019  0 0000 00 0000   X     CNST  0
+   .00.0    24      0020  0 0000 00 0000   COSHX CNST  0
+   .00.0    25      0021  8 0000 00 0023   TANH2 HLT 8 TANH1
+   .00.0    26      0022  2 6341 55 4800   TANH1 CNST  $TANH$
+   .00.0    27      0023                   LOCN  LOCN  *+1
+   .00.0    28      0024  4 0000 99 0000         CNST  40000990000
+   .00.0    29      0025  2 6341 55 4823         CNST  $TANH,REAL(REAL) SINH=1 COSH=2 ERROR=3 $
+                    0026  2 5945 41 5324
+                    0027  2 5945 41 5304
+                    0028  2 0062 49 5548
+                    0029  2 0081 00 4356
+                    0030  2 6248 00 8200
+                    0031  2 4559 59 5659
+                    0032  2 0083 00 0000
+   .00.0    30      0033  9 0000 00 0000         CNST  90000000000
+   .00.0    31      0034                         LOCN  LOCN
+   .00.0    32      0023                         FINI  TANH
+                    0023  0 5250 00 0000               +5250000000
+
+
+SYMBOL TABLE
+
+   13 *A..1            15 *B..1            24 +5250000000       8 BMOD            200 COSH
+   20 COSHX           300 ERROR            23 LOCN              1 RLO             100 SINH
+   22 TAHN1             0 TANH             23 TANH1            21 TANH2            19 X
+
+END PASS 2, ERRORS = 0
+

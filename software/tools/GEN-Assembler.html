@@ -28,6 +28,11 @@
 *
 * All other columns are ignored by this assembler.
 *
+* To maintain the same addresses for literal pool entries, a JSON file
+* containing a "pool set" of one or more arrays of literal word values
+* and their starting memory location may be pre-loaded into the assembler
+* before loading the source code.
+*
 * Output is a simulated line printer listing in the <iframe> of the web
 * page from which the assembler is run. The output of Pass 2 is a
 * traditional assembler listing, with words of generated object code
@@ -51,6 +56,7 @@ HTML {
 
 BODY {
     position:           relative;
+    font-family:        Arial, Helvetica, sans-serif;
     height:             100%;
     margin:             1ex}
 
@@ -59,35 +65,65 @@ DIV.heading {
     margin-bottom:      6px;
     font-weight:        bold}
 
+LABEL {
+    font-size:          smaller}
+
 #CardReaderPanel {
     position:           relative;
     color:              white;
     background-color:   #666;
-    width:              600px;
-    height:             40px;
+    width:              640px;
     border:             1px solid black;
     border-radius:      8px;
-    padding:            0;
-    vertical-align:     top}
+    font-size:          smaller;
+    padding:            8px}
+
+#CardReaderTable {
+    border-spacing:     0;
+    border-collapse:    collapse;
+    table-layout:       fixed;
+    width:              100%}
+#CardReaderCol1 {
+    width:              18ex}
+#CardReaderCol2 {
+    }
+#CardReaderTable TD {
+    text-align:         left;
+    vertical-align:     top;
+    padding-top:        1px;
+    padding-bottom:     1px;
+    padding-left:       2px;
+    padding-right:      2px}
+
+#CRFileSelector {
+    width:              100%;
+    border:             1px solid white}
+
+#CRPoolSelector {
+    width:              100%;
+    border:             1px solid white}
 
 #OptionsPanel {
     position:           relative;
     margin-top:         4px;
-    margin-bottom:      4px}
+    margin-bottom:      4px;
+    width:              640px}
 
-#CRFileSelector {
+#SelectListing {
     position:           absolute;
-    top:                8px;
-    left:               8px;
-    width:              580px;
-    border:             1px solid white}
+    right:              0px}
+
+#TextDiv {
+    position:           relative;
+    height:             75%;
+    width:              640px}
 
 #TextPanel {
     position:           absolute;
-    top:                90px;
     left:               0;
-    bottom:             200px;
-    width:              640px;
+    top:                0;
+    bottom:             8px;
+    width:              100%;
     overflow:           scroll;
     padding:            4px;
     border:             1px solid black;
@@ -111,7 +147,13 @@ DIV.heading {
 </div>
 
 <div id=CardReaderPanel>
-    <input id=CRFileSelector type=file size=90>
+    <table id=CardReaderTable>
+    <colgroup><col id=CardReaderCol1><col id=CardReaderCol2></colgroup>
+    <tr><td>Pre-load Pool
+        <td><input id=CRPoolSelector type=file size=90>
+    <tr><td>Load Source &amp; Go
+        <td><input id=CRFileSelector type=file size=90>
+    </table>
 </div>
 
 <div id=OptionsPanel>
@@ -120,6 +162,11 @@ DIV.heading {
     &nbsp;&nbsp;
     <input id=Pass2ListCheck type=checkbox value=1 CHECKED>
     <label for=Pass2ListCheck>Pass 2 Listing</label>
+    &nbsp;&nbsp;
+    <input id=ChecksumCheck type=checkbox value=1>
+    <label for=ChecksumCheck>Write Checksum</label>
+
+    <button id=SelectListing type=button>Select Listing</button>
 </div>
 
 <div id=TextDiv>
@@ -136,6 +183,8 @@ window.addEventListener("load", function() {
     var buffer = "";
     var bufferLength = 0;
     var bufferOffset = 0;
+    var sourceName = "?";
+
     var eolRex = /([^\n\r\f]*)((:?\r[\n\f]?)|\n|\f)?/g;
     var isNumericRex = /^[0-9]/;
     var isAlphaRex = /^[A-Z]/;
@@ -145,35 +194,36 @@ window.addEventListener("load", function() {
     var spoStringRex = /^[ILRT]*'/;
 
     // Card 0-relative column offsets
-    var labelIndex = 4;
-    var signIndex = labelIndex + 11;
-    var opCodeIndex = labelIndex + 12;
-    var operandIndex = labelIndex + 20;
-    var sequenceIndex = 72;
+    var labelOffset = 4;
+    var signOffset = labelOffset + 11;
+    var opCodeOffset = labelOffset + 12;
+    var operandOffset = labelOffset + 20;
+    var sequenceOffset = 72;
     var operandLength = 48;
 
     // Card data structure
     var cardData = {
         atEOF:          false,          // buffer exhausted
         fileOffset:     0,              // bufferOffset at start of file
-        offset:         0,              // current bufferOffset
+        fileSerial:     0,              // card serial number at start of file
+        offset:         0,              // current card image bufferOffset
         length:         0,              // length of card image, including delimiters
         serial:         0,              // serial number within file
         text:           ""}             // padded card image
 
     // Output listing column offsets
-    var serialIndex = 0;
-    var wordIndex = 5;
-    var flagIndex = 34;
-    var cardIndex = 39;
+    var serialOffset = 0;
+    var wordOffset = 5;
+    var flagOffset = 34;
+    var cardOffset = 39;
 
     var printFlag = "";
     var pass1List = false;
     var pass2List = true;
     var listPass = false;
+    var outputChecksum = false;
 
     var panel = $$("TextPanel");
-    var sprintLimit = 100;              // cards processed before yielding control
 
     // Token.type values
     var tokEmpty = 0;                   // empty primary
@@ -183,8 +233,7 @@ window.addEventListener("load", function() {
     var tokBackwardPoint = 4;           // backward point label (without the leading * or the trailing -)
     var tokForwardPoint = 5;            // forward point label  (ditto, without the trailing +)
     var tokLiteral = 6;                 // pool literal, 1-11 digit number or string)
-    var tokIncompleteString = 7;        // unterminated '-delimited string literal (probably continued on next card)
-    var tokString = 8;                  // '-delimited string literal
+    var tokString = 7;                  // '-delimited string literal
 
     // token structure for operand parsing
     var token = {
@@ -198,6 +247,7 @@ window.addEventListener("load", function() {
     // Assembled code data structure
     var assembly = {
         label:          "",             // any label for this instruction
+        labelOffset:    0,              // words to offset label location from current location
         location:       0,              // assembled memory address
         opCode:         NaN,            // assembled opCode value from opTab[][0]
         placeLoc:       0,              // offset to physical assembled location
@@ -206,18 +256,27 @@ window.addEventListener("load", function() {
                         [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]};
 
     // Assembly storage
-    var autoSymTab = {};                // auto-declared (undefined) symbol table
+    var asmCode = [];                   // words of assembled code
     var djList = [0];                   // sL values for DJ field definitions
     var errorCount = 0;                 // assembler error count
     var errorTank = [];                 // holding area for errors on current line
+    var lastPoolLength = 0;             // size of literal pool table in prior pass
+    var lastPoolUnresolved = 0;         // count of unresolved pool literals from prior pass
+    var lastSymUnresolved = 0;          // count of unresolved labels
     var location = 0;                   // current instruction address
+    var locationAdjustment = 0;         // amount by which to adjust label locations due to change in pool size
     var nextLocation = 0;               // next instruction address
     var placeOffset = 0;                // PLACE address offset
     var pointTab = {};                  // point-label table: holds the current sequence number for each point label
-    var poolData = [];                  // pool data table: holds words for literals
-    var poolLocation = NaN;             // address of the current pool
+    var poolData = [];                  // literal pool data table: holds words for literals
+    var poolLocation = NaN;             // address of the current literal pool
+    var poolSetName = "";               // name of optional pool set data file
     var poolUnresolved = 0;             // count of unresolved pool literal values
-    var symTab = {};                    // symbol table: holds the address value for each label
+    var programUnitNr = 0;              // ordinal number of the program unit being assembled
+    var symTab = {};                    // symbol table: holds the address value for each label, initially NaN
+
+    var poolSets = [                    // skeleton table of pre-loaded pools for default program unit #0
+        {poolLoc: NaN, poolData: []}];
 
     var p10 = [     1,                  // powers of 10 table
                    10,
@@ -237,32 +296,36 @@ window.addEventListener("load", function() {
      1000000000000000,
     10000000000000000];
 
-    var asciiFilter = [ // translate ASCII to 220 internal character codes
-        // 0   1   2   3   4   5   6   7   8   9   A   B   C   D   E   F
+    var xlateANSI220 = [ // translate ANSI to 220 internal character codes
+       // 00  01  02  03  04  05  06  07  08  09  0A  0B  0C  0D  0E  0F
            0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  //  0-0F
            0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  // 10-1F
-           0,  0,  0, 33, 13, 24, 10, 34, 24,  4, 14,  0, 23, 20,  3, 21,  // 20-2F
-          80, 81, 82, 83, 84, 85, 86, 87, 88, 89,  0, 13,  4,  0,  0,  0,  // 30-3F
+           0,  0,  0, 33, 13, 24, 10, 34, 24,  4, 14, 10, 23, 20,  3, 21,  // 20-2F
+          80, 81, 82, 83, 84, 85, 86, 87, 88, 89,  0, 13,  4, 33,  0,  0,  // 30-3F
           34, 41, 42, 43, 44, 45, 46, 47, 48, 49, 51, 52, 53, 54, 55, 56,  // 40-4F
           57, 58, 59, 62, 63, 64, 65, 66, 67, 68, 69,  0,  0,  0,  0,  0,  // 50-5F
            0, 41, 42, 43, 44, 45, 46, 47, 48, 49, 51, 52, 53, 54, 55, 56,  // 60-6F
           57, 58, 59, 62, 63, 64, 65, 66, 67, 68, 69,  0,  0,  0,  0,  0]; // 70-7F
 
-    var xlate220ASCII = [ // translate internal B220 code to ASCII
-        " ", "?", "9", ".", "\u00A4", "?",  "?",  "?", "?", "?",  // 00-09
-        "+", "?", "?", "$", "*",      "*",  "$",  "?", "?", "?",  // 10-19
-        "-", "/", "?", ",", "(",      "?",  ",",  "?", "?", "?",  // 20-29
-        "?", "?", "?", "=", "@",      "\\", "?",  "?", "?", "?",  // 30-39
-        "?", "A", "B", "C", "D",      "E",  "F",  "G", "H", "I",  // 40-49
-        "?", "J", "K", "L", "M",      "N",  "O",  "P", "Q", "R",  // 50-59
-        "?", "?", "S", "T", "U",      "V",  "W",  "X", "Y", "Z",  // 60-69
-        "?", "?", "?", "?", "?",      "?",  "?",  "?", "?", "?",  // 70-79
-        "0", "1", "2", "3", "4",      "5",  "6",  "7", "8", "9",  // 80-89
-        "?", "?", "?", "?", "?",      "?",  "?",  "?", "?", "?"]; // 90-99
+    var xlate220ANSI = [ // translate internal B220 code to ANSI
+        // 00   01   02   03   04        05    06    07   08   09
+          " ", "?", "9", ".", ")",      "?",  "?",  "?", "?", "?",  // 00-09
+          "+", "?", "?", "$", "*",      "*",  "$",  "?", "?", "?",  // 10-19
+          "-", "/", "?", ",", "(",      "?",  ",",  "?", "?", "?",  // 20-29
+          "?", "?", "?", "=", "@",      "\\", "?",  "?", "?", "?",  // 30-39
+          "?", "A", "B", "C", "D",      "E",  "F",  "G", "H", "I",  // 40-49
+          "?", "J", "K", "L", "M",      "N",  "O",  "P", "Q", "R",  // 50-59
+          "?", "?", "S", "T", "U",      "V",  "W",  "X", "Y", "Z",  // 60-69
+          "?", "?", "?", "?", "?",      "?",  "?",  "?", "?", "?",  // 70-79
+          "0", "1", "2", "3", "4",      "5",  "6",  "7", "8", "9",  // 80-89
+          "?", "?", "?", "?", "?",      "?",  "?",  "?", "?", "?"]; // 90-99
 
     var signValues = {                  // numeric values of sign column
-        " ": 0, "+": 0, "0": 0,
-        "-": 1, "1": 1,
+        " ": 0,
+        "+": 0,
+        "0": 0,
+        "-": 1,
+        "1": 1,
         "2": 2,
         "3": 3,
         "4": 4,
@@ -301,28 +364,30 @@ window.addEventListener("load", function() {
     *        7 = value in /42
     *        8 = control digit in /11, if specified sets /41=1
     *        9 = value in /44
-    *       10 = tape unit/lane using LLU format in /33
+    *       10 = mag tape unit/lane as LLU, inserted as ULL in /33
     *       11 = count in /21
-    *       12 = format band digit in high-order 3 bits of /41: (B-1)*2
+    *       12 = format band digit added to /41: (B-1)*2
     *       13 = SPO operand: special string or address,count pair
     *       19 = resolved address only
     *******************************************************************/
 
     // Pseudo-instruction codes
-    var pseudoEND =     -1;
-    var pseudoIS =      -2;
-    var pseudoORIGIN =  -3;
-    var pseudoPLACE =   -4;
-    var pseudoPLACED =  -5;
-    var pseudoFORGET =  -6;
-    var pseudoFORMAT =  -7;
-    var pseudoFILL =    -8;
-    var pseudoPOOL =    -9;
-    var pseudoDO =     -10;
-    var pseudoDJ =     -11;
-    var pseudoJ =      -12;
-    var pseudoWord =   -13;
-    var pseudoREM =    -14;
+    var pseudoREM =     -1;
+    var pseudoEND =     -2;
+    var pseudoWord =    -3;
+    var pseudoIS =      -4;
+    var pseudoORIGIN =  -5;
+    var pseudoPLACE =   -6;
+    var pseudoPLACED =  -7;
+    var pseudoFORGET =  -8;
+    var pseudoFORGETNAMES =
+                        -9;
+    var pseudoFORMAT = -10;
+    var pseudoFILL =   -11;
+    var pseudoPOOL =   -12;
+    var pseudoDO =     -13;
+    var pseudoDJ =     -14;
+    var pseudoJ =      -15;
 
     var opTab = {
         "HLT    ": [      0,  1, 0],
@@ -404,9 +469,9 @@ window.addEventListener("load", function() {
         "SLS    ": [    249,  1, 0],
         "MTS    ": [     50,  1, 0,  10,-1],
         "MFS    ": [4000050,  1, 0,  10,-1],
-        "MLS    ": [    450,  10,-1],
-        "MRW    ": [    850,  10,-1],
-        "MDA    ": [    950,  10,-1],
+        "MLS    ": [    450, 10,-1],
+        "MRW    ": [    850, 10,-1],
+        "MDA    ": [    950, 10,-1],
         "MTC    ": [     51,  1, 0,  10,-1],
         "MFC    ": [4000051,  1, 0,  10,-1],
         "MRD    ": [     52,  1,-1,   4,-1,  11, 0,   5, 0],
@@ -419,12 +484,12 @@ window.addEventListener("load", function() {
         "MPF    ": [     58,  4,-1,  11, 0],
         "MPB    ": [    158,  4,-1,  11, 0],
         "MPE    ": [    258,  4,-1],
-        "MIB    ": [     59,  4,-1],
-        "MIE    ": [    159,  4,-1],
+        "MIB    ": [     59,  1,-1,   4,-1],
+        "MIE    ": [    159,  1,-1,   4,-1],
         "CRD    ": [     60,  1,-1,   4,-1,   5, 0,   6, 0],
         "CNC    ": [   1060,  1,-1,   4,-1],
         "CNCL   ": [   1160,  1,-1,   4,-1],
-        "CWR    ": [     61,  1,-1,   4,-1,  12,-1,   6, 0],
+        "CWR    ": [    161,  1,-1,   4,-1,  12,-1,   6, 0],
         "CRF    ": [     62,  1,-1,   4,-1,  12,-1],
         "CRFL   ": [    162,  1,-1,   4,-1,  12,-1],
         "CWF    ": [     63,  1,-1,   4,-1,  12,-1],
@@ -434,30 +499,32 @@ window.addEventListener("load", function() {
         "HPI    ": [     67,  1, 0],
 
         // Pseudo-ops
-        "IS     ":                      // define symbol
-                    [pseudoIS,      19, -1],
+        "REM    ":                      // remark line
+                   [pseudoREM],
+        "IS     ":                      // define label location
+                   [pseudoIS,      19,-1],
         "ORIGIN ":                      // set location counter
-                    [pseudoORIGIN,  19, -1],
+                   [pseudoORIGIN,  19,-1],
         "FORMAT ":                      // assemble Cardatron format band
-                    [pseudoFORMAT],
+                   [pseudoFORMAT],
         "PLACE  ":                      // define address where code will be loaded
-                    [pseudoPLACE],
+                   [pseudoPLACE,   19,-1],
         "PLACED ":                      // end physical load offset
-                    [pseudoPLACED],
+                   [pseudoPLACED],
         "FORGET ":                      // discard internal tables (e.g., NAMES)
-                    [pseudoFORGET],
+                   [pseudoFORGET],
         "FILL   ":                      // fill words with same value
-                    [pseudoFILL],
+                   [pseudoFILL],
         "POOL   ":                      // define literal pool location
-                    [pseudoPOOL],
+                   [pseudoPOOL],
         "DO     ":                      // STP/BUN subroutine call
-                    [pseudoDO],
+                   [pseudoDO],
         "DJ     ":                      // define "join" fields for a word
-                    [pseudoDJ],
+                   [pseudoDJ],
         "J      ":                      // build a word from "join" fields
-                    [pseudoJ],
+                   [pseudoJ],
         "END    ":                      // finish assembly, output literal pool
-                    [pseudoEND,     1,  0]
+                   [pseudoEND,      1, 0]
     };
 
 
@@ -656,7 +723,7 @@ window.addEventListener("load", function() {
         if (bx >= bufferLength) {
             cardData.atEOF = true;
             cardData.length = 0;
-            cardData.text = "7         <<EOF>>";
+            cardData.text = "7   <<EOF>>";
         } else {
             eolRex.lastIndex = bx;
             match = eolRex.exec(buffer);
@@ -686,41 +753,6 @@ window.addEventListener("load", function() {
         }
     }
 
-    /**************************************/
-    function fileLoader_onLoad(ev) {
-        /* Handles the onload event for a readAsText FileReader */
-
-        buffer = ev.target.result;
-        bufferOffset = 0;
-        bufferLength = buffer.length;
-        $$("CRFileSelector").value = null;
-        $$("TextDiv").removeChild($$("Spinner"));
-        assembleFile();
-    }
-
-    /**************************************/
-    function fileSelector_onChange(ev) {
-        /* Handle the <input type=file> onchange event when a file is selected */
-        var e;                          // spinner image DOM element
-        var f = ev.target.files[0];
-        var reader = new FileReader();
-
-        /********************
-        alert("File selected: " + f.name +
-                "\nModified " + f.lastModifiedDate +
-                "\nType=" + f.type + ", Size=" + f.size + " octets");
-        ********************/
-
-        // initiate the spinner to run while compiling
-        e = document.createElement("img");
-        e.src = "../../webUI/resources/ajax-spinner.gif";
-        e.id = "Spinner";
-        $$("TextDiv").appendChild(e);
-
-        reader.onload = fileLoader_onLoad;
-        reader.readAsText(f);
-    }
-
 
     /*******************************************************************
     * Output Listing Interface                                         *
@@ -738,14 +770,14 @@ window.addEventListener("load", function() {
 
     /**************************************/
     function xlate220Word(word) {
-        /* Translate 10 digits in a 220 word to five ASCII characters */
+        /* Translate 10 digits in a 220 word to five ANSI characters */
         var chars = "";                 // translated characters
         var code = 0;                   // current 220 character code
         var count = 5;                  // chars/word
 
         while (count > 0) {
             code = word%100;
-            chars = xlate220ASCII[code] + chars;
+            chars = xlate220ANSI[code] + chars;
             word = (word - code)/100;
             --count;
         }
@@ -790,7 +822,7 @@ window.addEventListener("load", function() {
     /**************************************/
     function printAssembly(card, assembly, flag) {
         /* Prints the card image, assembly data, and any flag field to the panel */
-        var text = padTo("", serialIndex);
+        var text = padTo("", serialOffset);
         var x = 0;
 
         if (card) {
@@ -798,25 +830,25 @@ window.addEventListener("load", function() {
         }
 
         if (assembly) {
-            text = padTo(text, wordIndex) +
+            text = padTo(text, wordOffset) +
                     printWord(assembly.location, assembly.placeLoc, assembly.words[0]);
         }
 
         if (flag) {
-            text = padTo(text, flagIndex) + flag;
+            text = padTo(text, flagOffset) + flag;
         } else if (printFlag) {
-            text = padTo(text, flagIndex) + printFlag;
+            text = padTo(text, flagOffset) + printFlag;
             printFlag = "";
         }
 
         if (card) {
-            text = padTo(text, cardIndex) + card.text.substring(4);
+            text = padTo(text, cardOffset) + card.text.substring(4);
         }
 
         printLine(text);
         if (assembly) {
             for (x=1; x<assembly.count; ++x) {
-                text = padTo("", wordIndex) +
+                text = padTo("", wordOffset) +
                         printWord(assembly.location+x, assembly.placeLoc+x, assembly.words[x]);
                 printLine(text);
             } // for x
@@ -853,8 +885,8 @@ window.addEventListener("load", function() {
     /**************************************/
     function dumpSymbolTable() {
         /* Dumps the contents of the symbol table to the text panel */
-        var addr = 0;                   // symbol address
-        var keys = null;                // sorted symbol table keys
+        var addr = 0;                   // label address
+        var keys = null;                // sorted symbol table labels
         var offset = 0;                 // print line offset
         var text = "";                  // print line
         var x;                          // scratch index
@@ -884,17 +916,46 @@ window.addEventListener("load", function() {
 
         printLine(text);
         printLine("");
-        printLine("");
     }
 
 
     /*******************************************************************
-    * Parsing Primitives                                               *
+    * Address and Symbol Primitives                                    *
     *******************************************************************/
 
     /**************************************/
-    function setLocation() {
-        /* Establishes the current assembly location from "nextLocation" */
+    function setLocation(pass2) {
+        /* Establishes the current assembly location from "nextLocation". If the
+        command being assembled has a label, assign the current location to that
+        label. If the label already has an assigned location, adjust it as
+        necessary to account for any change in literal pool size. Otherwise,
+        check whether the label location has changed and flag it as "HMM.." if
+        it has. Astonishingly, this is not considered to be an error, but rather
+        a sneaky way to do ORIGIN */
+        var labelLoc = 0;
+        var newLoc = 0;
+
+        if (assembly.label.length > 0) {
+            newLoc = nextLocation - assembly.labelOffset;
+            labelLoc = fetchLabel(token.text);
+            if (isNaN(labelLoc)) {
+                declareLabel(assembly.label, newLoc);
+            } else {
+                labelLoc += locationAdjustment;
+                if (labelLoc != newLoc) {
+                    printFlag = "HMM..";
+                    //if (pass2) {
+                    //    printError("LABEL LOCATION CHANGED: PASS1=" + labelLoc +
+                    //            ", PASS2=" + newLoc);
+                    //} else {            // define the label location
+                    //    printError("DUPLICATE LABEL DEFINITION: " + token.text +
+                    //            ", OLD=" + pass1Loc + ", NEW=" + token.value);
+                    //}
+
+                    nextLocation = labelLoc + assembly.labelOffset;
+                }
+            }
+        }
 
         location = nextLocation;
         assembly.location = location;
@@ -922,7 +983,7 @@ window.addEventListener("load", function() {
             if (errorMsg) {
                 printError(errorMsg + ": " + label);
             }
-            return (symTab[label] = NaN);
+            return (symTab[label] = NaN);       // yes, it's an assignment expression
         }
     }
 
@@ -930,7 +991,7 @@ window.addEventListener("load", function() {
     function buildPointLabelID(label, pointNr) {
         /* Constructs the internal symbol table ID for a point label instance */
 
-        return label + padLeft(pointNr, 6-label.length, ".");;
+        return label + "." + pointNr;
     }
 
     /**************************************/
@@ -938,7 +999,8 @@ window.addEventListener("load", function() {
         /* For each instance of a "point" label in the label field (i.e., a
         numeric label that is referenced locally as nF or nB), creates a
         pseudo-label in the symbol table with the next number for that point */
-        var labelID = "";               // unique symbol for the point label instance
+        var labelID = "";               // unique label for the point label instance
+        var oldLoc = 0;                 // prior label location, if any
         var pointNr = 0;                // current point number
 
         if (label in pointTab) {
@@ -948,18 +1010,23 @@ window.addEventListener("load", function() {
         }
 
         labelID = buildPointLabelID(label, pointNr);
-        if (labelID in symTab) {
-            printError("DUPLICATE POINT LABEL -- IMPOSSIBLE: " + labelID);
-        } else {
+        if (!(labelID in symTab)) {
             declareLabel(labelID, location);
+        } else {
+            oldLoc = fetchLabel(labelID);
+            if (isNaN(oldLoc)) {
+                declareLabel(labelID, location);
+            } else if (!isNaN(location) && oldLoc != location) {
+                printError("DUPLICATE POINT LABEL -- IMPOSSIBLE: " + labelID);
+            }
         }
     }
 
     /**************************************/
     function advancePointLabel(label) {
-        /* Advances the symbol table to the next instance of a specified "point"
-        label. Returns the current label location */
-        var labelID = "";               // unique symbol for the point label instance
+        /* Advances to the next instance of a specified "point" label. Returns
+        the current label location */
+        var labelID = "";               // unique label for the point label instance
         var pointNr = 0;                // current point number
 
         if (label in pointTab) {
@@ -983,7 +1050,7 @@ window.addEventListener("load", function() {
         backward direction. Returns the location of that label, or NaN if the
         label is currently undefined */
         var addr = 0;                   // referenced label address
-        var labelID = "";               // unique symbol for the point label instance
+        var labelID = "";               // unique label for the point label instance
         var pointNr = 0;                // current point number
 
         if (label in pointTab) {
@@ -1031,7 +1098,7 @@ window.addEventListener("load", function() {
             if (poolData.length - index < length) {
                 index = -1;
             } else {
-                index = poolData.indexOf(values[x], index);
+                index = poolData.indexOf(values[0], index);
             }
 
             if (index < 0) {
@@ -1040,7 +1107,7 @@ window.addEventListener("load", function() {
                 for (x=0; x<length; ++x) {
                     poolData.push(values[x]);
                 }
-            } else {
+            } else if (length > 1) {
                 // Check this entry for the remaining words in values[].
                 for (x=1; x<length; ++x) {
                     if (poolData[index+x] !== values[x]) {
@@ -1055,6 +1122,11 @@ window.addEventListener("load", function() {
         return index;
     }
 
+
+    /*******************************************************************
+    * Parsing Primitives                                               *
+    *******************************************************************/
+
     /**************************************/
     function parseLabel(token, pass2) {
         /* Parses any label on the current card image. If the initial column is
@@ -1063,19 +1135,19 @@ window.addEventListener("load", function() {
         with a number, sets token.type to tokForwardPoint. Anything else
         generates an error. Fills in token.text with the label and token.value
         with the assigned location */
-        var c = cardData.text.substring(labelIndex, signIndex).trim();
+        var c = cardData.text.substring(labelOffset, signOffset).trim();
         var match = null;
         var offset = 0;
         var pass1Loc = 0;
 
-        token.offset = labelIndex;
+        token.offset = labelOffset;
         token.text = "";
-        token.value = nextLocation;
+        token.value = 0;
 
         if (c.length < 1) {             // only spaces in the label field
             token.type = tokEmpty;
         } else {                        // something is in the label field
-            match = labelRex.exec(cardData.text.substring(labelIndex));
+            match = labelRex.exec(cardData.text.substring(labelOffset));
             if (!match) {               // whatever it is, it's not a label
                 printError("INVALID LABEL: " + c);
             } else {                    // have a valid label
@@ -1083,52 +1155,37 @@ window.addEventListener("load", function() {
                 token.newOffset = token.offset + match[0].length;
                 if (match[2]) {         // label has offset value
                     offset = parseInt(match[2], 10);
-                    token.value -= offset;
+                    token.value = offset;
                 }
 
-                if (isNumericRex.test(token.text)) { // a "point" label
-                    token.type = tokForwardPoint;
-                    if (pass2) {
-                        pass1Loc = advancePointLabel(token.text);
-                        if (pass1Loc != token.value) {
-                            printError("POINT LOCATION MISMATCH: PASS1=" + pass1Loc +
-                                    ", PASS2=" + token.value);
-                        }
-                    } else {
-                        declarePointLabel(token.text, token.value);
-                    }
-                } else {                // a regular label
+                if (!isNumericRex.test(token.text)) {   // a regular label
                     token.type = tokLabel;
-                    pass1Loc = fetchLabel(token.text);
-                    if (pass2) {
-                        if (pass1Loc != token.value) {
-                            printError("LABEL LOCATION MISMATCH: PASS1=" + pass1Loc +
-                                    ", PASS2=" + token.value);
-                        }
-                    } else {            // define the label location
-                        if (isNaN(pass1Loc)) {
-                            declareLabel(token.text, token.value);
-                        } else if (pass1Loc != token.value) {
-                            printFlag = "HMM..";
-                            //printError("DUPLICATE LABEL DEFINITION: " + token.text +
-                            //        ", OLD=" + pass1Loc + ", NEW=" + token.value);
-                            if (!isNaN(pass1Loc)) {
-                                nextLocation = pass1Loc + offset;
-                            }
+                } else {                                // a "point" label
+                    token.type = tokForwardPoint;
+                    if (!pass2) {
+                        declarePointLabel(token.text, NaN);
+                    } else {
+                        pass1Loc = advancePointLabel(token.text);
+                        if (pass1Loc != nextLocation) {
+                            printError("POINT LOCATION MISMATCH: PASS1=" + pass1Loc +
+                                    ", PASS2=" + nextLocation);
                         }
                     }
+
+                    // Reassign the token to be the actual label
+                    token.text = buildPointLabelID(token.text, pointTab[token.text]);
                 }
 
-                if (token.newOffset < signIndex) {
+                if (token.newOffset < signOffset) {
                     printError("INVALID TEXT IN LABEL FIELD: " +
-                            cardData.text.substring(token.newOffset, signIndex));
-                } else if (token.newOffset > opCodeIndex) { // overflowed to next card
+                            cardData.text.substring(token.newOffset, signOffset));
+                } else if (token.newOffset > opCodeOffset) { // overflowed to next card
                     if (listPass) {
                         printAssembly(cardData, null, null);
                     }
 
                     readACard();
-                    token.newOffset = signIndex;
+                    token.newOffset = signOffset;
                 }
             }
         }
@@ -1148,7 +1205,7 @@ window.addEventListener("load", function() {
         token.type = tokInteger;
         while (x < length) {
             c = text.charAt(x);
-            if (c >= "0" && c <= "9") {
+            if (isNumericRex.test(c)) {
                 ++x;
                 raw += c;
             } else {
@@ -1181,7 +1238,7 @@ window.addEventListener("load", function() {
         var code;                       // current 220 char code
         var count = 0;                  // chars in current word
         var length = text.length;       // length of operand text
-        var raw = "";                   // raw (ASCII) parsed string text
+        var raw = "";                   // raw (ANSI) parsed string text
         var values = [];                // words of 220 char codes
         var word = 2;                   // current 220 word with sign of 2
         var x = token.offset;           // current parsing offset
@@ -1207,14 +1264,13 @@ window.addEventListener("load", function() {
                 ++x;
                 raw += c;
                 code = c.charCodeAt(0);
-                appendCode((code < asciiFilter.length ? asciiFilter[code]
+                appendCode((code < xlateANSI220.length ? xlateANSI220[code]
                                                       : (code == 0xA4 ? 4 : 0))); // the lozenge
             }
         }
 
         if (x >= length) {
-            token.type = tokIncompleteString;
-            // printError("'-STRING NOT TERMINATED");
+            printError("'-STRING NOT TERMINATED");
         } else {
             token.type = tokString;     // string is complete, so...
             ++x;                        // bypass the terminating "'"
@@ -1247,23 +1303,19 @@ window.addEventListener("load", function() {
         var values = null;              // array reference for pool data
         var x = token.offset;           // current offset into operand string
 
-        if (x >= sequenceIndex) {               // empty primary
+        if (x >= sequenceOffset) {               // empty primary
             token.type = tokEmpty;
-            token.newOffset = sequenceIndex;
+            token.newOffset = sequenceOffset;
             token.text = "";
         } else {
             c = text.charAt(x);
             switch (true) {
-            case (c >= "A" && c <= "Z"):        // parse regular label
+            case (isAlphaRex.test(c)):          // parse regular label
                 token.type = tokLabel;
                 raw = c;
-                while (++x < sequenceIndex) {
+                while (++x < sequenceOffset) {
                     c = text.charAt(x);
-                    if (c >= "A" && c <= "Z") {
-                        raw += c;
-                    } else if (c >= "0" && c <= "9") {
-                        raw += c;
-                    } else if (c == ".") {
+                    if (isLabelRex.test(c)) {
                         raw += c;
                     } else {
                         break;  // out of while loop
@@ -1274,10 +1326,10 @@ window.addEventListener("load", function() {
                 token.newOffset = x;
                 break;
 
-            case (c >= "0" && c <= "9"):        // parse integer literal or point label
+            case (isNumericRex.test(c)):        // parse integer literal or point label
                 token.type = tokInteger;
-                val = parseInteger(text, token);
-                if (token.newOffset < sequenceIndex) {
+                token.value = parseInteger(text, token);
+                if (token.newOffset < sequenceOffset) {
                     c = text.charAt(token.newOffset);
                     if (c == "F") {
                         token.type = tokForwardPoint;
@@ -1294,7 +1346,7 @@ window.addEventListener("load", function() {
             case (c == "-"):                    // parse signed integer literal
                 token.type = tokInteger;
                 ++token.offset;
-                val = -parseInteger(text, token);
+                token.value = -parseInteger(text, token);
                 break;
 
             case (c == "$"):                    // parse current location counter
@@ -1307,13 +1359,13 @@ window.addEventListener("load", function() {
             case (c == "="):                    // parse pool numeric literal
                 raw = c;
                 ++x;
-                if (x >= sequenceIndex) {
+                if (x >= sequenceOffset) {
                     printError("INVALID POOL LITERAL SYNTAX");
                     token.newOffset = x;
                 } else {
                     token.offset = x;
                     val = parseExpression(token, pass2, false);
-                    if (token.newOffset < sequenceIndex && text.charAt(token.newOffset) == "=") {
+                    if (token.newOffset < sequenceOffset && text.charAt(token.newOffset) == "=") {
                         ++token.newOffset;
                     } else {
                         printError("NUMERIC LITERAL NOT TERMINATED BY \"=\"");
@@ -1359,7 +1411,7 @@ window.addEventListener("load", function() {
         var val = NaN;                  // value of primary
         var values = null;              // literal pool words, if any
 
-        if (token.offset >= sequenceIndex) {
+        if (token.offset >= sequenceOffset) {
             val = token.value = 0;
             token.text = "";
             token.type = tokEmpty;
@@ -1370,7 +1422,7 @@ window.addEventListener("load", function() {
         } else if (cardData.text.charAt(token.offset) == "(") {
             ++token.offset;
             val = parseExpression(token, pass2, false);
-            if (token.newOffset < sequenceIndex && cardData.text.charAt(token.newOffset) == ")") {
+            if (token.newOffset < sequenceOffset && cardData.text.charAt(token.newOffset) == ")") {
                 ++token.newOffset;
             } else {
                 printError("NESTED EXPRESSION MUST END WITH \")\"");
@@ -1416,10 +1468,10 @@ window.addEventListener("load", function() {
         }
 
         token.offset = token.newOffset;
-        if (token.offset < sequenceIndex && cardData.text.charAt(token.offset) == "(") {
+        if (token.offset < sequenceOffset && cardData.text.charAt(token.offset) == "(") {
             ++token.offset;
             sL = parseInteger(cardData.text, token);
-            if (token.newOffset < sequenceIndex && cardData.text.charAt(token.newOffset) == ")") {
+            if (token.newOffset < sequenceOffset && cardData.text.charAt(token.newOffset) == ")") {
                 ++token.newOffset;
                 val = putField(0, val, sL);
             } else {
@@ -1441,7 +1493,7 @@ window.addEventListener("load", function() {
         var value2 = NaN;               // RHS value for dyadic operator
 
         value = parsePrimary(token, pass2);
-        while (token.newOffset < sequenceIndex && !done) {
+        while (token.newOffset < sequenceOffset && !done) {
             token.offset = token.newOffset;
             switch (cardData.text.charAt(token.offset)) {
             case "+":
@@ -1454,7 +1506,7 @@ window.addEventListener("load", function() {
                 break;
             case "*":
                 ++token.offset;
-                if (token.offset < sequenceIndex && cardData.text.charAt(token.offset) == "*") {
+                if (token.offset < sequenceOffset && cardData.text.charAt(token.offset) == "*") {
                     ++token.offset;
                     value *= parsePrimary(token, pass2);
                 } else {
@@ -1464,7 +1516,7 @@ window.addEventListener("load", function() {
                 }
                 break;
             case "/":
-                if (token.offset+1 < sequenceIndex && cardData.text.charAt(token.offset+1) == "/") {
+                if (token.offset+1 < sequenceOffset && cardData.text.charAt(token.offset+1) == "/") {
                     token.offset += 2;
                     value %= parsePrimary(token, pass2);
                 } else if (inhibitDivision) {
@@ -1496,7 +1548,7 @@ window.addEventListener("load", function() {
         var c = "";                     // current parse character
         var count = 0;                  // chars in current word
         var done = false;               // loop control
-        var raw = "";                   // raw (ASCII) parsed string text
+        var raw = "";                   // raw (ANSI) parsed string text
         var subValues = null;           // words of 220 char codes from a sub-string
         var values = [];                // words of 220 char codes
         var word = 2;                   // current 220 word with sign of 2
@@ -1544,7 +1596,7 @@ window.addEventListener("load", function() {
         if (!spoStringRex.test(cardData.text.substring(token.offset))) {
             // Not a SPO string -- parse the address,count pair.
             addr = parseExpression(token, pass2, false);
-            if (token.newOffset >= sequenceIndex || cardData.text.charAt(token.newOffset) != ",") {
+            if (token.newOffset >= sequenceOffset || cardData.text.charAt(token.newOffset) != ",") {
                 printError("COUNT REQUIRED FOR SPO ADDRESS OPERAND");
             } else {
                 token.offset = token.newOffset+1;
@@ -1583,7 +1635,7 @@ window.addEventListener("load", function() {
                     appendSubstring(subValues, subToken.text.length);
                     break;
                 case " ":
-                    if (x >= sequenceIndex-4 || cardData.text.indexOf(" ...", x) != x) {
+                    if (x >= sequenceOffset-4 || cardData.text.indexOf(" ...", x) != x) {
                         done = true;
                     } else {
                         if (listPass) {
@@ -1591,7 +1643,7 @@ window.addEventListener("load", function() {
                         }
 
                         readACard();
-                        token.offset = x = operandIndex;
+                        token.offset = x = operandOffset;
                     }
                     break;
                 default:
@@ -1629,7 +1681,7 @@ window.addEventListener("load", function() {
         var sL = -1;
         var x = token.offset;
 
-        if (x < sequenceIndex-3 && cardData.text.charAt(x) == "/") {
+        if (x < sequenceOffset-3 && cardData.text.charAt(x) == "/") {
             ++x;
             if (isNumericRex.test(cardData.text.charAt(x))) {
                 if (isNumericRex.test(cardData.text.charAt(x+1))) {
@@ -1660,7 +1712,22 @@ window.addEventListener("load", function() {
             val = NaN;                  // parsed specially below
             break;
         default:
-            val = parseExpression(token, pass2, true);
+            if (token.offset >= sequenceOffset) {
+                val = defaultValue;
+            } else {
+                switch (cardData.text.charAt(token.offset)) {
+                case " ":
+                    val = defaultValue;
+                    break;
+                case ",":
+                    token.newOffset = token.offset+1;
+                    val = defaultValue;
+                    break;
+                default:
+                    val = parseExpression(token, pass2, true);
+                    break;
+                } // switch token char
+            }
             break;
         } // switch operandType 1
 
@@ -1715,7 +1782,7 @@ window.addEventListener("load", function() {
             result = putField(result, val, 44);
             break;
 
-        case 10: // tape unit/lane using LLU format in /33
+        case 10: // mag tape unit/lane as LLU, inserted as ULL in /33
             val = (val%10)*100 + (val%1000 - val%10)/10;        // convert from LLU to ULL
             result = putField(result, val, 33);
             break;
@@ -1724,8 +1791,8 @@ window.addEventListener("load", function() {
             result = putField(result, val, 21);
             break;
 
-        case 12: // format band digit in high-order 3 bits of /41: (B-1)*2
-            val = (val-1)*2 + getField(result, 41)%2;
+        case 12: // format band digit added to /41: (B-1)*2
+            val = getField(result, 41)%2 + (val-1)*2;
             result = putField(result, val, 41);
             break;
 
@@ -1810,7 +1877,7 @@ window.addEventListener("load", function() {
         var cx = 0;                     // current operand char offset
         var dx = 0;                     // band word digit index
         var oLen;                       // length of phrase text in operand
-        var operand = cardData.text.substring(token.offset, sequenceIndex);
+        var operand = cardData.text.substring(token.offset, sequenceOffset);
         var word = 0;                   // generated band word
         var wx = 0;                     // band word digit index (power of 10)
         var x;                          // scratch index
@@ -2175,6 +2242,63 @@ window.addEventListener("load", function() {
         return band;
     }
 
+    /**************************************/
+    function buildPool(pass2) {
+        /* Awright -- everybody outta tha pool */
+        var flag = "";                  // ANSI version of pool word
+        var text = "";                  // scratch string
+        var word = 0;                   // current pool word
+        var x = 0;                      // scratch index
+
+        if (poolData.length > 0) {
+            setLocation(pass2);
+            nextLocation = location + poolData.length;
+            if (isNaN(poolLocation)) {
+                poolLocation = location;
+            } else if (location != poolLocation) {
+                printError("POOL LOCATION CHANGED: WAS=" + poolLocation + ", NOW=" + location);
+            }
+
+            // Relocate all labels declared after the pool to adjust for any new length
+            locationAdjustment = poolData.length - lastPoolLength;
+            if (locationAdjustment != 0) {
+                lastPoolLength = poolData.length;
+                if (!pass2) {
+                    ++poolUnresolved;   // force another pass to re-resolve the adjusted labels
+                }
+            }
+
+            // Emit the literal pool words
+            for (x=0; x<poolData.length; ++x) {
+                word = poolData[x];
+                assembly.words[assembly.count++] = word;
+                if (listPass) {
+                    if (word - word%p10[10] == 20000000000) {
+                        flag = xlate220Word(word);
+                    } else {
+                        flag = "";
+                    }
+
+                    if (x == 0) {
+                        printAssembly(cardData, assembly, flag);
+                    } else {
+                        text = padTo(text, wordOffset) +
+                                printWord(assembly.location+x, assembly.placeLoc+x, word);
+                        if (flag) {
+                            text = padTo(text, flagOffset) + flag;
+                        }
+                        printLine(text);
+                    }
+                }
+            } // for x
+
+            // Dump the pool words to the output medium
+            if (pass2) {
+                emitAssembly();
+            }
+        }
+    }
+
 
     /*******************************************************************
     * Assembly Drivers                                                 *
@@ -2182,52 +2306,17 @@ window.addEventListener("load", function() {
 
     /**************************************/
     function emitAssembly() {
-        /* Outputs the current assembled code structure to the object program */
+        /* Outputs the current "assembly" code structure to the object code buffer */
+        var addr = assembly.placeLoc;   // address of assembled code
+        var x = 0;                      // assembly.words index
 
-        //*** STUB FOR NOW ***//
-        return;
-    }
-
-    /**************************************/
-    function buildPool(pass2) {
-        /* Builds the final literal pool */
-        var flag = "";                  // ASCII version of pool word
-        var text = "";                  // scratch string
-        var word = 0;                   // current pool word
-        var x = 0;                      // scratch index
-
-        setLocation();
-        nextLocation = location + poolData.length;
-        if (location != poolLocation) {
-            printError("POOL LOCATION MOVED: WAS=" + poolLocation + ", NOW=" + location);
+        while (asmCode.length < addr) {
+            asmCode.push(0);
         }
 
-        for (x=0; x<poolData.length; ++x) {
-            word = poolData[x];
-            assembly.words[assembly.count++] = word;
-            if (listPass) {
-                if (word - word%p10[10] == 20000000000) {
-                    flag = xlate220Word(poolData[x]);
-                } else {
-                    flag = "";
-                }
-
-                if (x == 0) {
-                    printAssembly(cardData, assembly, flag);
-                } else {
-                    text = padTo(text, wordIndex) +
-                            printWord(assembly.location+x, assembly.placeLoc+x, word);
-                    if (flag) {
-                        text = padTo(text, flagIndex) + flag;
-                    }
-                    printLine(text);
-                }
-            }
+        for (x=0; x<assembly.count; ++x) {
+            asmCode[addr+x] = assembly.words[x];
         } // for x
-
-        if (pass2) {
-            emitAssembly();
-        }
     }
 
     /**************************************/
@@ -2239,8 +2328,8 @@ window.addEventListener("load", function() {
         var values = null;              // temp array of result words from parsing strings
         var x = 0;                      // scratch index
 
-        setLocation();
-        while (token.offset < sequenceIndex) { // parse comma-delimited values
+        setLocation(pass2);
+        while (token.offset < sequenceOffset) { // parse comma-delimited values
             c = text.charAt(token.offset);
             if (c == "'") {
                 values = parseString(text, token, false);
@@ -2255,7 +2344,7 @@ window.addEventListener("load", function() {
                 numericSign = 0;        // only apply the sign column to first word in the list
             }
 
-            if (token.newOffset < sequenceIndex) {
+            if (token.newOffset < sequenceOffset) {
                 c = text.charAt(token.newOffset);
                 if (c == ",") {
                     ++token.newOffset;  // continue with next value
@@ -2302,15 +2391,24 @@ window.addEventListener("load", function() {
             token.value = tensComp(parseExpression(token, pass2, false))%10000; // dunno how this should be used
             break;
 
-        case pseudoIS:                  // equate symbol to address
+        case pseudoIS:                  // equate label to address
             if (assembly.label.length < 1) {
                 printError("VALUE MUST BE EQUATED TO A LABEL");
             } else {
-                declareLabel(assembly.label, parseExpression(token, pass2, false));
+                x = fetchLabel(assembly.label);
+                word = parseExpression(token, pass2, false) - assembly.labelOffset;
+                if (isNaN(x)) {
+                    declareLabel(assembly.label, word);
+                } else if (x != word) {
+                    printFlag = "HMM..";
+                    printError("LABEL DEFINED TO A DIFFERENT VALUE: OLD=" + x + ", NEW=" + word);
+                    declareLabel(assembly.label, word);
+                }
             }
             break;
 
-        case pseudoORIGIN:
+        case pseudoORIGIN:              // set current assembly location
+            locationAdjustment = 0;
             x = tensComp(parseExpression(token, true, false))%10000;
             if (!isNaN(x)) {
                 token.value = nextLocation = x;
@@ -2320,34 +2418,28 @@ window.addEventListener("load", function() {
             }
             break;
 
-        case pseudoPLACE:
+        case pseudoPLACE:               // set current address for assembled words in memory
             x = tensComp(parseExpression(token, true, false))%10000;
             if (!isNaN(x)) {
                 token.value = placeOffset = x-nextLocation;
             }
             break;
 
-        case pseudoPLACED:
+        case pseudoPLACED:              // reset place address to current location
             placeOffset = 0;
             break;
 
-        case pseudoFORGET:
-            token.text = cardData.text.substring(operandIndex, operandIndex+5);
+        case pseudoFORGET:              // reset assembler tables (acts like END for pass control)
+            token.text = cardData.text.substring(operandOffset, operandOffset+5);
             if (token.text != "NAMES") {
                 printError("UNSUPPORTED FORGET OPTION: " + token.text);
             } else {
-                dumpSymbolTable();
-                buildPool(pass2);
-                autoSymTab = {};
-                pointTab = {};
-                poolData = [];
-                poolLocation = NaN;
-                symTab = {};
+                assembly.opCode = pseudoFORGETNAMES;
             }
             break;
 
-        case pseudoFORMAT:
-            setLocation();
+        case pseudoFORMAT:              // generate Cardatron format band
+            setLocation(pass2);
             assembly.words = assembleFormatBand(token);
             assembly.count = assembly.words.length;
             if (listPass) {
@@ -2356,17 +2448,17 @@ window.addEventListener("load", function() {
             }
 
             if (pass2) {
-                emitAssembly(assembly);
+                emitAssembly();
             }
 
             nextLocation = location + assembly.count;
             break;
 
-        case pseudoFILL:
-            setLocation();
+        case pseudoFILL:                // smear copies of a word in memory
+            setLocation(pass2);
             word = applySign(parseExpression(token, pass2, false), sign);
             x = token.offset = token.newOffset;
-            if (!(x < sequenceIndex && cardData.text.charAt(x) == ",")) {
+            if (!(x < sequenceOffset && cardData.text.charAt(x) == ",")) {
                 printError("FILL COUNT REQUIRED");
             } else {
                 ++token.offset;
@@ -2382,7 +2474,7 @@ window.addEventListener("load", function() {
             }
 
             if (listPass) {
-                x = assembly.count;     // only print the first word
+                x = assembly.count;     // only print the first few words
                 assembly.count = 1;
                 printAssembly(cardData, assembly, null);
                 assembly.count = x;
@@ -2390,20 +2482,21 @@ window.addEventListener("load", function() {
             }
 
             if (pass2) {
-                emitAssembly(assembly);
+                emitAssembly();
             }
 
             nextLocation = location + assembly.count;
             break;
 
-        case pseudoPOOL:
+        case pseudoPOOL:                // dump literal pool at this location
             buildPool(pass2);
+            printed = true;
             break;
 
-        case pseudoDO:
+        case pseudoDO:                  // subroutine call macro
             // DO XXXXX   => enter at XXXXX.1, return at XXXXX
             // DO XXXXX.n => enter at XXXXX.n, return at XXXXX
-            setLocation();
+            setLocation(pass2);
             word = parsePrimary(token, pass2);
             if (token.type != tokLabel) {
                 printError("LABEL REQUIRED");
@@ -2428,14 +2521,14 @@ window.addEventListener("load", function() {
             }
 
             if (pass2) {
-                emitAssembly(assembly);
+                emitAssembly();
             }
 
             nextLocation = location + assembly.count;
             break;
 
-        case pseudoDJ:
-            match = labelRex.exec(cardData.text.substring(token.offset, sequenceIndex));
+        case pseudoDJ:                  // define format of a multi-field word (sL codes in reverse order)
+            match = labelRex.exec(cardData.text.substring(token.offset, sequenceOffset));
             if (!match || !isNumericRex.test(match[1])) {
                 printError("FIELD LIST INTEGER REQUIRED");
             } else {
@@ -2452,12 +2545,12 @@ window.addEventListener("load", function() {
             }
             break;
 
-        case pseudoJ:
-            setLocation();
+        case pseudoJ:                   // construct a multi-field word per DJ specs
+            setLocation(pass2);
             for (x=0; x<djList.length; ++x) {
                 word = putField(word, parseExpression(token, pass2, false), djList[x]);
                 token.offset = token.newOffset;
-                if (token.offset < sequenceIndex && cardData.text.charAt(token.offset) == ",") {
+                if (token.offset < sequenceOffset && cardData.text.charAt(token.offset) == ",") {
                     ++token.offset;
                 }
             } // for x
@@ -2473,12 +2566,12 @@ window.addEventListener("load", function() {
             }
 
             nextLocation = location+1;
-            if (token.newOffset < sequenceIndex && cardData.text.charAt(token.newOffset) != " ") {
+            if (token.newOffset < sequenceOffset && cardData.text.charAt(token.newOffset) != " ") {
                 printError("EXTRANEOUS TEXT AFTER J-FIELD LIST");
             }
             break;
 
-        case pseudoWord:
+        case pseudoWord:                // assemble a literal word
             printError("OOPS... WORD LITERAL SHOULD HAVE BEEN HANDLED ALREADY");
             break;
 
@@ -2506,7 +2599,7 @@ window.addEventListener("load", function() {
         var word = opDesc[0]*p10[4];    // initial instruction word
         var x = 0;                      // operand index
 
-        setLocation();
+        setLocation(pass2);
         word = applySign(word, sign);
         assembly.opCode = opDesc[0];
         token.newOffset = token.offset;
@@ -2516,7 +2609,7 @@ window.addEventListener("load", function() {
         for (x=1; x<opDesc.length; x+=2) {
             token.offset = token.newOffset;
             word = parseOperandField(token, word, pass2, opDesc[x], opDesc[x+1]);
-            if (token.newOffset < sequenceIndex) {
+            if (token.newOffset < sequenceOffset) {
                 c = cardData.text.charAt(token.newOffset);
                 if (c == ",") {
                     ++token.newOffset;
@@ -2531,13 +2624,13 @@ window.addEventListener("load", function() {
         // expressions positioned into the unused digits of the instruction,
         // which are by default zero.
 
-        while (token.newOffset < sequenceIndex) {
+        while (token.newOffset < sequenceOffset) {
             token.offset = token.newOffset;
             if (cardData.text.charAt(token.offset) == " ") {
                 break; // out of while loop
             } else {
                 word += parseExpression(token, pass2, false);
-                if (token.newOffset < sequenceIndex) {
+                if (token.newOffset < sequenceOffset) {
                 c = cardData.text.charAt(token.newOffset);
                     if (c == " ") {
                         break; // out of while loop
@@ -2565,9 +2658,9 @@ window.addEventListener("load", function() {
 
     /**************************************/
     function assembleCommand(pass2) {
-        /* Assembles one instruction or pseudo operation. Enter with the current
-        memory location in "location" and card image in the "cardData" structure.
-        Fills in the "assembly" structure */
+        /* Assembles one instruction or pseudo operation. Enter with the next
+        memory location to be used in "nextLocation" and card image in the
+        "cardData" structure. Fills in the "assembly" structure */
         var card = "";                  // current card to be assembled
         var opCode = "";                // op code field from the card
         var opDesc = null;              // array of op code description words from opTab{}
@@ -2576,41 +2669,42 @@ window.addEventListener("load", function() {
 
         parseLabel(token, pass2);
         assembly.label = token.text;
+        assembly.labelOffset = token.value;
         assembly.opCode = pseudoWord;   // literal word by default
         card = cardData.text;
-        sign = card.substring(signIndex, signIndex+1);
-        opCode = card.substring(opCodeIndex, opCodeIndex+7);
+        sign = card.substring(signOffset, signOffset+1);
+        opCode = card.substring(opCodeOffset, opCodeOffset+7);
 
         numericSign = signValues[sign];
-        if (sign == " " && opCode == "REM    ") {
+        opDesc = opTab[opCode];
+        if (sign == " " && opDesc && opDesc[0] == pseudoREM) {
             assembly.opCode = pseudoREM;
             if (listPass) {
-                cardData.text = padRight(cardData.text.substring(0, opCodeIndex), operandIndex) +
-                                cardData.text.substring(operandIndex);
+                cardData.text = padRight(cardData.text.substring(0, opCodeOffset), operandOffset) +
+                                cardData.text.substring(operandOffset); // blank out the op code field
                 printAssembly(cardData, null, null);
             }
         } else if (!(sign in signValues)) {
-            token.offset = signIndex;
+            token.offset = signOffset;
             assembleLiteralList(token, 0, pass2);
         } else if (sign == " " && isNumericRex.test(opCode)) {
-            token.offset = opCodeIndex;
+            token.offset = opCodeOffset;
             assembleLiteralList(token, 0, pass2);
         } else if (isNumericRex.test(opCode)) {
-            token.offset = signIndex;
+            token.offset = signOffset;
             assembleLiteralList(token, 0, pass2);
         } else if (opCode.charAt(0) == "(") {
-            token.offset = opCodeIndex;
+            token.offset = opCodeOffset;
             assembleLiteralList(token, numericSign, pass2);
         } else {
-            opDesc = opTab[opCode];
             if (!opDesc) {
-                token.offset = opCodeIndex;
+                token.offset = opCodeOffset;
                 assembleLiteralList(token, numericSign, pass2);
             } else if (opDesc[0] < 0) {
-                token.offset = operandIndex;
+                token.offset = operandOffset;
                 assemblePseudoOp(token, opDesc, numericSign, pass2);
             } else {
-                token.offset = operandIndex;
+                token.offset = operandOffset;
                 assembleOpCode(token, opDesc, numericSign, pass2);
             }
         }
@@ -2624,72 +2718,85 @@ window.addEventListener("load", function() {
     *******************************************************************/
 
     /**************************************/
+    function startPass1() {
+        /* Initiates Pass 1 of the assembler */
+
+        listPass = pass1List;
+        printLine("");
+        printLine("START PASS 1");
+        printLine("");
+        initializePass();
+        poolUnresolved = 0;
+        initializeLiteralPool(programUnitNr);
+        assemblePass1();
+    }
+
+    /**************************************/
     function assemblePass1() {
         /* Processes card images for Pass 1 of the assembler. Enters with the
-        first card in "cardData */
-        var label = "";                 // **** TEMP DEBUG **** //
+        first card in "cardData". Reschedules itself for subsequent cards */
+        var label = "";
+        var symUnresolved = 0;
 
         assembleCommand(false);
-        if (assembly.opCode != pseudoEND) {
+        switch (assembly.opCode) {
+        case pseudoEND:
+        case pseudoFORGETNAMES:
+            // Wrap up Pass 1 and check for undefined labels.
+            cardData.text = "";
+            for (label in symTab) {
+                if (isNaN(symTab[label])) {
+                    ++symUnresolved;
+                }
+            }
+
+            if (isNaN(poolLocation)) {
+                buildPool(false);
+            }
+
+            dumpErrorTank();
+            printLine("UNRESOLVED LABEL REFERENCES = " + symUnresolved);
+            printLine("UNRESOLVED POOL LITERAL EXPRESSIONS = " + poolUnresolved);
+            printLine("LITERAL POOL LENGTH = " + poolData.length + ", LAST = " + lastPoolLength);
+            if (pass1List && !pass2List) {
+                dumpSymbolTable();
+            }
+
+            printLine("END PASS 1, ERRORS = " + errorCount);
+            if (errorCount > 0) {
+                finishAssembly();
+            } else if (poolUnresolved == 0) {
+                setTimeout(startPass2, 100);    // advance to Pass 2
+                if (pass2List) {
+                    printLine("\f");            // output a form-feed
+                }
+            } else if (poolUnresolved == lastPoolUnresolved ||
+                       (symUnresolved != 0 && symUnresolved == lastSymUnresolved)) {
+                printError("UNRESOLVABLE LABELS OR LITERAL EXPRESSIONS");
+                finishAssembly();
+            } else {
+                printLine("RESTARTING PASS 1 TO RE-RESOLVE SYMBOLS");
+                setTimeout(startPass1, 100);
+                if (pass1List) {
+                    printLine("\f");            // output a form-feed
+                }
+            }
+
+            lastSymUnresolved = symUnresolved;
+            lastPoolUnresolved = poolUnresolved;
+            break;
+
+        default:
             readACard();
             if (cardData.atEOF) {
                 printError("EOF encountered before END in Pass 1");
             } else {
                 Promise.resolve(false).then(assemblePass1);
             }
-        } else {
-            // Wrap up Pass 1 and check for undefined symbols.
-            // Oddly, undefined symbols appear to have been implicitly defined at the end,
-            // so build a table of them and assign locations.
-            for (label in symTab) {
-                if (isNaN(symTab[label])) {
-                    autoSymTab[label] = location;
-                    declareLabel(label, location);
-                    ++location;
-                }
-            }
+            break;
+        } // switch opCode
 
-            dumpErrorTank();
-            printLine("END OF PASS 1, ERRORS = " + errorCount);
-            printLine("UNRESOLVED POOL LITERAL EXPRESSIONS = " + poolUnresolved);
-            if (pass1List || pass2List) {
-                dumpSymbolTable();
-            }
-
-            if (errorCount == 0) {      // advance to Pass 2
-                startPass2();
-            }
-        }
-    }
-
-    /**************************************/
-    function startPass1() {
-        /* Reads the control cards and then passes control to Pass 1 of the assembler */
-        var done = false;               // loop control
-        var opCode;                     // op code field of current card
-
-        listPass = pass1List;
-        do {
-            readACard();
-            if (cardData.atEOF) {
-                done = true;
-                printError("EOF ENCOUNTERED BEFORE PASS 1");
-            } else {
-                opCode = rTrim(cardData.text.substring(opCodeIndex, operandIndex));
-                switch (opCode) {
-                case "LOAD":
-                    printAssembly(cardData, null, null);
-                    break;
-                case "ON":
-                    printAssembly(cardData, null, null);
-                    break;
-                default:
-                    done = true;
-                    assemblePass1();
-                    break;
-                }
-            }
-        } while (!done);
+        dumpErrorTank();
     }
 
 
@@ -2698,209 +2805,273 @@ window.addEventListener("load", function() {
     *******************************************************************/
 
     /**************************************/
+    function startPass2() {
+        /* Initiates Pass 2 of the assembler */
+
+        listPass = pass2List;
+        printLine("");
+        printLine("START PASS 2");
+        printLine("");
+        initializePass();
+        assemblePass2();
+    }
+
+    /**************************************/
     function assemblePass2() {
         /* Processes card images for Pass 2 of the assembler. Enters with the
-        first card in "cardData. Every "sprintCount" cards, this routine reschedules
-        itself after a short delay and then exits. This allows the text panel to be
-        updated in the browser window */
-        var card;                       // current card to be assembled
-        var continuedString = false;    // true if processing a string split across cards
-        var done = false;               // loop control
-        var finito = false;             // true if the FINI pseudo-op has been sensed
-        var label;                      // label symbol from the card
-        var opCode;                     // op code field from the card
-        var opDesc;                     // array of op code description words from opTab{}
-        var operand;                    // operand field from the card
-        var origLoc;                    // original location for this line
-        var seq;                        // sequence field from the card
-        var serial;                     // card serial number for printPass2()
-        var sign;                       // sign-override field from the card
-        var sprintCount = 0;            // counter for periodic refreshing of the text panel
-        var text;                       // scratch string
-        var thisLoc;                    // current location for this line (changed by DEFN)
-        var values;                     // array of address or word values from parsing operands
-        var word;                       // assembled instruction word
-        var x;                          // scratch index
+        first card in "cardData". Reschedules itself for subsequent cards */
+        var label = "";
+        var symUnresolved = 0;
 
-        do {
-            card = cardData.text;
-            label = card.substring(labelIndex, labelIndex+5).trim();
-            opCode = card.substring(opCodeIndex, opCodeIndex+4).trim();
-            operand = card.substring(operandIndex, operandIndex+operandLength);
-            seq = card.substring(72, 80);
-            serial = cardData.serial;
-            sign = card.substring(opCodeIndex+4, opCodeIndex+5);
-            origLoc = thisLoc = location;
-
-            if (opCode == "REM") {
-                printPass2(seq, serial, location, word, label, null, sign, operand);
-                readACard();
-            } else {
-                token.offset = 0;
-                if (opCode.length <= 0) {       // treat line a CNST pseudo-op
-                    opDesc = opTab["CNST"];
-                } else if (!(opCode in opTab)) {// treat like a NOP
-                    printError("INVALID OP CODE");
-                    opDesc = opTab["NOP"];
-                } else {
-                    opDesc = opTab[opCode];
-                }
-
-                if (opDesc[0] >= 0) {   // normal instruction
-                    values = evaluateOperand(operand, token, true);
-                    word = generateInstructionWord(opDesc, sign, values);
-                    printPass2(seq, serial, origLoc, word, label, opCode, sign, operand);
-                    emitAssembly(location, word);
-                    ++location;         // normal instructions bump the location counter
-                    readACard();
-                } else {
-                    // Parse the pseudo-op
-                    switch (opDesc[0]) {
-                    case pseudoDEFN:
-                        values = evaluateOperand(operand, token, true);
-                        if (values.length > 0) {
-                            thisLoc = values[0];
-                        } else {
-                            printError("OPERAND ADDRESS REQUIRED");
-                        }
-                        printPass2(seq, serial, origLoc, null, label, opCode, sign, operand);
-                        readACard();
-                        break;
-                    case pseudoLOCN:
-                        values = evaluateOperand(operand, token, true);
-                        if (values.length < 1) {
-                            printError("OPERAND ADDRESS REQUIRED");
-                        } else if (values[0] >= 0) {
-                            location = values[0];
-                        }
-                        printPass2(seq, serial, origLoc, null, label, opCode, sign, operand);
-                        readACard();
-                        break;
-                    case pseudoCNST:
-                        values = assembleLiteralList(operand, token, continuedString);
-                        printPass2(seq, serial, origLoc, values[0], label, opCode, sign, operand);
-                        emitAssembly(location, values[0]);
-                        ++location;
-                        for (x=1; x<values.length; ++x) {
-                            printPass2("", null, origLoc+x, values[x], "", "", "", "", "");
-                            emitAssembly(location, values[x]);
-                            ++location;
-                        }
-                        continuedString = (token.type == tokIncompleteString);
-                        readACard();
-                        if (continuedString) {
-                            if (cardData.atEOF) {
-                                printError("'-STRING NOT TERMINATED AT EOF");
-                            } else {
-                                text = cardData.text.substring(opCodeIndex, opCodeIndex+4).trim();
-                                if (text.length > 0) {
-                                    printError("'-STRING NOT TERMINATED");
-                                } else {        // extract the partial word of the incomplete string
-                                    x = token.text.length % 5;
-                                    token.text = token.text.substring(token.text.length - x);
-                                }
-                            }
-                        }
-                        break;
-                    case pseudoF244:
-                    case pseudoF424:
-                        values = evaluateOperand(operand, token, true);
-                        word = generateInstructionWord(opDesc, sign, values);
-                        printPass2(seq, serial, origLoc, word, label, opCode, sign, operand);
-                        emitAssembly(location, word);
-                        ++location;
-                        readACard();
-                        break;
-                    case pseudoFBGR:
-                        values = generateFormatBand(operand);
-                        printPass2(seq, serial, origLoc, values[0], label, opCode, sign, operand);
-                        emitAssembly(location, values[0]);
-                        ++location;
-                        for (x=1; x<values.length; ++x) {
-                            printPass2("", null, origLoc+x, values[x], "", "", "", "");
-                            emitAssembly(location, values[x]);
-                            ++location;
-                        }
-                        readACard();
-                        break;
-                    case pseudoFINI:
-                        done = finito = true;
-                        values = evaluateOperand(operand, token, true);
-                        printPass2(seq, serial, origLoc, null, label, opCode, sign, operand);
-                        break;
-                    default:
-                        printError("INVALID PSEUDO INSTRUCTION CODE: " + opDesc[0]);
-                        readACard();
-                    } // switch
-                }
-
-                if (label.length > 0) {         // increment any point label counter
-                    if (label.charAt(0) == "*") {
-                        if (label in pointTab) {
-                            ++pointTab[label];
-                        } else {
-                            pointTab[label] = 1;
-                        }
-                    }
+        assembleCommand(true);
+        switch (assembly.opCode) {
+        case pseudoEND:
+        case pseudoFORGETNAMES:
+            // Wrap up Pass 2 and check for undefined labels.
+            cardData.text = "";
+            for (label in symTab) {
+                if (isNaN(symTab[label])) {
+                    ++symUnresolved;
+                    printError("LABEL NOT DEFINED: " + label);
                 }
             }
 
-            if (cardData.atEOF) {
-                done = true;
-                if (!finito) {
-                    finito = true;
-                    printError("EOF encountered before FINI in Pass 2");
-                }
-            } else if (++sprintCount > sprintLimit && !continuedString) {
-                done = true;
-            }
-        } while (!done);
-
-        if (!finito) {
-            setTimeout(assemblePass2, 100);
-        } else {
-            // dump the auto-defined symbols
-            for (label in autoSymTab) {
-                printPass2("", null, autoSymTab[label], 0, label, "", "", "");
+            if (isNaN(poolLocation)) {
+                buildPool(true);
             }
 
-            // Wrap up Pass 2, check again for undefined symbols (shouldn't be any)
-            for (text in symTab) {
-                if (isNaN(symTab[text])) {
-                    printError("SYMBOL NOT DEFINED: " + text);
-                }
-            }
-
-            buffer = "";                // release the card buffer area
             dumpErrorTank();
-            printLine("");
             printLine("END OF PASS 2, ERRORS = " + errorCount);
+            printLine("UNRESOLVED LABEL REFERENCES = " + symUnresolved);
+            printLine("UNRESOLVED POOL LITERAL EXPRESSIONS = " + poolUnresolved);
+            printLine("LITERAL POOL LENGTH = " + poolData.length + ", LAST = " + lastPoolLength);
+            if (pass2List) {
+                dumpSymbolTable();
+            }
+
+            if (symUnresolved > 0 || poolUnresolved > 0) {
+                printError("UNRESOLVED LABEL OR POOL LITERAL REFERENCES IN PASS 2 - FATAL");
+            }
+
+            finishAssembly();
+            break;
+
+        default:
+            readACard();
+            if (cardData.atEOF) {
+                printError("EOF encountered before END in Pass 2");
+            } else {
+                Promise.resolve(false).then(assemblePass2);
+            }
+            break;
+        } // switch opCode
+
+        dumpErrorTank();
+    }
+
+
+    /*******************************************************************
+    * Initialization & Termination                                     *
+    *******************************************************************/
+
+    /**************************************/
+    function initializeLiteralPool(unitNr) {
+        /* Initializes the literal pool prior to an assembly pass. If data for
+        a pool has been pre-loaded for this program "unitNr" then initialize
+        pool with that location and data; otherwise initialize it to the default
+        in poolSets[0] */
+        var thisSet = poolSets[unitNr] || poolSets[0];
+        var x = 0;                      // scratch index
+
+        poolLocation = thisSet.poolLoc;
+        poolData = new Array(thisSet.poolData.length);
+        for (x=thisSet.poolData.length-1; x>=0; --x) {
+            poolData[x] = thisSet.poolData[x];
+        } // for x
+    }
+
+    /**************************************/
+    function initializePass() {
+        /* Initializes assembler storage for the start of a pass */
+        var e;                          // point label ID
+
+        location = 0;
+        locationAdjustment = 0;
+        nextLocation = 0;
+        placeOffset = 0;
+        printFlag = "";
+        assembly.location = 0;
+        assembly.placeLoc = 0;
+        assembly.opCode = pseudoEND;
+        assembly.count = 0;
+        djList = [0];                   // reset the DJ fields to /00
+        for (e in pointTab) {           // reset the point label table
+            pointTab[e] = 0;
+        }
+
+        // Read (or re-read) the first card image for the program unit
+        bufferOffset = cardData.fileOffset;
+        cardData.serial = cardData.fileSerial;
+        readACard();
+    }
+
+    /**************************************/
+    function initializeAssembly() {
+        /* Initializes the assembler storage for a new program unit */
+
+        errorCount = 0;
+        errorTank = [];
+        lastPoolLength = 0;
+        lastPoolUnresolved = 0;
+        lastSymUnresolved = 0;
+        pointTab = {};
+        symTab = {};
+
+        ++programUnitNr;
+        printLine("");
+        printLine("ASSEMBLE PROGRAM UNIT #" + programUnitNr + ":");
+
+        setTimeout(startPass1, 100);
+    }
+
+    /**************************************/
+    function generateObjectTape() {
+        /* Formats the assembled object code as a 220 tape image in a temporary
+        window. From there it can be save, copied, etc. */
+        var doc = null;                 // temp window document object
+        var pval = p10[10];             // modulus for a word's absolute value
+        var psign = pval*2;             // modulus for a word's sign bit
+        var tape = null;                // temp window text area
+        var title = "220 GEN-Assembler Object Code";
+        var win = window.open("../../webUI/B220FramePaper.html", "GEN-Asm-Object",
+                "scrollbars,resizable,width=500,height=500");
+
+        function checksum(cksum, word) {
+            var sw = word%psign;        // will be the signed algebraic value of word
+
+            if (sw >= pval) {           // check if word has sign bit=1
+                sw = psign = sw;        // if so, make is algebraically negative
+            }
+
+            return (cksum+sw)%pval;     // compute the algebraic checksum
+        }
+
+        function generateTape(ev) {
+            var addr = 0;               // assembled code address
+            var block = "";             // text line for a 100-word tape block
+            var blockPrefix = "0,100";  // lane and prefix word count for block
+            var count = 0;              // count of words in block
+            var cksum = 0;              // algebraic value of the checksum word
+            var length = asmCode.length;// number of words to output
+            var word = 0;               // object code word
+            var x = 0;                  // scratch index
+
+            win.removeEventListener("load", generateTape, false);
+            doc = win.document;
+            doc.title = title;
+            tape = doc.getElementById("Paper");
+            block = blockPrefix;
+
+            while (addr < length) {
+                if (count >= 100) {
+                    tape.appendChild(doc.createTextNode(block + "\n"));
+                    count = 0;
+                    block = blockPrefix;
+                }
+
+                word = asmCode[addr];
+                block += "," + word.toString();
+                cksum = checksum(cksum, word);
+                ++count;
+                ++addr;
+            } // while addr
+
+            if (outputChecksum) {
+                // Compute and output a block with the negative checksum at the next address
+                if (count >= 100) {
+                    tape.appendChild(doc.createTextNode(block + "\n"));
+                    count = 0;
+                    block = blockPrefix;
+                }
+
+                if (cksum < 0) {
+                    block += "," + padLeft(-cksum, 11, "0");
+                } else {
+                    block += "," + padLeft(cksum+psign, 11, "0");
+                }
+            }
+
+            tape.appendChild(doc.createTextNode(block + "\n"));
+        }
+
+        win.addEventListener("load", generateTape, false);
+        win.moveTo((screen.availWidth-win.outerWidth)/2, (screen.availHeight-win.outerHeight)/2);
+    }
+
+    /**************************************/
+    function finishAssembly() {
+        /* Finishes the assembly of a program unit, and if appropriate, starts
+        assembly of the next one */
+
+        cardData.fileOffset = bufferOffset;
+        cardData.fileSerial = cardData.serial;
+        readACard();
+        if (!cardData.atEOF) {          // assemble the next program unit
+            setTimeout(initializeAssembly, 100);
+            if (pass1List) {
+                printLine("\f");
+            }
+        } else {                        // We're done, just exit
+            if (errorCount == 0) {
+                generateObjectTape();
+            }
+
+            $$("CRFileSelector").value = null;  // reset the <input> elements
+            $$("CRPoolSelector").value = null;  // so they can be reused
             $$("TextDiv").removeChild($$("Spinner"));   // remove the spinner image
         }
     }
 
     /**************************************/
-    function startPass2() {
-        /* Sets up for Pass 2 of the assembly and initiates it */
+    function startAssembly() {
+        /* Initializes or reinitializes the assembler for a new source file
+        and starts the assembly */
         var done = false;               // loop control
-        var opCode;                     // op code parsed from card
+        var opCode = 0;                 // op code field of current card
+        var stamp = new Date();         // timestamp for heading
 
-        listPass = pass2List;
+        asmCode = [];                   // clear the assembled code buffer
+        clearPanel();
+        printLine("Assembler for the Burroughs 220 BAC Generator -- " +
+                stamp.getFullYear().toString() + "-" +
+                padLeft(stamp.getMonth()+1, 2, "0") + "-" +
+                padLeft(stamp.getDate(), 2, "0") + " " +
+                padLeft(stamp.getHours(), 2, "0") + ":" +
+                padLeft(stamp.getMinutes(), 2, "0"));
+        printLine("");
+        printLine("Source File: " + sourceName);
+        if (poolSets.length > 1) {
+            printLine("Pool Data:   " + poolSetName);
+        }
+
+        printLine("");
         do {
             readACard();
             if (cardData.atEOF) {
                 done = true;
-                printError("EOF encountered before Pass 2");
+                printError("EOF ENCOUNTERED DURING ASSEMBLER PRAGMAS");
             } else {
-                opCode = cardData.text.substring(opCodeIndex, opCodeIndex+5).trim();
+                opCode = rTrim(cardData.text.substring(opCodeOffset, operandOffset));
                 switch (opCode) {
-                case "ASMBL":
-                    break;
-                case "REORD":
+                case "LOAD":
+                case "ON":
+                    printAssembly(cardData, null, null);
                     break;
                 default:
                     done = true;
-                    setTimeout(assemblePass2, 100);
+                    cardData.fileOffset = cardData.offset; // save the offset of the first card image
+                    cardData.fileSerial = cardData.serial-1;
+                    setTimeout(initializeAssembly, 100);
                     break;
                 }
             }
@@ -2908,55 +3079,103 @@ window.addEventListener("load", function() {
     }
 
     /**************************************/
-    function initializePass2() {
-        /* Reinitializes the assembler to reread the input file for Pass 2 */
-        var e;                          // point label ID
+    function loadpoolSets(ev) {
+        /* Handle the <input type=file> onchange event when a file for a
+        pre-loaded literal pool set is selected */
+        var f = ev.target.files[0];
+        var reader = new FileReader();
 
-        errorCount = 0;
-        errorTank = [];
-        location = 0;
-        nextLocation = 0;
-        poolUnresolved = 0;
-        bufferOffset = cardData.fileOffset;
-        cardData.atEOF = false;
-        cardData.serial = 0;
-        for (e in pointTab) {           // reset the point label table
-            pointTab[e] = 0;
+        function poolLoader_onLoad(ev) {
+            /* Handles the onload event for a readAsText FileReader */
+            var sets = null;
+            var thisSet = null;
+            var unitNr = 0;
+            var x = 0;
+
+            poolSets.length = 1;        // remove any old entries
+            try {
+                sets = JSON.parse(ev.target.result);
+                if (!(typeof sets == "object" && "poolSet" in sets)) {
+                    printError("POOL DATA MUST BE AN OBJECT AND CONTAIN A \"POOLSET\" PROPERTY");
+                } else if (!(sets.poolSet instanceof Array)) {
+                    printError("POOL DATA \"POOLSET\" PROPERTY MUST BE AN ARRAY");
+                } else {
+                    sets = sets.poolSet;
+                    for (x=0; x<sets.length; ++x) {
+                        thisSet = sets[x];
+                        unitNr = x+1;
+                        if (thisSet === null) {
+                            poolSets[unitNr] = null;    // allow an empty poolSet entry
+                        } else if (typeof thisSet != "object") {
+                            printError("POOLSET FOR PROGRAM UNIT #" + unitNr + " MUST BE AN OBJECT");
+                        } else if (!("poolLoc" in thisSet && typeof thisSet["poolLoc"] == "number")) {
+                            printError("POOLSET FOR PROGRAM UNIT #" + unitNr + " MUST HAVE NUMERIC \"POOLLOC\" PROPERTY");
+                        } else if (!("poolData" in thisSet && thisSet["poolData"] instanceof Array)) {
+                            printError("POOLSET FOR PROGRAM UNIT #" + unitNr + " MUST HAVE ARRAY \"POOLDATA\" PROPERTY");
+                        } else {
+                            poolSets[unitNr] = thisSet;
+                        }
+                    } // for x
+                }
+            } catch (e) {
+                printError("ERROR PARSING PRE-LOADED POOL DATA JSON:");
+                printError(e.toString());
+            }
+
+            if (errorCount > 0) {
+                dumpErrorTank();
+                errorCount = 0;
+                $$("CRPoolSelector").value = null;
+            }
         }
 
-        printLine("");
-        startPass2();
+        poolSetName = f.name;
+        /********************
+        alert("Pool Data file selected: " + f.name +
+                "\nModified " + f.lastModifiedDate +
+                "\nType=" + f.type + ", Size=" + f.size + " octets");
+        ********************/
+
+        reader.onload = poolLoader_onLoad;
+        reader.readAsText(f);
     }
 
-
-    /*******************************************************************
-    * Iniialization                                                    *
-    *******************************************************************/
-
     /**************************************/
-    function assembleFile() {
-        /* Initializes or reinitializes the assembler for a new file and starts
-        the assembly of pass 1 */
+    function loadSourceFile(ev) {
+        /* Handle the <input type=file> onchange event when a source file is
+        selected */
+        var e;                          // spinner image DOM element
+        var f = ev.target.files[0];
+        var reader = new FileReader();
 
-        errorCount = 0;
-        errorTank = [];
-        location = 0;
-        assembly.location = 0;
-        assembly.placeLoc = 0;
-        assembly.opCode = pseudoEND;
-        assembly.count = 0;
-        cardData.atEOF = false;
-        cardData.fileOffset = bufferOffset;
-        cardData.serial = 0;
-        autoSymTab = {};
-        pointTab = {};
-        poolData = [];
-        poolLocation = NaN;
-        poolUnresolved = 0;
-        symTab = {};
+        function fileLoader_onLoad(ev) {
+            /* Handles the onload event for a readAsText FileReader */
 
-        clearPanel();
-        startPass1();
+            buffer = ev.target.result;
+            bufferOffset = 0;
+            bufferLength = buffer.length;
+            cardData.atEOF = false;
+            cardData.fileOffset = 0;
+            cardData.offset = 0;
+            cardData.serial = 0;
+            setTimeout(startAssembly, 100);
+        }
+
+        sourceName = f.name;
+        /********************
+        alert("Source file selected: " + f.name +
+                "\nModified " + f.lastModifiedDate +
+                "\nType=" + f.type + ", Size=" + f.size + " octets");
+        ********************/
+
+        // initiate the spinner to run while compiling
+        e = document.createElement("img");
+        e.src = "../../webUI/resources/ajax-spinner.gif";
+        e.id = "Spinner";
+        $$("TextDiv").appendChild(e);
+
+        reader.onload = fileLoader_onLoad;
+        reader.readAsText(f);
     }
 
     /**************************************/
@@ -2971,6 +3190,7 @@ window.addEventListener("load", function() {
         if (!window.ArrayBuffer ) {missing += ", ArrayBuffer"}
         if (!window.DataView    ) {missing += ", DataView"}
         if (!window.Promise     ) {missing += ", Promise"}
+        if (!window.JSON        ) {missing += ", JSON"}
 
         if (missing.length == 0) {
             return false;
@@ -2986,12 +3206,29 @@ window.addEventListener("load", function() {
         return;
     }
 
+    $$("CRPoolSelector").value = null;  // clear any prior pool selection
+    $$("CRPoolSelector").addEventListener("change", loadpoolSets, false);
     $$("CRFileSelector").value = null;  // clear any prior file selection
-    $$("CRFileSelector").addEventListener("change", fileSelector_onChange, false);
+    $$("CRFileSelector").addEventListener("change", loadSourceFile, false);
+
     pass1List = $$("Pass1ListCheck").checked;
-    $$("Pass1ListCheck").addEventListener("click", function(ev) {pass1List = ev.target.checked});
+    $$("Pass1ListCheck").addEventListener("click", function(ev) {
+        pass1List = ev.target.checked;
+    });
+
     pass2List = $$("Pass2ListCheck").checked;
-    $$("Pass2ListCheck").addEventListener("click", function(ev) {pass2List = ev.target.checked});
+    $$("Pass2ListCheck").addEventListener("click", function(ev) {
+        pass2List = ev.target.checked;
+    });
+
+    outputChecksum = $$("ChecksumCheck").checked;
+    $$("ChecksumCheck").addEventListener("click", function(ev) {
+        outputChecksum = ev.target.checked;
+    });
+
+    $$("SelectListing").addEventListener("click", function(ev) {
+        window.getSelection().selectAllChildren($$("TextPanel"));
+    });
 }, false);
 </script>
 

@@ -51,6 +51,7 @@ HTML {
 
 BODY {
     position:           relative;
+    font-family:        Arial, Helvetica, sans-serif;
     height:             100%;
     margin:             1ex}
 
@@ -59,35 +60,65 @@ DIV.heading {
     margin-bottom:      6px;
     font-weight:        bold}
 
+LABEL {
+    font-size:          smaller}
+
 #CardReaderPanel {
     position:           relative;
     color:              white;
     background-color:   #666;
-    width:              600px;
-    height:             40px;
+    width:              640px;
     border:             1px solid black;
     border-radius:      8px;
-    padding:            0;
-    vertical-align:     top}
+    font-size:          smaller;
+    padding:            8px}
+
+#CardReaderTable {
+    border-spacing:     0;
+    border-collapse:    collapse;
+    table-layout:       fixed;
+    width:              100%}
+#CardReaderCol1 {
+    width:              18ex}
+#CardReaderCol2 {
+    }
+#CardReaderTable TD {
+    text-align:         left;
+    vertical-align:     top;
+    padding-top:        1px;
+    padding-bottom:     1px;
+    padding-left:       2px;
+    padding-right:      2px}
+
+#CRFileSelector {
+    width:              100%;
+    border:             1px solid white}
+
+#CRPoolSelector {
+    width:              100%;
+    border:             1px solid white}
 
 #OptionsPanel {
     position:           relative;
     margin-top:         4px;
-    margin-bottom:      4px}
+    margin-bottom:      4px;
+    width:              640px}
 
-#CRFileSelector {
+#SelectListing {
     position:           absolute;
-    top:                8px;
-    left:               8px;
-    width:              580px;
-    border:             1px solid white}
+    right:              0px}
+
+#TextDiv {
+    position:           relative;
+    height:             75%;
+    width:              640px}
 
 #TextPanel {
     position:           absolute;
-    top:                90px;
     left:               0;
-    bottom:             200px;
-    width:              640px;
+    top:                0;
+    bottom:             8px;
+    width:              100%;
     overflow:           scroll;
     padding:            4px;
     border:             1px solid black;
@@ -107,11 +138,17 @@ DIV.heading {
 
 <body>
 <div class=heading>
-    Assembler for the Burroughs 220 BALGOL Compiler &amp; Intrinsics
+    Assembler for the Burroughs 220 BALGOL Compiler &amp; Library
 </div>
 
 <div id=CardReaderPanel>
-    <input id=CRFileSelector type=file size=90>
+    <table id=CardReaderTable>
+    <colgroup><col id=CardReaderCol1><col id=CardReaderCol2></colgroup>
+    <tr><td>Pre-load Pool
+        <td><input id=CRPoolSelector type=file size=90>
+    <tr><td>Load Source &amp; Go
+        <td><input id=CRFileSelector type=file size=90>
+    </table>
 </div>
 
 <div id=OptionsPanel>
@@ -120,6 +157,11 @@ DIV.heading {
     &nbsp;&nbsp;
     <input id=Pass2ListCheck type=checkbox value=1 CHECKED>
     <label for=Pass2ListCheck>Pass 2 Listing</label>
+    &nbsp;&nbsp;
+    <input id=ChecksumCheck type=checkbox value=1>
+    <label for=ChecksumCheck>Write Checksum</label>
+
+    <button id=SelectListing type=button>Select Listing</button>
 </div>
 
 <div id=TextDiv>
@@ -136,16 +178,13 @@ window.addEventListener("load", function() {
     var buffer = "";
     var bufferLength = 0;
     var bufferOffset = 0;
+    var sourceName = "?";
+
     var eolRex = /([^\n\r\f]*)((:?\r[\n\f]?)|\n|\f)?/g;
-
-    var pass1List = false;
-    var pass2List = true;
-
-    var panel = $$("TextPanel");
     var rTrimRex = /\s*$/;
     var sprintLimit = 100;              // cards processed before yielding control
 
-    // Input field 0-relative column locations
+    // Card 0-relative column offsets
     var labelIndex = 4;
     var opCodeIndex = labelIndex + 6;
     var operandIndex = labelIndex + 12;
@@ -158,6 +197,12 @@ window.addEventListener("load", function() {
         length:         0,
         serial:         0,
         text:           ""}
+
+    var pass1List = false;
+    var pass2List = true;
+    var outputChecksum = false;
+
+    var panel = $$("TextPanel");
 
     // Token.type values
     var tokEmpty = 0;                   // empty primary
@@ -179,6 +224,7 @@ window.addEventListener("load", function() {
         newOffset: -1};
 
     // Assembly storage
+    var asmCode = [];
     var autoSymTab = {};                // auto-declared (undefined) symbol table
     var errorCount = 0;                 // assembler error count
     var errorTank = [];                 // holding area for errors on current line
@@ -199,22 +245,29 @@ window.addEventListener("load", function() {
            1000000000,
           10000000000,
          100000000000,
-        1000000000000];
+        1000000000000,
+       10000000000000,
+      100000000000000,
+     1000000000000000,
+    10000000000000000];
 
-    var asciiFilter = [ // translate ASCII to 220 internal character codes
-        // 0   1   2   3   4   5   6   7   8   9   A   B   C   D   E   F
+    var xlateANSI220 = [ // translate ASCII to 220 internal character codes
+       // 00  01  02  03  04  05  06  07  08  09  0A  0B  0C  0D  0E  0F
            0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  //  0-0F
            0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  // 10-1F
-           0,  0,  0, 33, 13, 24, 10, 34, 24,  4, 14,  0, 23, 20,  3, 21,  // 20-2F
-          80, 81, 82, 83, 84, 85, 86, 87, 88, 89,  0, 13,  4,  0,  0,  0,  // 30-3F
+           0,  0,  0, 33, 13, 24, 10, 34, 24,  4, 14, 10, 23, 20,  3, 21,  // 20-2F
+          80, 81, 82, 83, 84, 85, 86, 87, 88, 89,  0, 13,  4, 33,  0,  0,  // 30-3F
           34, 41, 42, 43, 44, 45, 46, 47, 48, 49, 51, 52, 53, 54, 55, 56,  // 40-4F
           57, 58, 59, 62, 63, 64, 65, 66, 67, 68, 69,  0,  0,  0,  0,  0,  // 50-5F
            0, 41, 42, 43, 44, 45, 46, 47, 48, 49, 51, 52, 53, 54, 55, 56,  // 60-6F
           57, 58, 59, 62, 63, 64, 65, 66, 67, 68, 69,  0,  0,  0,  0,  0]; // 70-7F
 
     var signValues = {                  // numeric values of sign column
-        " ": 0, "+": 0, "0": 0,
-        "-": 1, "1": 1,
+        " ": 0,
+        "+": 0,
+        "0": 0,
+        "-": 1,
+        "1": 1,
         "2": 2,
         "3": 3,
         "4": 4,
@@ -252,10 +305,12 @@ window.addEventListener("load", function() {
     *       10 = value inserted in (21)
     *       11 = value inserted in (62)
     *       12 = value inserted in (64)
-    *       13 = BU pair for CRF/CWF: (B-1)*2 in (41) U in (11)
+    *       13 = BU pair for CRF/CWF: (B-1)*2 added to (41), U in (11)
     *       14 = reload-lockout value added to (41)
     *       15 = digit inserted in (11); if specified, insert 1 in (41)
-    *       16 = format band digit in (41): (B-1)*2
+    *       16 = format band digit added to (41): (B-1)*2
+    *       17 = variant value added to (41)
+    *       18 = mag tape unit/lane as LLU, inserted as ULL in (33)
     *       19 = resolved address only
     ***************************************/
 
@@ -345,18 +400,18 @@ window.addEventListener("load", function() {
         "SLA":  [ 49,  1, -1,  2,  0],
         "SLT":  [149,  1, -1,  2,  0],
         "SLS":  [249,  1, -1,  2,  0],
-        "MTS":  [ 50,  1, -1,  4, -1,  8,  0],
+        "MTS":  [ 50,  1, -1, 18, -1],
         "MFS":  [4000050,
-                       1, -1,  4, -1,  8,  0],
-        "MLS":  [450,  4, -1,  8,  0,  1,  0],
-        "MRW":  [850,  4, -1,  8,  0,  1,  0],
-        "MDA":  [950,  4, -1,  8, -1,  1,  0],
-        "MTC":  [ 51,  1, -1,  4, -1,  8, -1,  5, -1],
+                       1, -1, 18, -1],
+        "MLS":  [450, 18, -1,  1,  0],
+        "MRW":  [850, 18, -1,  1,  0],
+        "MDA":  [950, 18, -1,  1,  0],
+        "MTC":  [ 51,  1, -1, 18, -1,  5, -1],
         "MFC":  [4000051,
-                       1, -1,  4, -1,  8, -1,  5, -1],
-        "MRD":  [ 52,  1, -1,  4, -1, 10, -1,  5,  0],
-        "MNC":  [ 52,  1, -1,  4, -1, 10, -1,  5,  1],
-        "MRR":  [ 53,  1, -1,  4, -1, 10, -1,  5,  0],
+                       1, -1, 18, -1,  5, -1],
+        "MRD":  [ 52,  1, -1,  4, -1, 10, -1, 17,  0],
+        "MNC":  [152,  1, -1,  4, -1, 10, -1, 17,  0],
+        "MRR":  [ 53,  1, -1,  4, -1, 10, -1, 17,  0],
         "MIW":  [ 54,  1, -1,  4, -1, 10, -1,  9,  0],
         "MIR":  [ 55,  1, -1,  4, -1, 10, -1,  9,  0],
         "MOW":  [ 56,  1, -1,  4, -1, 10, -1,  9,  0],
@@ -367,7 +422,7 @@ window.addEventListener("load", function() {
         "MIB":  [ 59,  1, -1,  4, -1,  8,  0],
         "MIE":  [159,  1, -1,  4, -1,  8,  0],
         "CRD":  [ 60,  1, -1,  4, -1,  5,  0,  8,  0],
-        "CWR":  [ 61,  1, -1,  4, -1, 16, -1,  8,  0],
+        "CWR":  [ 61,  1, -1, 13, -1, 16,  0,  8,  0],
         "CRF":  [ 62,  1, -1, 13, -1, 14,  0],
         "CWF":  [ 63,  1, -1, 13, -1, 14,  0],
         "CRI":  [ 64,  1, -1,  4, -1],
@@ -454,6 +509,96 @@ window.addEventListener("load", function() {
     }
 
     /**************************************/
+    function tensComp(value) {
+        /* If "value" is algebraically negative, returns its 11-digit tens
+        complement. Otherwise returns the 11-digit value */
+
+        if (value < 0) {
+            return p10[11] + value%p10[11];
+        } else {
+            return value%p10[11];
+        }
+    }
+
+    /**************************************/
+    function applySign(word, sign) {
+        /* Applies an unsigned "sign" digit to a 220 "word" value. If the word
+        value is algebraically negative, it is first converted to a 10-digit
+        number with a 220 sign in the 11-th high-order digit. The low-order bit
+        of "sign" and the low-order bit of the word's sign digit are XOR-ed so
+        that each of those bits designates negation. Returns the new value as an
+        11-digit unsigned 220 word in binary */
+        var s = 0;
+        var value = 0;
+
+        if (word < 0) {
+            value = (-word)%p10[10];
+            s = 1;
+        } else {
+            value = word%p10[10];
+            s = (word%p10[11] - value)/p10[10];
+        }
+
+        return (sign%10 ^ s)*p10[10] + value;
+    }
+
+    /**************************************/
+    function getField(word, sL) {
+        /* Extracts an n-digit value from an 11-digit "word" and returns it.
+        "sL" is the same as for putField(). The word is a Javascript Number
+        object, but is treated as if it represents an 11-digit decimal integer */
+        var L = sL%10;
+        var s = (sL%100 - L)/10;
+        var result = applySign(word, 0);
+
+        s = (s == 0 ? 0 : 10-s);
+        L = (L == 0 ? 10 : L);
+
+        if (sL < 0 || sL > 99 || s+L > 11) {
+            result = -1;
+        } else {
+            result = (result%p10[s+L] - result%p10[s])/p10[s];
+        }
+
+        return result;
+    }
+
+    /**************************************/
+    function putField(word, value, sL) {
+        /* Inserts an n-digit "value" into designated digits of an 11-digit
+        "word". "sL" is the partial-word field in standard 220 start-Length
+        notation. Note that Javascript flags literal integers of the form "0n"
+        as the old C-style octal literal notation is deprecated. This routine
+        uses only the two low-order digits of "sL", however, so you can pass sL
+        literal values like 104 (or even 57321604) for /04 without ill effect.
+        The "value" and "word" are Javascript Number objects, but are treated as
+        if they represent 11-digit decimal integers. If value is negative, it is
+        converted to its 10s-complement value before insertion into word.
+        Returns a new word with the inserted field */
+        var L = sL%10;
+        var s = (sL%100 - L)/10;
+        var upperPart = 0;
+        var lowerPart = 0;
+        var result = applySign(word, 0);
+
+        s = (s == 0 ? 0 : 10-s);
+        L = (L == 0 ? 10 : L);
+
+        if (sL < 0 || s+L > 11) {
+            printError("INVALID /SL VALUE: ", sL);
+        } else {
+            upperPart = result%p10[11] - result%p10[s+L];
+            if (s > 0) {
+                lowerPart = result%p10[s];
+            }
+
+            result = (tensComp(value)%p10[L])*p10[s] + upperPart + lowerPart;
+        }
+
+        return result;
+    }
+
+    /**************************************/
     function clearPanel() {
         /* Clears the text panel */
         var kid;
@@ -515,7 +660,7 @@ window.addEventListener("load", function() {
         bufferOffset = 0;
         bufferLength = buffer.length;
         $$("CRFileSelector").value = null;
-        assembleFile();
+        setTimeout(assembleFile, 100);
     }
 
     /**************************************/
@@ -525,6 +670,7 @@ window.addEventListener("load", function() {
         var f = ev.target.files[0];
         var reader = new FileReader();
 
+        sourceName = f.name;
         /********************
         alert("File selected: " + f.name +
                 "\nModified " + f.lastModifiedDate +
@@ -715,7 +861,7 @@ window.addEventListener("load", function() {
                 ++x;
                 raw += c;
                 code = c.charCodeAt(0);
-                appendCode((code < asciiFilter.length ? asciiFilter[code]
+                appendCode((code < xlateANSI220.length ? xlateANSI220[code]
                                                       : (code == 0xA4 ? 4 : 0))); // the lozenge
             }
         }
@@ -1030,8 +1176,6 @@ window.addEventListener("load", function() {
                 for (x=0; x<val2.length; ++x) {
                     values.push(val2[x]);
                 }
-            } else if (c == ",") {
-                values.push(0);
             } else if (c == "+") {
                 ++token.offset;
                 values.push(parseNumber(text, token, 0));
@@ -1040,6 +1184,9 @@ window.addEventListener("load", function() {
                 values.push(parseNumber(text, token, 1));
             } else if (c >= "0" && c <= "9") {
                 values.push(parseNumber(text, token, 0));
+            } else if (c == "," || c == " ") {
+                values.push(0);
+                token.newOffset = token.offset;
             }
 
             if (token.newOffset < length) {
@@ -1068,8 +1215,7 @@ window.addEventListener("load", function() {
     function emitWord(location, word) {
         /* Outputs one word of assembled code to the object program */
 
-        //*** STUB FOR NOW ***//
-        return;
+        asmCode[location] = word;
     }
 
     /**************************************/
@@ -1108,106 +1254,78 @@ window.addEventListener("load", function() {
                 f = opDesc[ox+1];
             }
 
-            if (f < 0) {
-                f = p10[11] - f;        // compute a 10-digit 10s-complement
-            }
-
             switch (opDesc[ox]) {
             case  1:                    // address field, inserted in (04)
-                w2 = word % p10[4];
-                word += f%p10[4] - w2;
+                word = putField(word, f, 4);
                 break;
             case  2:                    // secondary value inserted in (33)
-                w1 = word % p10[10];
-                w2 = w1 - w1 % p10[7];
-                word += (f%p10[3])*p10[7] - w2;
+                word = putField(word, f, 33);
                 break;
             case  3:                    // secondary value inserted in (44)
-                w1 = word % p10[10];
-                w2 = w1 - w1 % p10[6];
-                word += (f%p10[4])*p10[6] - w2;
+                word = putField(word, f, 44);
                 break;
             case  4:                    // unit or count digit inserted in (11)
-                w1 = word % p10[10];
-                w2 = w1 - w1 % p10[9];
-                word += (f%10)*p10[9] - w2;
+                word = putField(word, f, 11);
                 break;
             case  5:                    // variant digit inserted in (41)
-                w1 = word % p10[7];
-                w2 = w1 - w1 % p10[6];
-                word += (f%10)*p10[6] - w2;
+                word = putField(word, f, 41);
                 break;
             case  6:                    // sL field designator inserted in (22); if specified, insert 1 in (31)
-                w1 = word % p10[10];
-                w2 = w1 - w1 % p10[8];
-                word += (f%100)*p10[8] - w2;
+                word = putField(word, f, 22);
                 if (vx < vTop) {
-                    w1 = word % p10[8];
-                    w2 = w1 - w1 % p10[7];
-                    word += p10[7] - w2;
+                    word = putField(word, 1, 31);
                 }
                 break;
             case  7:                    // sL field designator inserted in (22); (31) is undisturbed
-                w1 = word % p10[10];
-                w2 = w1 - w1 % p10[8];
-                word += (f%100)*p10[8] - w2;
+                word = putField(word, f, 22);
                 break;
             case  8:                    // value inserted in (32)
-                w1 = word % p10[9];
-                w2 = w1 - w1 % p10[7];
-                word += (f%100)*p10[7] - w2;
+                word = putField(word, f, 32);
                 break;
             case  9:                    // value inserted in (42)
-                w1 = word % p10[8];
-                w2 = w1 - w1 % p10[6];
-                word += (f%100)*p10[6] - w2;
+                word = putField(word, f, 42);
                 break;
             case 10:                    // value inserted in (21)
-                w1 = word % p10[9];
-                w2 = w1 - w1 % p10[8];
-                word += (f%10)*p10[8] - w2;
+                word = putField(word, f, 21);
                 break;
             case 11:                    // value inserted in (62)
-                w1 = word % p10[6];
-                w2 = w1 - w1 % p10[4];
-                word += (f%100)*p10[4] - w2;
+                word = putField(word, f, 62);
                 break;
             case 12:                    // value inserted in (64)
-                w1 = word % p10[8];
-                w2 = w1 - w1 % p10[4];
-                word += (f%p10[4])*p10[4] - w2;
+                word = putField(word, f, 64);
                 break;
-            case 13:                    // BU pair for CRF/CWF: (B-1)*2 in (41) U in (11)
-                w1 = word % p10[7];             // band in (41)
-                w2 = w1 - w1 % p10[6];
-                word += (((f%100-f%10)/10)-1)*2*p10[6] - w2;
-                w1 = word % p10[10];            // unit in (11)
-                w2 = w1 - w1 % p10[9];
-                word += (f%10)*p10[9] - w2;
-                break;
-            case 14:                    // reload-lockout value added to (41)
-                w1 = word % p10[7];             // band in (41)
-                w2 = w1 + ((f%10)*p10[6])%p10[7];
-                word += w2 - w1;
-                break;
-            case 15:                    // digit inserted in (11); if specified, insert 1 in (41)
-                w1 = word % p10[10];
-                w2 = w1 - w1 % p10[9];
-                word += (f%100)*p10[9] - w2;
-                if (vx < vTop) {
-                    w1 = word % p10[7];
-                    w2 = w1 - w1 % p10[6];
-                    word += p10[6] - w2;
+            case 13:                    // BU pair for CRF/CWF: (B-1)*2 added to (41), U in (11)
+                w1 = f%10;                      // unit value for (11)
+                w2 = (f%100-w1)/10;             // band value for (41)
+                word = putField(word, w1, 11);
+                if (w2 > 0) {
+                    word = putField(word, getField(word, 41) + (w2-1)*2, 41);
                 }
                 break;
-            case 16:                    // format band digit in (41): (B-1)*2
-                w1 = word % p10[7];             // band in (41)
-                w2 = w1 - w1 % p10[6];
-                word += (f%10-1)*2*p10[6] - w2;
+            case 14:                    // reload-lockout value added to (41)
+                word = putField(word, getField(word, 41) + f%10, 41);
                 break;
-            case 19:                    // resolved address only
-                w2 = word % p10[4];
-                word += f%p10[4] - w2;
+            case 15:                    // digit inserted in (11); if specified, insert 1 in (41)
+                word = putField(word, f, 11);
+                if (vx < vTop) {
+                    word = putField(word, 1, 41);
+                }
+                break;
+            case 16:                    // format band digit added to (41): (B-1)*2
+                w1 = f%10;
+                if (w1 > 0) {
+                word = putField(word, getField(word, 41) + (w1-1)*2, 41);
+                }
+                break;
+            case 17:                    // BMOD value added to (41)
+                word = putField(word, getField(word, 41) + f%10, 41);
+                break;
+            case 18: // mag tape unit/lane as LLU, inserted as ULL in (33)
+                f = (f%10)*100 + (f%1000 - f%10)/10;    // convert from LLU to ULL
+                word = putField(word, f, 33);
+                break;
+            case 19:                    // resolved address only in (04)
+               word = putField(word, f, 4);
                 break;
             default:
                 printError("INVALID OPDESC INDEX: " + opDesc[ox]);
@@ -1676,22 +1794,139 @@ window.addEventListener("load", function() {
     }
 
     /**************************************/
+    function generateObjectDeck() {
+        /* Formats the assembled object code as a BALGOL Machine-Language deck
+        in a temporary window. From there it can be save, copied, etc. */
+        var doc = null;                 // temp window document object
+        var deck = null;                // temp window text area
+        var pval = p10[10];             // modulus for a word's absolute value
+        var psign = pval*2;             // modulus for a word's sign bit
+        var title = "220 BAC-Assembler Object Deck";
+        var win = window.open("../../webUI/B220FramePaper.html", "BAC-Object-Deck",
+                "scrollbars,resizable,width=600,height=500");
+
+        function checksum(cksum, word) {
+            var sw = word%psign;        // will be the signed algebraic value of word
+
+            if (sw >= pval) {           // check if word has sign bit=1
+                sw = psign = sw;        // if so, make is algebraically negative
+            }
+
+            return (cksum+sw)%pval;     // compute the algebraic checksum
+        }
+
+        function writeCard(card, count, addr, seq) {
+
+            deck.appendChild(doc.createTextNode(
+                    "60" + padLeft(count, 1, "0") + padLeft(seq, 7, "0") +
+                    padLeft(addr, 4, "0") + card + "\n"));
+        }
+
+        function generateDeck(ev) {
+            var addr = 0;               // assembled code address
+            var card = "";              // text line for an 80-column card image
+            var cardAddr = 0;           // first address of words on card
+            var cksum = 0;              // algebraic value of the checksum word
+            var count = 0;              // number of words on card
+            var gapCount = 0;           // number of consecutive undefined words
+            var seq = 10;               // card sequence number
+            var word = undefined;       // object code word
+            var x = 0;                  // scratch index
+
+            win.removeEventListener("load", generateDeck, false);
+            doc = win.document;
+            doc.title = title;
+            deck = doc.getElementById("Paper");
+
+            while (addr < asmCode.length) {
+                word = asmCode[addr];
+                if (word === undefined) {
+                    ++gapCount;
+                } else {
+                    if (count > 5 || gapCount > 0) {
+                        writeCard(card, count, cardAddr, seq);
+                        card = "";
+                        cardAddr = addr;
+                        gapCount = 0;
+                        count = 0;
+                        seq += 10;
+                    }
+
+                    card += padLeft(word, 11, "0");
+                    ++count;
+                    cksum = checksum(cksum, word);
+                }
+
+                ++addr;
+            } // while addr
+
+            writeCard(card, count, cardAddr, seq);
+            if (outputChecksum) {
+                // Compute and output a card with the negative checksum at the next address
+                if (cksum < 0) {
+                    card = padLeft(-cksum, 11, "0");
+                } else {
+                    card = padLeft(cksum+psign, 11, "0");
+                }
+
+                writeCard(card + "  *** CHECKSUM CARD FOR " + sourceName, 1, addr, 9999990);
+            }
+        }
+
+        win.addEventListener("load", generateDeck, false);
+        win.moveTo((screen.availWidth-win.outerWidth)/2, (screen.availHeight-win.outerHeight)/2);
+    }
+
+    /**************************************/
+    function finishAssembly() {
+        /* Finishes the assembly of a program unit, and if appropriate, starts
+        assembly of the next one */
+
+        if (errorCount == 0) {
+            generateObjectDeck();
+        }
+
+        cardData.fileOffset = bufferOffset;
+        cardData.fileSerial = cardData.serial;
+        readACard();
+        if (!cardData.atEOF) {          // assemble the next program unit
+            setTimeout(initializeAssembly, 100);
+        } else {                        // We're done, just exit
+            $$("CRFileSelector").value = null;  // reset the <input> elements
+            $$("TextDiv").removeChild($$("Spinner"));   // remove the spinner image
+            // And... we're done -- just fall out of the script.
+        }
+    }
+
+    /**************************************/
     function assembleFile() {
         /* Initializes or reinitializes the assembler for a new file */
+        var stamp = new Date();
+
+        clearPanel();
+        printLine("Assembler for the Burroughs 220 BALGOL Compiler & Library -- " +
+                stamp.getFullYear().toString() + "-" +
+                padLeft(stamp.getMonth()+1, 2, "0") + "-" +
+                padLeft(stamp.getDate(), 2, "0") + " " +
+                padLeft(stamp.getHours(), 2, "0") + ":" +
+                padLeft(stamp.getMinutes(), 2, "0"));
+        printLine("");
+        printLine("Source File: " + sourceName);
+        printLine("");
 
         errorCount = 0;
         errorTank = [];
         location = 0;
         cardData.atEOF = false;
         cardData.serial = 0;
+        asmCode = [];
         autoSymTab = {};
         pointTab = {};
         poolTab = {};
         symTab = {};
         symTab["RLO"] = 1;              // kludge for CWR reload-lockout field
-        symTab["BMOD"] = 1;             // kludge for MRD B-modify address field
+        symTab["BMOD"] = 8;             // kludge for MRD/MNC B-modify address field
 
-        clearPanel();
         startPass1();
     }
 
@@ -1707,18 +1942,18 @@ window.addEventListener("load", function() {
                 done = true;
                 printError("EOF ENCOUNTERED BEFORE PASS 1");
             } else {
-                opCode = cardData.text.substring(opCodeIndex, opCodeIndex+5).trim();
+                opCode = cardData.text.substring(opCodeIndex, opCodeIndex+5);
                 switch (opCode) {
                 case "ASMBL":
-                    printLine(padRight("", 8+5+4+3+8+4+6) +
-                            cardData.text.substring(opCodeIndex, operandIndex+operandLength).trim());
-                    break;
+                case "HEAD ":
                 case "REORD":
                     printLine(padRight("", 8+5+4+3+8+4+6) +
                             cardData.text.substring(opCodeIndex, operandIndex+operandLength).trim());
                     break;
                 default:
                     done = true;
+                    printLine("START PASS 1");
+                    printLine("");
                     Promise.resolve().then(assemblePass1);
                     break;
                 }
@@ -1922,17 +2157,22 @@ window.addEventListener("load", function() {
             }
 
             buildPoolPass1();
-
             dumpErrorTank();
-            printLine("END OF PASS 1, ERRORS = " + errorCount);
-            if (pass1List || pass2List) {
+            if (pass1List) {
                 dumpSymbolTable();
+            }
+
+            printLine("");
+            printLine("END PASS 1, ERRORS = " + errorCount);
+            if (pass2List) {
+                printLine("\f");        // output a form-feed
             }
 
             if (errorCount == 0) {      // advance to Pass 2
                 Promise.resolve().then(initializePass2);
-            } else {                    // we're done -- remove the spinner image
+            } else {
                 $$("TextDiv").removeChild($$("Spinner"));
+                // And... we're done at this point -- just exit the script
             }
         }
     }
@@ -1960,7 +2200,7 @@ window.addEventListener("load", function() {
     function startPass2() {
         /* Sets up for Pass 2 of the assembly and initiates it */
         var done = false;               // loop control
-        var opCode;                     // op code parsed from card
+        var opCode = "";                // op code parsed from card
 
         do {
             readACard();
@@ -1968,14 +2208,16 @@ window.addEventListener("load", function() {
                 done = true;
                 printError("EOF encountered before Pass 2");
             } else {
-                opCode = cardData.text.substring(opCodeIndex, opCodeIndex+5).trim();
+                opCode = cardData.text.substring(opCodeIndex, opCodeIndex+5);
                 switch (opCode) {
                 case "ASMBL":
-                    break;
+                case "HEAD ":
                 case "REORD":
                     break;
                 default:
                     done = true;
+                    printLine("START PASS 2");
+                    printLine("");
                     Promise.resolve().then(assemblePass2);
                     break;
                 }
@@ -2245,11 +2487,15 @@ window.addEventListener("load", function() {
                 }
             }
 
-            buffer = "";                // release the card buffer area
             dumpErrorTank();
+            if (pass2List) {
+                dumpSymbolTable();
+            }
+
+            buffer = "";                // release the card buffer area
             printLine("");
-            printLine("END OF PASS 2, ERRORS = " + errorCount);
-            $$("TextDiv").removeChild($$("Spinner"));   // remove the spinner image
+            printLine("END PASS 2, ERRORS = " + errorCount);
+            finishAssembly();
         }
     }
 
@@ -2282,10 +2528,25 @@ window.addEventListener("load", function() {
 
     $$("CRFileSelector").value = null;  // clear any prior file selection
     $$("CRFileSelector").addEventListener("change", fileSelector_onChange, false);
+
     pass1List = $$("Pass1ListCheck").checked;
-    $$("Pass1ListCheck").addEventListener("click", function(ev) {pass1List = ev.target.checked});
+    $$("Pass1ListCheck").addEventListener("click", function(ev) {
+        pass1List = ev.target.checked;
+    });
+
     pass2List = $$("Pass2ListCheck").checked;
-    $$("Pass2ListCheck").addEventListener("click", function(ev) {pass2List = ev.target.checked});
+    $$("Pass2ListCheck").addEventListener("click", function(ev) {
+        pass2List = ev.target.checked;
+    });
+
+    outputChecksum = $$("ChecksumCheck").checked;
+    $$("ChecksumCheck").addEventListener("click", function(ev) {
+        outputChecksum = ev.target.checked;
+    });
+
+    $$("SelectListing").addEventListener("click", function(ev) {
+        window.getSelection().selectAllChildren($$("TextPanel"));
+    });
 }, false);
 </script>
 

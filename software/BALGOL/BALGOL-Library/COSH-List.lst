@@ -1,0 +1,79 @@
+Assembler for the Burroughs 220 BALGOL Compiler & Library -- 2017-12-21 08:02
+
+Source File: COSH.card
+
+START PASS 1
+
+   .00.0     0000   EXP   DEFN  100
+   .00.0     0000   ERROR DEFN  200
+   .00.0     0000   COSH  NOP
+   .00.0     0001         LDR 8 COSH2
+   .00.0     0002         LSA   0
+   .00.0     0003         STP 6 EXP
+   .00.0     0004         BUN 6 EXP+2
+   .00.0     0005         BZA 8 A+
+   .00.0     0006         STA 6 ERROR+52
+   .00.0     0007         CAD 6 ERROR+51      =1.0=
+   .00.0     0008         FDV 6 ERROR+52
+   .00.0     0009         FAD 6 ERROR+52
+   .00.0     0010         FMU 8 +5050000000
+   .00.0     0011   *A    LDB 8 COSH
+   .00.0     0012         BUN - 0
+   .00.0     0013   COSH2 HLT 8 COSH1
+   .00.0     0014   COSH1 CNST  $COSH$
+   .00.0     0015   LOCN  LOCN  *+1
+   .00.0     0016         CNST  40000990000
+   .00.0     0017         CNST  $COSH,REAL(REAL) EXP=1 ERROR=2 $
+   .00.0     0023         CNST  90000000000
+   .00.0     0024         LOCN  LOCN
+   .00.0     0015         FINI  COSH
+             0015               +5050000000
+
+
+SYMBOL TABLE
+
+   11 *A..1            15 +5050000000       8 BMOD              0 COSH             14 COSH1
+   13 COSH2           200 ERROR           100 EXP              15 LOCN              1 RLO
+
+END PASS 1, ERRORS = 0
+
+
+START PASS 2
+
+   .00.0     1      0000                   EXP   DEFN  100
+   .00.0     2      0000                   ERROR DEFN  200
+   .00.0     3      0000  0 0000 01 0000   COSH  NOP
+   .00.0     4      0001  8 0000 41 0013         LDR 8 COSH2
+   .00.0     5      0002  0 0000 43 0000         LSA   0
+   .00.0     6      0003  6 0000 44 0100         STP 6 EXP
+   .00.0     7      0004  6 0000 30 0102         BUN 6 EXP+2
+   .00.0     8      0005  8 0000 36 0011         BZA 8 A+
+   .00.0     9      0006  6 0000 40 0252         STA 6 ERROR+52
+   .00.0    10      0007  6 0000 10 0251         CAD 6 ERROR+51      =1.0=
+   .00.0    11      0008  6 0000 25 0252         FDV 6 ERROR+52
+   .00.0    12      0009  6 0000 22 0252         FAD 6 ERROR+52
+   .00.0    13      0010  8 0000 24 0015         FMU 8 +5050000000
+   .00.0    14      0011  8 0000 42 0000   *A    LDB 8 COSH
+   .00.0    15      0012  1 0000 30 0000         BUN - 0
+   .00.0    16      0013  8 0000 00 0014   COSH2 HLT 8 COSH1
+   .00.0    17      0014  2 4356 62 4800   COSH1 CNST  $COSH$
+   .00.0    18      0015                   LOCN  LOCN  *+1
+   .00.0    19      0016  4 0000 99 0000         CNST  40000990000
+   .00.0    20      0017  2 4356 62 4823         CNST  $COSH,REAL(REAL) EXP=1 ERROR=2 $
+                    0018  2 5945 41 5324
+                    0019  2 5945 41 5304
+                    0020  2 0045 67 5700
+                    0021  2 8100 45 5959
+                    0022  2 5659 00 8200
+   .00.0    21      0023  9 0000 00 0000         CNST  90000000000
+   .00.0    22      0024                         LOCN  LOCN
+   .00.0    23      0015                         FINI  COSH
+                    0015  0 5050 00 0000               +5050000000
+
+
+SYMBOL TABLE
+
+   11 *A..1            15 +5050000000       8 BMOD              0 COSH             14 COSH1
+   13 COSH2           200 ERROR           100 EXP              15 LOCN              1 RLO
+
+END PASS 2, ERRORS = 0

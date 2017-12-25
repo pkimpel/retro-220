@@ -1,0 +1,94 @@
+Assembler for the Burroughs 220 BALGOL Compiler & Library -- 2017-12-21 07:04
+
+Source File: ACOS.card
+
+START PASS 1
+
+   .00.0     0000   ATAN  DEFN  100
+   .00.0     0000   ROMXX DEFN  200
+   .00.0     0000   ERROR DEFN  300
+   .00.0     0000   ACOS  NOP
+   .00.0     0001         STA 6 ERROR+52
+   .00.0     0002         LDB 8 ACOS
+   .00.0     0003         BZA 6 ROMXX+39
+   .00.0     0004         LDR 8 ACOS2
+   .00.0     0005         STP 6 ROMXX
+   .00.0     0006         BUN 6 ROMXX+4
+   .00.0     0007         FDV 6 ERROR+52
+   .00.0     0008         STP 6 ATAN
+   .00.0     0009         BUN 6 ATAN
+   .00.0     0010         LDB 8 ACOS
+   .00.0     0011         LDR 6 ERROR+52
+   .00.0     0012         SLT   0
+   .00.0     0013         BPA - 0
+   .00.0     0014         FAD 8 +5131415927
+   .00.0     0015         BUN - 0
+   .00.0     0016   ACOS2 HLT 8 ACOS1
+   .00.0     0017   ACOS1 CNST  $ACOS$
+   .00.0     0018   X     CNST  0
+   .00.0     0019   LOCN  LOCN  *+1
+   .00.0     0020         CNST  40000990000
+   .00.0     0021         CNST  $ARCCOS,REAL(REAL) ARCTAN=1 ROMXX=2 ERROR=3 $
+   .00.0     0030         CNST  90000000000
+   .00.0     0031         LOCN  LOCN
+   .00.0     0019         FINI  ACOS
+             0019               +5131415927
+
+
+SYMBOL TABLE
+
+   19 +5131415927       0 ACOS             17 ACOS1            16 ACOS2           100 ATAN
+    8 BMOD            300 ERROR            19 LOCN              1 RLO             200 ROMXX
+   18 X
+
+END PASS 1, ERRORS = 0
+
+
+START PASS 2
+
+   .00.0     1      0000                   ATAN  DEFN  100
+   .00.0     2      0000                   ROMXX DEFN  200
+   .00.0     3      0000                   ERROR DEFN  300
+   .00.0     4      0000  0 0000 01 0000   ACOS  NOP
+   .00.0     5      0001  6 0000 40 0352         STA 6 ERROR+52
+   .00.0     6      0002  8 0000 42 0000         LDB 8 ACOS
+   .00.0     7      0003  6 0000 36 0239         BZA 6 ROMXX+39
+   .00.0     8      0004  8 0000 41 0016         LDR 8 ACOS2
+   .00.0     9      0005  6 0000 44 0200         STP 6 ROMXX
+   .00.0    10      0006  6 0000 30 0204         BUN 6 ROMXX+4
+   .00.0    11      0007  6 0000 25 0352         FDV 6 ERROR+52
+   .00.0    12      0008  6 0000 44 0100         STP 6 ATAN
+   .00.0    13      0009  6 0000 30 0100         BUN 6 ATAN
+   .00.0    14      0010  8 0000 42 0000         LDB 8 ACOS
+   .00.0    15      0011  6 0000 41 0352         LDR 6 ERROR+52
+   .00.0    16      0012  0 0001 49 0000         SLT   0
+   .00.0    17      0013  1 0000 33 0000         BPA - 0
+   .00.0    18      0014  8 0000 22 0019         FAD 8 +5131415927
+   .00.0    19      0015  1 0000 30 0000         BUN - 0
+   .00.0    20      0016  8 0000 00 0017   ACOS2 HLT 8 ACOS1
+   .00.0    21      0017  2 4143 56 6200   ACOS1 CNST  $ACOS$
+   .00.0    22      0018  0 0000 00 0000   X     CNST  0
+   .00.0    23      0019                   LOCN  LOCN  *+1
+   .00.0    24      0020  4 0000 99 0000         CNST  40000990000
+   .00.0    25      0021  2 4159 43 4356         CNST  $ARCCOS,REAL(REAL) ARCTAN=1 ROMXX=2 ERROR=3 $
+                    0022  2 6223 59 4541
+                    0023  2 5324 59 4541
+                    0024  2 5304 00 4159
+                    0025  2 4363 41 5500
+                    0026  2 8100 59 5654
+                    0027  2 6767 00 8200
+                    0028  2 4559 59 5659
+                    0029  2 0083 00 0000
+   .00.0    26      0030  9 0000 00 0000         CNST  90000000000
+   .00.0    27      0031                         LOCN  LOCN
+   .00.0    28      0019                         FINI  ACOS
+                    0019  0 5131 41 5927               +5131415927
+
+
+SYMBOL TABLE
+
+   19 +5131415927       0 ACOS             17 ACOS1            16 ACOS2           100 ATAN
+    8 BMOD            300 ERROR            19 LOCN              1 RLO             200 ROMXX
+   18 X
+
+END PASS 2, ERRORS = 0

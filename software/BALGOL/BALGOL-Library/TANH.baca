@@ -23,7 +23,7 @@
    .00.0     0019   X     CNST  0
    .00.0     0020   COSHX CNST  0
    .00.0     0021   TANH2 HLT 8 TANH1
-   .00.0     0022   TAHN1 CNST  $TANH$
+   .00.0     0022   TANH1 CNST  $TANH$
    .00.0     0023   LOCN  LOCN  *+1
    .00.0     0024         CNST  40000990000
    .00.0     0025         CNST  $TANH,REAL(REAL) SINH=1 COSH=2 ERROR=3 $

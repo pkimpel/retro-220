@@ -1,0 +1,211 @@
+<?XML version="1.0"?>
+<package>
+<job id="GEN-Xscript-Reformatter">
+<reference object="Scripting.FileSystemObject" /> 'Microsoft Scripting Runtime TypeLib (for fso)
+<script language="VBScript">
+<![CDATA[
+
+Option Explicit
+'-----------------------------------------------------------------------
+' retro-220 GEN-Xscript-Reformatter.wsf
+' Copyright (c) 2017, Paul Kimpel,
+' Licensed under the MIT License, see
+'       http://www.opensource.org/licenses/mit-license.php
+'-----------------------------------------------------------------------
+' VBScript to extract source from the BALGOL Generator utility listing
+' transcription. It reads the assembly transcription file and outputs a
+' GEN-Assembler card deck.
+'
+' This script should be executed in the current path of the transcription
+' files. Output files will be written to that path as well.
+'
+' Uses Scripting Runtime FileSystemObject.
+' Parameters:
+'   1. Name of the transcription file.
+'   2. Optional started card sequence string.
+'   3. Optional /Q = quiet mode (no MsgBox at end), can be in any position.
+'-----------------------------------------------------------------------
+' Modification Log.
+' 2017-12-17  P.Kimpel
+'   Original version, cloned from retro-220/software/tools/
+'   BAC-Xscript-Reformatter.wsf.
+'-----------------------------------------------------------------------
+
+Dim args
+Dim deckName
+Dim fileName
+Dim fso
+Dim lastSeq
+Dim quietMode
+
+'---------------------------------------
+Function PicZn(ByVal s, ByVal chars)
+  'Formats the string "s" to be exactly "chars" characters long, padding
+  'with spaces or truncating on the left, as necessary.
+  Dim sLen
+
+  sLen = Len(s)
+  If sLen < chars Then
+    PicZn = Space(chars - sLen) & s
+  ElseIf sLen > chars Then
+    PicZn = Right(s, chars)
+  Else
+    PicZn = s
+  End If
+End Function
+
+'---------------------------------------
+Function Pic9n(ByVal v, ByVal chars)
+  'Formats a numeric value "v" as a string of "chars" length with leading zeroes.
+  Dim s
+  Dim sz
+
+  s = CStr(v)
+  sz = Len(s)
+  If sz > chars Then
+    Pic9n = Right(s, chars)
+  ElseIf sz < chars Then
+    Pic9n = String(chars-sz, "0") & s
+  Else
+    Pic9n = s
+  End If
+End Function
+
+'---------------------------------------
+Function PicXn(ByVal v, ByVal chars)
+  'Formats a string value "v" as left justified over spaces in a field "chars" long.
+  Dim sz
+
+  sz = Len(CStr(v))
+  If sz < chars Then
+    PicXn = v & Space(chars-sz)
+  ElseIf sz > chars Then
+    PicXn = Left(v, chars)
+  Else
+    PicXn = v
+  End If
+End Function
+
+'---------------------------------------
+Sub WriteCard(cardFile, seq, text)
+  'Applies the sequence number to the text and outputs the card image
+  Dim image
+  Dim seqNr
+  Dim seqText
+
+  '--seqText = PicZn(seq, 4) & "0000"   '-- suppress sequence number 2017-12-24
+  '--image = PicXn(text, 72)
+  '--lastSeq = seqText
+  cardFile.WriteLine RTrim(text)        '-- image & seqText
+End Sub
+
+'---------------------------------------
+Sub ExtractCode(byVal xScriptName, byVal deckName)
+  'Extracts source from an assembler transcription file.
+  'The assembler source is written as card images to a file with the same
+  'name as the transcription file, but modified with a ".card" extension.
+
+  '     6    11    17                     40          52      60
+  'SEQ  PLAC ADDR  WORD                   LABEL       OPCODE  OPERAND
+  ' (output columns)                      5           17      25
+  Dim address
+  Dim card
+  Dim cardFile
+  Dim eof
+  Dim label
+  Dim lastAddr
+  Dim line
+  Dim lineNr
+  Dim operand
+  Dim opCode
+  Dim seq
+  Dim text
+  Dim word
+  Dim xFile
+
+  Const addrCol = 6
+  Const labelCol = 40
+  Const opCodeCol = 52
+  Const operandCol = 60
+  Const lastCol = 107
+
+  Set cardFile = fso.OpenTextFile(deckName, ForWriting, True, True)
+  Set xFile = fso.OpenTextfile(xScriptName, ForReading, False, False)
+  lineNr = 1
+  line = xFile.ReadLine
+  eof = xFile.AtEndOfStream
+
+  Do While Not eof
+    lineNr = lineNr+1
+    address = RTrim(Mid(line, addrCol, 31))
+    label = RTrim(Mid(line, labelCol, 11))
+    opCode = RTrim(Mid(line, opCodeCol, 8))
+    operand = RTrim(Mid(line, operandCol, lastCol-operandCol))
+    seq = LTrim(Mid(line, 1, 4))
+
+    '-- If the address, label, and opCode fields are blank, generate a REM card
+    '-- If the sequence field is blank, and the address field is not, do not generate a card
+    If Len(opCode) = 0 And Len(label) = 0 And Len(address) = 0 Then
+      WriteCard cardFile, seq, PicXn("1", 16) & PicXn("REM", 8) & operand
+    ElseIf Len(seq) > 0 Or Len(address) = 0 Then
+      '-- Reformat and write the assembler card image
+      WriteCard cardFile, seq, PicXn("1", 4) & Mid(line, labelCol, lastCol-labelCol)
+    End If
+
+    If xFile.AtEndOfStream Then
+      eof = True
+    Else
+      line = xFile.ReadLine
+    End If
+  Loop
+
+  cardFile.Close
+  Set cardFile = Nothing
+  xfile.Close
+  Set xFile = Nothing
+End Sub
+
+'---------------------------------------------------------------
+
+Set fso = WScript.CreateObject("Scripting.FileSystemObject")
+quietMode = False
+lastSeq = "01 0"
+
+
+Set args = WScript.Arguments
+For Each deckName In args
+  If UCase(Trim(deckName)) = "/Q" Then
+    quietMode = True
+  ElseIf Len(fileName) = 0 Then
+    fileName = Trim(deckName)
+  Else
+    lastSeq = Trim(deckName)
+  End If
+Next
+
+Set args = Nothing
+If Len(fileName) = 0 Then
+  MsgBox "Must supply the name of the transcription file."
+  WScript.Quit 9
+Else
+  '-- Main Line --
+  If Not fso.FileExists(fileName) Then
+    MsgBox "Transcription file does not exist: " & vbCrLf & fileName
+    WScript.Quit 8
+  Else
+    deckName = fso.BuildPath(fso.GetParentFolderName(fileName), fso.GetBaseName(fileName)) & ".card"
+    ExtractCode fileName, deckName
+    If not quietMode Then
+      MsgBox "GEN-Assembler card deck created: " & vbCrLf & deckName
+    End If
+
+    WScript.Quit 0
+  End If
+End If
+
+Set fso = Nothing
+
+]]>
+</script>
+</job>
+</package>

@@ -1,7 +1,4 @@
-     6    11    17                     40          52      60
-SEQ  PLAC ADDR  WORD                   LABEL       OPCODE  OPERAND      ' IS A 4-8 PUNCH, PRINTS AS - (MINUS ZERO) ON 407
-
-   1                                               LOAD    0000
+   1                                               LOAD    0000         ' IS A 4-8 PUNCH, PRINTS AS - (MINUS ZERO) ON 407
    2                                               ON      TAPE,1/4999
    3
    4
@@ -485,12 +482,12 @@ SEQ  PLAC ADDR  WORD                   LABEL       OPCODE  OPERAND      ' IS A 4
  455      0367  0 0000 42 1675                     LDB     HOLD
  456      0368  1 0000 42 0372                    -LDB     2F
  457      0369  0 0000 44 0385                     DO      EXTENDTABLE
-                0 0000 30 0376
- 458            0 0000 30 0134                     BUN     COMMENT
- 459            0 0000 00 1645         2          F1,F2,F3,F4
-                0 0000 00 1658
-                0 0000 00 1667
-                0 0000 00 1672
+          0370  0 0000 30 0376
+ 458      0371  0 0000 30 0134                     BUN     COMMENT
+ 459      0372  0 0000 00 1645         2          F1,F2,F3,F4
+          0373  0 0000 00 1658
+          0374  0 0000 00 1667
+          0375  0 0000 00 1672
  460
  461
  462                                   EXTENDTABLE.1
@@ -1899,7 +1896,7 @@ SEQ  PLAC ADDR  WORD                   LABEL       OPCODE  OPERAND      ' IS A 4
 1649 1176 3676  0 0000 30 1176         FIXCNT      BUN     $
 1650
 1651
-1652 1177 3677  0 0000 10 2296         MATCHESRF.1 CAD     =82=
+1652 1177 3677  0 0000 10 2296         MATCHSRF.1  CAD     =82=
 1653 1178 3678  0 0000 44 1237                     DO      BUFFERFILL.2
      1179 3679  0 0000 30 1230
 1654 1180 3680  0 0000 42 2274                     LDB     =22=
@@ -2110,7 +2107,7 @@ SEQ  PLAC ADDR  WORD                   LABEL       OPCODE  OPERAND      ' IS A 4
 1851 0066 4066  1 0000 42 9999                    -LDB     -1
 1852 0067 4067  0 0000 29 0000         R           RTF     0,00
 1853 0068 4068  0 0001 48 0007                     SRT     7
-1854 0069 4069  0 0000 12 0073                     ADD     0
+1854 0069 4069  0 0000 12 0073                     ADD     O
 1855 0070 4070  0 0000 19 0051                     ADL     M
 1856 0071 4071  0 0000 30 0051                     BUN     M
 1857 0072 4072  0 0000 10 0101         X           CAD     101
