@@ -1,9 +1,13 @@
-Assembler for the Burroughs 220 BALGOL Compiler & Library -- 2017-12-25 08:26
+
+
+Assembler for the Burroughs 220 BALGOL Compiler & Library -- 2018-01-02 15:46
 
 Source File: BALGOL-Main.card
 
                                       ASMBL 1
                                       REORD 1.00
+START PASS 1
+
 
                                               THE BURROUGHS ALGEBRAIC COMPILER
                                           ERDWINN, MERNER, CROWDER, SPERONI, KNUTH
@@ -1560,7 +1564,7 @@ Source File: BALGOL-Main.card
 015 63 0     1477   *X    CAD   KC
 015 64 0     1478         BUN   M-
 015 65 0     1479   *G    CLL   SW6
-015 66 0     1480   *M    LDB   MODE          OTHERWISE IF IN TYPE DECLARATION MODE
+015 66 0     1480   *H    LDB   MODE          OTHERWISE IF IN TYPE DECLARATION MODE
 015 67 0     1481         LDR - 0              SET ITS TYPE
 015 68 0     1482         CFR   DCLMD,64
 015 69 0     1483         BCU   N+
@@ -1993,7 +1997,7 @@ Source File: BALGOL-Main.card
 019 96 0     1863         BUN   WMG,CRE       AND A LEFT PARENTHESIS
 019 97 0     1864         STP   CMPLX
 019 98 0     1865         BUN   LEFT
-019 99 0     1866         IFL   PSI,00,01
+019 99 0     1866         IFL   PSI,00,1
 020 00 0     1867         BUN   NORM
 
 
@@ -2114,7 +2118,7 @@ Source File: BALGOL-Main.card
 021 17 0     1968         BCU   *+2
 021 18 0     1969         LDR   RGEQ
 021 19 0     1970         STR   TOP
-021 20 0     1971         STA   SYMBL         COMPILE +, AND THEN CONTINUE SCANNING
+021 20 0     1971         STA   SMBL          COMPILE +, AND THEN CONTINUE SCANNING
 021 21 0     1972         STP   CMPLX
 021 22 0     1973         BUN   WMG,PLUS
 021 23 0     1974         CAD   SMBL
@@ -2660,7 +2664,7 @@ Source File: BALGOL-Main.card
 026 63 0     2466         BUN   INS1
 026 64 0     2467         IFL   ALEPH,62,6    SEGMENT NUMBER)
 026 65 0     2468         STP   ASMBX
-026 66 0     2469         BUN   SMBL,BUNZ     COMPILE BUN FORWARD
+026 66 0     2469         BUN   ASMBL,BUNZ    COMPILE BUN FORWARD
 026 67 0     2470         BUN   NORM
 026 68 0     2471   *A    DLB   L,64,0        EXTERNAL PROCEDURE
 026 69 0     2472         STB - 0,66          MARK AS 83 CODE.
@@ -2900,7 +2904,7 @@ Source File: BALGOL-Main.card
 029 03 0     2657         CAD - 0
 029 04 0     2658         SLA   4             LATER TO FIX UP REFERENCES TO THEM
 029 05 0     2659         STA - 0             SHIFT LINK FIELD AROUND(SHREWD MOVE)
-029 06 0     2660   PRFSW F4241 1210,01,1     IN PAREF LINK FIELD IS 64-FIELD
+029 06 0     2660   PRFSW F4241 1210,01,0     IN PAREF LINK FIELD IS 64-FIELD
 029 07 0     2661   *A    STP   REMX,OPRND
 029 08 0     2662         BUN   REM,*+2
 029 09 0     2663   FUR   HLT   4
@@ -4601,7 +4605,7 @@ Source File: BALGOL-Main.card
 046 04 0     4220         F244  30,100,40     THE 64-FIELDS OF THESE CODES
 046 05 0     4221         F244  30,100,50     ARE FIXED UP TO THE NUMBER
 046 06 0     4222   FIX   F244  31,100,60     OF LOCATIONS USED BY THE ROUTINES,
-046 07 0     4223         CNST  $FIX$         THE THE LIBRARY PROCESSOR.
+046 07 0     4223         CNST  $FIX$         BY THE LIBRARY PROCESSOR.
 046 08 0     4224   FLOAT F244  30,100,71
 046 09 0     4225         CNST  $FLOAT$
 046 10 0     4226   MONTR F244  30,100,80
@@ -4665,13 +4669,13 @@ Source File: BALGOL-Main.card
 
 046 69 0     4761         LOCN  LOC
 046 70 0     4109         FINI  1
-             4109               +9999999999
-             4110               +6034037172
-             4111               +0371720000
-             4112               +4959045600
-             4113               +4959035600
-             4114               +5822570000
-             4115               +6099999999
+             4109               +0371720000
+             4110               +6099999999
+             4111               +5822570000
+             4112               +9999999999
+             4113               +6034037172
+             4114               +4959035600
+             4115               +4959045600
 
 
 SYMBOL TABLE
@@ -4729,12 +4733,12 @@ SYMBOL TABLE
  2801 *F.12          2887 *F.13          2932 *F.14          3156 *F.15          3327 *F.16
  3330 *F.17          3546 *F.18            16 *G..1           979 *G..2          1216 *G..3
  1343 *G..4          1479 *G..5          2339 *G..6          2786 *G..7          2891 *G..8
- 3538 *G..9          1001 *H..1          1693 *H..2          2796 *H..3          2797 *H..4
- 2912 *H..5          3552 *H..6          3984 *H..7          4513 *H..8           987 *I..1
- 2333 *I..2          2807 *I..3          4002 *I..4          1015 *J..1          1431 *J..2
- 2327 *J..3          1025 *K..1          1470 *K..2          2313 *K..3          3257 *K..4
- 3985 *K..5          1454 *L..1          2089 *L..2          2129 *L..3           999 *M..1
- 1041 *M..2          1471 *M..3          1480 *M..4          3262 *M..5          3955 *M..6
+ 3538 *G..9          1001 *H..1          1480 *H..2          1693 *H..3          2796 *H..4
+ 2797 *H..5          2912 *H..6          3552 *H..7          3984 *H..8          4513 *H..9
+  987 *I..1          2333 *I..2          2807 *I..3          4002 *I..4          1015 *J..1
+ 1431 *J..2          2327 *J..3          1025 *K..1          1470 *K..2          2313 *K..3
+ 3257 *K..4          3985 *K..5          1454 *L..1          2089 *L..2          2129 *L..3
+  999 *M..1          1041 *M..2          1471 *M..3          3262 *M..4          3955 *M..5
  1031 *N..1          1488 *N..2          2110 *N..3           997 *P..1          1500 *P..2
  1565 *P..3          2303 *P..4          1013 *Q..1          1561 *Q..2          2041 *Q..3
  2306 *Q..4          2785 *Q..5          3114 *Q..6          3918 *Q..7          3937 *Q..8
@@ -4745,8 +4749,8 @@ SYMBOL TABLE
  3555 *W..3          1477 *X..1          1575 *X..2          3252 *X..3          3556 *X..4
  3873 *X..5          3913 *X..6          1475 *Y..1          1579 *Y..2          3251 *Y..3
  3260 *Y..4          3346 *Y..5            50 *Z..1          1473 *Z..2          3294 *Z..3
- 3357 *Z..4          4111 +0371720000    4113 +4959035600    4112 +4959045600    4114 +5822570000
- 4110 +6034037172    4115 +6099999999    4109 +9999999999     174 ABASE           556 ABSGN
+ 3357 *Z..4          4109 +0371720000    4114 +4959035600    4115 +4959045600    4111 +5822570000
+ 4113 +6034037172    4110 +6099999999    4112 +9999999999     174 ABASE           556 ABSGN
  3666 ACC            3667 ACC1           3668 ACC2           3680 ACC3           3684 ACC4
   175 ACCUM          2820 ACCX           4047 ACTBL           579 ADDL1           577 ADDV1
   578 ADDV2           652 ADDX1          1290 ALEPH           256 ALPHA          1399 ALPLU
@@ -4904,7 +4908,11 @@ SYMBOL TABLE
  4099 XONE           3719 XST            3724 XSTX           2612 XSUB           2639 XSUBX
  4103 XTWO            291 XVP            4095 XZERO          3993 YETH           2640 YSUB1
  2646 YSUB2          2674 YSUBX          1588 ZETA           3760 ZHE            1288 ZUTA
-END OF PASS 1, ERRORS = 0
+
+END PASS 1, ERRORS = 0
+
+
+START PASS 2
 
 
                                                                      THE BURROUGHS ALGEBRAIC COMPILER
@@ -5871,7 +5879,7 @@ END OF PASS 1, ERRORS = 0
 
  09 51 0   944      0930  0 0000 44 1446   R2    STP   ALPLX         A(
  09 52 0   945      0931  0 0000 30 1399         BUN   ALPLU         WE HAVE MANY CASES TO EXAMINE.
- 09 53 0   946      0932  0 0641 18 0360         CFR   PRCMD,64      LOOKUP IDENTIFIER FIRST
+ 09 53 0   946      0932  0 6411 18 0360         CFR   PRCMD,64      LOOKUP IDENTIFIER FIRST
  09 54 0   947      0933  0 0000 42 0274         LDB   FUNS
  09 55 0   948      0934  1 0000 10 0000         CAD - 0
  09 56 0   949      0935  0 0001 35 0963         BCU   D+
@@ -5902,7 +5910,7 @@ END OF PASS 1, ERRORS = 0
  09 81 0   974      0960  0 0000 30 1320         BUN   FRME
  09 82 0   975      0961  0 0000 41 1045   *E    LDR   SC7           PASS CHARACTERS UNTIL MATCHING RIGHT
  09 83 0   976      0962  0 0000 30 2475         BUN   PRCNT          PARENTHESIS IS FOUND AND GO TO SCN7
- 09 84 0   977      0963  0 0641 18 0352   *D    CFR   FUNMD,64
+ 09 84 0   977      0963  0 6411 18 0352   *D    CFR   FUNMD,64
  09 85 0   978      0964  0 0001 35 0981         BCU   F+
 009 86 0   979      0965  0 0001 33 0981         BSA   F+,1          IF CALLING A FUNCTION,CHECK $ COUNT
  09 87 0   980      0966  0 0000 44 1329         STP   FRMEX         IF THIS COUNT IS 1,WE DONT KNOW YET
@@ -5922,7 +5930,7 @@ END OF PASS 1, ERRORS = 0
 010 01 0   994      0980  0 0000 30 0976         BUN   T-
 010 02 0   995      0981  0 6400 28 0201   *F    DLB   L,64,00
 010 03 0   996      0982  1 0000 10 0000         CAD - 0
-010 04 0   997      0983  0 0641 18 0348         CFR   DCLMD,64      IF IN TYPE DECLARATION,
+010 04 0   997      0983  0 6411 18 0348         CFR   DCLMD,64      IF IN TYPE DECLARATION,
 010 05 0   998      0984  0 0000 35 0961         BCE   E-             SKIP TO NEXT MATCHING RIGHT PARENTHESIS
 010 06 0   999      0985  0 1100 36 1015         BFA   J+,11,0
 010 07 0  1000      0986  0 1109 36 1025         BFA   K+,11,9
@@ -5936,7 +5944,7 @@ END OF PASS 1, ERRORS = 0
 010 15 0  1008      0994  0 1109 37 0850         BFR   SCN1,11,9     IF LABEL, EXIT
 010 16 0  1009      0995  0 1107 37 0850         BFR   SCN1,11,7     IF RESERVED WORD, EXIT
 010 17 0  1010      0996  0 1288 37 0999         BFR   M+,12,88      IF EXT PROCEDURE,INSERT FUNC CALL OP
-010 18 0  1011      0997  0 0021 18 0203   *P    CFR   LEVEL,02      IS IT THE NAME OF THE PRESENT
+010 18 0  1011      0997  0 0211 18 0203   *P    CFR   LEVEL,02      IS IT THE NAME OF THE PRESENT
 010 19 0  1012      0998  0 0000 35 0961         BCE   E-             PROCEDURE BEING DECLARED
 010 20 0  1013      0999  0 0000 10 0338   *M    CAD   CWCLN
 010 21 0  1014      1000  0 0000 30 0848         BUN   SCN5
@@ -5954,7 +5962,7 @@ END OF PASS 1, ERRORS = 0
 010 33 0  1026      1012  0 0001 21 1007         DBB   R-,1
 010 34 0  1027      1013  0 0000 10 0333   *Q    CAD   CWNDX         SEND INDEX OP TO EXECUTOR
 010 35 0  1028      1014  0 0000 30 0848         BUN   SCN5
-010 36 0  1029      1015  0 0641 18 0346   *J    CFR   ARAMD,64      IF WE HAVE A NEW SYMBOL, AND WE ARENT
+010 36 0  1029      1015  0 6411 18 0346   *J    CFR   ARAMD,64      IF WE HAVE A NEW SYMBOL, AND WE ARENT
 010 37 0  1030      1016  0 6400 28 0201         DLB   L,64,00       PROCESSING AN ARRAY DECLARATION,
 010 38 0  1031      1017  0 0000 35 1020         BCE   S+             ITS A VARIABLE
 010 39 0  1032      1018  1 1101 26 0000         IFL - 0,11,1
@@ -5971,7 +5979,7 @@ END OF PASS 1, ERRORS = 0
 010 50 0  1043      1029  0 0987 30 1682         BUN   WEM,I-        ELSE, MISPLACED LABEL
 010 51 0  1044      1030  3 1517 00 0000         CNST  31517000000
 010 52 0  1045      1031  1 0000 40 0000   *N    STA - 0
-010 53 0  1046      1032  0 0641 18 0351         CFR   FRMMD,64
+010 53 0  1046      1032  0 6411 18 0351         CFR   FRMMD,64
 010 54 0  1047      1033  0 0001 35 1035         BCU   *+2
 010 55 0  1048      1034  0 6229 27 1041         DFL   M+,62,29      I-O DECLARATION
 010 56 0  1049      1035  0 6400 28 4217         DLB   LOCN,64,00
@@ -5988,7 +5996,7 @@ END OF PASS 1, ERRORS = 0
 
 
 010 69 0  1062      1046  0 0000 41 0230   R3K   LDR   SYMBL         AP
-010 70 0  1063      1047  0 0001 18 0452         CFR   STOGN+1,00    IN THE STATEMENT STOP +E,  + IS REDUNDANT
+010 70 0  1063      1047  0 0011 18 0452         CFR   STOGN+1,00    IN THE STATEMENT STOP +E,  + IS REDUNDANT
 010 71 0  1064      1048  0 0000 35 0907         BCE   SCN11
 010 72 0  1065      1049  0 0000 30 1085   R3    BUN   A+            A) A$ A, A*
 010 73 0  1066      1050  0 6229 26 1049         IFL   *-1,62,29
@@ -6394,7 +6402,7 @@ END OF PASS 1, ERRORS = 0
 014 73 0  1466      1389  0 0000 29 0229   *B    RTF   RR0,0         MOVE NAME INTO SSC AREA
 014 74 0  1467      1390  0 0002 40 4216         STB   SSC
 014 75 0  1468      1391  0 0000 41 4216         LDR   SSC
-014 76 0  1469      1392  0 0041 18 4227         CFR   MAMAX,04      CHECK IF MEMORY EXCEEDED
+014 76 0  1469      1392  0 0411 18 4227         CFR   MAMAX,04      CHECK IF MEMORY EXCEEDED
 014 77 0  1470      1393  0 0000 34 1746         BCH   FULL
 014 78 0  1471      1394  0 6400 28 0201         DLB   L,64,0
 014 79 0  1472      1395  1 0000 46 0000         CLL - 0
@@ -6458,7 +6466,7 @@ END OF PASS 1, ERRORS = 0
 015 37 0  1530      1451  0 2274 37 1431         BFR   J-,22,74      IF ITS AN INTRINSIC FUNCTION GO TO J-
 015 38 0  1531      1452  0 1107 37 1440         BFR   ALPX1-1,11,7  IF ANOTHER RESERVED WORD,EXIT
 015 39 0  1532      1453  0 1109 37 1479         BFR   G+,11,9       IS IT A LABEL
-015 40 0  1533      1454  0 2283 37 1693   *L    BFR   H+,22,83      IS IT A PROCEDURE NAME
+015 40 0  1533      1454  0 2283 37 1480   *L    BFR   H+,22,83      IS IT A PROCEDURE NAME
 015 41 0  1534      1455  0 2103 37 1473         BFR   Z+,21,3       IS ITS TYPE UNSPECIFIED
 015 42 0  1535      1456  0 0000 44 4054         STP   LIBRX         IF IT IS A NEW LIBRARY PROCEDURE,
 015 43 0  1536      1457  0 1103 37 4053         BFR   LIBRF,11,3    ADD IT TO THE LIBRARY
@@ -6486,7 +6494,7 @@ END OF PASS 1, ERRORS = 0
 015 65 0  1558      1479  0 0000 46 0255   *G    CLL   SW6
 015 66 0  1559      1480  0 0000 42 0281   *H    LDB   MODE          OTHERWISE IF IN TYPE DECLARATION MODE
 015 67 0  1560      1481  1 0000 41 0000         LDR - 0              SET ITS TYPE
-015 68 0  1561      1482  0 0641 18 0348         CFR   DCLMD,64
+015 68 0  1561      1482  0 6411 18 0348         CFR   DCLMD,64
 015 69 0  1562      1483  0 0001 35 1488         BCU   N+
 015 70 0  1563      1484  0 0000 10 0220         CAD   RR2
 015 71 0  1564      1485  0 6400 28 0201         DLB   L,64,0
@@ -6544,7 +6552,7 @@ END OF PASS 1, ERRORS = 0
 016 23 0  1616      1535  0 6410 40 0201         STA   L,64
 016 24 0  1617      1536  0 6400 28 0201         DLB   L,64,0
 016 25 0  1618      1537  0 0000 30 1537   NMBRX BUN   *
-016 26 0  1619      1538  0 0211 18 0241   *C    CFR   V2,21         IN ARRAY FILL
+016 26 0  1619      1538  0 2111 18 0241   *C    CFR   V2,21         IN ARRAY FILL
 016 27 0  1620      1539  0 0000 34 3756         BCH   FLTCM         CHANGE TO PROPER TYPE, IF NECESSARY
 016 28 0  1621      1540  0 0001 34 3775         BCL   FIXCM
 016 29 0  1622      1541  0 6229 27 1516         DFL   RHO,62,29
@@ -6564,7 +6572,7 @@ END OF PASS 1, ERRORS = 0
 016 43 0  1636      1551  0 0000 44 1446   CLASS STP   ALPLX         PROCESS AND CLASSIFY SYMBOL
 016 44 0  1637      1552  0 0000 30 1399         BUN   ALPLU
 016 45 0  1638      1553  0 1107 36 1320         BFA   FRME,11,7
-016 46 0  1639      1554  0 0641 18 0348         CFR   DCLMD,64
+016 46 0  1639      1554  0 6411 18 0348         CFR   DCLMD,64
 016 47 0  1640      1555  0 0000 35 0850         BCE   SCN1          EXIT IF IN A TYPE DECLARATION
 016 48 0  1641      1556  0 0000 42 0267         LDB   TAG
 016 49 0  1642      1557  0 1100 36 1570         BFA   B+,11,0       OTHERWISE IT MUST BE A
@@ -6580,7 +6588,7 @@ END OF PASS 1, ERRORS = 0
 016 59 0  1652      1567  3 0117 24 0000         CNST  30117240000   IMPROPER LABEL SYMBOL
 016 60 0  1653      1568  0 0001 21 1577   *D    DBB   A+,1
 016 61 0  1654      1569  0 0000 30 1561         BUN   Q-
-016 62 0  1655      1570  0 0641 18 0352   *B    CFR   FUNMD,64      MAKE UNASSIGNED SYMBOL
+016 62 0  1655      1570  0 6411 18 0352   *B    CFR   FUNMD,64      MAKE UNASSIGNED SYMBOL
 016 63 0  1656      1571  0 0001 35 1575         BCU   X+            INTO EITHER A SIMPLE VARIABLE
 016 64 0  1657      1572  0 0000 42 0274         LDB   FUNS
 016 65 0  1658      1573  1 0000 10 0000         CAD - 0             OR, IF IN LABEL PART OF A PROCEDURE
@@ -6774,7 +6782,7 @@ END OF PASS 1, ERRORS = 0
 018 43 0  1836      1738  0 0000 30 1738   INSX  BUN   *
 018 44 0  1837      1739                   NEWTX DEFN  INSX
 018 45 0  1838      1739  0 0000 41 4227   *B    LDR   MAMAX         IF AVAIL STACK IS EMPTY, TRY TO
-018 46 0  1839      1740  0 0041 18 4216         CFR   SSC,04        INCREASE THE SIZE OF
+018 46 0  1839      1740  0 0411 18 4216         CFR   SSC,04        INCREASE THE SIZE OF
 018 47 0  1840      1741  0 0411 40 0273         STR   AVAIL,04      ASSOCIATIVE MEMORY
 018 48 0  1841      1742  0 0411 40 1744         STR   D+,04
 018 49 0  1842      1743  0 0001 27 4227         DFL   MAMAX,00,1
@@ -6927,7 +6935,7 @@ END OF PASS 1, ERRORS = 0
 019 96 0  1989      1863  0 0299 30 2706         BUN   WMG,CRE       AND A LEFT PARENTHESIS
 019 97 0  1990      1864  0 0000 44 2694         STP   CMPLX
 019 98 0  1991      1865  0 0000 30 2699         BUN   LEFT
-019 99 0  1992      1866  0 0001 26 0261         IFL   PSI,00,01
+019 99 0  1992      1866  0 0001 26 0261         IFL   PSI,00,1
 020 00 0  1993      1867  0 0000 30 1801         BUN   NORM
 
 
@@ -7048,7 +7056,7 @@ END OF PASS 1, ERRORS = 0
 021 17 0  2110      1968  0 0001 35 1970         BCU   *+2
 021 18 0  2111      1969  0 0000 41 0341         LDR   RGEQ
 021 19 0  2112      1970  0 0001 40 0331         STR   TOP
-021 20 0  2113      1971  0 0000 40 0230         STA   SYMBL         COMPILE +, AND THEN CONTINUE SCANNING
+021 20 0  2113      1971  0 0000 40 0227         STA   SMBL          COMPILE +, AND THEN CONTINUE SCANNING
 021 21 0  2114      1972  0 0000 44 2694         STP   CMPLX
 021 22 0  2115      1973  0 0303 30 2706         BUN   WMG,PLUS
 021 23 0  2116      1974  0 0000 10 0227         CAD   SMBL
@@ -7483,7 +7491,7 @@ END OF PASS 1, ERRORS = 0
 025 52 0  2545      2365  0 0001 35 2375         BCU   B+            OCCURS IN AN ARRAY PARAMETER
 025 53 0  2546      2366  1 0000 42 0000         LDB - 0             WHILE CALLING A PROCEDURE
 025 54 0  2547      2367  1 0000 41 0000         LDR - 0
-025 55 0  2548      2368  0 0641 18 0352         CFR   FUNMD,64
+025 55 0  2548      2368  0 6411 18 0352         CFR   FUNMD,64
 025 56 0  2549      2369  0 0001 35 2375         BCU   B+
 025 57 0  2550      2370  0 0000 42 0274         LDB   FUNS
 025 58 0  2551      2371  1 0000 10 0000         CAD - 0
@@ -7594,7 +7602,7 @@ END OF PASS 1, ERRORS = 0
 026 63 0  2656      2466  0 0000 30 1728         BUN   INS1
 026 64 0  2657      2467  0 6206 26 1290         IFL   ALEPH,62,6    SEGMENT NUMBER)
 026 65 0  2658      2468  0 0000 44 2820         STP   ASMBX
-026 66 0  2659      2469  0 0609 30 0227         BUN   SMBL,BUNZ     COMPILE BUN FORWARD
+026 66 0  2659      2469  0 0609 30 2736         BUN   ASMBL,BUNZ    COMPILE BUN FORWARD
 026 67 0  2660      2470  0 0000 30 1801         BUN   NORM
 026 68 0  2661      2471  0 6400 28 0201   *A    DLB   L,64,0        EXTERNAL PROCEDURE
 026 69 0  2662      2472  1 6612 40 0000         STB - 0,66          MARK AS 83 CODE.
@@ -7834,7 +7842,7 @@ END OF PASS 1, ERRORS = 0
 029 03 0  2896      2657  1 0000 10 0000         CAD - 0
 029 04 0  2897      2658  0 0000 49 0004         SLA   4             LATER TO FIX UP REFERENCES TO THEM
 029 05 0  2898      2659  1 0000 40 0000         STA - 0             SHIFT LINK FIELD AROUND(SHREWD MOVE)
-029 06 0  2899      2660  1 1210 01 0001   PRFSW F4241 1210,01,1     IN PAREF LINK FIELD IS 64-FIELD
+029 06 0  2899      2660  1 1210 01 0000   PRFSW F4241 1210,01,0     IN PAREF LINK FIELD IS 64-FIELD
 029 07 0  2900      2661  0 0283 44 1755   *A    STP   REMX,OPRND
 029 08 0  2901      2662  0 2664 30 1750         BUN   REM,*+2
 029 09 0  2902      2663  0 0000 00 0004   FUR   HLT   4
@@ -7935,7 +7943,7 @@ END OF PASS 1, ERRORS = 0
 030 04 0  2997      2752  0 6401 27 4217   *B    DFL   LOCN,64,1
 030 05 0  2998      2753  0 4101 26 0193         IFL   INSTR,41,1    (CHANGE STA TO STR)
 030 06 0  2999      2754  0 4101 26 0192         IFL   INSTP,41,1
-030 07 0  3000      2755  0 0000 18 4109   *A    CFA   +9999999999
+030 07 0  3000      2755  0 0000 18 4112   *A    CFA   +9999999999
 030 08 0  3001      2756  0 0000 34 2812         BCH   C+
 030 09 0  3002      2757  0 0000 42 0193         LDB   INSTR         ASSEMBLE WITH V(I) IF THE
 030 10 0  3003      2758  1 0000 41 0239         LDR - V             SIGN IS 0,1,2, OR 3
@@ -8002,7 +8010,7 @@ END OF PASS 1, ERRORS = 0
 030 71 0  3064      2819  0 0000 30 2918         BUN   WRIT2
 030 72 0  3065      2820  0 0000 30 2820   ASMBX BUN   *
 030 73 0  3066      2821  0 0000 41 0193   G4P   LDR   INSTR         SET FLAG IF THIS IS SLT10 INSTRUCTION
-030 74 0  3067      2822  0 0071 18 0624         CFR   SLT10,07
+030 74 0  3067      2822  0 0711 18 0624         CFR   SLT10,07
 030 75 0  3068      2823  0 0001 35 2818         BCU   GEXIT
 030 76 0  3069      2824  0 0001 26 0268         IFL   XI,00,1
 030 77 0  3070      2825  0 0000 30 2818         BUN   GEXIT
@@ -8249,10 +8257,10 @@ END OF PASS 1, ERRORS = 0
 033 18 0  3311      3053  1 0000 41 0000         LDR - 0
 033 19 0  3312      3054  0 6700 37 3064         BFR   A+,67,00      IS IT IN A BOOLEAN EXPRESSION
 033 20 0  3313      3055  0 6402 26 0215         IFL   OPRTM,64,2
-033 21 0  3314      3056  0 0671 18 0340         CFR   OPIF,67       IS IT IN AN IF CLAUSE
+033 21 0  3314      3056  0 6711 18 0340         CFR   OPIF,67       IS IT IN AN IF CLAUSE
 033 22 0  3315      3057  0 0000 35 3067         BCE   C+
 033 23 0  3316      3058  0 6402 26 0215         IFL   OPRTM,64,2    IS IT IN AN UNTIL CLAUSE
-033 24 0  3317      3059  0 0671 18 0322         CFR   CRU,67
+033 24 0  3317      3059  0 6711 18 0322         CFR   CRU,67
 033 25 0  3318      3060  0 0000 35 3067         BCE   C+
 033 26 0  3319      3061  0 0000 44 1687         STP   WEMX          IF NOT IT IS AN IMPROPER
 033 27 0  3320      3062  0 2694 30 1682         BUN   WEM,CMPLX               RELATIONAL OPERATION
@@ -8389,13 +8397,13 @@ END OF PASS 1, ERRORS = 0
 034 58 0  3451      3179  0 0000 44 3735         STP   FIXEX         BRING V1 FIXED POINT INTO A
 034 59 0  3452      3180  0 0000 30 3725         BUN   FIXER         UNLESS ITS A CONSTANT
 034 60 0  3453      3181  0 1102 36 3184         BFA   A+,11,2       THEN GENERATE SLA 0009
-034 61 0  3454      3182  0 0000 10 4110         CAD   +6034037172                 STA *+2,11
+034 61 0  3454      3182  0 0000 10 4113         CAD   +6034037172                 STA *+2,11
 034 62 0  3455      3183  0 0000 30 3157         BUN   GEN4                        CAD  +1
 034 63 0  3456      3184  0 6400 28 0240   *A    DLB   V1,64,00                    BCS *+2,0
 034 64 0  3457      3185  1 0000 10 0001         CAD - 1                           CLA
 034 65 0  3458      3186  0 0000 49 0009         SLA   9             OR IF IT WAS A CONSTANT GENERATE
 034 66 0  3459      3187  0 1110 40 0640         STA   BCSL2,11      MERELY THE LAST THREE OF THESE
-034 67 0  3460      3188  0 0000 10 4111         CAD   +0371720000
+034 67 0  3460      3188  0 0000 10 4109         CAD   +0371720000
 034 68 0  3461      3189  0 0000 30 3157   *B    BUN   GEN4
 
 
@@ -8404,9 +8412,9 @@ END OF PASS 1, ERRORS = 0
 034 73 0  3466      3192  0 0000 44 3713         STP   CADX          BRING V1 INTO A-REGISTER
 034 74 0  3467      3193  0 0000 30 3698         BUN   CAD1
 034 75 0  3468      3194  0 0001 48 0010         SRT   10           GENERATE   BZA *+4
-034 76 0  3469      3195  0 0000 10 4112         CAD   +4959045600             SRT 0
+034 76 0  3469      3195  0 0000 10 4115         CAD   +4959045600             SRT 0
 034 77 0  3470      3196  0 2100 37 3198         BFR   B+,21,0                 CAD =1.0= OR =1=
-034 78 0  3471      3197  0 0000 10 4113         CAD   +4959035600             SLT 0
+034 78 0  3471      3197  0 0000 10 4114         CAD   +4959035600             SLT 0
 034 79 0  3472      3198                   GEN5  DEFN  *
 034 80 0  3473      3198  0 0000 44 4046   *B    STP   INTRX
 034 81 0  3474      3199  0 0000 30 4023         BUN   INTRP
@@ -8461,7 +8469,7 @@ END OF PASS 1, ERRORS = 0
 035 30 0  3523      3242  0 0000 44 3713   *V    STP   CADX          IF NOT, GET RHS INTO ACCUMULATOR
 035 31 0  3524      3243  0 0000 30 3698         BUN   CAD1
 035 32 0  3525      3244  0 0000 41 0241         LDR   V2
-035 33 0  3526      3245  0 0211 18 0240         CFR   V1,21
+035 33 0  3526      3245  0 2111 18 0240         CFR   V1,21
 035 34 0  3527      3246  0 2111 40 0240         STR   V1,21         DO THE TYPES AGREE
 035 35 0  3528      3247  0 0000 35 3254         BCE   C+            IF NOT, LINK EITHER TO
 035 36 0  3529      3248  0 2100 37 3251         BFR   Y+,21,0       FIX OR FLOAT ROUTINE
@@ -8550,7 +8558,7 @@ END OF PASS 1, ERRORS = 0
 036 19 0  3612      3325  0 0000 17 0240         EXT   V1
 036 20 0  3613      3326  0 2100 36 3354         BFA   E+,21,0       CHECK THAT V1,V2 BOTH INTEGER
 036 21 0  3614      3327  0 0000 41 0240   *F    LDR   V1
-036 22 0  3615      3328  0 0661 18 0249         CFR   V10,66        IF V1 IS THE CONSTANT 2 OR -2 WE HAVE
+036 22 0  3615      3328  0 6611 18 0249         CFR   V10,66        IF V1 IS THE CONSTANT 2 OR -2 WE HAVE
 036 23 0  3616      3329  0 0000 35 3357         BCE   Z+            A SPECIAL CASE
 036 24 0  3617      3330  0 0000 44 2820   *F    STP   ACCX
 036 25 0  3618      3331  0 1100 37 3667         BFR   ACC1,11,0     PUT V1 IN MEMORY
@@ -8568,7 +8576,7 @@ END OF PASS 1, ERRORS = 0
 036 37 0  3630      3343  0 1100 37 3341         BFR   *-2,11,0
 036 38 0  3631      3344  0 0001 49 0001         SLT   1
 036 39 0  3632      3345  0 0010 18 4100         CFA   XONE+1,00
-036 40 0  3633      3346  0 0000 10 4114   *Y    CAD   +5822570000
+036 40 0  3633      3346  0 0000 10 4111   *Y    CAD   +5822570000
 036 41 0  3634      3347  0 0001 35 3157         BCU   GEN4          IF NOT,GENERATE SRT10,DIV V1, SLT 30
 036 42 0  3635      3348  0 0000 46 0229         CLL   RR0
 036 43 0  3636      3349  0 0000 44 3771         STP   FLTCX         OTHERWISE GENERATE EXTRACT
@@ -8709,7 +8717,7 @@ END OF PASS 1, ERRORS = 0
 037 78 0  3771      3464  0 1288 37 3473         BFR   B+,12,88
 037 79 0  3772      3465  0 0001 49 0006         SLT   6
 037 80 0  3773      3466  0 5104 36 3479         BFA   A+,51,4
-037 81 0  3774      3467  0 0221 18 0607         CFR   BUNV2,22
+037 81 0  3774      3467  0 2211 18 0607         CFR   BUNV2,22
 037 82 0  3775      3468  0 0000 35 3473         BCE   B+
 037 83 0  3776      3469  0 2200 37 3473         BFR   B+,22,0
 037 84 0  3777      3470  0 0000 44 1687         STP   WEMX
@@ -8723,7 +8731,7 @@ END OF PASS 1, ERRORS = 0
 037 92 0  3785      3478  0 0000 30 3022         BUN   GENX2
 037 93 0  3786      3479  0 0001 49 0002   *A    SLT   2
 037 94 0  3787      3480  0 2103 37 3473         BFR   B-,21,3
-037 95 0  3788      3481  0 0211 18 0240         CFR   V1,21         IF ARGUMENT TO LIBRARY FUNCTION
+037 95 0  3788      3481  0 2111 18 0240         CFR   V1,21         IF ARGUMENT TO LIBRARY FUNCTION
 037 96 0  3789      3482  0 0000 35 3473         BCE   B-            IS WRONG TYPE, CONVERT IT.
 037 97 0  3790      3483  0 6400 28 0552         DLB   TABSC+82,64,0
 037 98 0  3791      3484  0 2100 37 3486         BFR   *+2,21,0
@@ -8852,7 +8860,7 @@ END OF PASS 1, ERRORS = 0
 
 
 039 23 0  3916      3595  0 0000 41 4217   GCRV  LDR   LOCN          END OF SEGMENT
-039 24 0  3917      3596  0 0641 18 0202         CFR   LCMAX,64
+039 24 0  3917      3596  0 6411 18 0202         CFR   LCMAX,64
 039 25 0  3918      3597  0 0001 34 3599         BCL   *+2
 039 26 0  3919      3598  0 6411 40 0202         STR   LCMAX,64      SET LCMAX TO GREATEST LOCN
 039 27 0  3920      3599  0 0274 44 1755         STP   REMX,FUNS     USED IN SEGMENTS
@@ -9032,7 +9040,7 @@ END OF PASS 1, ERRORS = 0
 041 01 0  4094      3742  0 0000 30 3684         BUN   ACC4          NON-CURRENT OPERAND(S)
 041 02 0  4095      3743  0 0000 42 0275         LDB   OP
 041 03 0  4096      3744  1 0000 41 0000         LDR - 0             IF NEXT ITEM IN OPERATION STACK
-041 04 0  4097      3745  0 0671 18 0313         CFR   HYPH,67       IS A MINUS, REMOVE IT AND REVERSE
+041 04 0  4097      3745  0 6711 18 0313         CFR   HYPH,67       IS A MINUS, REMOVE IT AND REVERSE
 041 05 0  4098      3746  0 0001 35 3752         BCU   TSTOX         THE SIGN OF V1
 041 06 0  4099      3747  0 0275 44 1755         STP   REMX,OP
 041 07 0  4100      3748  0 3750 30 1750         BUN   REM,*+2
@@ -9069,7 +9077,7 @@ END OF PASS 1, ERRORS = 0
 041 38 0  4131      3774  1 0000 10 0001         CAD - 1
 041 39 0  4132      3775  0 0000 46 0229   FIXCM CLL   RR0
 041 40 0  4133      3776  0 2101 26 0229         IFL   RR0,21,1
-041 41 0  4134      3777  0 0000 18 4115         CFA   +6099999999
+041 41 0  4134      3777  0 0000 18 4110         CFA   +6099999999
 041 42 0  4135      3778  0 0000 34 3789         BCH   E+
 041 43 0  4136      3779  0 0002 45 0000   S3    CLR
 041 44 0  4137      3780  0 0001 48 0008         SRT   8
@@ -9155,32 +9163,32 @@ END OF PASS 1, ERRORS = 0
 042 24 0  4217      3857  0 0000 46 0229         CLL   RR0           I SPECIFIES WHETHER FLOATING OR FIXED
 042 25 0  4218      3858  0 0101 36 3873         BFA   X+,01,1
 042 26 0  4219      3859  0 0000 10 0309         CAD   TEMP1
-042 27 0  4220      3860  0 0671 18 0303         CFR   PLUS,67
+042 27 0  4220      3860  0 6711 18 0303         CFR   PLUS,67
 042 28 0  4221      3861  0 0001 35 3864         BCU   A+            COMPUTE V2 OP V1
 042 29 0  4222      3862  0 0000 22 0816         FAD   TEMP2         FAD
 042 30 0  4223      3863  0 0000 30 3889         BUN   ARTHB
-042 31 0  4224      3864  0 0671 18 0296   *A    CFR   DOT,67
+042 31 0  4224      3864  0 6711 18 0296   *A    CFR   DOT,67
 042 32 0  4225      3865  0 0001 35 3868         BCU   B+
 042 33 0  4226      3866  0 0000 24 0816         FMU   TEMP2         FMU
 042 34 0  4227      3867  0 0000 30 3889         BUN   ARTHB
-042 35 0  4228      3868  0 0671 18 0314   *B    CFR   SOLD,67
+042 35 0  4228      3868  0 6711 18 0314   *B    CFR   SOLD,67
 042 36 0  4229      3869  0 0001 35 3809         BCU   ARTHA
 042 37 0  4230      3870  0 0002 45 0000   SCNXX CLR                 CLR,FDV
 042 38 0  4231      3871  0 0000 25 0816         FDV   TEMP2
 042 39 0  4232      3872  0 0000 30 3889         BUN   ARTHB
 042 40 0  4233      3873  0 2101 26 0229   *X    IFL   RR0,21,1
 042 41 0  4234      3874  0 0000 10 0309         CAD   TEMP1
-042 42 0  4235      3875  0 0671 18 0303         CFR   PLUS,67
+042 42 0  4235      3875  0 6711 18 0303         CFR   PLUS,67
 042 43 0  4236      3876  0 0001 35 3879         BCU   A+
 042 44 0  4237      3877  0 0000 12 0816         ADD   TEMP2         ADD
 042 45 0  4238      3878  0 0000 30 3889         BUN   ARTHB
-042 46 0  4239      3879  0 0671 18 0296   *A    CFR   DOT,67
+042 46 0  4239      3879  0 6711 18 0296   *A    CFR   DOT,67
 042 47 0  4240      3880  0 0001 35 3885         BCU   B+
 042 48 0  4241      3881  0 0000 14 0816         MUL   TEMP2         MUL,SLT10
 042 49 0  4242      3882  0 0001 49 0010         SLT   10
 042 50 0  4243      3883  0 0000 37 3889         BZR   ARTHB
 042 51 0  4244      3884  0 0000 30 3900         BUN   V+
-042 52 0  4245      3885  0 0671 18 0314   *B    CFR   SOLD,67
+042 52 0  4245      3885  0 6711 18 0314   *B    CFR   SOLD,67
 042 53 0  4246      3886  0 0001 35 3809         BCU   ARTHA
 042 54 0  4247      3887  0 0001 48 0010         SRT   10
 042 55 0  4248      3888  0 0000 15 0816         DIV   TEMP2         SRT 10,DIV
@@ -9218,7 +9226,7 @@ END OF PASS 1, ERRORS = 0
 042 87 0  4280      3920  0 0001 49 0019         SLT   19
 042 88 0  4281      3921  0 1100 36 3919         BFA   *-2,11,0
 042 89 0  4282      3922  0 0001 49 0001         SLT   1
-042 90 0  4283      3923  0 0001 18 4100         CFR   XONE+1,00
+042 90 0  4283      3923  0 0011 18 4100         CFR   XONE+1,00
 042 91 0  4284      3924  0 0001 35 3809         BCU   ARTHA
 042 92 0  4285      3925  0 9998 20 3950         IBB   D+,9998       IS IT 1
 042 93 0  4286      3926  0 0000 10 0240         CAD   V1
@@ -9246,7 +9254,7 @@ END OF PASS 1, ERRORS = 0
 043 15 0  4308      3948  0 6248 37 3955         BFR   M+,62,48      THE RESULT IS THE OTHER OPERAND
 043 16 0  4309      3949  0 0000 30 3809         BUN   ARTHA         IF ZERO AND MULTIPLYING, THE RESULT
 043 17 0  4310      3950  0 0000 41 0216   *D    LDR   OPRTN         IS ZERO.
-043 18 0  4311      3951  0 0671 18 0296         CFR   DOT,67
+043 18 0  4311      3951  0 6711 18 0296         CFR   DOT,67
 043 19 0  4312      3952  0 0001 35 3809         BCU   ARTHA
 043 20 0  4313      3953  0 0001 42 0191   *C    LBC   I
 043 21 0  4314      3954  1 0000 10 0242         CAD - V3
@@ -9535,7 +9543,7 @@ END OF PASS 1, ERRORS = 0
 046 04 0  4597      4220  0 3001 00 0040         F244  30,100,40     THE 64-FIELDS OF THESE CODES
 046 05 0  4598      4221  0 3001 00 0050         F244  30,100,50     ARE FIXED UP TO THE NUMBER
 046 06 0  4599      4222  0 3101 00 0060   FIX   F244  31,100,60     OF LOCATIONS USED BY THE ROUTINES,
-046 07 0  4600      4223  2 4649 67 0000         CNST  $FIX$         THE THE LIBRARY PROCESSOR.
+046 07 0  4600      4223  2 4649 67 0000         CNST  $FIX$         BY THE LIBRARY PROCESSOR.
 046 08 0  4601      4224  0 3001 00 0071   FLOAT F244  30,100,71
 046 09 0  4602      4225  2 4653 56 4163         CNST  $FLOAT$
 046 10 0  4603      4226  0 3001 00 0080   MONTR F244  30,100,80
@@ -9821,13 +9829,13 @@ END OF PASS 1, ERRORS = 0
 
 046 69 0  4662      4761                         LOCN  LOC
 046 70 0  4663      4109                         FINI  1
-                    4109  0 9999 99 9999               +9999999999
-                    4110  0 6034 03 7172               +6034037172
-                    4111  0 0371 72 0000               +0371720000
-                    4112  0 4959 04 5600               +4959045600
-                    4113  0 4959 03 5600               +4959035600
-                    4114  0 5822 57 0000               +5822570000
-                    4115  0 6099 99 9999               +6099999999
+                    4109  0 0371 72 0000               +0371720000
+                    4110  0 6099 99 9999               +6099999999
+                    4111  0 5822 57 0000               +5822570000
+                    4112  0 9999 99 9999               +9999999999
+                    4113  0 6034 03 7172               +6034037172
+                    4114  0 4959 03 5600               +4959035600
+                    4115  0 4959 04 5600               +4959045600
 
 
 SYMBOL TABLE
@@ -9885,12 +9893,12 @@ SYMBOL TABLE
  2801 *F.12          2887 *F.13          2932 *F.14          3156 *F.15          3327 *F.16
  3330 *F.17          3546 *F.18            16 *G..1           979 *G..2          1216 *G..3
  1343 *G..4          1479 *G..5          2339 *G..6          2786 *G..7          2891 *G..8
- 3538 *G..9          1001 *H..1          1693 *H..2          2796 *H..3          2797 *H..4
- 2912 *H..5          3552 *H..6          3984 *H..7          4513 *H..8           987 *I..1
- 2333 *I..2          2807 *I..3          4002 *I..4          1015 *J..1          1431 *J..2
- 2327 *J..3          1025 *K..1          1470 *K..2          2313 *K..3          3257 *K..4
- 3985 *K..5          1454 *L..1          2089 *L..2          2129 *L..3           999 *M..1
- 1041 *M..2          1471 *M..3          1480 *M..4          3262 *M..5          3955 *M..6
+ 3538 *G..9          1001 *H..1          1480 *H..2          1693 *H..3          2796 *H..4
+ 2797 *H..5          2912 *H..6          3552 *H..7          3984 *H..8          4513 *H..9
+  987 *I..1          2333 *I..2          2807 *I..3          4002 *I..4          1015 *J..1
+ 1431 *J..2          2327 *J..3          1025 *K..1          1470 *K..2          2313 *K..3
+ 3257 *K..4          3985 *K..5          1454 *L..1          2089 *L..2          2129 *L..3
+  999 *M..1          1041 *M..2          1471 *M..3          3262 *M..4          3955 *M..5
  1031 *N..1          1488 *N..2          2110 *N..3           997 *P..1          1500 *P..2
  1565 *P..3          2303 *P..4          1013 *Q..1          1561 *Q..2          2041 *Q..3
  2306 *Q..4          2785 *Q..5          3114 *Q..6          3918 *Q..7          3937 *Q..8
@@ -9901,8 +9909,8 @@ SYMBOL TABLE
  3555 *W..3          1477 *X..1          1575 *X..2          3252 *X..3          3556 *X..4
  3873 *X..5          3913 *X..6          1475 *Y..1          1579 *Y..2          3251 *Y..3
  3260 *Y..4          3346 *Y..5            50 *Z..1          1473 *Z..2          3294 *Z..3
- 3357 *Z..4          4111 +0371720000    4113 +4959035600    4112 +4959045600    4114 +5822570000
- 4110 +6034037172    4115 +6099999999    4109 +9999999999     174 ABASE           556 ABSGN
+ 3357 *Z..4          4109 +0371720000    4114 +4959035600    4115 +4959045600    4111 +5822570000
+ 4113 +6034037172    4110 +6099999999    4112 +9999999999     174 ABASE           556 ABSGN
  3666 ACC            3667 ACC1           3668 ACC2           3680 ACC3           3684 ACC4
   175 ACCUM          2820 ACCX           4047 ACTBL           579 ADDL1           577 ADDV1
   578 ADDV2           652 ADDX1          1290 ALEPH           256 ALPHA          1399 ALPLU
@@ -10061,4 +10069,5 @@ SYMBOL TABLE
  4103 XTWO            291 XVP            4095 XZERO          3993 YETH           2640 YSUB1
  2646 YSUB2          2674 YSUBX          1588 ZETA           3760 ZHE            1288 ZUTA
 
-END OF PASS 2, ERRORS = 0
+END PASS 2, ERRORS = 0
+

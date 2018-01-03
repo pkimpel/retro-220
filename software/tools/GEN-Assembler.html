@@ -169,8 +169,7 @@ LABEL {
     <button id=SelectListing type=button>Select Listing</button>
 </div>
 
-<div id=TextDiv>
-    <pre id=TextPanel></pre>
+<div id=TextDiv><pre id=TextPanel></pre>
 </div>
 
 
@@ -3028,6 +3027,7 @@ window.addEventListener("load", function() {
 
             $$("CRFileSelector").value = null;  // reset the <input> elements
             $$("CRPoolSelector").value = null;  // so they can be reused
+            poolSets.length = 1;                // discard any poolSets that were loaded
             $$("TextDiv").removeChild($$("Spinner"));   // remove the spinner image
         }
     }
@@ -3079,7 +3079,7 @@ window.addEventListener("load", function() {
     }
 
     /**************************************/
-    function loadpoolSets(ev) {
+    function loadPoolsets(ev) {
         /* Handle the <input type=file> onchange event when a file for a
         pre-loaded literal pool set is selected */
         var f = ev.target.files[0];
@@ -3207,7 +3207,7 @@ window.addEventListener("load", function() {
     }
 
     $$("CRPoolSelector").value = null;  // clear any prior pool selection
-    $$("CRPoolSelector").addEventListener("change", loadpoolSets, false);
+    $$("CRPoolSelector").addEventListener("change", loadPoolsets, false);
     $$("CRFileSelector").value = null;  // clear any prior file selection
     $$("CRFileSelector").addEventListener("change", loadSourceFile, false);
 

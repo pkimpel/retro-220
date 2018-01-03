@@ -80,7 +80,7 @@ lines (blocks), and replace line 88 (1-relative), which should be a zero
 block reading "0,100", with "0,100,99999999999". This is an EOF sentinel
 marking the end of the library routines (which aren't there yet).
 
-16. Save the modified tape image as BAC-220-Generator.tape. This is the
+16. Save the modified tape image as BAC-220-Generator.tape. This is a
 skeleton version of the "BAC-220 Generator Tape" mentioned in Appendix A
 of the Burroughs Algebraic Compiler manual, Revised Edition, March 1963.
 
@@ -130,17 +130,19 @@ statements in the card deck.
 built from the routines in the Generator bootstrap deck and stored on
 the compiler tape on unit 2. The routine names will be listed on the SPO
 as they are processed. At the end, the program will rewind both tapes.
-If the PUNCH LIBRARY statement is present in the bootstrap deck, the
+
+22. If the PUNCH LIBRARY statement is present in the bootstrap deck, the
 program will punch a new library deck to Cardatron punch 1, leaving tape
-unit 2 up-tape at the end. The program will finally halt with
-7250 00 0757 (KO) in C.
+unit 2 up-tape at the end. Save this output deck for possible use in
+modifying the library later.
 
-22. Unload the tape from unit 2 and save the image as BAC-220-
-Compiler.tape. This is a loadable version of the BALGOL compiler and
-library, but has been generated primarily to harvest the library
-routines and data structures for insertion into the Generator tape.
+23. The program will finally halt with 7250 00 0757 (KO) in C. Unload
+the tape from unit 2 and save the image as BAC-220-Compiler.tape. This
+is a loadable version of the BALGOL compiler and library, but has been
+generated primarily to harvest the library routines and data structures
+for insertion into the Generator tape.
 
-23. Open both the BAC-220-Compiler.tape and BAC-220-Generator.tape files
+24. Open both the BAC-220-Compiler.tape and BAC-220-Generator.tape files
 in a text editor:
 
     a. Copy blocks 41-43 (1-relative) from the GENERATOR tape and
@@ -155,23 +157,24 @@ in a text editor:
     establishes an initial symbol table for the compiler that includes
     the entries for the library functions.
 
-    c. Copy blocks from the COMPILER tape, starting at 85 (1-relative)
+    c. Copy from the COMPILER tape, starting at block 85 (1-relative)
     through and including the "0,100,99999999999" EOF sentinel block,
-    replacing a like number of blocks (36 for the standard library),
-    starting with the "0,100,99999999999" EOF sentinel at block 88 (1-
-    relative) in the GENERATOR tape. These blocks comprise the library
-    table and the object code for the library routines.
+    replacing a like number of blocks in the GENERATOR tape (36 for the
+    standard library), starting with the "0,100,99999999999" EOF
+    sentinel at block 88 (1- relative). These blocks comprise the
+    library table and the object code for the library routines.
 
     d. Save the Generator tape file, which is now ready for use in
     preparing other versions of the Compiler.
 
-24. Now regenerate a Compiler tape using the BAC-220-Generator-
+25. Now regenerate a Compiler tape using the BAC-220-Generator-
 Callout.card deck to make sure the generator is working properly. This
 deck omits the PROCESS LIBRARY statement and the library object decks.
 
 
 Paul Kimpel
 December 2017
+
 
 
 

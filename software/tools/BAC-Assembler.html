@@ -164,8 +164,7 @@ LABEL {
     <button id=SelectListing type=button>Select Listing</button>
 </div>
 
-<div id=TextDiv>
-    <pre id=TextPanel></pre>
+<div id=TextDiv><pre id=TextPanel></pre>
 </div>
 
 
@@ -230,8 +229,13 @@ window.addEventListener("load", function() {
     var errorTank = [];                 // holding area for errors on current line
     var location = 0;                   // current instruction address
     var pointTab = {};                  // Point-label table: holds the current sequence number for each point label
+    var poolLocation = NaN;             // address of the current literal pool
+    var poolSetName = "";               // name of optional pool set data file
     var poolTab = {};                   // Pool literal table: holds address of the literal word
     var symTab = {};                    // Symbol table: holds the address value for each label
+
+    var poolSets = [                    // skeleton table of pre-loaded pools for default program unit #0
+        {poolLoc: NaN, poolData: []}];
 
     var p10 = [     1,                  // powers of 10 table
                    10,
@@ -333,27 +337,27 @@ window.addEventListener("load", function() {
         "PWI":  [  7,  1, -1,  4, -1],
         "KAD":  [  8,  1,  0,  3,  0],
         "SPO":  [  9,  1, -1,  8, -1, 15,  0],
-        "CAD":  [ 10,  1, -1,  2,  0],
-        "CAA":  [110,  1, -1,  2,  0],
-        "CSU":  [ 11,  1, -1,  2,  0],
-        "CSA":  [111,  1, -1,  2,  0],
-        "ADD":  [ 12,  1, -1,  2,  0],
-        "ADA":  [112,  1, -1,  2,  0],
-        "SUB":  [ 13,  1, -1,  2,  0],
-        "SUA":  [113,  1, -1,  2,  0],
+        "CAD":  [ 10,  1, -1],
+        "CAA":  [110,  1, -1],
+        "CSU":  [ 11,  1, -1],
+        "CSA":  [111,  1, -1],
+        "ADD":  [ 12,  1, -1],
+        "ADA":  [112,  1, -1],
+        "SUB":  [ 13,  1, -1],
+        "SUA":  [113,  1, -1],
         "MUL":  [ 14,  1, -1,  3,  0],
         "DIV":  [ 15,  1, -1,  3,  0],
         "RND":  [ 16,  1,  0,  3,  0],
         "EXT":  [ 17,  1, -1,  3,  0],
         "CFA":  [ 18,  1, -1,  6,  0],
-        "CFR":  [118,  1, -1,  2,  0],
+        "CFR":  [118,  1, -1,  6,  0],
         "ADL":  [ 19,  1, -1,  3,  0],
         "IBB":  [ 20,  1, -1,  3, -1],
         "DBB":  [ 21,  1, -1,  3, -1],
-        "FAD":  [ 22,  1, -1,  2,  0,  4,  0],
-        "FAA":  [122,  1, -1,  2,  0,  4,  0],
-        "FSU":  [ 23,  1, -1,  2,  0,  4,  0],
-        "FSA":  [123,  1, -1,  2,  0,  4,  0],
+        "FAD":  [ 22,  1, -1,  4,  0],
+        "FAA":  [122,  1, -1,  4,  0],
+        "FSU":  [ 23,  1, -1,  4,  0],
+        "FSA":  [123,  1, -1,  4,  0],
         "FMU":  [ 24,  1, -1,  3,  0],
         "FDV":  [ 25,  1, -1,  3,  0],
         "IFL":  [ 26,  1, -1,  7, -1,  9, -1],
@@ -650,41 +654,6 @@ window.addEventListener("load", function() {
             cardData.text = card;
             bufferOffset = bx;
         }
-    }
-
-    /**************************************/
-    function fileLoader_onLoad(ev) {
-        /* Handles the onload event for a readAsText FileReader */
-
-        buffer = ev.target.result;
-        bufferOffset = 0;
-        bufferLength = buffer.length;
-        $$("CRFileSelector").value = null;
-        setTimeout(assembleFile, 100);
-    }
-
-    /**************************************/
-    function fileSelector_onChange(ev) {
-        /* Handle the <input type=file> onchange event when a file is selected */
-        var e;                          // spinner image DOM element
-        var f = ev.target.files[0];
-        var reader = new FileReader();
-
-        sourceName = f.name;
-        /********************
-        alert("File selected: " + f.name +
-                "\nModified " + f.lastModifiedDate +
-                "\nType=" + f.type + ", Size=" + f.size + " octets");
-        ********************/
-
-        // initiate the spinner to run while compiling
-        e = document.createElement("img");
-        e.src = "../../webUI/resources/ajax-spinner.gif";
-        e.id = "Spinner";
-        $$("TextDiv").appendChild(e);
-
-        reader.onload = fileLoader_onLoad;
-        reader.readAsText(f);
     }
 
     /**************************************/
@@ -1893,9 +1862,26 @@ window.addEventListener("load", function() {
             setTimeout(initializeAssembly, 100);
         } else {                        // We're done, just exit
             $$("CRFileSelector").value = null;  // reset the <input> elements
+            $$("CRPoolSelector").value = null;  // so they can be reused
+            poolSets.length = 1;                // discard any poolSets that were loaded
             $$("TextDiv").removeChild($$("Spinner"));   // remove the spinner image
             // And... we're done -- just fall out of the script.
         }
+    }
+
+    /**************************************/
+    function initializeLiteralPool(unitNr) {
+        /* Initializes the literal pool prior to assembly. If data for a pool
+        has been pre-loaded for this program, then initialize the pool with
+        that location and data; otherwise initialize it to the default in
+        poolSets[0] */
+        var thisSet = poolSets[unitNr] || poolSets[0];
+        var x = 0;                      // scratch index
+
+        poolLocation = thisSet.poolLoc;
+        for (x=0; x<thisSet.poolData.length; ++x) {
+            symTab[thisSet.poolData[x]] = poolLocation+x;
+        } // for x
     }
 
     /**************************************/
@@ -1926,6 +1912,7 @@ window.addEventListener("load", function() {
         symTab = {};
         symTab["RLO"] = 1;              // kludge for CWR reload-lockout field
         symTab["BMOD"] = 8;             // kludge for MRD/MNC B-modify address field
+        initializeLiteralPool(1);
 
         startPass1();
     }
@@ -1947,7 +1934,7 @@ window.addEventListener("load", function() {
                 case "ASMBL":
                 case "HEAD ":
                 case "REORD":
-                    printLine(padRight("", 8+5+4+3+8+4+6) +
+                    printLine(padRight("", 8+5+4+3+6) +
                             cardData.text.substring(opCodeIndex, operandIndex+operandLength).trim());
                     break;
                 default:
@@ -1985,9 +1972,13 @@ window.addEventListener("load", function() {
     /**************************************/
     function buildPoolPass1() {
         /* Builds the initial literal pool from symbols encountered in Pass 1 */
-        var label;
-        var text;
+        var keys;                       // addresses for pool words
+        var label;                      // pool entry ID
+        var text;                       // scratch string
+        var x;                          // scratch index
+        var xref = {};                  // hash used to build address keys for sorting
 
+        // First, extract all the viable pool entries for sorting
         for (label in poolTab) {
             if (label.charAt(0) != ".") {
                 text = label;
@@ -1999,11 +1990,26 @@ window.addEventListener("load", function() {
                 delete poolTab[label];
             }
 
-            poolTab[text] = location;
-            symTab[text] = location;
-            printPass1("", location, "", "", "", text);
-            ++location;
-        }
+            if (text in symTab) {
+                poolTab[text] = symTab[text];
+            } else {
+                poolTab[text] = location;
+                symTab[text] = location;
+                ++location;
+            }
+
+            xref[padLeft(symTab[text], 4, "0")] = text;
+        } // for label
+
+        // Now extract the address keys and sort them.
+        keys = Object.keys(xref).sort();
+
+        // Finally, build the pool in address sequence from the sorted keys
+        for (x=0; x<keys.length; ++x) {
+            label = xref[keys[x]];
+            location = symTab[label];
+            printPass1("", symTab[label], "", "", "", label);
+        } // for x
     }
 
     /**************************************/
@@ -2500,6 +2506,101 @@ window.addEventListener("load", function() {
     }
 
     /**************************************/
+    function loadPoolsets(ev) {
+        /* Handle the <input type=file> onchange event when a file for a
+        pre-loaded literal pool set is selected */
+        var f = ev.target.files[0];
+        var reader = new FileReader();
+
+        function poolLoader_onLoad(ev) {
+            /* Handles the onload event for a readAsText FileReader */
+            var sets = null;
+            var thisSet = null;
+            var unitNr = 0;
+            var x = 0;
+
+            poolSets.length = 1;        // remove any old entries
+            try {
+                sets = JSON.parse(ev.target.result);
+                if (!(typeof sets == "object" && "poolSet" in sets)) {
+                    printError("POOL DATA MUST BE AN OBJECT AND CONTAIN A \"POOLSET\" PROPERTY");
+                } else if (!(sets.poolSet instanceof Array)) {
+                    printError("POOL DATA \"POOLSET\" PROPERTY MUST BE AN ARRAY");
+                } else {
+                    sets = sets.poolSet;
+                    for (x=0; x<sets.length; ++x) {
+                        thisSet = sets[x];
+                        unitNr = x+1;
+                        if (thisSet === null) {
+                            poolSets[unitNr] = null;    // allow an empty poolSet entry
+                        } else if (typeof thisSet != "object") {
+                            printError("POOLSET FOR PROGRAM UNIT #" + unitNr + " MUST BE AN OBJECT");
+                        } else if (!("poolLoc" in thisSet && typeof thisSet["poolLoc"] == "number")) {
+                            printError("POOLSET FOR PROGRAM UNIT #" + unitNr + " MUST HAVE NUMERIC \"POOLLOC\" PROPERTY");
+                        } else if (!("poolData" in thisSet && thisSet["poolData"] instanceof Array)) {
+                            printError("POOLSET FOR PROGRAM UNIT #" + unitNr + " MUST HAVE ARRAY \"POOLDATA\" PROPERTY");
+                        } else {
+                            poolSets[unitNr] = thisSet;
+                        }
+                    } // for x
+                }
+            } catch (e) {
+                printError("ERROR PARSING PRE-LOADED POOL DATA JSON:");
+                printError(e.toString());
+            }
+
+            if (errorCount > 0) {
+                dumpErrorTank();
+                errorCount = 0;
+                $$("CRPoolSelector").value = null;
+            }
+        }
+
+        poolSetName = f.name;
+        /********************
+        alert("Pool Data file selected: " + f.name +
+                "\nModified " + f.lastModifiedDate +
+                "\nType=" + f.type + ", Size=" + f.size + " octets");
+        ********************/
+
+        reader.onload = poolLoader_onLoad;
+        reader.readAsText(f);
+    }
+
+    /**************************************/
+    function loadSourceFile(ev) {
+        /* Handle the <input type=file> onchange event when a file is selected */
+        var e;                          // spinner image DOM element
+        var f = ev.target.files[0];
+        var reader = new FileReader();
+
+        function fileLoader_onLoad(ev) {
+            /* Handles the onload event for a readAsText FileReader */
+
+            buffer = ev.target.result;
+            bufferOffset = 0;
+            bufferLength = buffer.length;
+            setTimeout(assembleFile, 100);
+        }
+
+        sourceName = f.name;
+        /********************
+        alert("File selected: " + f.name +
+                "\nModified " + f.lastModifiedDate +
+                "\nType=" + f.type + ", Size=" + f.size + " octets");
+        ********************/
+
+        // initiate the spinner to run while compiling
+        e = document.createElement("img");
+        e.src = "../../webUI/resources/ajax-spinner.gif";
+        e.id = "Spinner";
+        $$("TextDiv").appendChild(e);
+
+        reader.onload = fileLoader_onLoad;
+        reader.readAsText(f);
+    }
+
+    /**************************************/
     function checkBrowser() {
         /* Checks whether this browser can support the necessary stuff */
         var missing = "";
@@ -2526,8 +2627,10 @@ window.addEventListener("load", function() {
         return;
     }
 
+    $$("CRPoolSelector").value = null;  // clear any prior pool selection
+    $$("CRPoolSelector").addEventListener("change", loadPoolsets, false);
     $$("CRFileSelector").value = null;  // clear any prior file selection
-    $$("CRFileSelector").addEventListener("change", fileSelector_onChange, false);
+    $$("CRFileSelector").addEventListener("change", loadSourceFile, false);
 
     pass1List = $$("Pass1ListCheck").checked;
     $$("Pass1ListCheck").addEventListener("click", function(ev) {
