@@ -1,0 +1,32 @@
+0200                   BAC-220 STANDARD VERSION   2/1/62
+
+0200      COMMENT PROGRAM SUBMITTED WITH A PROBLEM REPORT BY RONALD L. ADAMS
+
+0200              OF THE UNIVERSITY OF DAYTON, 1963-06-17$
+
+0200
+
+0200      COMMENT   THIS PROGRAM IS NOT OK$
+
+0200      INTEGER ECM$
+                                                 0200     0000 30
+                                                 0201     4999 01 0201
+                                                 0202     0000 40 4998 TEMP
+                                                 0203     0000 30 0000
+                                                 0204     0000 10 4997 CONST
+                                                 0205     0000 22 4999 A
+                                                 0206     0000 40 4999 A
+                                                 0207     0000 42 0201
+                                                 0208     0000 30 0030
+
+0200      PROCEDURE X(A$A)$  BEGIN A = A + 2$  RETURN  END$
+                                                 0203             0209
+                                                 0209     0000 30 0204
+                                                 0200             0210
+
+0210      FINISH$
+                                                 0210     9669 00 9669
+                                                 0211     1000 60 0000
+                                                 4997     5120 00 0000 POOL
+COMPILED PROGRAM ENDS AT 0211
+PROGRAM VARIABLES BEGIN AT 4997

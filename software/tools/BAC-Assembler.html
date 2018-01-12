@@ -98,15 +98,11 @@ LABEL {
     width:              100%;
     border:             1px solid white}
 
-#OptionsPanel {
+#OptionsTable {
     position:           relative;
     margin-top:         4px;
     margin-bottom:      4px;
     width:              640px}
-
-#SelectListing {
-    position:           absolute;
-    right:              0px}
 
 #TextDiv {
     position:           relative;
@@ -133,6 +129,11 @@ LABEL {
     top:                200px;
     left:               200px;
     z-index:            10}
+
+.center {
+    text-align:         center}
+.rj {
+    text-align:         right}
 </style>
 </head>
 
@@ -151,21 +152,34 @@ LABEL {
     </table>
 </div>
 
-<div id=OptionsPanel>
-    <input id=Pass1ListCheck type=checkbox value=1>
-    <label for=Pass1ListCheck>Pass 1 Listing</label>
-    &nbsp;&nbsp;
-    <input id=Pass2ListCheck type=checkbox value=1 CHECKED>
-    <label for=Pass2ListCheck>Pass 2 Listing</label>
-    &nbsp;&nbsp;
-    <input id=ChecksumCheck type=checkbox value=1>
-    <label for=ChecksumCheck>Write Checksum</label>
+<table id=OptionsTable>
+<thead>
+<tr>
+    <th><label for=Pass1ListCheck>List Pass 1</label>
+    <th><label for=Pass2ListCheck>List Pass 2</label>
+    <th><label for=ChecksumCheck>Write Checksum</label>
+    <th><label for=OutputModeSelect>Output Mode</label>
+    <th>&nbsp;
+<tbody>
+<tr>
+    <td class=center>
+        <input id=Pass1ListCheck type=checkbox value=1>
+    <td class=center>
+        <input id=Pass2ListCheck type=checkbox value=1 CHECKED>
+    <td class=center>
+        <input id=ChecksumCheck type=checkbox value=1>
+    <td class=center>
+        <select id=OutputModeSelect>
+             <option value=""        >No Object
+             <option value=L SELECTED>Loadable Deck
+             <option value=M         >BALGOL ML Deck
+             <option value=T         >Object Tape
+         </select>
+    <td class=rj>
+        <button id=SelectListing type=button>Select Listing</button>
+</table>
 
-    <button id=SelectListing type=button>Select Listing</button>
-</div>
-
-<div id=TextDiv><pre id=TextPanel></pre>
-</div>
+<div id=TextDiv><pre id=TextPanel></pre></div>  <!-- Don't add any whitespace! -->
 
 
 <script>
@@ -202,6 +216,7 @@ window.addEventListener("load", function() {
     var outputChecksum = false;
 
     var panel = $$("TextPanel");
+    var cardReaderUnit = 1;             // Cardatron output unit number for card decks
 
     // Token.type values
     var tokEmpty = 0;                   // empty primary
@@ -223,7 +238,7 @@ window.addEventListener("load", function() {
         newOffset: -1};
 
     // Assembly storage
-    var asmCode = [];
+    var asmCode = [];                   // buffer for assembled words of code
     var autoSymTab = {};                // auto-declared (undefined) symbol table
     var errorCount = 0;                 // assembler error count
     var errorTank = [];                 // holding area for errors on current line
@@ -232,6 +247,7 @@ window.addEventListener("load", function() {
     var poolLocation = NaN;             // address of the current literal pool
     var poolSetName = "";               // name of optional pool set data file
     var poolTab = {};                   // Pool literal table: holds address of the literal word
+    var startAddress = -1;              // starting execution address, from FINI card
     var symTab = {};                    // Symbol table: holds the address value for each label
 
     var poolSets = [                    // skeleton table of pre-loaded pools for default program unit #0
@@ -255,7 +271,7 @@ window.addEventListener("load", function() {
      1000000000000000,
     10000000000000000];
 
-    var xlateANSI220 = [ // translate ASCII to 220 internal character codes
+    var xlateANSI220 = [ // translate ANSI to 220 internal character codes
        // 00  01  02  03  04  05  06  07  08  09  0A  0B  0C  0D  0E  0F
            0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  //  0-0F
            0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  // 10-1F
@@ -265,6 +281,19 @@ window.addEventListener("load", function() {
           57, 58, 59, 62, 63, 64, 65, 66, 67, 68, 69,  0,  0,  0,  0,  0,  // 50-5F
            0, 41, 42, 43, 44, 45, 46, 47, 48, 49, 51, 52, 53, 54, 55, 56,  // 60-6F
           57, 58, 59, 62, 63, 64, 65, 66, 67, 68, 69,  0,  0,  0,  0,  0]; // 70-7F
+
+    var xlate220ANSI = [ // translate internal B220 code to ANSI (Algol glyphs)
+        // 00   01   02   03   04        05    06    07   08   09
+          " ", "?", "9", ".", ")",      "?",  "?",  "?", "?", "?",  // 00-09
+          "+", "?", "?", "$", "*",      "*",  "$",  "?", "?", "?",  // 10-19
+          "-", "/", "?", ",", "(",      "?",  ",",  "?", "?", "?",  // 20-29
+          "?", "?", "?", "=", "@",      "\\", "?",  "?", "?", "?",  // 30-39
+          "?", "A", "B", "C", "D",      "E",  "F",  "G", "H", "I",  // 40-49
+          "?", "J", "K", "L", "M",      "N",  "O",  "P", "Q", "R",  // 50-59
+          "?", "?", "S", "T", "U",      "V",  "W",  "X", "Y", "Z",  // 60-69
+          "?", "?", "?", "?", "?",      "?",  "?",  "?", "?", "?",  // 70-79
+          "0", "1", "2", "3", "4",      "5",  "6",  "7", "8", "9",  // 80-89
+          "?", "?", "?", "?", "?",      "?",  "?",  "?", "?", "?"]; // 90-99
 
     var signValues = {                  // numeric values of sign column
         " ": 0,
@@ -328,111 +357,110 @@ window.addEventListener("load", function() {
     var pseudoFINI = -9;
 
     var opTab = {
-        "HLT":  [  0,  1,  0,  3,  0],
-        "NOP":  [  1,  1,  0,  3,  0],
-        "PRD":  [  3,  1, -1,  4, -1,  8, -1,  5,  0],
-        "PRB":  [  4,  1, -1,  4, -1,  5,  0,  8,  0],
-        "PRI":  [  5,  1, -1,  4, -1,  8, -1,  5,  0],
-        "PWR":  [  6,  1, -1,  4, -1,  8, -1],
-        "PWI":  [  7,  1, -1,  4, -1],
-        "KAD":  [  8,  1,  0,  3,  0],
-        "SPO":  [  9,  1, -1,  8, -1, 15,  0],
-        "CAD":  [ 10,  1, -1],
-        "CAA":  [110,  1, -1],
-        "CSU":  [ 11,  1, -1],
-        "CSA":  [111,  1, -1],
-        "ADD":  [ 12,  1, -1],
-        "ADA":  [112,  1, -1],
-        "SUB":  [ 13,  1, -1],
-        "SUA":  [113,  1, -1],
-        "MUL":  [ 14,  1, -1,  3,  0],
-        "DIV":  [ 15,  1, -1,  3,  0],
-        "RND":  [ 16,  1,  0,  3,  0],
-        "EXT":  [ 17,  1, -1,  3,  0],
-        "CFA":  [ 18,  1, -1,  6,  0],
-        "CFR":  [118,  1, -1,  6,  0],
-        "ADL":  [ 19,  1, -1,  3,  0],
-        "IBB":  [ 20,  1, -1,  3, -1],
-        "DBB":  [ 21,  1, -1,  3, -1],
-        "FAD":  [ 22,  1, -1,  4,  0],
-        "FAA":  [122,  1, -1,  4,  0],
-        "FSU":  [ 23,  1, -1,  4,  0],
-        "FSA":  [123,  1, -1,  4,  0],
-        "FMU":  [ 24,  1, -1,  3,  0],
-        "FDV":  [ 25,  1, -1,  3,  0],
-        "IFL":  [ 26,  1, -1,  7, -1,  9, -1],
-        "DFL":  [ 27,  1, -1,  7, -1,  9, -1],
-        "DLB":  [ 28,  1, -1,  7, -1,  9, -1],
-        "RTF":  [ 29,  1, -1,  8, -1],
-        "BUN":  [ 30,  1, -1,  3,  0],
-        "BOF":  [ 31,  1, -1,  3,  0],
-        "BRP":  [ 32,  1, -1,  3,  0],
-        "BSA":  [ 33,  1, -1,  5, -1,  2,  0],
-        "BPA":  [ 33,  1, -1,  5,  0,  2,  0],
-        "BMA":  [ 33,  1, -1,  5,  1,  2,  0],
-        "BCH":  [ 34,  1, -1,  2,  0],
-        "BCL":  [134,  1, -1,  2,  0],
-        "BCE":  [ 35,  1, -1,  2,  0],
-        "BCU":  [135,  1, -1,  2,  0],
-        "BFA":  [ 36,  1, -1,  7, -1,  9, -1],
-        "BZA":  [ 36,  1, -1,  7,  0,  9,  0],
-        "BFR":  [ 37,  1, -1,  7, -1,  9, -1],
-        "BZR":  [ 37,  1, -1,  7,  0,  9,  0],
-        "BCS":  [ 38,  1, -1,  4,  0],
-        "SOR":  [ 39,  1,  0,  2,  0],
-        "SOH":  [139,  1,  0,  2,  0],
-        "IOM":  [239,  1, -1,  2,  0],
-        "STA":  [ 40,  1, -1,  6,  0],
-        "STR":  [140,  1, -1,  6,  0],
-        "STB":  [240,  1, -1,  6,  0],
-        "LDR":  [ 41,  1, -1,  3,  0],
-        "LDB":  [ 42,  1, -1,  2,  0],
-        "LBC":  [142,  1, -1,  2,  0],
-        "LSA":  [ 43,  5, -1,  1,  0,  2,  0],
-        "STP":  [ 44,  1, -1,  3,  0],
-        "CLA":  [145,  1,  0,  2,  0],
-        "CLR":  [245,  1,  0,  2,  0],
-        "CAR":  [345,  1,  0,  2,  0],
-        "CLB":  [445,  1,  0,  2,  0],
-        "CAB":  [545,  1,  0,  2,  0],
-        "CRB":  [645,  1,  0,  2,  0],
-        "CLT":  [745,  1,  0,  2,  0],
-        "CLL":  [ 46,  1, -1,  3,  0],
-        "SRA":  [ 48,  1, -1,  2,  0],
-        "SRT":  [148,  1, -1,  2,  0],
-        "SRS":  [248,  1, -1,  2,  0],
-        "SLA":  [ 49,  1, -1,  2,  0],
-        "SLT":  [149,  1, -1,  2,  0],
-        "SLS":  [249,  1, -1,  2,  0],
-        "MTS":  [ 50,  1, -1, 18, -1],
-        "MFS":  [4000050,
-                       1, -1, 18, -1],
-        "MLS":  [450, 18, -1,  1,  0],
-        "MRW":  [850, 18, -1,  1,  0],
-        "MDA":  [950, 18, -1,  1,  0],
-        "MTC":  [ 51,  1, -1, 18, -1,  5, -1],
-        "MFC":  [4000051,
-                       1, -1, 18, -1,  5, -1],
-        "MRD":  [ 52,  1, -1,  4, -1, 10, -1, 17,  0],
-        "MNC":  [152,  1, -1,  4, -1, 10, -1, 17,  0],
-        "MRR":  [ 53,  1, -1,  4, -1, 10, -1, 17,  0],
-        "MIW":  [ 54,  1, -1,  4, -1, 10, -1,  9,  0],
-        "MIR":  [ 55,  1, -1,  4, -1, 10, -1,  9,  0],
-        "MOW":  [ 56,  1, -1,  4, -1, 10, -1,  9,  0],
-        "MOR":  [ 57,  1, -1,  4, -1, 10, -1,  9,  0],
-        "MPF":  [ 58,  4, -1, 10, -1,  1,  0],
-        "MPB":  [158,  4, -1, 10, -1,  1,  0],
-        "MPE":  [258,  4, -1,  1,  0],
-        "MIB":  [ 59,  1, -1,  4, -1,  8,  0],
-        "MIE":  [159,  1, -1,  4, -1,  8,  0],
-        "CRD":  [ 60,  1, -1,  4, -1,  5,  0,  8,  0],
-        "CWR":  [ 61,  1, -1, 13, -1, 16,  0,  8,  0],
-        "CRF":  [ 62,  1, -1, 13, -1, 14,  0],
-        "CWF":  [ 63,  1, -1, 13, -1, 14,  0],
-        "CRI":  [ 64,  1, -1,  4, -1],
-        "CWI":  [ 65,  1, -1,  4, -1],
-        "HPW":  [ 66,  1, -1,  8, -1],
-        "HPI":  [ 67,  1,  0,  3,  0],
+        "HLT":  [      0,  1,  0,  3,  0],
+        "NOP":  [      1,  1,  0,  3,  0],
+        "PRD":  [      3,  1, -1,  4, -1,  8, -1,  5,  0],
+        "PRB":  [      4,  1, -1,  4, -1,  5,  0,  8,  0],
+        "PRI":  [      5,  1, -1,  4, -1,  8, -1,  5,  0],
+        "PWR":  [      6,  1, -1,  4, -1,  8, -1],
+        "PWI":  [      7,  1, -1,  4, -1],
+        "KAD":  [      8,  1,  0,  3,  0],
+        "SPO":  [      9,  1, -1,  8, -1, 15,  0],
+        "CAD":  [     10,  1, -1],
+        "CAA":  [    110,  1, -1],
+        "CSU":  [     11,  1, -1],
+        "CSA":  [    111,  1, -1],
+        "ADD":  [     12,  1, -1],
+        "ADA":  [    112,  1, -1],
+        "SUB":  [     13,  1, -1],
+        "SUA":  [    113,  1, -1],
+        "MUL":  [     14,  1, -1,  3,  0],
+        "DIV":  [     15,  1, -1,  3,  0],
+        "RND":  [     16,  1,  0,  3,  0],
+        "EXT":  [     17,  1, -1,  3,  0],
+        "CFA":  [     18,  1, -1,  6,  0],
+        "CFR":  [    118,  1, -1,  6,  0],
+        "ADL":  [     19,  1, -1,  3,  0],
+        "IBB":  [     20,  1, -1,  3, -1],
+        "DBB":  [     21,  1, -1,  3, -1],
+        "FAD":  [     22,  1, -1,  4,  0],
+        "FAA":  [    122,  1, -1,  4,  0],
+        "FSU":  [     23,  1, -1,  4,  0],
+        "FSA":  [    123,  1, -1,  4,  0],
+        "FMU":  [     24,  1, -1,  3,  0],
+        "FDV":  [     25,  1, -1,  3,  0],
+        "IFL":  [     26,  1, -1,  7, -1,  9, -1],
+        "DFL":  [     27,  1, -1,  7, -1,  9, -1],
+        "DLB":  [     28,  1, -1,  7, -1,  9, -1],
+        "RTF":  [     29,  1, -1,  8, -1],
+        "BUN":  [     30,  1, -1,  3,  0],
+        "BOF":  [     31,  1, -1,  3,  0],
+        "BRP":  [     32,  1, -1,  3,  0],
+        "BSA":  [     33,  1, -1,  5, -1,  2,  0],
+        "BPA":  [     33,  1, -1,  5,  0,  2,  0],
+        "BMA":  [     33,  1, -1,  5,  1,  2,  0],
+        "BCH":  [     34,  1, -1,  2,  0],
+        "BCL":  [    134,  1, -1,  2,  0],
+        "BCE":  [     35,  1, -1,  2,  0],
+        "BCU":  [    135,  1, -1,  2,  0],
+        "BFA":  [     36,  1, -1,  7, -1,  9, -1],
+        "BZA":  [     36,  1, -1,  7,  0,  9,  0],
+        "BFR":  [     37,  1, -1,  7, -1,  9, -1],
+        "BZR":  [     37,  1, -1,  7,  0,  9,  0],
+        "BCS":  [     38,  1, -1,  4,  0],
+        "SOR":  [     39,  1,  0,  2,  0],
+        "SOH":  [    139,  1,  0,  2,  0],
+        "IOM":  [    239,  1, -1,  2,  0],
+        "STA":  [     40,  1, -1,  6,  0],
+        "STR":  [    140,  1, -1,  6,  0],
+        "STB":  [    240,  1, -1,  6,  0],
+        "LDR":  [     41,  1, -1,  3,  0],
+        "LDB":  [     42,  1, -1,  2,  0],
+        "LBC":  [    142,  1, -1,  2,  0],
+        "LSA":  [     43,  5, -1,  1,  0,  2,  0],
+        "STP":  [     44,  1, -1,  3,  0],
+        "CLA":  [    145,  1,  0,  2,  0],
+        "CLR":  [    245,  1,  0,  2,  0],
+        "CAR":  [    345,  1,  0,  2,  0],
+        "CLB":  [    445,  1,  0,  2,  0],
+        "CAB":  [    545,  1,  0,  2,  0],
+        "CRB":  [    645,  1,  0,  2,  0],
+        "CLT":  [    745,  1,  0,  2,  0],
+        "CLL":  [     46,  1, -1,  3,  0],
+        "SRA":  [     48,  1, -1,  2,  0],
+        "SRT":  [    148,  1, -1,  2,  0],
+        "SRS":  [    248,  1, -1,  2,  0],
+        "SLA":  [     49,  1, -1,  2,  0],
+        "SLT":  [    149,  1, -1,  2,  0],
+        "SLS":  [    249,  1, -1,  2,  0],
+        "MTS":  [     50,  1, -1, 18, -1],
+        "MFS":  [4000050,  1, -1, 18, -1],
+        "MLS":  [    450, 18, -1,  1,  0],
+        "MRW":  [    850, 18, -1,  1,  0],
+        "MDA":  [    950, 18, -1,  1,  0],
+        "MTC":  [     51,  1, -1, 18, -1,  5, -1],
+        "MFC":  [4000051,  1, -1, 18, -1,  5, -1],
+        "MRD":  [     52,  1, -1,  4, -1, 10, -1, 17,  0],
+        "MNC":  [    152,  1, -1,  4, -1, 10, -1, 17,  0],
+        "MRR":  [     53,  1, -1,  4, -1, 10, -1, 17,  0],
+        "MIW":  [     54,  1, -1,  4, -1, 10, -1,  9,  0],
+        "MIR":  [     55,  1, -1,  4, -1, 10, -1,  9,  0],
+        "MOW":  [     56,  1, -1,  4, -1, 10, -1,  9,  0],
+        "MOR":  [     57,  1, -1,  4, -1, 10, -1,  9,  0],
+        "MPF":  [     58,  4, -1, 10, -1,  1,  0],
+        "MPB":  [    158,  4, -1, 10, -1,  1,  0],
+        "MPE":  [    258,  4, -1,  1,  0],
+        "MIB":  [     59,  1, -1,  4, -1,  8,  0],
+        "MIE":  [    159,  1, -1,  4, -1,  8,  0],
+        "CRD":  [     60,  1, -1,  4, -1,  5,  0,  8,  0],
+        "CNC":  [   1060,  1, -1,  4, -1,  5,  0],
+        "CWR":  [     61,  1, -1, 13, -1, 16,  0,  8,  0],
+        "CRF":  [     62,  1, -1, 13, -1, 14,  0],
+        "CWF":  [     63,  1, -1, 13, -1, 14,  0],
+        "CRI":  [     64,  1, -1,  4, -1],
+        "CWI":  [     65,  1, -1,  4, -1],
+        "HPW":  [     66,  1, -1,  8, -1],
+        "HPI":  [     67,  1,  0,  3,  0],
 
         // Pseudo-ops
         "DEFN": [pseudoDEFN,                    // define symbol
@@ -450,6 +478,9 @@ window.addEventListener("load", function() {
     };
 
 
+    /*******************************************************************
+    * Miscellaneous Utility Functions                                  *
+    *******************************************************************/
 
     /**************************************/
     function $$(id) {
@@ -602,6 +633,11 @@ window.addEventListener("load", function() {
         return result;
     }
 
+
+    /*******************************************************************
+    * Listing Utilities                                                *
+    *******************************************************************/
+
     /**************************************/
     function clearPanel() {
         /* Clears the text panel */
@@ -685,6 +721,38 @@ window.addEventListener("load", function() {
         ++errorCount;
         errorTank.push("******** " + msg);
     }
+
+    /**************************************/
+    function dumpSymbolTable() {
+        /* Dumps the contents of the symbol table to the text panel */
+        var keys;                       // sorted symbol table keys
+        var offset = 0;                 // print line offset
+        var text = "";                  // print line
+        var x;                          // scratch index
+
+        printLine("");
+        printLine("SYMBOL TABLE");
+        printLine("");
+
+        keys = Object.keys(symTab).sort();
+        for (x=0; x<keys.length; ++x) {
+            if (offset > 80) {
+                printLine(text);
+                text = "";
+                offset = 0;
+            }
+
+            text += padLeft(symTab[keys[x]], offset-text.length+5) + " " + keys[x];
+            offset += 20;
+        }
+
+        printLine(text);
+    }
+
+
+    /*******************************************************************
+    * Assembler Primitives                                             *
+    *******************************************************************/
 
     /**************************************/
     function declarePointLabel(label, location) {
@@ -836,8 +904,11 @@ window.addEventListener("load", function() {
         }
 
         if (x >= length) {
-            token.type = tokIncompleteString;
-            // printError("$-STRING NOT TERMINATED");
+            if (singleWord) {
+                printError("$-STRING NOT TERMINATED");
+            } else {
+                token.type = tokIncompleteString;
+            }
         } else {
             token.type = tokString;     // string is complete, so...
             ++x;                        // bypass the terminating "$"
@@ -1101,14 +1172,15 @@ window.addEventListener("load", function() {
         if (text.charAt(token.offset) != " ") {         // check for empty operand
             while (token.offset < length) {
                 values.push(evaluateAddress(text, token, resolved));
-                if (token.newOffset < length) {
-                    c = text.charAt(token.newOffset);
+                token.offset = token.newOffset;
+                if (token.offset < length) {
+                    c = text.charAt(token.offset);
                     if (c == ",") {
-                        token.offset = ++token.newOffset;   // continue with next field
+                        ++token.offset; // continue with next field
                     } else if (c == " ") {
                         break; // out of while loop
                     } else {
-                        ++token.newOffset;
+                        ++token.offset;
                         printError("INVALID OPERAND LIST: " + c);
                         break;
                     }
@@ -1736,188 +1808,6 @@ window.addEventListener("load", function() {
     }
 
     /**************************************/
-    function dumpSymbolTable() {
-        /* Dumps the contents of the symbol table to the text panel */
-        var keys;                       // sorted symbol table keys
-        var offset = 0;                 // print line offset
-        var text = "";                  // print line
-        var x;                          // scratch index
-
-        printLine("");
-        printLine("SYMBOL TABLE");
-        printLine("");
-
-        keys = Object.keys(symTab).sort();
-        for (x=0; x<keys.length; ++x) {
-            if (offset > 80) {
-                printLine(text);
-                text = "";
-                offset = 0;
-            }
-
-            text += padLeft(symTab[keys[x]], offset-text.length+5) + " " + keys[x];
-            offset += 20;
-        }
-
-        printLine(text);
-    }
-
-    /**************************************/
-    function generateObjectDeck() {
-        /* Formats the assembled object code as a BALGOL Machine-Language deck
-        in a temporary window. From there it can be save, copied, etc. */
-        var doc = null;                 // temp window document object
-        var deck = null;                // temp window text area
-        var pval = p10[10];             // modulus for a word's absolute value
-        var psign = pval*2;             // modulus for a word's sign bit
-        var title = "220 BAC-Assembler Object Deck";
-        var win = window.open("../../webUI/B220FramePaper.html", "BAC-Object-Deck",
-                "scrollbars,resizable,width=600,height=500");
-
-        function checksum(cksum, word) {
-            var sw = word%psign;        // will be the signed algebraic value of word
-
-            if (sw >= pval) {           // check if word has sign bit=1
-                sw = psign = sw;        // if so, make is algebraically negative
-            }
-
-            return (cksum+sw)%pval;     // compute the algebraic checksum
-        }
-
-        function writeCard(card, count, addr, seq) {
-
-            deck.appendChild(doc.createTextNode(
-                    "60" + padLeft(count, 1, "0") + padLeft(seq, 7, "0") +
-                    padLeft(addr, 4, "0") + card + "\n"));
-        }
-
-        function generateDeck(ev) {
-            var addr = 0;               // assembled code address
-            var card = "";              // text line for an 80-column card image
-            var cardAddr = 0;           // first address of words on card
-            var cksum = 0;              // algebraic value of the checksum word
-            var count = 0;              // number of words on card
-            var gapCount = 0;           // number of consecutive undefined words
-            var seq = 10;               // card sequence number
-            var word = undefined;       // object code word
-            var x = 0;                  // scratch index
-
-            win.removeEventListener("load", generateDeck, false);
-            doc = win.document;
-            doc.title = title;
-            deck = doc.getElementById("Paper");
-
-            while (addr < asmCode.length) {
-                word = asmCode[addr];
-                if (word === undefined) {
-                    ++gapCount;
-                } else {
-                    if (count > 5 || gapCount > 0) {
-                        writeCard(card, count, cardAddr, seq);
-                        card = "";
-                        cardAddr = addr;
-                        gapCount = 0;
-                        count = 0;
-                        seq += 10;
-                    }
-
-                    card += padLeft(word, 11, "0");
-                    ++count;
-                    cksum = checksum(cksum, word);
-                }
-
-                ++addr;
-            } // while addr
-
-            writeCard(card, count, cardAddr, seq);
-            if (outputChecksum) {
-                // Compute and output a card with the negative checksum at the next address
-                if (cksum < 0) {
-                    card = padLeft(-cksum, 11, "0");
-                } else {
-                    card = padLeft(cksum+psign, 11, "0");
-                }
-
-                writeCard(card + "  *** CHECKSUM CARD FOR " + sourceName, 1, addr, 9999990);
-            }
-        }
-
-        win.addEventListener("load", generateDeck, false);
-        win.moveTo((screen.availWidth-win.outerWidth)/2, (screen.availHeight-win.outerHeight)/2);
-    }
-
-    /**************************************/
-    function finishAssembly() {
-        /* Finishes the assembly of a program unit, and if appropriate, starts
-        assembly of the next one */
-
-        if (errorCount == 0) {
-            generateObjectDeck();
-        }
-
-        cardData.fileOffset = bufferOffset;
-        cardData.fileSerial = cardData.serial;
-        readACard();
-        if (!cardData.atEOF) {          // assemble the next program unit
-            setTimeout(initializeAssembly, 100);
-        } else {                        // We're done, just exit
-            $$("CRFileSelector").value = null;  // reset the <input> elements
-            $$("CRPoolSelector").value = null;  // so they can be reused
-            poolSets.length = 1;                // discard any poolSets that were loaded
-            $$("TextDiv").removeChild($$("Spinner"));   // remove the spinner image
-            // And... we're done -- just fall out of the script.
-        }
-    }
-
-    /**************************************/
-    function initializeLiteralPool(unitNr) {
-        /* Initializes the literal pool prior to assembly. If data for a pool
-        has been pre-loaded for this program, then initialize the pool with
-        that location and data; otherwise initialize it to the default in
-        poolSets[0] */
-        var thisSet = poolSets[unitNr] || poolSets[0];
-        var x = 0;                      // scratch index
-
-        poolLocation = thisSet.poolLoc;
-        for (x=0; x<thisSet.poolData.length; ++x) {
-            symTab[thisSet.poolData[x]] = poolLocation+x;
-        } // for x
-    }
-
-    /**************************************/
-    function assembleFile() {
-        /* Initializes or reinitializes the assembler for a new file */
-        var stamp = new Date();
-
-        clearPanel();
-        printLine("Assembler for the Burroughs 220 BALGOL Compiler & Library -- " +
-                stamp.getFullYear().toString() + "-" +
-                padLeft(stamp.getMonth()+1, 2, "0") + "-" +
-                padLeft(stamp.getDate(), 2, "0") + " " +
-                padLeft(stamp.getHours(), 2, "0") + ":" +
-                padLeft(stamp.getMinutes(), 2, "0"));
-        printLine("");
-        printLine("Source File: " + sourceName);
-        printLine("");
-
-        errorCount = 0;
-        errorTank = [];
-        location = 0;
-        cardData.atEOF = false;
-        cardData.serial = 0;
-        asmCode = [];
-        autoSymTab = {};
-        pointTab = {};
-        poolTab = {};
-        symTab = {};
-        symTab["RLO"] = 1;              // kludge for CWR reload-lockout field
-        symTab["BMOD"] = 8;             // kludge for MRD/MNC B-modify address field
-        initializeLiteralPool(1);
-
-        startPass1();
-    }
-
-    /**************************************/
     function startPass1() {
         /* Reads the control cards and then passes control to Pass 1 of the assembler */
         var done = false;               // loop control
@@ -1939,14 +1829,22 @@ window.addEventListener("load", function() {
                     break;
                 default:
                     done = true;
-                    printLine("START PASS 1");
-                    printLine("");
-                    Promise.resolve().then(assemblePass1);
+                    if (pass1List) {
+                        printLine("START PASS 1");
+                        printLine("");
+                    }
+
+                    setTimeout(assemblePass1, 100);
                     break;
                 }
             }
         } while (!done);
     }
+
+
+    /*******************************************************************
+    * Pass 1                                                           *
+    *******************************************************************/
 
     /**************************************/
     function printPass1(seq, location, label, opCode, sign, operand) {
@@ -2115,6 +2013,9 @@ window.addEventListener("load", function() {
                     case pseudoFINI:
                         done = finito = true;
                         values = evaluateOperand(operand, token, true);
+                        if (values.length > 0) {
+                            startAddress = values[0];
+                        }
                         break;
                     default:
                         printError("INVALID PSEUDO INSTRUCTION CODE: " + opDesc[0]);
@@ -2164,24 +2065,28 @@ window.addEventListener("load", function() {
 
             buildPoolPass1();
             dumpErrorTank();
-            if (pass1List) {
+            if (pass1List && !pass2List) {
                 dumpSymbolTable();
             }
 
-            printLine("");
-            printLine("END PASS 1, ERRORS = " + errorCount);
-            if (pass2List) {
-                printLine("\f");        // output a form-feed
+            if (pass1List || errorCount > 0) {
+                printLine("");
+                printLine("END PASS 1, ERRORS = " + errorCount);
             }
 
             if (errorCount == 0) {      // advance to Pass 2
-                Promise.resolve().then(initializePass2);
+                setTimeout(initializePass2, 100);
             } else {
                 $$("TextDiv").removeChild($$("Spinner"));
                 // And... we're done at this point -- just exit the script
             }
         }
     }
+
+
+    /*******************************************************************
+    * Pass 2                                                           *
+    *******************************************************************/
 
     /**************************************/
     function initializePass2() {
@@ -2198,7 +2103,6 @@ window.addEventListener("load", function() {
             pointTab[e] = 0;
         }
 
-        printLine("");
         startPass2();
     }
 
@@ -2222,9 +2126,16 @@ window.addEventListener("load", function() {
                     break;
                 default:
                     done = true;
-                    printLine("START PASS 2");
-                    printLine("");
-                    Promise.resolve().then(assemblePass2);
+                    if (pass2List) {
+                        if (pass1List) {
+                            printLine("\f");    // output a form-feed
+                        }
+
+                        printLine("START PASS 2");
+                        printLine("");
+                    }
+
+                    setTimeout(assemblePass2, 100);
                     break;
                 }
             }
@@ -2447,6 +2358,9 @@ window.addEventListener("load", function() {
                         done = finito = true;
                         values = evaluateOperand(operand, token, true);
                         printPass2(seq, serial, origLoc, null, label, opCode, sign, operand);
+                        if (values.length > 0) {
+                            startAddress = values[0];
+                        }
                         break;
                     default:
                         printError("INVALID PSEUDO INSTRUCTION CODE: " + opDesc[0]);
@@ -2499,10 +2413,369 @@ window.addEventListener("load", function() {
             }
 
             buffer = "";                // release the card buffer area
-            printLine("");
-            printLine("END PASS 2, ERRORS = " + errorCount);
-            finishAssembly();
+            if (pass2List || errorCount > 0) {
+                printLine("");
+                printLine("END PASS 2, ERRORS = " + errorCount);
+            }
+
+            setTimeout(finishAssembly, 100);
         }
+    }
+
+
+    /*******************************************************************
+    * Object Code Output                                               *
+    *******************************************************************/
+
+    /**************************************/
+    function generateFormat6LoadableDeck(asmCode, outputChecksum, startAddress) {
+        /* Formats the assembled object code as a standard Cardatron format-6
+        loadable deck in a temporary window. From there it can be save, copied,
+        etc. */
+        var crdSkeleton = "";           // skeleton card-read instruction
+        var doc = null;                 // temp window document object
+        var deck = null;                // temp window text area
+        var pval = p10[10];             // modulus for a word's absolute value
+        var psign = pval*2;             // modulus for a word's sign bit
+        var title = "220 BAC-Assembler Band-6 Loadable Deck";
+        var win = window.open("../../webUI/B220FramePaper.html", "BAC-Asm-Object",
+                "scrollbars,resizable,width=600,height=500");
+
+        function checksum(cksum, word) {
+            var sw = word%psign;        // will be the signed algebraic value of word
+
+            if (sw >= pval) {           // check if word has sign bit=1
+                sw = pval - sw;         // if so, make it algebraically negative
+            }
+
+            return (cksum+sw)%pval;     // compute the algebraic checksum
+        }
+
+        function writeCard(card, addr) {
+
+            deck.appendChild(doc.createTextNode("666" +
+                    padLeft(crdSkeleton + padLeft(addr, 4, "0") + card, 77, " ") + "\n"));
+        }
+
+        function generateDeck(ev) {
+            var addr = 0;               // assembled code address
+            var card = "";              // text line for an 80-column card image
+            var cksum = 0;              // algebraic value of the checksum word
+            var count = 0;              // number of words on card
+            var gapCount = 0;           // number of consecutive undefined words
+            var priorAddr = 0;          // CRD address for prior card image
+            var priorCard = "";         // prior image, awaiting terminating CRD instruction
+            var word = undefined;       // object code word
+            var x = 0;                  // scratch index
+
+            win.removeEventListener("load", generateDeck, false);
+            doc = win.document;
+            doc.title = title;
+            deck = doc.getElementById("Paper");
+
+            while (addr < asmCode.length && asmCode[addr] === undefined) {
+                ++addr;
+            }
+
+            while (addr < asmCode.length) {
+                word = asmCode[addr];
+                if (word === undefined) {
+                    ++gapCount;
+                } else {
+                    if (count > 5 || gapCount > 0) {
+                        writeCard(priorCard, priorAddr);
+                        priorCard = card;
+                        card = "";
+                        gapCount = 0;
+                        count = 0;
+                    }
+
+                    priorAddr = addr;
+                    card += padLeft(word, 11, "0");
+                    ++count;
+                    if (outputChecksum) {
+                        cksum = checksum(cksum, word);
+                    }
+                }
+
+                ++addr;
+            } // while addr
+
+            writeCard(priorCard, priorAddr);
+            if (outputChecksum) {
+                // Compute and output a card with the 220 negative checksum at the next address
+                writeCard(card, priorAddr+1);
+                card = crdSkeleton + "9999";
+                if (cksum < 0) {
+                    card += padLeft(-cksum, 11, "0");
+                } else {
+                    card += padLeft(cksum+pval, 11, "0");
+                }
+
+                card = "***CHECKSUM FOR " + sourceName + " " + card;
+            }
+
+            writeCard(card, 9999);
+            if (startAddress >= 0) {
+                writeCard("6000030" + padLeft(startAddress, 4, "0"), 9999); // BUN to start
+            } else {
+                writeCard("69999009999", 9999);                             // HLT 9999
+            }
+        }
+
+        crdSkeleton = "6" + padLeft(cardReaderUnit, 1, "0") + "00060";
+        win.addEventListener("load", generateDeck, false);
+        win.moveTo((screen.availWidth-win.outerWidth)/2, (screen.availHeight-win.outerHeight)/2);
+    }
+
+    /**************************************/
+    function generateMachineLanguageDeck(asmCode, outputChecksum, startAddress) {
+        /* Formats the assembled object code as a BALGOL Machine-Language deck
+        in a temporary window. From there it can be save, copied, etc. */
+        var doc = null;                 // temp window document object
+        var deck = null;                // temp window text area
+        var pval = p10[10];             // modulus for a word's absolute value
+        var psign = pval*2;             // modulus for a word's sign bit
+        var title = "220 BAC-Assembler Machine-Language Deck";
+        var win = window.open("../../webUI/B220FramePaper.html", "BAC-Asm-Object",
+                "scrollbars,resizable,width=600,height=500");
+
+        function checksum(cksum, word) {
+            var sw = word%psign;        // will be the signed algebraic value of word
+
+            if (sw >= pval) {           // check if word has sign bit=1
+                sw = pval - sw;         // if so, make it algebraically negative
+            }
+
+            return (cksum+sw)%pval;     // compute the algebraic checksum
+        }
+
+        function writeCard(card, count, addr, seq) {
+
+            deck.appendChild(doc.createTextNode(
+                    "60" + padLeft(count, 1, "0") + padLeft(seq, 7, "0") +
+                    padLeft(addr, 4, "0") + card + "\n"));
+        }
+
+        function generateDeck(ev) {
+            var addr = 0;               // assembled code address
+            var card = "";              // text line for an 80-column card image
+            var cardAddr = 0;           // first address of words on card
+            var cksum = 0;              // algebraic value of the checksum word
+            var count = 0;              // number of words on card
+            var gapCount = 0;           // number of consecutive undefined words
+            var seq = 10;               // card sequence number
+            var word = undefined;       // object code word
+            var x = 0;                  // scratch index
+
+            win.removeEventListener("load", generateDeck, false);
+            doc = win.document;
+            doc.title = title;
+            deck = doc.getElementById("Paper");
+
+            while (addr < asmCode.length) {
+                word = asmCode[addr];
+                if (word === undefined) {
+                    ++gapCount;
+                } else {
+                    if (count > 5 || gapCount > 0) {
+                        writeCard(card, count, cardAddr, seq);
+                        card = "";
+                        cardAddr = addr;
+                        gapCount = 0;
+                        count = 0;
+                        seq += 10;
+                    }
+
+                    card += padLeft(word, 11, "0");
+                    ++count;
+                    if (outputChecksum) {
+                        cksum = checksum(cksum, word);
+                    }
+                }
+
+                ++addr;
+            } // while addr
+
+            writeCard(card, count, cardAddr, seq);
+            if (outputChecksum) {
+                // Compute and output a card with the 220 negative checksum at the next address
+                if (cksum < 0) {
+                    card = padLeft(-cksum, 11, "0");
+                } else {
+                    card = padLeft(cksum+pval, 11, "0");
+                }
+
+                writeCard(card + " ***CHECKSUM FOR " + sourceName, 1, addr, 9999990);
+            }
+        }
+
+        win.addEventListener("load", generateDeck, false);
+        win.moveTo((screen.availWidth-win.outerWidth)/2, (screen.availHeight-win.outerHeight)/2);
+    }
+
+    /**************************************/
+    function generateObjectTape(asmCode, outputChecksum, startAddress) {
+        /* Formats the assembled object code as a 220 tape image in a temporary
+        window. From there it can be save, copied, etc. */
+        var doc = null;                 // temp window document object
+        var pval = p10[10];             // modulus for a word's absolute value
+        var psign = pval*2;             // modulus for a word's sign bit
+        var tape = null;                // temp window text area
+        var title = "220 BAC-Assembler Object Tape";
+        var win = window.open("../../webUI/B220FramePaper.html", "BAC-Asm-Object",
+                "scrollbars,resizable,width=500,height=500");
+
+        function checksum(cksum, word) {
+            var sw = word%psign;        // will be the signed algebraic value of word
+
+            if (sw >= pval) {           // check if word has sign bit=1
+                sw = pval - sw;         // if so, make it algebraically negative
+            }
+
+            return (cksum+sw)%pval;     // compute the algebraic checksum
+        }
+
+        function generateTape(ev) {
+            var addr = 0;               // assembled code address
+            var block = "";             // text line for a 100-word tape block
+            var blockPrefix = "0,100";  // lane and prefix word count for block
+            var count = 0;              // count of words in block
+            var cksum = 0;              // algebraic value of the checksum word
+            var length = asmCode.length;// number of words to output
+            var word = 0;               // object code word
+            var x = 0;                  // scratch index
+
+            win.removeEventListener("load", generateTape, false);
+            doc = win.document;
+            doc.title = title;
+            tape = doc.getElementById("Paper");
+            block = blockPrefix;
+
+            while (addr < length) {
+                if (count >= 100) {
+                    tape.appendChild(doc.createTextNode(block + "\n"));
+                    count = 0;
+                    block = blockPrefix;
+                }
+
+                word = asmCode[addr] || 0;
+                block += "," + word.toString();
+                ++count;
+                ++addr;
+                if (outputChecksum) {
+                    cksum = checksum(cksum, word);
+                }
+            } // while addr
+
+            if (outputChecksum) {
+                // Compute and output a block with the 220 negative checksum at the next address
+                if (count >= 100) {
+                    tape.appendChild(doc.createTextNode(block + "\n"));
+                    count = 0;
+                    block = blockPrefix;
+                }
+
+                if (cksum < 0) {
+                    block += "," + padLeft(-cksum, 11, "0");
+                } else {
+                    block += "," + padLeft(cksum+pval, 11, "0");
+                }
+            }
+
+            tape.appendChild(doc.createTextNode(block + "\n"));
+            while (addr < 10000) {
+                addr += 100;
+                tape.appendChild(doc.createTextNode("0,100,0\n"));
+            }
+
+            tape.appendChild(doc.createTextNode("0,1,1"));      // EOT control word for lane 0
+            tape.appendChild(doc.createTextNode("1,1,1"));      // EOT control word for lane 1
+        }
+
+        win.addEventListener("load", generateTape, false);
+        win.moveTo((screen.availWidth-win.outerWidth)/2, (screen.availHeight-win.outerHeight)/2);
+    }
+
+
+    /*******************************************************************
+    * Initialization and Termination                                   *
+    *******************************************************************/
+
+    /**************************************/
+    function finishAssembly() {
+        /* Finishes the assembly of a program unit, and if appropriate, starts
+        assembly of the next one */
+        var oms = $$("OutputModeSelect");
+        var x = oms.selectedIndex;
+
+        if (errorCount == 0 && x >= 0) {
+            switch(oms.options[x].value) {
+            case "L":
+                generateFormat6LoadableDeck(asmCode, outputChecksum, startAddress);
+                break;
+            case "M":
+                generateMachineLanguageDeck(asmCode, outputChecksum, startAddress);
+                break;
+            case "T":
+                generateObjectTape(asmCode, outputChecksum, startAddress);
+                break;
+            }// oms.options
+        }
+
+        $$("CRFileSelector").value = null;  // reset the <input> elements
+        $$("CRPoolSelector").value = null;  // so they can be reused
+        poolSets.length = 1;                // discard any poolSets that were loaded
+        $$("TextDiv").removeChild($$("Spinner"));   // remove the spinner image
+        // And... we're done -- just fall out of the script.
+    }
+
+    /**************************************/
+    function initializeLiteralPool(unitNr) {
+        /* Initializes the literal pool prior to assembly. If data for a pool
+        has been pre-loaded for this program, then initialize the pool with
+        that location and data; otherwise initialize it to the default in
+        poolSets[0] */
+        var thisSet = poolSets[unitNr] || poolSets[0];
+        var x = 0;                      // scratch index
+
+        poolLocation = thisSet.poolLoc;
+        for (x=0; x<thisSet.poolData.length; ++x) {
+            symTab[thisSet.poolData[x]] = poolLocation+x;
+        } // for x
+    }
+
+    /**************************************/
+    function assembleFile() {
+        /* Initializes or reinitializes the assembler for a new file */
+        var stamp = new Date();
+
+        clearPanel();
+        printLine("Assembler for the Burroughs 220 BALGOL Compiler & Library -- " +
+                stamp.getFullYear().toString() + "-" +
+                padLeft(stamp.getMonth()+1, 2, "0") + "-" +
+                padLeft(stamp.getDate(), 2, "0") + " " +
+                padLeft(stamp.getHours(), 2, "0") + ":" +
+                padLeft(stamp.getMinutes(), 2, "0"));
+        printLine("");
+        printLine("Source File: " + sourceName);
+
+        errorCount = 0;
+        errorTank = [];
+        location = 0;
+        cardData.atEOF = false;
+        cardData.serial = 0;
+        asmCode = [];
+        autoSymTab = {};
+        pointTab = {};
+        poolTab = {};
+        startAddress = -1;
+        symTab = {};
+        symTab["RLO"] = 1;              // kludge for CRD reload-lockout bit
+        symTab["BMOD"] = 8;             // kludge for MRD/MNC B-modify address bit
+        initializeLiteralPool(1);
+
+        startPass1();
     }
 
     /**************************************/

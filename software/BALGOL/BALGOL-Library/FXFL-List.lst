@@ -1,9 +1,6 @@
-
-
-Assembler for the Burroughs 220 BALGOL Compiler & Library -- 2017-12-21 08:25
+Assembler for the Burroughs 220 BALGOL Compiler & Library -- 2018-01-11 06:24
 
 Source File: FXFL.card
-
 START PASS 1
 
    .00.0     0000   FLOAT DEFN  100
@@ -24,14 +21,8 @@ START PASS 1
    .00.0     0017         FINI  1
 
 
-SYMBOL TABLE
-
-    8 BMOD            300 ERROR           200 FLFL            100 FLOAT             0 FXFL
-    1 RLO
-
 END PASS 1, ERRORS = 0
 
-
 START PASS 2
 
    .00.0     1      0000                   FLOAT DEFN  100
@@ -49,10 +40,10 @@ START PASS 2
    .00.0    13      0009  4 0000 99 0000         CNST  40000990000
    .00.0    14      0010  2 4667 14 4653         CNST  $FX*FL FLOAT=1 FL*FL=2 ERROR=3 $
                     0011  2 0046 53 5641
-                    0012  2 6300 81 0046
-                    0013  2 5314 46 5300
+                    0012  2 6333 81 0046
+                    0013  2 5314 46 5333
                     0014  2 8200 45 5959
-                    0015  2 5659 00 8300
+                    0015  2 5659 33 8300
    .00.0    15      0016  9 0000 00 0000         CNST  90000000000
    .00.0    16      0017                         FINI  1
 
@@ -63,4 +54,3 @@ SYMBOL TABLE
     1 RLO
 
 END PASS 2, ERRORS = 0
-

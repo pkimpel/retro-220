@@ -1,9 +1,6 @@
-
-
-Assembler for the Burroughs 220 BALGOL Compiler & Library -- 2017-12-21 08:05
+Assembler for the Burroughs 220 BALGOL Compiler & Library -- 2018-01-11 06:07
 
 Source File: ENTIR.card
-
 START PASS 1
 
    .00.0     0000   ENTIR CRB
@@ -28,14 +25,8 @@ START PASS 1
              0013               +5099999999
 
 
-SYMBOL TABLE
-
-   10 *A..1             7 *B..1            13 +5099999999      12 +5810000000       8 BMOD
-    0 ENTIR            12 LOCN              1 RLO
-
 END PASS 1, ERRORS = 0
 
-
 START PASS 2
 
    .00.0     1      0000  0 0006 45 0000   ENTIR CRB
@@ -69,4 +60,3 @@ SYMBOL TABLE
     0 ENTIR            12 LOCN              1 RLO
 
 END PASS 2, ERRORS = 0
-

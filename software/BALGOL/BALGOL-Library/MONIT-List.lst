@@ -1,12 +1,9 @@
+Assembler for the Burroughs 220 BALGOL Compiler & Library -- 2018-01-11 06:34
 
-
-Assembler for the Burroughs 220 BALGOL Compiler & Library -- 2017-12-23 07:32
-
-Source File: MONTR.card
-
+Source File: MONIT.card
+                          HEAD  THE MONITOR SUBROUTINE
 START PASS 1
 
-                                THE MONITOR SUBROUTINE
    .00.0     0000   ERROR DEFN  100
    .00.0     0000   MONTR BCS   *,10
    .00.0     0001         STB 6 ERROR+49      B
@@ -72,18 +69,10 @@ START PASS 1
              0055               +0000000050
 
 
-SYMBOL TABLE
-
-   34 *A..1            20 *B..1            27 *C..1            30 *D..1            17 *E..1
-   32 *F..1            55 +0000000050       8 BMOD            100 ERROR            55 LOCN
-    0 MONTR            50 OUT               1 RLO
-
 END PASS 1, ERRORS = 0
 
-
 START PASS 2
 
-                                                       THE MONITOR SUBROUTINE
    .00.0     2      0000                   ERROR DEFN  100
    .00.0     3      0000  0 0000 38 0000   MONTR BCS   *,10
    .00.0     4      0001  6 0002 40 0149         STB 6 ERROR+49      B
@@ -144,8 +133,8 @@ START PASS 2
    .00.0    59      0056  4 0000 99 0000         CNST  40000990000
    .00.0    60      0057  2 5456 55 4963         CNST  $MONIT ERROR=1 RITE=2 $
                     0058  2 0045 59 5956
-                    0059  2 5900 81 0059
-                    0060  2 4963 45 0082
+                    0059  2 5933 81 0059
+                    0060  2 4963 45 3382
                     0061  2 0000 00 0000
    .00.0    61      0062  9 0000 00 0000         CNST  90000000000
    .00.0    62      0063                         LOCN  LOCN
@@ -160,4 +149,3 @@ SYMBOL TABLE
     0 MONTR            50 OUT               1 RLO
 
 END PASS 2, ERRORS = 0
-

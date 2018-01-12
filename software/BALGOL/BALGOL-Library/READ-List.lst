@@ -1,10 +1,7 @@
-
-
-Assembler for the Burroughs 220 BALGOL Compiler & Library -- 2017-12-28 09:51
+Assembler for the Burroughs 220 BALGOL Compiler & Library -- 2018-01-11 06:41
 
 Source File: READ.card
-
-                                      REORD
+                          REORD
 START PASS 1
 
    .00.0     0000   READ  F4247 SW,1,*
@@ -153,21 +150,8 @@ START PASS 1
  01.43.0     0144         FINI  1
 
 
-SYMBOL TABLE
-
-   51 *A..1            36 *B..1             9 A               112 AC               38 AD
-   18 B                 8 BMOD             58 C               120 CD              129 D
-  103 E               137 F                69 G               138 I                88 J
-   53 K                98 L               100 M               135 N                46 O
-   65 P                63 Q               127 R                 0 READ              1 RLO
-  108 S               130 S1              131 S2              132 S3              133 S4
-  134 S5              136 S6              125 ST1             126 ST2             128 SW
-  124 T                97 U                94 V                76 W                90 X
-   91 Y               100 Z
-
 END PASS 1, ERRORS = 0
 
-
 START PASS 2
 
    .00.0     2      0000  7 0128 01 0000   READ  F4247 SW,1,*
@@ -331,4 +315,3 @@ SYMBOL TABLE
    91 Y               100 Z
 
 END PASS 2, ERRORS = 0
-

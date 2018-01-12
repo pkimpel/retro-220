@@ -1,0 +1,36 @@
+1         REM   CLEAR MEMORY AND LOAD BALGOL MACHINE-LANGUAGE DECK
+1         REM   P.KIMPEL, 2018-01-09.
+1         REM
+1   CR    DEFN  1               CARDATRON INPUT UNIT
+1         LOCN  4950
+1   START DEFN  *
+1         REM                   CLEAR MEMORY
+1   *A    CLL   0,48            CLEAR THE FIRST WORD, /44=REPEAT COUNT
+1         LDB   *-1             SET DEST ADDRESS FOR RTF
+1         IBB   *+1,1           INCREMENT START ADDRESS
+1         RTF   0,49            CLEAR NEXT 49 WORDS
+1   *B    RTF   0,100           CLEAR NEXT 100-WORD BLOCK
+1         DFL   A-,44,1         DECREMENT LOOP COUNTER
+1         BRP   B-              LOOP UNTIL COUNT EXHAUSTED
+1         REM
+1   LOOP  CNC   BUF,CR,RLO      READ A CARD, ASSUMING FORMAT 6
+1         CAD   BUF-7           LOAD WORD FOR COL 1-3
+1         BFA   *+2,81,66       IF COL 1=6, BRANCH AROUND
+1         HLT   6666,6666       OTHERWISE, HALT -- NOT A FORMAT-6 CARD
+1         BFA   DONE,02,66      IF COL 2-3=66, WE-RE DONE
+1         CNC   BUF,CR          RE-READ CARD AND RELEASE RELOAD-LOCKOUT
+1         LDB   BUF-6           LOAD B FROM ADDRESS IN COL 11-14
+1         SLA   7               SHIFT COUNT IN COL 2 TO THE /31 FIELD
+1         STA   *+1,31          STORE IN THE RTF NEXT
+1         RTF   BUF-5,*-*       MOVE *COUNT* WORDS FROM COL 15 TO (B)
+1         BUN   LOOP            GO GET ANOTHER CARD
+1         REM
+1         LOCN  4995            POSITION TO END OF MEMORY
+1   BUF   DEFN  *-1             START OF CARD BUFFER
+1         REM
+1   DONE  CLA   START+1         DEFINE RTF DEST ADDR
+1         LDB   DONE            LOAD ADDR OF PROGRAM TO B
+1         CLL   START           CLEAR FIRST WORD TO ZERO
+1         RTF   START,48        CLEAR ALL BUT LAST WORD OF MEMORY
+1         CRD   *,CR            READ LOCKED-OUT CARD
+1         FINI  START               (HOPEFULLY A SIGN-6 INSTR)

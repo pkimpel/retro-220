@@ -1,9 +1,6 @@
-
-
-Assembler for the Burroughs 220 BALGOL Compiler & Library -- 2017-12-21 08:24
+Assembler for the Burroughs 220 BALGOL Compiler & Library -- 2018-01-11 06:18
 
 Source File: FLOAT.card
-
 START PASS 1
 
    .00.0     0000   FLOAT CRB
@@ -26,14 +23,8 @@ START PASS 1
    .00.0     0020         FINI  FLOAT
 
 
-SYMBOL TABLE
-
-    4 *A..1             1 *B..1            10 *C..1            13 *D..1             8 BMOD
-    0 FLOAT             1 RLO
-
 END PASS 1, ERRORS = 0
 
-
 START PASS 2
 
    .00.0     1      0000  0 0006 45 0000   FLOAT CRB
@@ -65,4 +56,3 @@ SYMBOL TABLE
     0 FLOAT             1 RLO
 
 END PASS 2, ERRORS = 0
-

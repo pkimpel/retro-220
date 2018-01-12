@@ -1,7 +1,6 @@
-Assembler for the Burroughs 220 BALGOL Compiler & Library -- 2017-12-21 08:22
+Assembler for the Burroughs 220 BALGOL Compiler & Library -- 2018-01-11 06:13
 
 Source File: FLFL.card
-
 START PASS 1
 
    .00.0     0000   ERROR DEFN  100
@@ -64,16 +63,8 @@ START PASS 1
              0047               $FLFL
 
 
-SYMBOL TABLE
-
-   47 $FLFL            17 *A..1             6 *C..1            20 *D..1            23 *E..1
-    9 *F..1            41 *G..1            32 *I..1            29 *X..1            38 *Y..1
-   18 *Z..1            46 +5311282665       8 BMOD            100 ERROR           300 EXP
-  400 FIX               0 FLFL             46 LOCN            200 LOG               1 RLO
-
 END PASS 1, ERRORS = 0
 
-
 START PASS 2
 
    .00.0     1      0000                   ERROR DEFN  100
@@ -130,10 +121,10 @@ START PASS 2
    .00.0    52      0048  4 0000 99 0000         CNST  40000990000
    .00.0    53      0049  2 4653 14 4653         CNST  $FL*FL ERROR=1 LOG=2 EXP=3 FIX=4 $
                     0050  2 0045 59 5956
-                    0051  2 5900 81 0053
-                    0052  2 5647 00 8200
-                    0053  2 4567 57 0083
-                    0054  2 0046 49 6700
+                    0051  2 5933 81 0053
+                    0052  2 5647 33 8200
+                    0053  2 4567 57 3383
+                    0054  2 0046 49 6733
                     0055  2 8400 00 0000
    .00.0    54      0056  9 0000 00 0000         CNST  90000000000
    .00.0    55      0057                         LOCN  LOCN

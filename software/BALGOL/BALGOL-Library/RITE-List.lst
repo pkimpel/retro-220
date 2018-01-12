@@ -1,9 +1,6 @@
-
-
-Assembler for the Burroughs 220 BALGOL Compiler & Library -- 2017-12-21 08:54
+Assembler for the Burroughs 220 BALGOL Compiler & Library -- 2018-01-11 06:48
 
 Source File: RITE.card
-
 START PASS 1
 
    .00.0     0000   RITE  NOP
@@ -27,14 +24,8 @@ START PASS 1
              0012               +0000000001
 
 
-SYMBOL TABLE
-
-   10 *A..1            12 +0000000001       8 BMOD             12 LOCN              0 RITE
-    1 RLO
-
 END PASS 1, ERRORS = 0
 
-
 START PASS 2
 
    .00.0     1      0000  0 0000 01 0000   RITE  NOP
@@ -47,7 +38,7 @@ START PASS 2
    .00.0     8      0007  0 0000 48 0008         SRA   8
    .00.0     9      0008  8 0000 13 0012         SUB 8 +1
    .00.0    10      0009  8 0000 19 0010         ADL 8 A+
-   .00.0    11      0010  0 2008 61 0000   *A    CWR   0,02,0
+   .00.0    11      0010  0 2000 61 0000   *A    CWR   0,02,0
    .00.0    12      0011  1 0000 30 0000         BUN - 0
    .00.0    13      0012                   LOCN  LOCN  *+1
    .00.0    14      0013  4 0000 99 0000         CNST  40000990000
@@ -64,4 +55,3 @@ SYMBOL TABLE
     1 RLO
 
 END PASS 2, ERRORS = 0
-

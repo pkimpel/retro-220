@@ -1,12 +1,9 @@
-
-
-Assembler for the Burroughs 220 BALGOL Compiler & Library -- 2017-12-21 08:27
+Assembler for the Burroughs 220 BALGOL Compiler & Library -- 2018-01-11 06:30
 
 Source File: LABEL.card
-
+                          HEAD  THE LABEL PROCESSING SUBROUTINE
 START PASS 1
 
-                                THE LABEL PROCESSING SUBROUTINE
    .00.0     0000   ERROR DEFN  100
    .00.0     0000   LABEL BCS   *,8
    .00.0     0001         LDB 8 NUMLB
@@ -72,18 +69,10 @@ START PASS 1
              0052               +0000000080
 
 
-SYMBOL TABLE
-
-   46 *A..1            22 *I..1            52 +0000000080      51 +0000010000       8 BMOD
-  100 ERROR            27 EXIT             49 HOLD             50 HOLD1             0 LABEL
-   49 LOCN             36 NUMLB            48 NUMLX            30 PRINT             1 RLO
-
 END PASS 1, ERRORS = 0
 
-
 START PASS 2
 
-                                                       THE LABEL PROCESSING SUBROUTINE
    .00.0     2      0000                   ERROR DEFN  100
    .00.0     3      0000  0 8000 38 0000   LABEL BCS   *,8
    .00.0     4      0001  8 0000 42 0036         LDB 8 NUMLB
@@ -141,7 +130,7 @@ START PASS 2
    .00.0    56      0053  4 0000 99 0000         CNST  40000990000
    .00.0    57      0054  2 5341 42 4553         CNST  $LABEL ERROR=1 $
                     0055  2 0045 59 5956
-                    0056  2 5900 81 0000
+                    0056  2 5933 81 0000
    .00.0    58      0057  9 0000 00 0000         CNST  90000000000
    .00.0    59      0058                         LOCN  LOCN
    .00.0    60      0049                         FINI  LABEL
@@ -158,4 +147,3 @@ SYMBOL TABLE
    49 LOCN             36 NUMLB            48 NUMLX            30 PRINT             1 RLO
 
 END PASS 2, ERRORS = 0
-

@@ -1,7 +1,6 @@
-Assembler for the Burroughs 220 BALGOL Compiler & Library -- 2017-12-21 08:02
+Assembler for the Burroughs 220 BALGOL Compiler & Library -- 2018-01-11 06:06
 
 Source File: COSH.card
-
 START PASS 1
 
    .00.0     0000   EXP   DEFN  100
@@ -30,14 +29,8 @@ START PASS 1
              0015               +5050000000
 
 
-SYMBOL TABLE
-
-   11 *A..1            15 +5050000000       8 BMOD              0 COSH             14 COSH1
-   13 COSH2           200 ERROR           100 EXP              15 LOCN              1 RLO
-
 END PASS 1, ERRORS = 0
 
-
 START PASS 2
 
    .00.0     1      0000                   EXP   DEFN  100
@@ -62,9 +55,9 @@ START PASS 2
    .00.0    20      0017  2 4356 62 4823         CNST  $COSH,REAL(REAL) EXP=1 ERROR=2 $
                     0018  2 5945 41 5324
                     0019  2 5945 41 5304
-                    0020  2 0045 67 5700
+                    0020  2 0045 67 5733
                     0021  2 8100 45 5959
-                    0022  2 5659 00 8200
+                    0022  2 5659 33 8200
    .00.0    21      0023  9 0000 00 0000         CNST  90000000000
    .00.0    22      0024                         LOCN  LOCN
    .00.0    23      0015                         FINI  COSH

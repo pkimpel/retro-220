@@ -1,9 +1,6 @@
-
-
-Assembler for the Burroughs 220 BALGOL Compiler & Library -- 2017-12-28 09:53
+Assembler for the Burroughs 220 BALGOL Compiler & Library -- 2018-01-11 06:53
 
 Source File: TAN.card
-
 START PASS 1
 
    .00.0     0000   SIN   DEFN  100
@@ -38,15 +35,8 @@ START PASS 1
    .00.0     0032         FINI  TAN
 
 
-SYMBOL TABLE
-
-   13 *A..1             8 BMOD            200 COS              20 COSX            300 ERROR
-    1 RLO             100 SIN               0 TAN              21 TAN1             22 TAN2
-   19 X
-
 END PASS 1, ERRORS = 0
 
-
 START PASS 2
 
    .00.0     1      0000                   SIN   DEFN  100
@@ -94,4 +84,3 @@ SYMBOL TABLE
    19 X
 
 END PASS 2, ERRORS = 0
-

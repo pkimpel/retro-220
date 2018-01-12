@@ -1,9 +1,6 @@
-
-
-Assembler for the Burroughs 220 BALGOL Compiler & Library -- 2017-12-21 07:58
+Assembler for the Burroughs 220 BALGOL Compiler & Library -- 2018-01-11 06:03
 
 Source File: ATAN.card
-
 START PASS 1
 
    .00.0     0000   ERROR DEFN  100
@@ -80,16 +77,8 @@ START PASS 1
              0064               +5033333333
 
 
-SYMBOL TABLE
-
-   41 *A..1             9 *B..1            35 *C..1            58 +0008561189      54 +0049017591
-   59 +0280504541      55 +0565030980      57 +1000000000      60 +1120234014      56 +1453567135
-   63 +5020000000      64 +5033333333      53 +5099999999      61 +5115707963      62 -5014281428
-    0 ATAN              8 BMOD            100 ERROR            53 LOCN              1 RLO
-
 END PASS 1, ERRORS = 0
 
-
 START PASS 2
 
    .00.0     1      0000                   ERROR DEFN  100
@@ -152,7 +141,7 @@ START PASS 2
                     0067  2 5523 59 4541
                     0068  2 5324 59 4541
                     0069  2 5304 00 4559
-                    0070  2 5956 59 0081
+                    0070  2 5956 59 3381
                     0071  2 0000 00 0000
    .00.0    58      0072  9 0000 00 0000         CNST  90000000000
    .00.0    59      0073                         LOCN  LOCN
@@ -179,4 +168,3 @@ SYMBOL TABLE
     0 ATAN              8 BMOD            100 ERROR            53 LOCN              1 RLO
 
 END PASS 2, ERRORS = 0
-

@@ -1,11 +1,8 @@
-
-
-Assembler for the Burroughs 220 BALGOL Compiler & Library -- 2017-12-28 09:55
+Assembler for the Burroughs 220 BALGOL Compiler & Library -- 2018-01-11 06:57
 
 Source File: WRITE.card
-
-                                      HEAD  THE WRITE PROCEDURE
-                                      REORD
+                          HEAD  THE WRITE PROCEDURE
+                          REORD
 START PASS 1
 
    .00.0     0000   ERROR DEFN  100
@@ -126,7 +123,7 @@ START PASS 1
   1.15.0     0102   *B    CNST  21602020202
   1.16.0     0103   *A    CAD   ZOUT
   1.17.0     0104         BZA 8 CYCLE
-  1.18.0     0105         ADD 8 18
+  1.18.0     0105         ADD 8 I8
   1.19.0     0106         SRT   4
   1.20.0     0107         STR 8 *+1,32
   1.21.0     0108         SPO   101,99
@@ -139,7 +136,7 @@ START PASS 1
   1.28.0     0115   MAJOR STB   GAMMA
   1.29.0     0116         CLL   ALPHA
  01.30.0     0117         STA   ALPHA,04
- 01.31.0     0118         STA   BETA
+ 01.31.0     0118         STR   BETA
   1.32.0     0119         CAD   THISN
   1.33.0     0120   I10   SRS   10
   1.34.0     0121   I23   LSA   1,23
@@ -218,7 +215,7 @@ START PASS 1
   2.07.0     0194         STA   THISN,11
   2.08.0     0195         BUN 8 E-
   2.09.0     0196   FF    DFL   WIDTH,03,4
-  2.10.0     0197         BRP   A+
+  2.10.0     0197         BRP 8 A+
  02.11.0     0198         BUN 8 ERR1
   2.12.0     0199         CAD 8 +5000000000
  02.13.0     0200   *A    BZA 8 *-1
@@ -253,7 +250,7 @@ START PASS 1
   2.42.0     0229         BMA 8 A+
   2.43.0     0230   *C    CFA   OP,02
   2.44.0     0231         BCH 8 ERR
-  2.45.0     0232         ADD 9 I1
+  2.45.0     0232         ADD 8 I1
   2.46.0     0233         BUN 8 D-
   2.47.0     0234   *A    STA   DELTA,00
   2.48.0     0235         BUN 8 E-
@@ -269,29 +266,8 @@ START PASS 1
              0239               +5000000000
 
 
-SYMBOL TABLE
-
-   26 *A..1            75 *A..2           103 *A..3           200 *A..4           234 *A..5
-   72 *B..1           102 *B..2           185 *B..3            41 *C..1            92 *C..2
-  112 *C..3           219 *C..4           230 *C..5            64 *D..1           186 *D..2
-  221 *D..3           177 *E..1           220 *E..2           144 *F..1           191 *F..2
-  152 *H..1            13 *I..1           154 *I..2            52 *O..1           169 *Q..1
-   68 *R..1            78 *S..1           113 *S..2            84 *Z..1           238 +0000000050
-  237 +0010000000     239 +5000000000      25 AA              126 ALPHA            47 BB
-  127 BETA              8 BMOD             87 CC               50 CYCLE           131 DEC
-  133 DELTA           211 ERR             210 ERR1            100 ERROR           168 EXIT1
-  196 FF               36 FORMT           128 GAMMA           125 H0              126 H50
-   81 I03             156 I1              120 I10             226 I14              56 I2
-  164 I20             121 I23             170 I51             173 I8              114 I80
-   80 I9999           110 II              237 LOCN            115 MAJOR           132 NEXTN
-   43 NNINE           130 OP               67 OUT              34 OVTST            96 PP
-  200 RITE              1 RLO             236 SIGN2           223 SS              158 SUBR1
-  159 SUBR2           184 TEMP            134 THISN            98 TT              129 WIDTH
-    0 WRITE            88 WW               85 XIT             172 XX              125 ZOUT
-
 END PASS 1, ERRORS = 0
 
-
 START PASS 2
 
    .00.0     3      0000                   ERROR DEFN  100
@@ -412,7 +388,7 @@ START PASS 2
   1.15.0   118      0102  2 1602 02 0202   *B    CNST  21602020202
   1.16.0   119      0103  0 0000 10 0125   *A    CAD   ZOUT
   1.17.0   120      0104  8 0000 36 0050         BZA 8 CYCLE
-  1.18.0   121      0105  8 0000 12 0018         ADD 8 18
+  1.18.0   121      0105  8 0000 12 0173         ADD 8 I8
   1.19.0   122      0106  0 0001 48 0004         SRT   4
   1.20.0   123      0107  8 3211 40 0108         STR 8 *+1,32
   1.21.0   124      0108  0 0990 09 0101         SPO   101,99
@@ -425,7 +401,7 @@ START PASS 2
   1.28.0   131      0115  0 0002 40 0128   MAJOR STB   GAMMA
   1.29.0   132      0116  0 0000 46 0126         CLL   ALPHA
  01.30.0   133      0117  0 0410 40 0126         STA   ALPHA,04
- 01.31.0   134      0118  0 0000 40 0127         STA   BETA
+ 01.31.0   134      0118  0 0001 40 0127         STR   BETA
   1.32.0   135      0119  0 0000 10 0134         CAD   THISN
   1.33.0   136      0120  0 0002 48 0010   I10   SRS   10
   1.34.0   137      0121  0 0001 43 0023   I23   LSA   1,23
@@ -504,7 +480,7 @@ START PASS 2
   2.07.0   210      0194  0 1110 40 0134         STA   THISN,11
   2.08.0   211      0195  8 0000 30 0177         BUN 8 E-
   2.09.0   212      0196  0 0304 27 0129   FF    DFL   WIDTH,03,4
-  2.10.0   213      0197  0 0000 32 0200         BRP   A+
+  2.10.0   213      0197  8 0000 32 0200         BRP 8 A+
  02.11.0   214      0198  8 0000 30 0210         BUN 8 ERR1
   2.12.0   215      0199  8 0000 10 0239         CAD 8 +5000000000
  02.13.0   216      0200  8 0000 36 0199   *A    BZA 8 *-1
@@ -539,7 +515,7 @@ START PASS 2
   2.42.0   245      0229  8 0001 33 0234         BMA 8 A+
   2.43.0   246      0230  0 0210 18 0130   *C    CFA   OP,02
   2.44.0   247      0231  8 0000 34 0211         BCH 8 ERR
-  2.45.0   248      0232  9 0000 12 0156         ADD 9 I1
+  2.45.0   248      0232  8 0000 12 0156         ADD 8 I1
   2.46.0   249      0233  8 0000 30 0221         BUN 8 D-
   2.47.0   250      0234  0 0010 40 0133   *A    STA   DELTA,00
   2.48.0   251      0235  8 0000 30 0220         BUN 8 E-
@@ -580,4 +556,3 @@ SYMBOL TABLE
     0 WRITE            88 WW               85 XIT             172 XX              125 ZOUT
 
 END PASS 2, ERRORS = 0
-

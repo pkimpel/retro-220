@@ -176,6 +176,8 @@ Sub ExtractCode(byVal xScriptName, byVal deckName)
 
     If xFile.AtEndOfStream Then
       eof = True
+    ElseIf opCode = "FINI" Then
+      eof = True
     Else
       line = xFile.ReadLine
     End If

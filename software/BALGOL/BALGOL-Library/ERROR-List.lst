@@ -1,12 +1,9 @@
-
-
-Assembler for the Burroughs 220 BALGOL Compiler & Library -- 2017-12-21 08:18
+Assembler for the Burroughs 220 BALGOL Compiler & Library -- 2018-01-11 06:09
 
 Source File: ERROR.card
-
+                          HEAD  THE LIBRARY ERROR SUBROUTINE
 START PASS 1
 
-                                THE LIBRARY ERROR SUBROUTINE
    .00.0     0000   ERROR DEFN  *
    .00.0     0000   ERA   STP 8 C+
    .00.0     0001         BUN 8 A+
@@ -43,20 +40,10 @@ START PASS 1
    .00.0     0059         FINI  ERROR
 
 
-SYMBOL TABLE
-
-   29 *A..1            36 *B..1            33 *C..1            52 A                49 B
-    8 BMOD             50 C                 0 ERA               7 ERB              14 ERC
-   21 ERD               0 ERROR            48 H                 2 MSGA              9 MSGB
-   16 MSGC             25 MSGD             51 ONE              37 OUT              53 OUT1
-    1 RLO              24 Z
-
 END PASS 1, ERRORS = 0
 
-
 START PASS 2
 
-                                                       THE LIBRARY ERROR SUBROUTINE
    .00.0     2      0000                   ERROR DEFN  *
    .00.0     3      0000  8 0000 44 0033   ERA   STP 8 C+
    .00.0     4      0001  8 0000 30 0029         BUN 8 A+
@@ -115,7 +102,7 @@ START PASS 2
    .00.0    32      0054  4 0000 99 0000         CNST  40000990000
    .00.0    33      0055  2 4559 59 5659         CNST  $ERROR RITE=1 $
                     0056  2 0059 49 6345
-                    0057  2 0081 00 0000
+                    0057  2 3381 00 0000
    .00.0    34      0058  9 0000 00 0000         CNST  90000000000
    .00.0    35      0059                         FINI  ERROR
 
@@ -129,4 +116,3 @@ SYMBOL TABLE
     1 RLO              24 Z
 
 END PASS 2, ERRORS = 0
-

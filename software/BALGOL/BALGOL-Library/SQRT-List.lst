@@ -1,13 +1,6 @@
-
-Assembler for the Burroughs 220 BALGOL Compiler & Library
-Pre-load Pool
-Load Source & Go
-Pass 1 Listing    Pass 2 Listing
-
-Assembler for the Burroughs 220 BALGOL Compiler & Library -- 2017-12-21 17:30
+Assembler for the Burroughs 220 BALGOL Compiler & Library -- 2018-01-11 06:52
 
 Source File: SQRT.card
-
 START PASS 1
 
    .00.0     0000   ERROR DEFN  100
@@ -64,16 +57,8 @@ START PASS 1
              0044               $SQRT
 
 
-SYMBOL TABLE
-
-   44 $SQRT            34 *A..1            32 *B..1            38 +2550000000      43 +5015811388
-   40 +5041117101      42 +5050000000      41 +5062697923      39 -4916450338      36 A
-    8 BMOD            100 ERROR            37 EXP              38 LOCN              1 RLO
-    0 SQRT
-
 END PASS 1, ERRORS = 0
 
-
 START PASS 2
 
    .00.0     1      0000                   ERROR DEFN  100
@@ -121,7 +106,7 @@ START PASS 2
                     0047  2 5945 41 5324
                     0048  2 5945 41 5304
                     0049  2 0045 59 5956
-                    0050  2 5900 81 0000
+                    0050  2 5933 81 0000
    .00.0    43      0051  9 0000 00 0000         CNST  90000000000
    .00.0    44      0052                         LOCN  LOCN
    .00.0    45      0038                         FINI  1
@@ -142,4 +127,3 @@ SYMBOL TABLE
     0 SQRT
 
 END PASS 2, ERRORS = 0
-

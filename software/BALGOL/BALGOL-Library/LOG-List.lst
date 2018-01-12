@@ -1,9 +1,6 @@
-
-
-Assembler for the Burroughs 220 BALGOL Compiler & Library -- 2017-12-21 08:28
+Assembler for the Burroughs 220 BALGOL Compiler & Library -- 2018-01-11 06:31
 
 Source File: LOG.card
-
 START PASS 1
 
    .00.0     0000   ERROR DEFN  100
@@ -102,19 +99,8 @@ START PASS 1
              0086               $LOG
 
 
-SYMBOL TABLE
-
-   86 $LOG             32 *A..1            47 *A..2            36 *B..1            14 *CP11
-   33 *CP21            35 *D..1            59 *E..1            61 *F..1            72 +0057228327
-   73 +0250341093      74 +0282433571      69 +0316227766      75 +0400193033      71 +0410597044
-   70 +0632455532      76 +0666661710      82 +1000000000      78 +1151292547      81 +2000000000
-   77 +2000000037      84 +5033333333      80 +5123025851      79 +5251000000      83 -5025000000
-   85 -5050000000       8 BMOD            100 ERROR            68 EXP              69 LOCN
-    0 LOG              64 RGN               1 RLO              44 SMALL
-
 END PASS 1, ERRORS = 0
 
-
 START PASS 2
 
    .00.0     1      0000                   ERROR DEFN  100
@@ -193,7 +179,7 @@ START PASS 2
                     0089  2 4541 53 2459
                     0090  2 4541 53 0400
                     0091  2 4559 59 5659
-                    0092  2 0081 00 0000
+                    0092  2 3381 00 0000
    .00.0    74      0093  9 0000 00 0000         CNST  90000000000
    .00.0    75      0094                         LOCN  LOCN
    .00.0    76      0069                         FINI  LOG
@@ -228,4 +214,3 @@ SYMBOL TABLE
     0 LOG              64 RGN               1 RLO              44 SMALL
 
 END PASS 2, ERRORS = 0
-

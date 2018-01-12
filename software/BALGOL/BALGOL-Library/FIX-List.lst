@@ -1,9 +1,13 @@
 
+Assembler for the Burroughs 220 BALGOL Compiler & Library
+Pre-load Pool
+Load Source & Go
+List Pass 1     List Pass 2     Write Checksum  Output Mode
 
-Assembler for the Burroughs 220 BALGOL Compiler & Library -- 2017-12-21 08:20
+
+Assembler for the Burroughs 220 BALGOL Compiler & Library -- 2018-01-11 06:12
 
 Source File: FIX.card
-
 START PASS 1
 
    .00.0     0000   ERROR DEFN  100
@@ -32,14 +36,8 @@ START PASS 1
              0016               $FIX
 
 
-SYMBOL TABLE
-
-   16 $FIX              4 *A..1             8 *B..1            10 *C..1            14 *D..1
-    8 BMOD            100 ERROR             0 FIX              16 LOCN              1 RLO
-
 END PASS 1, ERRORS = 0
 
-
 START PASS 2
 
    .00.0     1      0000                   ERROR DEFN  100
@@ -65,7 +63,7 @@ START PASS 2
                     0019  2 5563 45 4745
                     0020  2 5924 59 4541
                     0021  2 5304 00 4559
-                    0022  2 5956 59 0081
+                    0022  2 5956 59 3381
                     0023  2 0000 00 0000
    .00.0    21      0024  9 0000 00 0000         CNST  90000000000
    .00.0    22      0025                         LOCN  LOCN

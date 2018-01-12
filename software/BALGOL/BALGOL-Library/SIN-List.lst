@@ -1,9 +1,6 @@
-
-
-Assembler for the Burroughs 220 BALGOL Compiler & Library -- 2017-12-21 17:28
+Assembler for the Burroughs 220 BALGOL Compiler & Library -- 2018-01-11 06:49
 
 Source File: SIN.card
-
 START PASS 1
 
    .00.0     0000   ERROR DEFN  100
@@ -71,16 +68,8 @@ START PASS 1
              0055               +5057079632
 
 
-SYMBOL TABLE
-
-   14 *A..1            43 *B..1            22 *D..1            44 *F..1            51 +4715148419
-   53 +4979689679      49 +5031830989      55 +5057079632      50 +5120000000      52 -4846737656
-   54 -5064596371       8 BMOD            100 ERROR            48 EXP              49 LOCN
-    1 RLO               0 SIN              47 SIN1             46 SIN2
-
 END PASS 1, ERRORS = 0
 
-
 START PASS 2
 
    .00.0     1      0000                   ERROR DEFN  100
@@ -139,7 +128,7 @@ START PASS 2
                     0058  2 4541 53 2459
                     0059  2 4541 53 0400
                     0060  2 4559 59 5659
-                    0061  2 0081 00 0000
+                    0061  2 3381 00 0000
    .00.0    54      0062  9 0000 00 0000         CNST  90000000000
    .00.0    55      0063                         LOCN  LOCN
    .00.0    56      0049                         FINI  SIN
@@ -160,4 +149,3 @@ SYMBOL TABLE
     1 RLO               0 SIN              47 SIN1             46 SIN2
 
 END PASS 2, ERRORS = 0
-

@@ -169,9 +169,7 @@ LABEL {
     <button id=SelectListing type=button>Select Listing</button>
 </div>
 
-<div id=TextDiv><pre id=TextPanel></pre>
-</div>
-
+<div id=TextDiv><pre id=TextPanel></pre></div>  <!-- Don't add any whitespace! -->
 
 <script>
 "use strict";
@@ -255,7 +253,7 @@ window.addEventListener("load", function() {
                         [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]};
 
     // Assembly storage
-    var asmCode = [];                   // words of assembled code
+    var asmCode = [];                   // buffer for words of assembled code
     var djList = [0];                   // sL values for DJ field definitions
     var errorCount = 0;                 // assembler error count
     var errorTank = [];                 // holding area for errors on current line
@@ -306,7 +304,7 @@ window.addEventListener("load", function() {
            0, 41, 42, 43, 44, 45, 46, 47, 48, 49, 51, 52, 53, 54, 55, 56,  // 60-6F
           57, 58, 59, 62, 63, 64, 65, 66, 67, 68, 69,  0,  0,  0,  0,  0]; // 70-7F
 
-    var xlate220ANSI = [ // translate internal B220 code to ANSI
+    var xlate220ANSI = [ // translate internal B220 code to ANSI (Algol glyphs)
         // 00   01   02   03   04        05    06    07   08   09
           " ", "?", "9", ".", ")",      "?",  "?",  "?", "?", "?",  // 00-09
           "+", "?", "?", "$", "*",      "*",  "$",  "?", "?", "?",  // 10-19
@@ -2934,14 +2932,14 @@ window.addEventListener("load", function() {
     }
 
     /**************************************/
-    function generateObjectTape() {
+    function generateObjectTape(asmCode, outputChecksum) {
         /* Formats the assembled object code as a 220 tape image in a temporary
         window. From there it can be save, copied, etc. */
         var doc = null;                 // temp window document object
         var pval = p10[10];             // modulus for a word's absolute value
         var psign = pval*2;             // modulus for a word's sign bit
         var tape = null;                // temp window text area
-        var title = "220 GEN-Assembler Object Code";
+        var title = "220 GEN-Assembler Object Tape";
         var win = window.open("../../webUI/B220FramePaper.html", "GEN-Asm-Object",
                 "scrollbars,resizable,width=500,height=500");
 
@@ -2949,7 +2947,7 @@ window.addEventListener("load", function() {
             var sw = word%psign;        // will be the signed algebraic value of word
 
             if (sw >= pval) {           // check if word has sign bit=1
-                sw = psign = sw;        // if so, make is algebraically negative
+                sw = pval - sw;         // if so, make it algebraically negative
             }
 
             return (cksum+sw)%pval;     // compute the algebraic checksum
@@ -2980,13 +2978,15 @@ window.addEventListener("load", function() {
 
                 word = asmCode[addr];
                 block += "," + word.toString();
-                cksum = checksum(cksum, word);
                 ++count;
                 ++addr;
+                if (outputChecksum) {
+                    cksum = checksum(cksum, word);
+                }
             } // while addr
 
             if (outputChecksum) {
-                // Compute and output a block with the negative checksum at the next address
+                // Compute and output a block with the 220 negative checksum at the next address
                 if (count >= 100) {
                     tape.appendChild(doc.createTextNode(block + "\n"));
                     count = 0;
@@ -2996,11 +2996,18 @@ window.addEventListener("load", function() {
                 if (cksum < 0) {
                     block += "," + padLeft(-cksum, 11, "0");
                 } else {
-                    block += "," + padLeft(cksum+psign, 11, "0");
+                    block += "," + padLeft(cksum+pval, 11, "0");
                 }
             }
 
             tape.appendChild(doc.createTextNode(block + "\n"));
+            while (addr < 10000) {
+                addr += 100;
+                tape.appendChild(doc.createTextNode("0,100,0\n"));
+            }
+
+            tape.appendChild(doc.createTextNode("0,1,1"));      // EOT control word for lane 0
+            tape.appendChild(doc.createTextNode("1,1,1"));      // EOT control word for lane 1
         }
 
         win.addEventListener("load", generateTape, false);
@@ -3022,7 +3029,7 @@ window.addEventListener("load", function() {
             }
         } else {                        // We're done, just exit
             if (errorCount == 0) {
-                generateObjectTape();
+                generateObjectTape(asmCode, outputChecksum);
             }
 
             $$("CRFileSelector").value = null;  // reset the <input> elements

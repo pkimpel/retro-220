@@ -1,7 +1,6 @@
-Assembler for the Burroughs 220 BALGOL Compiler & Library -- 2017-12-21 07:04
+Assembler for the Burroughs 220 BALGOL Compiler & Library -- 2018-01-10 05:45
 
 Source File: ACOS.card
-
 START PASS 1
 
    .00.0     0000   ATAN  DEFN  100
@@ -35,15 +34,8 @@ START PASS 1
              0019               +5131415927
 
 
-SYMBOL TABLE
-
-   19 +5131415927       0 ACOS             17 ACOS1            16 ACOS2           100 ATAN
-    8 BMOD            300 ERROR            19 LOCN              1 RLO             200 ROMXX
-   18 X
-
 END PASS 1, ERRORS = 0
 
-
 START PASS 2
 
    .00.0     1      0000                   ATAN  DEFN  100
@@ -74,11 +66,11 @@ START PASS 2
                     0022  2 6223 59 4541
                     0023  2 5324 59 4541
                     0024  2 5304 00 4159
-                    0025  2 4363 41 5500
+                    0025  2 4363 41 5533
                     0026  2 8100 59 5654
-                    0027  2 6767 00 8200
+                    0027  2 6767 33 8200
                     0028  2 4559 59 5659
-                    0029  2 0083 00 0000
+                    0029  2 3383 00 0000
    .00.0    26      0030  9 0000 00 0000         CNST  90000000000
    .00.0    27      0031                         LOCN  LOCN
    .00.0    28      0019                         FINI  ACOS

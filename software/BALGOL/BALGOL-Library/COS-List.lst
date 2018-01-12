@@ -1,9 +1,6 @@
-
-
-Assembler for the Burroughs 220 BALGOL Compiler & Library -- 2017-12-21 07:59
+Assembler for the Burroughs 220 BALGOL Compiler & Library -- 2018-01-11 06:04
 
 Source File: COS.card
-
 START PASS 1
 
    .00.0     0000   SIN   DEFN  100
@@ -25,14 +22,8 @@ START PASS 1
              0009               +5078539816
 
 
-SYMBOL TABLE
-
-    9 +5078539816       8 BMOD              0 COS               8 COS1              7 COS2
-    9 LOCN              1 RLO             100 SIN
-
 END PASS 1, ERRORS = 0
 
-
 START PASS 2
 
    .00.0     1      0000                   SIN   DEFN  100
@@ -50,7 +41,7 @@ START PASS 2
    .00.0    13      0011  2 4356 62 2359         CNST  $COS,REAL(REAL) SIN=1 $
                     0012  2 4541 53 2459
                     0013  2 4541 53 0400
-                    0014  2 6249 55 0081
+                    0014  2 6249 55 3381
                     0015  2 0000 00 0000
    .00.0    14      0016  9 0000 00 0000         CNST  90000000000
    .00.0    15      0017                         LOCN  LOCN
@@ -64,4 +55,3 @@ SYMBOL TABLE
     9 LOCN              1 RLO             100 SIN
 
 END PASS 2, ERRORS = 0
-

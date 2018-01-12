@@ -1,9 +1,6 @@
-
-
-Assembler for the Burroughs 220 BALGOL Compiler & Library -- 2017-12-21 17:29
+Assembler for the Burroughs 220 BALGOL Compiler & Library -- 2018-01-11 06:50
 
 Source File: SINH.card
-
 START PASS 1
 
    .00.0     0000   EXP   DEFN  100
@@ -49,15 +46,8 @@ START PASS 1
              0032               $SINH
 
 
-SYMBOL TABLE
-
-   32 $SINH            14 *A..1            12 *B..1            25 *C..1            29 +4719841270
-   30 +4883333333      31 +5016666667      28 +5050000000       8 BMOD            200 ERROR
-  100 EXP              28 LOCN              1 RLO               0 SINH
-
 END PASS 1, ERRORS = 0
 
-
 START PASS 2
 
    .00.0     1      0000                   EXP   DEFN  100
@@ -95,9 +85,9 @@ START PASS 2
    .00.0    33      0034  2 6249 55 4823         CNST  $SINH,REAL(REAL) EXP=1 ERROR=2 $
                     0035  2 5945 41 5324
                     0036  2 5945 41 5304
-                    0037  2 0045 67 5700
+                    0037  2 0045 67 5733
                     0038  2 8100 45 5959
-                    0039  2 5659 00 8200
+                    0039  2 5659 33 8200
    .00.0    34      0040  9 0000 00 0000         CNST  90000000000
    .00.0    35      0041                         LOCN  LOCN
    .00.0    36      0028                         FINI  SINH
@@ -115,4 +105,3 @@ SYMBOL TABLE
   100 EXP              28 LOCN              1 RLO               0 SINH
 
 END PASS 2, ERRORS = 0
-

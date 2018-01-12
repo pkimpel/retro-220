@@ -1,9 +1,6 @@
-
-
-Assembler for the Burroughs 220 BALGOL Compiler & Library -- 2017-12-21 08:20
+Assembler for the Burroughs 220 BALGOL Compiler & Library -- 2018-01-11 06:10
 
 Source File: EXP.card
-
 START PASS 1
 
    .00.0     0000   ERROR DEFN  100
@@ -90,17 +87,8 @@ START PASS 1
              0074               +5099999999
 
 
-SYMBOL TABLE
-
-   50 *A..1            55 *B..1            59 *C..1            57 *E..1            70 +0000417304
-   71 +0035418755      72 +0529087016      73 +0864864000      65 +4342944819      74 +5099999999
-   64 +5311282665      66 -0000017159      67 -0004893282      68 -0169203872      69 -0995711477
-    8 BMOD            100 ERROR             0 EXP              63 EXP1             62 EXP2
-   64 LOCN              1 RLO              61 TS
-
 END PASS 1, ERRORS = 0
 
-
 START PASS 2
 
    .00.0     1      0000                   ERROR DEFN  100
@@ -174,7 +162,7 @@ START PASS 2
                     0077  2 4541 53 2459
                     0078  2 4541 53 0400
                     0079  2 4559 59 5659
-                    0080  2 0081 00 0000
+                    0080  2 3381 00 0000
    .00.0    69      0081  9 0000 00 0000         CNST  90000000000
    .00.0    70      0082                         LOCN  LOCN
    .00.0    71      0064                         FINI  1
@@ -200,4 +188,3 @@ SYMBOL TABLE
    64 LOCN              1 RLO              61 TS
 
 END PASS 2, ERRORS = 0
-

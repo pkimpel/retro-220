@@ -1,9 +1,6 @@
-
-
-Assembler for the Burroughs 220 BALGOL Compiler & Library -- 2017-12-21 08:26
+Assembler for the Burroughs 220 BALGOL Compiler & Library -- 2018-01-11 06:27
 
 Source File: FXFX.card
-
 START PASS 1
 
    .00.0     0000   ERROR DEFN  100
@@ -20,7 +17,7 @@ START PASS 1
    .00.0     0010         BZR 8 B+
    .00.0     0011         CAD 6 ERROR+50      C
    .00.0     0012         MUL 6 ERROR+52
-   .00.0     0013         STR 6 ERROR+52      C
+   .00.0     0013         STR 6 ERROR+50      C
    .00.0     0014         BZA 8 B+
    .00.0     0015         BUN 8 A+
    .00.0     0016   *B    LDR 6 ERROR+49      B
@@ -56,15 +53,8 @@ START PASS 1
              0040               +0000000001
 
 
-SYMBOL TABLE
-
-   39 $FXFX             7 *A..1            22 *A..2            16 *B..1            26 *C..1
-   29 *D..1            37 *E..1            33 *F..1            40 +0000000001       8 BMOD
-  100 ERROR             0 FXFX             39 LOCN              1 RLO
-
 END PASS 1, ERRORS = 0
 
-
 START PASS 2
 
    .00.0     1      0000                   ERROR DEFN  100
@@ -81,7 +71,7 @@ START PASS 2
    .00.0    12      0010  8 0000 37 0016         BZR 8 B+
    .00.0    13      0011  6 0000 10 0150         CAD 6 ERROR+50      C
    .00.0    14      0012  6 0000 14 0152         MUL 6 ERROR+52
-   .00.0    15      0013  6 0001 40 0152         STR 6 ERROR+52      C
+   .00.0    15      0013  6 0001 40 0150         STR 6 ERROR+50      C
    .00.0    16      0014  8 0000 36 0016         BZA 8 B+
    .00.0    17      0015  8 0000 30 0022         BUN 8 A+
    .00.0    18      0016  6 0000 41 0149   *B    LDR 6 ERROR+49      B
@@ -111,7 +101,7 @@ START PASS 2
    .00.0    42      0041  4 0000 99 0000         CNST  40000990000
    .00.0    43      0042  2 4667 14 4667         CNST  $FX*FX ERROR=1 $
                     0043  2 0045 59 5956
-                    0044  2 5900 81 0000
+                    0044  2 5933 81 0000
    .00.0    44      0045  9 0000 00 0000         CNST  90000000000
    .00.0    45      0046                         LOCN  LOCN
    .00.0    46      0039                         FINI  FXFX
@@ -126,4 +116,3 @@ SYMBOL TABLE
   100 ERROR             0 FXFX             39 LOCN              1 RLO
 
 END PASS 2, ERRORS = 0
-

@@ -12,7 +12,7 @@
    .00.0     0010         BZR 8 B+
    .00.0     0011         CAD 6 ERROR+50      C
    .00.0     0012         MUL 6 ERROR+52
-   .00.0     0013         STR 6 ERROR+52      C
+   .00.0     0013         STR 6 ERROR+50      C
    .00.0     0014         BZA 8 B+
    .00.0     0015         BUN 8 A+
    .00.0     0016   *B    LDR 6 ERROR+49      B

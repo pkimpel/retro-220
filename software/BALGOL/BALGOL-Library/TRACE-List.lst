@@ -1,9 +1,6 @@
-
-
-Assembler for the Burroughs 220 BALGOL Compiler & Library -- 2017-12-21 17:32
+Assembler for the Burroughs 220 BALGOL Compiler & Library -- 2018-01-11 06:56
 
 Source File: TRACE.card
-
 START PASS 1
 
    .00.0     0000   ERROR DEFN  100
@@ -37,15 +34,8 @@ START PASS 1
              0021               +9999000000
 
 
-SYMBOL TABLE
-
-    8 *A..1            15 *Y..1            17 *Z..1            21 +9999000000       8 BMOD
-  100 ERROR             2 HOLD             20 HOLD0            21 LOCN              1 RLO
-    3 TR1               0 TRACE
-
 END PASS 1, ERRORS = 0
 
-
 START PASS 2
 
    .00.0     1      0000                   ERROR DEFN  100
@@ -74,7 +64,7 @@ START PASS 2
    .00.0    24      0022  4 0000 99 0000         CNST  40000990000
    .00.0    25      0023  2 6359 41 4345         CNST  $TRACE ERROR=1 $
                     0024  2 0045 59 5956
-                    0025  2 5900 81 0000
+                    0025  2 5933 81 0000
    .00.0    26      0026  9 0000 00 0000         CNST  90000000000
    .00.0    27      0027                         LOCN  LOCN
    .00.0    28      0021                         FINI  TRACE
@@ -88,4 +78,3 @@ SYMBOL TABLE
     3 TR1               0 TRACE
 
 END PASS 2, ERRORS = 0
-

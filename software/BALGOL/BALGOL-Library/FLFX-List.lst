@@ -1,9 +1,6 @@
-
-
-Assembler for the Burroughs 220 BALGOL Compiler & Library -- 2017-12-21 08:23
+Assembler for the Burroughs 220 BALGOL Compiler & Library -- 2018-01-11 06:17
 
 Source File: FLFX.card
-
 START PASS 1
 
    .00.0     0000   ERROR DEFN  100
@@ -53,15 +50,8 @@ START PASS 1
              0037               $FLFX
 
 
-SYMBOL TABLE
-
-   37 $FLFX            29 *A..1            10 *B..1            17 *C..1            23 *D..1
-   26 *E..1            33 *F..1             8 BMOD            100 ERROR             0 FLFX
-   37 LOCN              1 RLO
-
 END PASS 1, ERRORS = 0
 
-
 START PASS 2
 
    .00.0     1      0000                   ERROR DEFN  100
@@ -106,7 +96,7 @@ START PASS 2
    .00.0    40      0038  4 0000 99 0000         CNST  40000990000
    .00.0    41      0039  2 4653 14 4667         CNST  $FL*FX ERROR=1 $
                     0040  2 0045 59 5956
-                    0041  2 5900 81 0000
+                    0041  2 5933 81 0000
    .00.0    42      0042  9 0000 00 0000         CNST  90000000000
    .00.0    43      0043                         LOCN  LOCN
    .00.0    44      0037                         FINI  1
@@ -120,4 +110,3 @@ SYMBOL TABLE
    37 LOCN              1 RLO
 
 END PASS 2, ERRORS = 0
-

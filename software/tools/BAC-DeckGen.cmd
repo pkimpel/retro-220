@@ -1,7 +1,7 @@
 rem Generate BAC-Assembler card decks from BALGOL transcription files.
 pushd ..\BALGOL
-rem ..\tools\BAC-Xscript-Reformatter.wsf /q BALGOL-Main.baca
-rem ..\tools\BAC-Xscript-Reformatter.wsf /q BALGOL-Overlay.baca
+..\tools\BAC-Xscript-Reformatter.wsf /q BALGOL-Main.baca
+..\tools\BAC-Xscript-Reformatter.wsf /q BALGOL-Overlay.baca
 ..\tools\BAC-Xscript-Reformatter.wsf /q BALGOL-Library\ACOS.baca
 ..\tools\BAC-Xscript-Reformatter.wsf /q BALGOL-Library\ASIN.baca
 ..\tools\BAC-Xscript-Reformatter.wsf /q BALGOL-Library\ATAN.baca
