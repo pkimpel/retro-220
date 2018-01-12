@@ -32,7 +32,7 @@ function B220MagTapeControl(p) {
             "location=no,scrollbars=no,resizable,width=712,height=144,top=" +
             (screen.availHeight - top) + ",left=" + left);
     this.window.addEventListener("load",
-        B220Util.bindMethod(this, B220MagTapeControl.prototype.magTapeOnLoad));
+        B220MagTapeControl.prototype.magTapeOnLoad.bind(this), false);
 
     this.boundReleaseControl = B220MagTapeControl.prototype.releaseControl.bind(this);
     this.boundCancelIO = B220MagTapeControl.prototype.cancelIO.bind(this);
@@ -423,7 +423,7 @@ B220MagTapeControl.prototype.loadCommand = function loadCommand(dReg, callee, ar
         this.unitIndex = ux = this.findDesignate(this.unitNr);
         if (ux < 0) {
             this.reportStatus(this.driveState.driveNotReady);   // drive not ready, not present
-            this.releaseProcessor(false, 0);
+            this.queuePendingOperation(callee, args);
         } else {
             this.currentUnit = this.tapeUnit[ux];
             if (this.currentUnit.busy || this.currentUnit.rewindLock) {
@@ -465,11 +465,11 @@ B220MagTapeControl.prototype.releaseControl = function releaseControl(param) {
 
 /**************************************/
 B220MagTapeControl.prototype.cancelIO = function cancelIO(param) {
-    /* Terminates the current I/O operation by releasing the Processor, tape
-    unit, and tape control unit. Returns but does not use its parameter so it
-    can be used with Promise.then() */
+    /* Terminates the current I/O operation by releasing tape unit, and tape
+    control unit. Returns but does not use its parameter so it can be used
+    with Promise.then() */
 
-    this.releaseProcessor(false, 0);
+    //this.releaseProcessor(false, 0);  // disabled 2017-12-21
     this.currentUnit.releaseUnit();
     this.releaseControl();
     return param;

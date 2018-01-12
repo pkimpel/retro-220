@@ -31,8 +31,8 @@ function B220PaperTapeReader(mnemonic, unitIndex, config) {
     this.nextCharTime = 0;              // next time a character can be read
     this.unitMask = 0;                  // unit selection mask
 
-    this.boundFlipSwitch = B220Util.bindMethod(this, B220PaperTapeReader.prototype.flipSwitch);
-    this.boundReadTapeChar = B220Util.bindMethod(this, B220PaperTapeReader.prototype.readTapeChar);
+    this.boundFlipSwitch = B220PaperTapeReader.prototype.flipSwitch.bind(this);
+    this.boundReadTapeChar = B220PaperTapeReader.prototype.readTapeChar.bind(this);
 
     this.readResult = {                 // object passed back to Processor for each read
         code: 0,
@@ -48,7 +48,7 @@ function B220PaperTapeReader(mnemonic, unitIndex, config) {
     this.window = window.open("../webUI/B220PaperTapeReader.html", mnemonic,
             "location=no,scrollbars=no,resizable,width=420,height=160,left=" + left + ",top=" + top);
     this.window.addEventListener("load",
-            B220Util.bindMethod(this, B220PaperTapeReader.prototype.readerOnload), false);
+            B220PaperTapeReader.prototype.readerOnload.bind(this), false);
 }
 
 /**************************************/
@@ -279,9 +279,9 @@ B220PaperTapeReader.prototype.readerOnload = function readerOnload() {
     this.window.addEventListener("beforeunload",
             B220PaperTapeReader.prototype.beforeUnload, false);
     this.fileSelector.addEventListener("change",
-            B220Util.bindMethod(this, B220PaperTapeReader.prototype.fileSelector_onChange));
+            B220PaperTapeReader.prototype.fileSelector_onChange.bind(this), false);
     this.tapeSupplyBar.addEventListener("click",
-            B220Util.bindMethod(this, B220PaperTapeReader.prototype.PRTapeSupplyBar_onclick));
+            B220PaperTapeReader.prototype.PRTapeSupplyBar_onclick.bind(this), false);
     this.remoteSwitch.addEventListener("click", this.boundFlipSwitch);
     this.speedSwitch.addEventListener("click", this.boundFlipSwitch);
     this.unitDesignateKnob.addEventListener("change", this.boundFlipSwitch);
@@ -399,7 +399,8 @@ B220PaperTapeReader.prototype.shutDown = function shutDown() {
     }
 
     if (this.window) {
-        this.window.removeEventListener("beforeunload", B220PaperTapeReader.prototype.beforeUnload, false);
+        this.window.removeEventListener("beforeunload",
+            B220PaperTapeReader.prototype.beforeUnload, false);
         this.window.close();
         this.window = null;
     }

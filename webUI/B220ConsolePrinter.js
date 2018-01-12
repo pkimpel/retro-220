@@ -51,8 +51,8 @@ function B220ConsolePrinter(mnemonic, unitIndex, config) {
     this.window = window.open("../webUI/B220ConsolePrinter.html", mnemonic,
             "location=no,scrollbars=no,resizable,width=640,height=240," +
             "left=" + left + ",top=" + top);
-    this.window.addEventListener("load", B220Util.bindMethod(this,
-            B220ConsolePrinter.prototype.printerOnLoad));
+    this.window.addEventListener("load",
+            B220ConsolePrinter.prototype.printerOnLoad.bind(this), false);
 }
 
 /**************************************/
@@ -216,7 +216,7 @@ B220ConsolePrinter.prototype.copyPaper = function copyPaper(ev) {
         doc = win.document;
         doc.title = title;
         doc.getElementById("Paper").textContent = text;
-    });
+    }, false);
 
     this.emptyPaper();
     this.emptyLine();
@@ -441,9 +441,9 @@ B220ConsolePrinter.prototype.printerOnLoad = function printerOnLoad() {
     this.window.addEventListener("beforeunload",
             B220ConsolePrinter.prototype.beforeUnload, false);
     this.window.addEventListener("resize",
-            B220Util.bindMethod(this, B220ConsolePrinter.prototype.resizeWindow), false);
+            B220ConsolePrinter.prototype.resizeWindow.bind(this), false);
     this.paper.addEventListener("dblclick",
-            B220Util.bindMethod(this, B220ConsolePrinter.prototype.copyPaper), false);
+            B220ConsolePrinter.prototype.copyPaper.bind(this), false);
 
     this.$$("OpenPanelBtn").addEventListener("click", this.boundButton_Click);
     this.$$("ClosePanelBtn").addEventListener("click", this.boundButton_Click);

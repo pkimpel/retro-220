@@ -99,7 +99,7 @@ function B220ControlConsole(p, systemShutdown) {
             "location=no,scrollbars,resizable,width=" + w + ",height=" + h +
             ",top=0,left=" + (screen.availWidth - w));
     this.window.addEventListener("load",
-        B220Util.bindMethod(this, B220ControlConsole.prototype.consoleOnLoad));
+        B220ControlConsole.prototype.consoleOnLoad.bind(this), false);
 }
 
 /**************************************/
@@ -301,7 +301,7 @@ B220ControlConsole.prototype.meatballMemdump = function meatballMemdump() {
         if (p.computerNotReady.value)   {s += " CNR"}
         if (p.compareLowLamp.value)     {s += " LOW"}
         if (p.compareEqualLamp.value)   {s += " EQUAL"}
-        if (p.compareLowLamp.value)     {s += " HIGH"}
+        if (p.compareHighLamp.value)    {s += " HIGH"}
         if (p.C10.value)                {s += " C10"}
         if (p.DST.value)                {s += " DST"}
         if (p.LT1.value)                {s += " LT1"}
@@ -469,18 +469,18 @@ B220ControlConsole.prototype.updatePanel = function updatePanel() {
     text = (timer/1000 + 10000).toFixed(1);
     this.intervalTimer.textContent = text.substring(text.length-6);
 
-    p.updateGlow(0);
+    p.updateLampGlow(0);
     eLevel = (p.RUT.value ? p.EXT.glow : p.EXT.value);
 
     // Primary Registers
-    this.regA.updateGlow(p.A.glow);
-    this.regB.updateGlow(p.B.glow);
-    this.regC.updateGlow(p.C.glow);
-    this.regD.updateGlow(p.D.glow);
-    this.regE.updateGlow(p.E.glow);
-    this.regP.updateGlow(p.P.glow);
-    this.regR.updateGlow(p.R.glow);
-    this.regS.updateGlow(p.S.glow);
+    this.regA.updateLampGlow(p.A.glow);
+    this.regB.updateLampGlow(p.B.glow);
+    this.regC.updateLampGlow(p.C.glow);
+    this.regD.updateLampGlow(p.D.glow);
+    this.regE.updateLampGlow(p.E.glow);
+    this.regP.updateLampGlow(p.P.glow);
+    this.regR.updateLampGlow(p.R.glow);
+    this.regS.updateLampGlow(p.S.glow);
 
     // Alarm Panel
     this.digitCheckLamp.set(p.digitCheckAlarm.glow);
@@ -984,9 +984,9 @@ B220ControlConsole.prototype.consoleOnLoad = function consoleOnLoad() {
     this.resetTransferSwitch.addEventListener("click", this.boundSwitch_Click);
     this.tcuClearSwitch.addEventListener("click", this.boundSwitch_Click);
 
-    this.$$("BurroughsMeatball").addEventListener("click", this.boundMeatballMemdump);
-    this.$$("IntervalTimerResetBtn").addEventListener("click", this.boundResetTimer);
-    this.$$("PowerOffBtn").addEventListener("click", this.boundPowerBtn_Click);
+    this.$$("BurroughsMeatball").addEventListener("click", this.boundMeatballMemdump, false);
+    this.$$("IntervalTimerResetBtn").addEventListener("click", this.boundResetTimer, false);
+    this.$$("PowerOffBtn").addEventListener("dblclick", this.boundPowerBtn_Click, false);
 
     this.window.addEventListener("beforeunload", B220ControlConsole.prototype.beforeUnload);
 

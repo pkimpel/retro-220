@@ -256,7 +256,7 @@ function B220Processor(config, devices) {
 *   Global Constants                                                   *
 ***********************************************************************/
 
-B220Processor.version = "0.04";
+B220Processor.version = "0.05";
 
 B220Processor.tick = 1000/200000;       // milliseconds per clock cycle (200KHz)
 B220Processor.cyclesPerMilli = 1/B220Processor.tick;
@@ -324,22 +324,21 @@ B220Processor.emptyFunction = function emptyFunction() {
 
 /**************************************/
 B220Processor.bcdBinary = function bcdBinary(v) {
-    /* Converts the BCD value "v" to a binary number and returns it. If the
-    BCD value is not decimal, returns NaN instead */
+    /* Converts the BCD value "v" to a binary number and returns it. If a
+    BCD digit is not decimal, coerces it to an 8 or 9 instead */
     var d;
     var power = 1;
     var result = 0;
 
     while(v) {
         d = v % 0x10;
+        v = (v-d)/0x10;
         if (d > 9) {
-            result = Number.NaN;
-            break;
-        } else {
-            result += d*power;
-            power *= 10;
-            v = (v-d)/0x10;
+            d &= 0x09;                  // turn off the middle 2 bits
         }
+
+        result += d*power;
+        power *= 10;
     }
     return result;
 };
@@ -566,93 +565,122 @@ B220Processor.prototype.clear = function clear() {
         this.scheduler = 0;
     }
 
-    this.updateGlow(1);                 // initialize the lamp states
+    this.updateLampGlow(1);             // initialize the lamp states
 };
 
 /**************************************/
-B220Processor.prototype.updateGlow = function updateGlow(beta) {
+B220Processor.prototype.validateDigitCheck = function validateDigitCheck() {
+    /* Steps through all of the properties of the Processor object, isolating
+    the Register() objects and determining if any of them have a Forbidden
+    Combination condition. If not, turns off the Digit Check alarm */
+    var alarm = false;                  // true if any register has FC
+    var name = "";                      // current property name
+    var reg = null;                     // current Register object
+
+    for (name in this) {
+        reg = this[name];
+        if (reg instanceof B220Processor.Register) {
+            if (reg.hasFC) {
+                alarm = true;
+                break; // out of for loop
+            }
+        }
+    } // for name
+
+    if (!alarm) {
+        this.digitCheckAlarm.set(0);
+    }
+};
+
+/**************************************/
+B220Processor.prototype.updateLampGlow = function updateLampGlow(beta) {
     /* Updates the lamp glow for all registers and flip-flops in the
     system. Beta is a bias in the range (0,1). For normal update use 0;
     to freeze the current state in the lamps use 1 */
     var gamma = (this.RUT.value ? beta || 0 : 1);
 
+    // First, check whether a Digit Check alarm exists and if the condition has resolved.
+    if (this.digitCheckAlarm.value) {
+        this.validateDigitCheck();
+    }
+
     // Primary Registers
-    this.A.updateGlow(gamma);
-    this.B.updateGlow(gamma);
-    this.C.updateGlow(gamma);
-    this.D.updateGlow(gamma);
-    this.E.updateGlow(gamma);
-    this.P.updateGlow(gamma);
-    this.R.updateGlow(gamma);
-    this.S.updateGlow(gamma);
-    this.IB.updateGlow(gamma);
+    this.A.updateLampGlow(gamma);
+    this.B.updateLampGlow(gamma);
+    this.C.updateLampGlow(gamma);
+    this.D.updateLampGlow(gamma);
+    this.E.updateLampGlow(gamma);
+    this.P.updateLampGlow(gamma);
+    this.R.updateLampGlow(gamma);
+    this.S.updateLampGlow(gamma);
+    this.IB.updateLampGlow(gamma);
 
     // Control Console Lamps
-    this.digitCheckAlarm.updateGlow(gamma);
+    this.digitCheckAlarm.updateLampGlow(gamma);
 
-    this.systemNotReady.updateGlow(gamma);
-    this.computerNotReady.updateGlow(gamma);
+    this.systemNotReady.updateLampGlow(gamma);
+    this.computerNotReady.updateLampGlow(gamma);
 
-    this.compareLowLamp.updateGlow(gamma);
-    this.compareEqualLamp.updateGlow(gamma);
-    this.compareHighLamp.updateGlow(gamma);
+    this.compareLowLamp.updateLampGlow(gamma);
+    this.compareEqualLamp.updateLampGlow(gamma);
+    this.compareHighLamp.updateLampGlow(gamma);
 
     // Left-Hand Maintenance Panel Registers & Flip-Flops
     if (this.leftPanelOpen) {
-        this.CI.updateGlow(gamma);
-        this.DC.updateGlow(gamma);
-        this.SC.updateGlow(gamma);
-        this.SI.updateGlow(gamma);
-        this.X.updateGlow(gamma);
-        this.Y.updateGlow(gamma);
-        this.Z.updateGlow(gamma);
+        this.CI.updateLampGlow(gamma);
+        this.DC.updateLampGlow(gamma);
+        this.SC.updateLampGlow(gamma);
+        this.SI.updateLampGlow(gamma);
+        this.X.updateLampGlow(gamma);
+        this.Y.updateLampGlow(gamma);
+        this.Z.updateLampGlow(gamma);
 
-        this.C10.updateGlow(gamma);
-        this.DST.updateGlow(gamma);
-        this.LT1.updateGlow(gamma);
-        this.LT2.updateGlow(gamma);
-        this.LT3.updateGlow(gamma);
-        this.SCI.updateGlow(gamma);
-        this.SGT.updateGlow(gamma);
-        this.SUT.updateGlow(gamma);
-        this.TBT.updateGlow(gamma);
-        this.TCT.updateGlow(gamma);
-        this.TPT.updateGlow(gamma);
-        this.TWT.updateGlow(gamma);
+        this.C10.updateLampGlow(gamma);
+        this.DST.updateLampGlow(gamma);
+        this.LT1.updateLampGlow(gamma);
+        this.LT2.updateLampGlow(gamma);
+        this.LT3.updateLampGlow(gamma);
+        this.SCI.updateLampGlow(gamma);
+        this.SGT.updateLampGlow(gamma);
+        this.SUT.updateLampGlow(gamma);
+        this.TBT.updateLampGlow(gamma);
+        this.TCT.updateLampGlow(gamma);
+        this.TPT.updateLampGlow(gamma);
+        this.TWT.updateLampGlow(gamma);
     }
 
     // Right-Hand Maintenance Panel Registers & Flip-Flops
-    this.ALT.updateGlow(gamma);
-    this.MET.updateGlow(gamma);
-    this.TAT.updateGlow(gamma);
-    this.PAT.updateGlow(gamma);
-    this.CRT.updateGlow(gamma);
-    this.HAT.updateGlow(gamma);
+    this.ALT.updateLampGlow(gamma);
+    this.MET.updateLampGlow(gamma);
+    this.TAT.updateLampGlow(gamma);
+    this.PAT.updateLampGlow(gamma);
+    this.CRT.updateLampGlow(gamma);
+    this.HAT.updateLampGlow(gamma);
 
-    this.EXT.updateGlow(gamma);
-    this.OFT.updateGlow(gamma);
-    this.RPT.updateGlow(gamma);
-    this.RUT.updateGlow(gamma);
+    this.EXT.updateLampGlow(gamma);
+    this.OFT.updateLampGlow(gamma);
+    this.RPT.updateLampGlow(gamma);
+    this.RUT.updateLampGlow(gamma);
 
     if (this.rightPanelOpen) {
-        this.AX.updateGlow(gamma);
-        this.BI.updateGlow(gamma);
-        this.DX.updateGlow(gamma);
-        this.PA.updateGlow(gamma);
+        this.AX.updateLampGlow(gamma);
+        this.BI.updateLampGlow(gamma);
+        this.DX.updateLampGlow(gamma);
+        this.PA.updateLampGlow(gamma);
 
-        this.AST.updateGlow(gamma);
-        this.CCT.updateGlow(gamma);
-        this.CRT.updateGlow(gamma);
-        this.DPT.updateGlow(gamma);
-        this.EWT.updateGlow(gamma);
-        this.HCT.updateGlow(gamma);
-        this.HIT.updateGlow(gamma);
-        this.MAT.updateGlow(gamma);
-        this.MNT.updateGlow(gamma);
-        this.PRT.updateGlow(gamma);
-        this.PZT.updateGlow(gamma);
-        this.SST.updateGlow(gamma);
-        this.UET.updateGlow(gamma);
+        this.AST.updateLampGlow(gamma);
+        this.CCT.updateLampGlow(gamma);
+        this.CRT.updateLampGlow(gamma);
+        this.DPT.updateLampGlow(gamma);
+        this.EWT.updateLampGlow(gamma);
+        this.HCT.updateLampGlow(gamma);
+        this.HIT.updateLampGlow(gamma);
+        this.MAT.updateLampGlow(gamma);
+        this.MNT.updateLampGlow(gamma);
+        this.PRT.updateLampGlow(gamma);
+        this.PZT.updateLampGlow(gamma);
+        this.SST.updateLampGlow(gamma);
+        this.UET.updateLampGlow(gamma);
     }
 };
 
@@ -683,6 +711,7 @@ B220Processor.Register = function Register(bits, p, invisible) {
 
     this.bits = bits;                   // number of bits in register
     this.visible = (invisible ? false : true);
+    this.hasFC = false;                 // true if Forbidden Combination (A-F digit) detected
     this.lastExecClock = 0;             // time register was last set
     this.p = p;                         // processor instance
     this.value = 0;                     // binary value of register: read-only externally
@@ -696,27 +725,32 @@ B220Processor.Register.prototype.checkFC = function checkFC() {
     least one exists, sets the Digit Check alarm and returns true. The bit mask
     operations are done 28 bits at a time to avoid problems with the 32-bit
     2s-complement arithmetic used by Javascript for bit operations */
+    var hasFC = false;                  // true if register has Forbidden Combination
     var v1 = this.value;                // high-order digits (eventually)
     var v2 = v1%0x10000000;             // low-order 7 digits
 
     v1 = (v1-v2)/0x10000000;
 
     if (((v2 & 0x8888888) >>> 3) & (((v2 & 0x4444444) >>> 2) | ((v2 & 0x2222222) >>> 1))) {
-        this.p.setDigitCheck(1);
-        return 1;
-    } else if (v1 <= 9) {
+        hasFC = true;
+    } else if (v1 > 9) {
+        if (((v1 & 0x8888888) >>> 3) & (((v1 & 0x4444444) >>> 2) | ((v1 & 0x2222222) >>> 1))) {
+            hasFC = true;
+        }
+    }
+
+    this.hasFC = hasFC;
+    if (!hasFC) {
         return 0;
-    } else if (((v1 & 0x8888888) >>> 3) & (((v1 & 0x4444444) >>> 2) | ((v1 & 0x2222222) >>> 1))) {
-        this.p.setDigitCheck(1);
-        return 1;
     } else {
-        return 0;
+        this.p.setDigitCheck(1);
+        return 1;
     }
 
 };
 
 /**************************************/
-B220Processor.Register.prototype.updateGlow = function updateGlow(beta) {
+B220Processor.Register.prototype.updateLampGlow = function updateLampGlow(beta) {
     /* Updates the lamp glow averages based on this.p.execClock. Note that the
     glow is always aged by at least one clock tick. Beta is a bias in the
     range (0,1). For normal update, use 0; to freeze the current state, use 1 */
@@ -752,11 +786,13 @@ B220Processor.Register.prototype.set = function set(value) {
 
     this.value = value;
     if (this.visible) {
-       this.updateGlow(0);
+       this.updateLampGlow(0);
     }
 
     if (value > 9) {
         this.checkFC();
+    } else {
+        this.hasFC = false;
     }
     return value;
 };
@@ -926,7 +962,7 @@ B220Processor.FlipFlop = function FlopFlop(p, invisible) {
 };
 
 /**************************************/
-B220Processor.FlipFlop.prototype.updateGlow = function updateGlow(beta) {
+B220Processor.FlipFlop.prototype.updateLampGlow = function updateLampGlow(beta) {
     /* Updates the average glow for the flip flop. Note that the glow is
     always aged by at least one clock tick. Beta is a bias in the
     range (0,1). For normal update, use 0; to freeze the current state, use 1.
@@ -949,7 +985,7 @@ B220Processor.FlipFlop.prototype.set = function set(value) {
 
     this.value = (value ? 1 : 0);
     if (this.visible) {
-        this.updateGlow(0);
+        this.updateLampGlow(0);
     }
 
     return value;
@@ -1294,8 +1330,8 @@ B220Processor.prototype.integerExtract = function integerExtract() {
         return;                         // exit to Operation Complete
     }
 
-    // Loop through the 11 digits including signs (which were set to zero in am and dm)
-    var dm = this.IB.value;
+    // Loop through the 11 digits including signs
+    dm = this.IB.value;
     for (x=0; x<11; ++x) {
         // shift low-order value digit right into the adder
         ad = am % 0x10;
@@ -2073,7 +2109,9 @@ B220Processor.prototype.increaseFieldLocation = function increaseFieldLocation()
         this.D.set(dw);
         this.IB.set(dw);
         this.C10.set(carry);            // set carry toggle
-        this.OFT.set(carry);            // set overflow if there's a carry
+        if (carry) {
+            this.OFT.set(1);            // set overflow if there's a carry
+        }
 
         this.CCONTROL = ((s%10)*0x10 + L)*0x100 + this.CCONTROL%0x100;
         this.C.set((this.CCONTROL*0x100 + this.COP)*0x10000 + this.CADDR);
@@ -2861,32 +2899,36 @@ B220Processor.prototype.cardatronReceiveWord = function cardatronReceiveWord(wor
 
 /**************************************/
 B220Processor.prototype.magTapeComplete = function magTapeComplete(control, word) {
-    /* Call-back routine to signal completion of a magnetic tape operation. If
-    "control" is true, the contents of "word" are processed as a tape control
-    word and an appropriate branch is set up. Unconditionally terminates the
-    tape I/O instruction */
-    var aaaa;
-    var bbbb;
+    /* Call-back routine to signal completion of a magnetic tape operation.
+    If this.AST is false, does nothing, as we have probably either been cleared
+    or the Reset/Transfer switch has been activated. Otherwsie, if "control" is
+    true, the contents of "word" are processed as a tape control word and an
+    appropriate branch is set up. Unconditionally terminates the tape I/O
+    instruction */
+    var aaaa = 0;                       // address where C & P will be stored
+    var bbbb = 0;                       // address to load into P
 
-    if (control) {
-        this.D.set(word);
-        bbbb = word%0x10000;
-        aaaa = ((word - bbbb)/0x10000)%0x10000;
-        if (word%0x20000000000 >= 0x10000000000) {      // if sign bit is 1,
-            bbbb = this.bcdAdd(bbbb, this.B.value, 4);  // B-adjust the low-order 4 digits
+    if (this.AST.value) {               // if false, we've probably been cleared
+        if (control) {
+            this.D.set(word);
+            bbbb = word%0x10000;
+            aaaa = ((word - bbbb)/0x10000)%0x10000;
+            if (word%0x20000000000 >= 0x10000000000) {      // if sign bit is 1,
+                bbbb = this.bcdAdd(bbbb, this.B.value, 4);  // B-adjust the low-order 4 digits
+            }
+
+            this.E.set(aaaa);
+            this.readMemory();
+            if (!this.MET.value) {
+                this.IB.set(this.IB.value - this.IB.value%0x100000000 +
+                            (this.C.value%0x10000)*0x10000 + this.P.value%0x10000);
+                this.writeMemory();
+                this.P.set(bbbb);
+            }
         }
 
-        this.E.set(aaaa);
-        this.readMemory();
-        if (!this.MET.value) {
-            this.IB.set(this.IB.value - this.IB.value%0x100000000 +
-                        (this.C.value%0x10000)*0x10000 + this.P.value%0x10000);
-            this.writeMemory();
-            this.P.set(bbbb);
-        }
+        Promise.resolve(true).then(this.boundIoComplete);
     }
-
-    Promise.resolve(true).then(this.boundIoComplete);
 };
 
 /**************************************/
@@ -3428,7 +3470,7 @@ B220Processor.prototype.execute = function execute() {
     case 0x38:      //--------------------- BCS     Branch, control switch
         this.opTime = 0.015;                            // minimum instruction timing
         d = (this.CCONTROL - this.CCONTROL%0x1000)/0x1000;
-        if (this["PCS" + d.toString() + "SW"]) {
+        if (this["PC" + d.toString() + "SW"]) {
             this.opTime += 0.020;
             this.P.set(this.CADDR);
         }
@@ -3973,7 +4015,7 @@ B220Processor.prototype.ioInitiate = function ioInitiate() {
     /* Initiates asynchronous mode of the processor for I/O */
 
     this.AST.set(1);
-    this.updateGlow(1);                 // update the console lamps
+    this.updateLampGlow(1);             // update the console lamps
     this.execLimit = 0;                 // kill the run() loop
 };
 
@@ -4105,7 +4147,7 @@ B220Processor.prototype.start = function start() {
             this.runTimer -= stamp;
         }
 
-        this.updateGlow(1);
+        this.updateLampGlow(1);
         this.schedule();
     }
 };
@@ -4130,7 +4172,7 @@ B220Processor.prototype.stop = function stop() {
             this.runTimer += stamp;
         }
 
-        this.updateGlow(1);             // freeze state in the lamps
+        this.updateLampGlow(1);         // freeze state in the lamps
         if (this.scheduler) {
             clearCallback(this.scheduler);
             this.scheduler = 0;
@@ -4230,7 +4272,12 @@ B220Processor.prototype.resetTransfer = function resetTransfer() {
                     (this.C.value % 0x10000)*0x10000 + this.P.value % 0x10000);
         this.writeMemory();
         this.P.set(0x0001);
-        this.EXT.set(0);                    // set to Fetch cycle
+        if (this.AST.value) {           // I/O in progress -- cancel it
+            this.ioComplete(true);
+        } else {
+            this.EXT.set(0);            // set to Fetch cycle
+        }
+
         if (!this.RUT.value) {
             this.start();
         }
@@ -4263,7 +4310,7 @@ B220Processor.prototype.powerUp = function powerUp() {
         this.cardatron = this.devices.CardatronControl;
         this.magTape = this.devices.MagTapeControl;
         this.computerNotReady.set(1);   // initial state after power-up
-        this.updateGlow(1);
+        this.updateLampGlow(1);
     }
 };
 
@@ -4275,7 +4322,7 @@ B220Processor.prototype.powerDown = function powerDown() {
         this.stop();
         this.clear();
         this.poweredOn = 0;
-        this.updateGlow(1);
+        this.updateLampGlow(1);
 
         this.cardatron = null;
         this.console = null;

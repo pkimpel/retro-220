@@ -243,6 +243,7 @@ B220MagTapeDrive.prototype.setUnitDesignate = function setUnitDesignate(index) {
         } else {
             this.unitDesignate = 0;             // unit 10
         }
+
         this.remote = true;
         this.setTapeReady(true);
     }
@@ -330,16 +331,12 @@ B220MagTapeDrive.prototype.setTapeReady = function setTapeReady(makeReady) {
 
     this.ready = this.remote & makeReady && enabled;
     this.notReadyLamp.set(this.ready ? 0 : 1);
-    if (!this.ready) {
+    if (this.ready) {
+        this.tapeState = this.tapeRemote;
+    } else {
         this.busy = false;              // forced reset
         this.designatedLamp.set(0);
-    }
-
-    if (enabled) {
-        if (this.remote) {
-            this.tapeState = this.tapeRemote;
-        } else {
-            this.busy = false;          // forced reset
+        if (this.tapeState == this.tapeRemote) {
             this.tapeState = this.tapeLocal;
         }
     }
@@ -758,8 +755,8 @@ B220MagTapeDrive.prototype.loadTape = function loadTape() {
         for (mt.laneNr=0; mt.laneNr<2; ++mt.laneNr) {
             lane = mt.image[mt.laneNr];
             mt.imgIndex = lx[mt.laneNr];
-            for (x=0; x<mt.startOfBlockWords*2; ++x) {
-                lane[mt.imgIndex+x] = mt.markerGap;
+            for (wx=0; wx<mt.startOfBlockWords*2; ++wx) {
+                lane[mt.imgIndex+wx] = mt.markerGap;
             }
             lx[mt.laneNr] = mt.imgIndex + mt.startOfBlockWords*2;
         } // for tx (lane number)
@@ -1701,7 +1698,7 @@ B220MagTapeDrive.prototype.readNextBlock = function readNextBlock(driveState, re
                         }
 
                         if (record) {   // store the preface word (with keyword sign if a control block)
-                            sign = ((sign*0x10 + (preface%100 - preface%10)/10)*0x10 + preface%10)*0x100000000;
+                            sign = ((sign*0x100 + (preface%100 - preface%10)/10)*0x10 + preface%10)*0x100000000;
                             if (storeWord(firstWord, sign) < 0) {
                                 state = 10; // memory error storing preface word
                                 driveState.state = driveState.driveMemoryError;

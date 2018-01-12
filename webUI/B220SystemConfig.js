@@ -62,7 +62,7 @@ B220SystemConfig.defaultConfig = {
     ConsoleInput: {
         units: [
             null,                       // unit[0] not used
-            {type: "PTRA", unitMask: 0x002, remote: 1, speed: 0},
+            {type: "PTRA", unitMask: 0x002, remote: 0, speed: 0},
             {type: "NONE"},
             {type: "NONE"},
             {type: "NONE"},
@@ -107,8 +107,8 @@ B220SystemConfig.defaultConfig = {
         hasMagTape: true,
         units: [
             null,                       // unit[0] not used
-            {type: "MTA",  designate: 1},
-            {type: "MTB",  designate: 2},
+            {type: "MTA",  designate: 0},
+            {type: "MTB",  designate: 1},
             {type: "NONE"},
             {type: "NONE"},
             {type: "NONE"},
@@ -544,16 +544,16 @@ B220SystemConfig.prototype.openConfigUI = function openConfigUI() {
 
     function configUI_Load(ev) {
         this.$$("SaveBtn").addEventListener("click",
-                B220Util.bindMethod(this, this.saveConfigDialog));
+                this.saveConfigDialog.bind(this), false);
         this.$$("CancelBtn").addEventListener("click",
-                B220Util.bindMethod(this, function(ev) {this.window.close()}));
+                function(ev) {this.window.close()}.bind(this), false);
         this.$$("DefaultsBtn").addEventListener("click",
-                B220Util.bindMethod(this, function(ev) {
+                function(ev) {
                     this.createConfigData();
                     this.loadConfigDialog();
-        }));
+        }.bind(this), false);
         this.window.addEventListener("unload",
-                B220Util.bindMethod(this, this.closeConfigUI), false);
+                this.closeConfigUI.bind(this), false);
         this.loadConfigDialog();
     }
 
@@ -565,5 +565,5 @@ B220SystemConfig.prototype.openConfigUI = function openConfigUI() {
     this.window.focus();
     this.alertWin = this.window;
     this.window.addEventListener("load",
-            B220Util.bindMethod(this, configUI_Load), false);
+            configUI_Load.bind(this), false);
 };

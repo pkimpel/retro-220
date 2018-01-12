@@ -26,9 +26,9 @@ function B220PaperTapePunch(mnemonic, unitIndex, config) {
     this.nextCharTime = 0;              // next time a character can be punched
     this.unitMask = 0;                  // unit selection mask
 
-    this.boundFlipSwitch = B220Util.bindMethod(this, B220PaperTapePunch.prototype.flipSwitch);
-    this.boundReceiveSign = B220Util.bindMethod(this, B220PaperTapePunch.prototype.receiveSign);
-    this.boundReceiveChar = B220Util.bindMethod(this, B220PaperTapePunch.prototype.receiveChar);
+    this.boundFlipSwitch = B220PaperTapePunch.prototype.flipSwitch.bind(this);
+    this.boundReceiveSign = B220PaperTapePunch.prototype.receiveSign.bind(this);
+    this.boundReceiveChar = B220PaperTapePunch.prototype.receiveChar.bind(this);
 
     this.clear();
 
@@ -39,8 +39,8 @@ function B220PaperTapePunch(mnemonic, unitIndex, config) {
     this.window = window.open("../webUI/B220PaperTapePunch.html", mnemonic,
             "location=no,scrollbars=no,resizable,width=240,height=160," +
             "left=" + left + ",top=" + top);
-    this.window.addEventListener("load", B220Util.bindMethod(this,
-            B220PaperTapePunch.prototype.punchOnLoad));
+    this.window.addEventListener("load",
+            B220PaperTapePunch.prototype.punchOnLoad.bind(this), false);
 }
 
 /**************************************/
@@ -246,11 +246,11 @@ B220PaperTapePunch.prototype.punchOnLoad = function punchOnLoad() {
 
     // Events
     this.window.addEventListener("beforeunload",
-            B220PaperTapePunch.prototype.beforeUnload);
+            B220PaperTapePunch.prototype.beforeUnload, false);
     this.window.addEventListener("resize",
-            B220Util.bindMethod(this, B220PaperTapePunch.prototype.resizeWindow));
+            B220PaperTapePunch.prototype.resizeWindow.bind(this), false);
     this.punchTape.addEventListener("dblclick",
-            B220Util.bindMethod(this, B220PaperTapePunch.prototype.punchCopyTape));
+            B220PaperTapePunch.prototype.punchCopyTape.bind(this), false);
     this.remoteSwitch.addEventListener("click", this.boundFlipSwitch);
     this.unitDesignateKnob.addEventListener("change", this.boundFlipSwitch);
 
@@ -323,7 +323,8 @@ B220PaperTapePunch.prototype.shutDown = function shutDown() {
     }
 
     if (this.window) {
-        this.window.removeEventListener("beforeunload", B220PaperTapePunch.prototype.beforeUnload);
+        this.window.removeEventListener("beforeunload",
+            B220PaperTapePunch.prototype.beforeUnload, this);
         this.window.close();
         this.window = null;
     }

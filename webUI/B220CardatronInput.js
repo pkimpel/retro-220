@@ -68,7 +68,7 @@ function B220CardatronInput(mnemonic, unitIndex, config) {
             ",left=" + ((unitIndex-1)*32) +
             ",top=" + (screen.availHeight - h - (unitIndex-1)*32));
     this.window.addEventListener("load",
-            B220Util.bindMethod(this, B220CardatronInput.prototype.readerOnLoad), false);
+            B220CardatronInput.prototype.readerOnLoad.bind(this), false);
 }
 
 /**************************************/
@@ -617,19 +617,19 @@ B220CardatronInput.prototype.readerOnLoad = function readerOnLoad() {
     this.window.addEventListener("beforeunload",
             B220CardatronInput.prototype.beforeUnload, false);
     this.$$("CIFileSelector").addEventListener("change",
-            B220Util.bindMethod(this, B220CardatronInput.prototype.fileSelector_onChange), false);
+            B220CardatronInput.prototype.fileSelector_onChange.bind(this), false);
     this.$$("FormatColumn").addEventListener("change",
-            B220Util.bindMethod(this, B220CardatronInput.prototype.format_onChange), false);
+            B220CardatronInput.prototype.format_onChange.bind(this), false);
     this.$$("FormatSelect").addEventListener("change",
-            B220Util.bindMethod(this, B220CardatronInput.prototype.format_onChange), false);
+            B220CardatronInput.prototype.format_onChange.bind(this), false);
     this.$$("CIStartBtn").addEventListener("click",
-            B220Util.bindMethod(this, B220CardatronInput.prototype.CIStartBtn_onClick), false);
+            B220CardatronInput.prototype.CIStartBtn_onClick.bind(this), false);
     this.$$("CIStopBtn").addEventListener("click",
-            B220Util.bindMethod(this, B220CardatronInput.prototype.CIStopBtn_onClick), false);
+            B220CardatronInput.prototype.CIStopBtn_onClick.bind(this), false);
     this.$$("ClearBtn").addEventListener("click",
-            B220Util.bindMethod(this, B220CardatronInput.prototype.ClearBtn_onClick), false);
+            B220CardatronInput.prototype.ClearBtn_onClick.bind(this), false);
     this.hopperBar.addEventListener("click",
-            B220Util.bindMethod(this, B220CardatronInput.prototype.CIHopperBar_onClick), false);
+            B220CardatronInput.prototype.CIHopperBar_onClick.bind(this), false);
 
     this.window.resizeBy(de.scrollWidth - this.window.innerWidth + 4, // kludge for right-padding/margin
                          de.scrollHeight - this.window.innerHeight);

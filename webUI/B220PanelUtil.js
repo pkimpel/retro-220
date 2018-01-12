@@ -897,7 +897,7 @@ PanelRegister.prototype.update = function update(value) {
 };
 
 /**************************************/
-PanelRegister.prototype.updateGlow = function updateGlow(glow) {
+PanelRegister.prototype.updateLampGlow = function updateLampGlow(glow) {
     /* Update the register lamps from the bitwise intensity values in "glow" */
     var bitNr;
 

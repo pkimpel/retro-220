@@ -23,10 +23,10 @@ function B220ConsoleKeyboard(p) {
     this.window = null;                 // window object, null if not displayed
     this.enabled = false;               // true if keyboard is active
 
-    this.boundKeypress = B220Util.bindMethod(this, B220ConsoleKeyboard.prototype.keypress);
-    this.boundButton_Click = B220Util.bindMethod(this, B220ConsoleKeyboard.prototype.button_Click);
-    this.boundKeyboard_OnLoad = B220Util.bindMethod(this, B220ConsoleKeyboard.prototype.keyboardOnLoad);
-    this.boundKeyboard_Unload = B220Util.bindMethod(this, B220ConsoleKeyboard.prototype.keyboardUnload);
+    this.boundKeypress = B220ConsoleKeyboard.prototype.keypress.bind(this);
+    this.boundButton_Click = B220ConsoleKeyboard.prototype.button_Click.bind(this);
+    this.boundKeyboard_OnLoad = B220ConsoleKeyboard.prototype.keyboardOnLoad.bind(this);
+    this.boundKeyboard_Unload = B220ConsoleKeyboard.prototype.keyboardUnload.bind(this);
 
     this.clear();
 }

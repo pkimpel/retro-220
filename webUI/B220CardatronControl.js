@@ -30,7 +30,7 @@ function B220CardatronControl(p) {
             "location=no,scrollbars=no,resizable,width=140,height=140,left=" + left +
             ",top=" + (screen.availHeight-140));
     this.window.addEventListener("load",
-        B220Util.bindMethod(this, B220CardatronControl.prototype.cardatronOnLoad));
+        B220CardatronControl.prototype.cardatronOnLoad.bind(this), false);
 
     // Set up the I/O devices from the system configuration
     this.inputUnit = [
@@ -166,7 +166,7 @@ B220CardatronControl.prototype.cardatronOnLoad = function cardatronOnLoad() {
 
     this.window.addEventListener("beforeunload", B220CardatronControl.prototype.beforeUnload, false);
     this.$$("ClearBtn").addEventListener("click",
-            B220Util.bindMethod(this, B220CardatronControl.prototype.ClearBtn_onClick), false);
+            B220CardatronControl.prototype.ClearBtn_onClick.bind(this), false);
 
     this.clear();
 

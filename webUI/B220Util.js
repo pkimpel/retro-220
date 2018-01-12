@@ -63,13 +63,6 @@ B220Util.removeClass = function removeClass(e, name) {
 };
 
 /**************************************/
-B220Util.bindMethod = function bindMethod(context, f) {
-    /* Returns a new function that binds the function "f" to the object "context" */
-
-    return function bindMethodAnon() {return f.apply(context, arguments)};
-};
-
-/**************************************/
 B220Util.deepCopy = function deepCopy(source, dest) {
     /* Performs a deep copy of the object "source" into the object "dest".
     If "dest" is null or undefined, simply returns a deep copy of "source".

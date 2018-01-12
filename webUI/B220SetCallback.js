@@ -76,7 +76,8 @@
 * 2017-01-01  P.Kimpel
 *   Original version, cloned from retro-205 emulator D205SetCallback.js.
 * 2017-02-18  P.Kimpel
-*   Redesign yet again the delay adjustment mechanism -- from 205 project.
+*   Redesign yet again the delay adjustment mechanism with one from the
+*   retro-205 project.
 * 2017-10-16  P.Kimpel
 *   Replace window.postMessage yield mechanism with one based on Promise().
 ***********************************************************************/
@@ -84,6 +85,7 @@
 
 (function (global) {
     /* Define a closure for the setCallback() mechanism */
+    var alpha = 0.25;                   // decay factor for delay deviation adjustment
     var delayDev = {NUL: 0};            // hash of delay time deviations by category
     var minTimeout = 4;                 // minimum setTimeout() threshold, milliseconds
     var lastTokenNr = 0;                // last setCallback token return value
@@ -172,11 +174,7 @@
                 if (delay < 0) {
                     adj = 0;            // don't make delay any more negative
                 } else {
-                    if (delay > delayBias) {
-                        adj = -delayBias;
-                    } else {
-                        adj = -delay;
-                    }
+                    adj = -Math.min(delay, delayBias, minTimeout)*alpha;
                 }
             } else { // delayBias < 0
                 // We are delaying too little and should try to delay more.

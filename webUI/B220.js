@@ -9,6 +9,8 @@
 ************************************************************************
 * 2017-01-01  P.Kimpel
 *   Original version, from retro-205/D205.js.
+* 2018-01-04  P.Kimpel
+*   Remove deprecated Application Cache (appcache) configuration.
 ***********************************************************************/
 "use strict";
 
@@ -134,45 +136,14 @@ window.addEventListener("load", function() {
     document.getElementById("StartUpBtn").disabled = true;
     document.getElementById("EmulatorVersion").textContent = B220Processor.version;
     if (checkBrowser()) {
-        document.getElementById("Retro220Logo").addEventListener("dblclick", openDiagPanel);
+        document.getElementById("Retro220Logo").addEventListener("dblclick", openDiagPanel, false);
         document.getElementById("StartUpBtn").disabled = false;
-        document.getElementById("StartUpBtn").addEventListener("click", systemStartup);
+        document.getElementById("StartUpBtn").addEventListener("click", systemStartup, false);
         document.getElementById("StartUpBtn").focus();
         document.getElementById("ConfigureBtn").disabled = false;
-        document.getElementById("ConfigureBtn").addEventListener("click", configureSystem);
+        document.getElementById("ConfigureBtn").addEventListener("click", configureSystem, false);
 
-        window.applicationCache.addEventListener("checking", function(ev) {
-            document.getElementById("StatusMsg").textContent = "Checking for emulator update...";
-            clearStatusMsg(15);
-        });
-        window.applicationCache.addEventListener("noupdate", function(ev) {
-            document.getElementById("StatusMsg").textContent = "Emulator version is current.";
-            clearStatusMsg(15);
-        });
-        window.applicationCache.addEventListener("obsolete", function(ev) {
-            document.getElementById("StatusMsg").textContent = "Emulator off-line installation has been disabled.";
-            clearStatusMsg(15);
-        });
-        window.applicationCache.addEventListener("downloading", function(ev) {
-            document.getElementById("StatusMsg").textContent = "Initiating download for emulator update...";
-            clearStatusMsg(15);
-        });
-        window.applicationCache.addEventListener("progress", function(ev) {
-            var text = (ev.loaded && ev.total ? ev.loaded.toString() + "/" + ev.total.toString() : "Unknown number of");
-            document.getElementById("StatusMsg").textContent = text + " resources downloaded thus far...";
-            clearStatusMsg(15);
-        });
-        window.applicationCache.addEventListener("updateready", function(ev) {
-            document.getElementById("StatusMsg").textContent = "Emulator update completed. Reload this page to activate the new version.";
-            clearStatusMsg(15);
-        });
-        window.applicationCache.addEventListener("cached", function(ev) {
-            document.getElementById("StatusMsg").textContent = "Emulator is now installed for off-line use.";
-            clearStatusMsg(15);
-        });
-        window.applicationCache.addEventListener("error", function(ev) {
-            document.getElementById("StatusMsg").textContent = "Browser reported error during emulator version check.";
-            clearStatusMsg(15);
-        });
+        document.getElementById("StatusMsg").textContent = "The Application Cache feature has been deimplemented";
+            clearStatusMsg(30);
     }
-});
+}, false);

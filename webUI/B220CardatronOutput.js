@@ -70,7 +70,7 @@ function B220CardatronOutput(mnemonic, unitIndex, config) {
             ",left=" + (screen.availWidth - w) +
             ",top=" + (screen.availHeight - h - (unitIndex-3)*32));
     this.window.addEventListener("load",
-            B220Util.bindMethod(this, B220CardatronOutput.prototype.deviceOnLoad), false);
+            B220CardatronOutput.prototype.deviceOnLoad.bind(this), false);
 }
 
 /**************************************/
@@ -259,7 +259,7 @@ B220CardatronOutput.prototype.copySupply = function copySupply(ev) {
         doc = win.document;
         doc.title = title;
         doc.getElementById("Paper").textContent = text;
-    });
+    }, false);
 
     this.runoutSupply();
     ev.preventDefault();
@@ -758,21 +758,21 @@ B220CardatronOutput.prototype.deviceOnLoad = function deviceOnLoad() {
     this.window.addEventListener("beforeunload",
             B220CardatronOutput.prototype.beforeUnload, false);
     this.supply.addEventListener("dblclick",
-            B220Util.bindMethod(this, B220CardatronOutput.prototype.copySupply), false);
+            B220CardatronOutput.prototype.copySupply.bind(this), false);
     this.$$("COStopBtn").addEventListener("click",
-            B220Util.bindMethod(this, B220CardatronOutput.prototype.COStopBtn_onClick), false);
+            B220CardatronOutput.prototype.COStopBtn_onClick.bind(this), false);
     this.$$("COStartBtn").addEventListener("click",
-            B220Util.bindMethod(this, B220CardatronOutput.prototype.COStartBtn_onClick), false);
+            B220CardatronOutput.prototype.COStartBtn_onClick.bind(this), false);
     this.$$("COEndOfSupplyBtn").addEventListener("click",
-            B220Util.bindMethod(this, B220CardatronOutput.prototype.COEndOfSupplyBtn_onClick), false);
+            B220CardatronOutput.prototype.COEndOfSupplyBtn_onClick.bind(this), false);
     this.$$("CORunoutSupplyBtn").addEventListener("click",
-            B220Util.bindMethod(this, B220CardatronOutput.prototype.CORunoutSupplyBtn_onClick), false);
+            B220CardatronOutput.prototype.CORunoutSupplyBtn_onClick.bind(this), false);
     this.$$("COAlgolGlyphsCheck").addEventListener("click",
-            B220Util.bindMethod(this, B220CardatronOutput.prototype.COAlgolGlyphsCheck_onClick), false);
+            B220CardatronOutput.prototype.COAlgolGlyphsCheck_onClick.bind(this), false);
     this.$$("COSetZSBtn").addEventListener("click",
-            B220Util.bindMethod(this, B220CardatronOutput.prototype.COSetZSBtn_onClick), false);
+            B220CardatronOutput.prototype.COSetZSBtn_onClick.bind(this), false);
     this.$$("ClearBtn").addEventListener("click",
-            B220Util.bindMethod(this, B220CardatronOutput.prototype.ClearBtn_onClick), false);
+            B220CardatronOutput.prototype.ClearBtn_onClick.bind(this), false);
 
     if (!this.isPrinter) {
         this.$$("COEndOfSupplyBtn").innerHTML = "OUT OF<br>CARDS";
@@ -784,7 +784,7 @@ B220CardatronOutput.prototype.deviceOnLoad = function deviceOnLoad() {
         this.$$("CORunoutSupplyBtn").innerHTML = "FORM<br>FEED";
         this.$$("COGreenbarSpan").style.display = "inline";
         this.$$("COGreenbarCheck").addEventListener("click",
-                B220Util.bindMethod(this, B220CardatronOutput.prototype.COGreenbarCheck_onClick), false);
+                B220CardatronOutput.prototype.COGreenbarCheck_onClick.bind(this), false);
     }
 
     this.window.moveTo(screen.availWidth - this.window.outerWidth,
