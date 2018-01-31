@@ -19,15 +19,22 @@ BAC-XScript-Reformatter.wsf
     assembly listing transcriptions and reformat them into card decks
     for use by BAC-Assembler.html
 
-BAC-Assembler.html
+GEN-Assembler.html
     HTML/Javascript assembler for the assembly language dialect used
     with the BALGOL Generator utility.
 
 GEN-XScript-Reformatter.wsf
     Windows VBScript utility to extract source code from the Generator
     assembly listing transcription and reformat it into a card deck for
-    use by GEN-Assembler.html
+    use by GEN-Assembler.html.
+
+Mahon-PT-Xlate.wsf
+    Windows VBScript utility to translate the original paper tape files
+    for Michael Mahon's SNAP-1E assembler for the 220 to the paper tape
+    image format required by the retro-220 emulator.
+    See /software/SNAP-Assembler for more on that assembler.
 
 Paul Kimpel
-December 2017
+January 2018
+
 

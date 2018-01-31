@@ -1,0 +1,402 @@
+
+S N A P   VER. 1E    5/10/64
+
+
+
+SWITCH OPTIONS MUST BE SET DURING O-O HALT.
+
+SW 5 ON IF INPUT IS ON MAG-TAPE
+SW 6 ON SUPPRESSES PUNCHING
+SW 7 ON TO INSERT VALUE IN AC FOR UNDEFINED ADRES
+SW 8 ON SUPPRESSES ERROR TYPING
+SW 9 ON SUPPRESSES DICTIONARY PRINTING
+SW 0 ON INDICATES PAPER-TAPE-ONLY MODE
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+PASS 1
+
+
+
+PASS 2
+
+                               DICTIONARY
+
+         LABEL VALUE    LABEL VALUE    LABEL VALUE    LABEL VALUE
+
+         .BUN. 0027     .WRIT 0015     ADDON 0008     BUFAD 0041
+         BUFER 0042     CLOSE 0036     HITAB 0028     NUM   0029
+         NXNUM 0018     QUIT  0025     START 0000     STOP  0021
+         TABLE 0142     TABLN 0030     TEST  0001     WRITE 0031
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ADRES INSTRUCTION    LABEL VAR  OP       VARIABLE FIELD
+
+                   * PRIME NUMBER SIEVE ¤WRITES MAG-TAPE¤
+                   *         ¤MJM - 03/30/64¤
+
+
+0000  6 0000040000            LOAD      0
+0000  0 0004450000  START     CLB
+0001  0 0000100029  TEST      CAD       NUM      GET NEXT NUMBER
+0002  0 0001480010            SRT       10
+0003  1 0000150142       -    DIV       TABLE    DIVIDE BY PRIME.
+0004  0 0000370018            BFR       NXNUM    NUM ISN T PRIME.
+0005  1 0000180142       -    CFA       TABLE    IS QUOT LT DIVISOR
+0006  0 0001340008            BCL       ADDON    -YES, IT S PRIME.
+0007  0 0001200001           1IBB       TEST     -NO, TRY NXT DIVISOR.
+0008  0 0000100030  ADDON     CAD       TABLN    ¤CHANGED BY QUIT¤
+0009  0 0410180028        0410CFA       HITAB
+0010  0 0000350025            BCE       QUIT     TABLE FULL.
+0011  0 0001260030           1IFL       TABLN    ADD PRIME TO TABLE.
+0012  0 0000420030            LDB       TABLN
+0013  0 0000100029            CAD       NUM
+0014  1 0000400142       -    STA       TABLE
+0015  0 0000100029  .WRIT     CAD       NUM
+0016  0 0000440031            CALL      WRITE
+0018  0 0002260029  NXNUM    2IFL       NUM      NEXT ODD NUMBER
+0019  0 0000310021            BOF       STOP
+0020  0 0000300000            BUN       START    GO AGAIN.
+
+0021  0 0000440031  STOP      STP       WRITE    CLOSE OUT
+0022  0 0000300036            BUN       CLOSE     BUFFER
+0023  0 0757007250         757HLT       7250     AND O-K STOP
+0024  0 0000300023            BUN       *-1       DEAD.
+
+0025  0 0000100027  QUIT      CAD       .BUN.    SET
+0026  0 0000400008            STA       ADDON     SWITCH TO
+0027  0 0000300015  .BUN.     BUN       .WRIT      BYPASS ADDON.
+
+0028  0 0000004857  HITAB     HLT       4999-TABLE  ¤MAX LENGTH¤
+0029  0 0000000007  NUM       DEC       7        NUMBER TO BE TESTED
+0030  0 0000000001  TABLN     DEC       1        TABLE LENGTH - 1
+
+                   * WRITE SUBROUTINE FOR SIEVE
+
+0031  0 0000300000  WRITE     BUN       **       RETURN ADDRESS
+0032  0 0000420041            LDB       BUFAD
+0033  1 0000400042       -    STA       BUFER    STORE PRIME IN BUFER
+0034  0 0001260041           1IFL       BUFAD     AND KEEP COUNT.
+0035  0 9901200031        9901IBB       WRITE    BRANCH IF NOT FULL.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ADRES INSTRUCTION    LABEL VAR  OP       VARIABLE FIELD
+
+0036  0 1100540042  CLOSE 1100MIW       BUFER    WRITE 100 PRIMES.
+0037  0 0000460041            CLL       BUFAD    EMPTY BUFER.
+0038  0 0000380031        0   BCS       WRITE    SW 0 ON TO SKIP HALT
+0039  0 6996006996        6996HLT       6996      EVERY 100 PRIMES.
+0040  0 0000300031            BUN       WRITE    RETURN...
+
+0041  0 0000000003  BUFAD     DEC       3
+0042  0 0000000002  BUFER     DEC       2        INITIAL PRIMES
+0043  0 0000000003            DEC       3
+0044  0 0000000005            DEC       5
+0045  6 0000040142            BSS       97
+
+
+
+0142  0 0000000003  TABLE     DEC       3        PRIME NUMBER
+0143  0 0000000005            DEC       5         TABLE.
+
+0000  6 0000300000            TCD       START    TRANSFER CONTROL.
+                             END
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+END OF ASSEMBLY
+
+

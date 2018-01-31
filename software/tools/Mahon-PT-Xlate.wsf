@@ -1,0 +1,169 @@
+<?XML version="1.0"?>
+<package>
+<job id="Mahon-PT-Xlate">
+<reference object="Scripting.FileSystemObject" />
+<script language="VBScript">
+<![CDATA[
+
+Option Explicit
+'-----------------------------------------------------------------------
+' retro-220 Mahon-PT-Xlate.wsf
+' Copyright (c) 2017, Paul Kimpel,
+' Licensed under the MIT License, see
+'       http://www.opensource.org/licenses/mit-license.php
+'-----------------------------------------------------------------------
+' VBScript to reformat Michael Mahon's Apple II assembler-encoded 220 paper
+' tape files to the paper-tape format used by the retro-220 emulator.
+' Uses Scripting Runtime FileSystemObject.
+' Parameters:
+'   Name of assembler-encoded file (required).
+'   Name of resulting retro-220 file (optional - by default will have the
+'       name of the assembler-encoded file with "-retro.pt" replacing the
+'       orginal file name extension.
+'-----------------------------------------------------------------------
+' Modification Log.
+' 2017-11-18  P.Kimpel
+'   Original version, cloned from retro-b5500 B5500-MemDumpToTapeDump.wsf.
+'-----------------------------------------------------------------------
+
+Const defaultSuffix = "-retro.pt"
+
+Dim args
+Dim asmFile
+Dim asmName
+Dim fso
+Dim ptFile
+Dim ptName
+Dim xlate220
+
+'---------------------------------------
+Function OutputWord(byVal word)
+  'Outputs one one word of paper-tape data, converting sign-2 words to ANSI
+  'code as necessary
+  Dim char
+  Dim code
+  Dim sign
+  Dim x
+
+  sign = Mid(word, 2, 1)
+  If sign <> "2" Then
+    ptFile.WriteLine Mid(word, 2, 11)
+  Else
+    ptFile.Write sign
+    For x = 3 To 11 Step 2
+      char = Mid(word, x, 2)
+      If Not IsNumeric(char) Then
+        ptFile.Write "!"
+      Else
+        code = CInt("1" & char) Mod 100 '-- avoid octal conversion if leading zero
+        ptFile.Write xlate220(code)
+      End If
+    Next
+
+    ptFile.WriteLine
+  End If
+End Function
+
+'---------------------------------------
+Sub ReformatPaperTape
+  'Creates the retro-220 paper-tape file from the Mahon assembler-encoded file.
+  Dim code
+  Dim count
+  Dim line
+  Dim word
+  Dim x
+
+  count = 0
+  word = ""
+
+  Do While Not asmFile.AtEndOfStream
+    line = asmFile.ReadLine
+    If Len(line) > 8 Then
+      For x = 9 To 20 Step 3
+        code = Mid(line, x, 2)
+        If code = "  " Then
+          Exit For
+        Else
+          If count < 6 Then
+            count = count+1
+            word = word & code
+          Else
+            OutputWord word
+            count = 1
+            word = code
+          End If
+        End If
+      Next
+    End If
+  Loop
+
+  If count > 0 Then
+    Do While count < 6
+      word = "00" & word
+      count = count+1
+    Loop
+
+    OutputWord word
+  End If
+End Sub
+
+'---------------------------------------------------------------
+
+Set fso = WScript.CreateObject("Scripting.FileSystemObject")
+
+'-- Translate internal B220 code to ANSI.
+'   Note that ANSI new-line sequences are used for end-of-word characters,
+'   so B220 carriage-return (16) translates to "|". To avoid space-expansion
+'   of tabs (26), they are translated to "~". The 02 "blank" code is "_".
+'   Form-feed (15) translates to "^".
+xlate220 = Array( _
+        " ", "?", "_", ".", "¤", ")",  "?",  "?", "?", "?", _
+        "&", "?", "?", "$", "*", "^",  "|",  "?", "?", "?", _
+        "-", "/", "?", ",", "%", "?",  "~",  "?", "?", "?", _
+        "?", "?", "?", "#", "@", "\",  "?",  "?", "?", "?", _
+        "?", "A", "B", "C", "D", "E",  "F",  "G", "H", "I", _
+        "?", "J", "K", "L", "M", "N",  "O",  "P", "Q", "R", _
+        "?", "?", "S", "T", "U", "V",  "W",  "X", "Y", "Z", _
+        "?", "?", "?", "?", "?", "?",  "?",  "?", "?", "?", _
+        "0", "1", "2", "3", "4", "5",  "6",  "7", "8", "9", _
+        "?", "?", "?", "?", "?", "?",  "?",  "?", "?", "?")
+
+Set args = WScript.Arguments
+If args.Count < 1 Then
+  MsgBox "Must supply at least the name of the assembler-encoded file."
+  WScript.Quit 9
+Else
+  asmName = Trim(args.Item(0))
+  If args.Count > 1 Then
+    ptName = Trim(args.Item(1))
+  Else
+    ptName = fso.BuildPath(fso.GetParentFolderName(asmName), fso.GetBaseName(asmName)) & defaultSuffix
+  End If
+End If
+
+Set args = Nothing
+
+'-- Main Line --
+If Not fso.FileExists(asmName) Then
+  MsgBox "Assembler-encoded file does not exist: " & vbCrLf & asmName
+Else
+  Set asmFile = fso.OpenTextFile(asmName, ForReading, False)
+  Set ptFile = fso.CreateTextFile(ptName, True, True)
+
+  ReformatPaperTape
+
+  ptFile.Close
+  Set ptFile = Nothing
+  asmFile.Close
+  Set asmFile = Nothing
+  MsgBox "retro-220 paper tape file created: " & vbCrLf & ptName
+End If
+
+Set fso = Nothing
+
+WScript.Quit 0
+
+]]>
+</script>
+</job>
+</package>

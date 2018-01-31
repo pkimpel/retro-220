@@ -1,0 +1,2712 @@
+
+S N A P   VER. 1E    5/10/64
+     
+    
+    
+SWITCH OPTIONS MUST BE SET DURING O-O HALT.
+     
+SW 5 ON IF INPUT IS ON MAG-TAPE   
+SW 6 ON SUPPRESSES PUNCHING  
+SW 7 ON TO INSERT VALUE IN AC FOR UNDEFINED ADRES
+SW 8 ON SUPPRESSES ERROR TYPING   
+SW 9 ON SUPPRESSES DICTIONARY PRINTING 
+SW 0 ON INDICATES PAPER-TAPE-ONLY MODE 
+    
+   
+   
+   
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+PASS 1
+
+
+
+PASS 2
+
+                               DICTIONARY
+  
+         LABEL VALUE    LABEL VALUE    LABEL VALUE    LABEL VALUE
+   
+         .BINL 0216     .BINO 0496     .BUN. 1092     .CALA 0603
+         .DEFL 0122     .ERRO 0647     .FLG. 1091     .GETN 1086
+         .IG.  1689     .LDR. 0605     .LENG 0694     .M.   0276
+         .NEXC 0808     .NOP. 1093     .READ 0637     .REM. 0861
+         .REOP 0622     .TAB. 0132     .TRAN 0172     .WRIT 0159
+         .ZZZ. 1054     ABS   0655     ABSAD 0368     ACCUM 0606
+         ADD   0575     ADD1  0695     ADD12 0173     ADD8  0680
+         ADRES 0413     AHEAD 0271     ALOAD 0856     ALPH  0659
+         ATCD  1042     ATERM 0607     ATRAL 0672     ATRAN 0668
+         ATRA8 0682     BES   0703     BINLA 0176     BINOP 0465
+         BLANK 0294     BRNGN 0537     BSS   0713     BTOGO 0147
+         BTOTL 0152     BUMPL 0373     BUMPZ 0463     CALAD 0498
+         CALL  0732     CALRT 0597     CHKSP 0518     CKPTO 0089
+         CKSET 0949     CLOSE 0145     COUNT 0764     C1    0767
+         C2    0768     DCNT  0809     DCODE 0079     DEC   0754
+         DECOD 0358     DECPT 0771     DEFLA 0093     DELTA 1557
+         DLDR  0803     DNEG  1087     DOUT  0791     DUP   0812
+         EIGHT 0277     EJECT 0816     END   0824     ENDMS 0021
+         ENTRY 0000     EQU   0828     ERL1  0995     ERMES 0648
+         ERO1  0355     ERROR 0638     ERS3  0129     ERS4  0840
+         ERT1  0160     ERV1  0451     ERV2  0460     ERV3  0697
+         E400  0999     FIFTY 0811     FIXED 0789     FLAG  0308
+         GENIG 1668     GETNM 1055     GOON  1094     HOLDA 0609
+         HOLDB 0539     HOLDR 0610     IDMES 1691     INITL 1663
+         INSTR 0407     INTER 0217     IOBUF 1562     LABEL 0409
+         LAOK  0214     LENGT 0688     LIST  0404     LITCH 0540
+         LITOP 0442     LOAD  0843     LOADR 0512     LOCNT 1556
+         LODER 0720     LOOPN 0530     LOOPV 0338     LOOP1 0008
+         LOOP2 0248     LOPER 0608     MACRO 0858     MESP1 0027
+         MESP2 1089     MLDEF 0273     MODLO 0600     MUL   0572
+         MULER 0123     NAMOP 0876     NCNT  0810     NCONV 0528
+         NEXCH 0800     NEXR. 0653     NEXRC 0321     NEXSM 0509
+         NEXTC 1066     NEXT1 0056     NEXXX 0063     NINES 0025
+         NSIGN 0345     NULIN 0288     NUM   0534     NUPAG 0289
+         NXPAG 0419     ONECH 0580     OPCOD 0411     OPDEF 0862
+         OPER  0590     OPOK  0495     OPSOK 0898     OPSUM 0624
+         OPSYN 0889     OPTAB 1299     ORG   0900     OSIGN 1555
+         OUTAD 0310     OUTLA 0309     PAGCK 0400     PASS1 0044
+         PASS2 0313     PAUSE 0911     PREAD 0436     PSUDO 0449
+         PSUD1 0085     PTHLT 0311     PUNC. 0651     PUNCH 0377
+         P2TYP 0224     RDREC 0634     READ  0629     REDEF 0878
+         REL   0915     RELCK 0364     REM   0923     REMSP 0929
+         REOPT 0611     RESET 0002     RLOAD 0857     ROPEN 0625
+         RSTRT 1690     RTCD  1043     SAMPG 1023     SAVEA 1559
+         SAVEB 1560     SELF  0595     SEQOP 0489     SET   0931
+         SETIT 0937     SETSN 1078     SEX   0953     SIX   0702
+        
+   
+   
+   
+  
+
+
+
+
+         LABEL VALUE    LABEL VALUE    LABEL VALUE    LABEL VALUE
+   
+         SNEG  0347     SPAC  0962     SPACE 1012     SPACL 1000
+         SPACT 1662     SPCLG 0986     SPCOK 0974     SPCSZ 1095
+         SPRED 0254     STALY 1073     START 0031     SUB   0570
+         SWMES 1700     SYMBL 0526     S0MES 1748     S1    1083
+         S5MES 1710     S6MES 1717     S7MES 1723     S8MES 1733
+         S9MES 1740     TABLE 4999     TABLN 0026     TABSZ 1096
+         TAHED 0278     TALY1 0991     TALY3 0392     TALY4 0259
+         TCD   1030     TEMP1 1561     TRANL 0167     TRANS 0163
+         TRA12 0175     TYPCK 0780     TYPE. 0652     TYPER 0379
+         TYPIT 0013     TYPTA 0245     UNREF 0017     UNREL 0454
+         VALUE 0556     VAR   0410     VARNT 1558     VCONV 0333
+         WOPEN 0134     WRDCK 0265     WRITE 0140     WRTRC 0156
+         WUN   0343     ZONE8 1069     ZZZ   1044     01FLD 0701
+         04FLD 1097     1CR   0823     1INIT 0051     10E4  1098
+         101E0 0133     2XDFT 0497     21E8  0604     8SIGN 0920
+         8ZONE 0774
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    
+    
+    
+    
+   
+
+
+
+
+
+
+
+
+
+
+
+
+
+ADRES INSTRUCTION    LABEL VAR  OP       VARIABLE FIELD    
+
+                   **************************** SUM # $5601656163 ***
+                   *       S N A P      VERSION 1E     5/10/64       
+0000  6 0000040000            LOAD      0000                          
+
+
+0000  0 0000301663  ENTRY     BUN       INITL    INITIALIZE...        
+0001  0 0000300031            BUN       START           RESTART PASS1 
+
+
+                   TABLE     EQU       4999            TABLE ORIGIN  
+
+
+                   *           RESET --PRINTS LIST OF                
+                   *                   UNREFERENCED LABELS           
+                   *                   RESETS OPTAB                  
+                   *                   INITIALIZES SYMBOL TABLE      
+                   *                   AND PASS 1 TRANSFER VECTOR    
+0002  0 0000380004  RESET 0   BCS       *$2             SKIP IF *PTO* 
+0003  0 1008500000        1000MRW                       REWIND TAPE 1 
+0004  0 0050090289          50SPO       NUPAG           SPACE 5 LINES 
+0005  0 0000101096            CAD       TABSZ           IF TABSZ#0    
+0006  0 0000360029            BFA       START-2         SKIP AHEAD... 
+0007  0 0001421096            LBC       TABSZ           B#-2¤N-1¤     
+0008  1 0000104998  LOOP1-    CAD       TABLE-1         CHECK FOR     
+0009  0 1101360013        1101BFA       TYPIT           UNREF FLAG    
+0010  0 0002200008           2IBB       LOOP1           AND GO AGAIN. 
+0011  0 0050090289          50SPO       NUPAG           SPACE 5 LINES 
+0012  0 0000300029            BUN       START-2         OK.GO OUT.... 
+0013  0 0010090823  TYPIT   10SPO       1CR             DOUBLE SPACE. 
+0014  1 0010094999       -  10SPO       TABLE           PRINT LABEL   
+0015  0 0040090017          40SPO       UNREF           AND MESSAGE.. 
+0016  0 0000300010            BUN       LOOP1$2         GO BACK...    
+0017  2 0000496200  UNREF    4ALPH        IS NOT REFERENCED%          
+0021  2 1616455544  ENDMS    4ALPH      %%END OF ASSEMBLY%%%          
+0025  0 9999999999  NINES     DEC       9999999999      DUMMY ENTRY   
+0026  0 0000003072  TABLN     DEC       3072            MAX TABLE LGTH
+0027  2 1516165741  MESP1    2ALPH      ,%%PASS 1%                    
+0029  0 0040060021          40PWR       ENDMS           TYPE END MESS 
+0030  0 6996006996        6996HLT       6996            O-O HLT...... 
+0031  0 0000441094  START     STP       GOON            GOON#TRUE     
+0032  0 0000440622            STP       .REOP           RESET         
+0033  0 0000300611            BUN       REOPT             OP TABLE... 
+0034  0 0001420026            LBC       TABLN           CLEAR SYMBOL  
+0035  1 0000464998       -    CLL       TABLE-1         TABLE AND     
+0036  0 0001200035           1IBB       *-1             ENTER THE     
+0037  0 0000100025            CAD       NINES           DUMMY           
+  
+    
+    
+    
+   
+
+
+
+
+
+
+
+
+
+
+
+
+
+ADRES INSTRUCTION    LABEL VAR  OP       VARIABLE FIELD    
+
+0038  0 0000404999            STA       TABLE           FIRST ENTRY.. 
+0039  0 0000101093            CAD       .NOP.           INITIALIZE    
+0040  0 6210400651        6210STA       PUNC.           PASS 1        
+0041  0 6210400652        6210STA       TYPE.           TRANSFER      
+0042  0 6210400653        6210STA       NEXR.           VECTOR...     
+0043  0 0020060027          20PWR       MESP1           TYPE *PASS 1* 
+
+
+                   *           PASS1 --SYMBOL TABLE FORMING PASS     
+0044  0 0000380051  PASS1 0   BCS       1INIT           *PTO* JUST GO.
+0045  0 5000380049        5   BCS       *$4             INPUT ON MAG-T
+0046  0 0000440159            STP       .WRIT           OPEN FILE 1   
+0047  0 0000300134            BUN       WOPEN           FOR WRITING.  
+0048  0 0000300051            BUN       1INIT           GO INITIALIZE.
+0049  0 0000440637            STP       .READ           OPEN MAG-TAPE 
+0050  0 0000300625            BUN       ROPEN           FOR READING...
+0051  0 0000461555  1INIT     CLL       OSIGN           SET ABSMOD.   
+0052  0 0000461556            CLL       LOCNT           LOCNT#0       
+0053  0 0000461095            CLL       SPCSZ           SPCSZ#0       
+0054  0 0000461096            CLL       TABSZ           SET           
+0055  0 0402261096        0402IFL       TABSZ           TABSZ#2       
+0056  0 5000380089  NEXT1 5   BCS       CKPTO           SEE IF *PTO*  
+0057  0 1110030408        1110PRD       LABEL-1         INPUT FROM PT.
+0058  0 0000440172            STP       .TRAN           TRANSLATE *   
+0059  0 0000300163            BUN       TRANS                         
+0060  0 0000380063        0   BCS       NEXXX           SKIP IF *PTO* 
+0061  0 0000440159            STP       .WRIT           WRITE ON      
+0062  0 0000300140            BUN       WRITE           MAG-TAPE..    
+0063  0 0000100409  NEXXX     CAD       LABEL           CHECK FOR     
+0064  0 0000330217           0BSA       INTER           ABNORMAL*END* 
+0065  0 2214360056        2214BFA       NEXT1           REMARK...     
+0066  0 6612401556        6610STB       LOCNT         LOCNT MOD 10000 
+0067  0 0000461561            CLL       TEMP1           SET TEMP1     
+0068  0 1230261561        1230IFL       TEMP1           SIGN#3        
+0069  0 0000100411            CAD       OPCOD                         
+0070  0 0000440496            STP       .BINO           CALL BINOP    
+0071  0 0000300465            BUN       BINOP                         
+0072  0 0000300079            BUN       DCODE           FOUND...      
+0073  0 1108360075        1108BFA       *$2      NOT FOUND...         
+0074  0 0000300076            BUN       *$2      NOT LITERAL...       
+0075  0 3108360360        3108BFA       DECOD$2  LITERAL OP-CODE      
+0076  0 0000440647            STP       .ERRO           CALL ERROR    
+0077  0 5681300638        5681BUN       ERROR           O1-UNDEF OP.. 
+0078  0 0001450000            CLA                       ASSUM MACH OP 
+0079  0 0001330085  DCODE    1BSA       PSUD1           DECODE PSEUDO 
+0080  0 1109360056        1109BFA       NEXT1           NUM-ASSEM P/O   
+  
+    
+    
+    
+   
+
+
+
+
+
+
+
+
+
+
+
+
+
+ADRES INSTRUCTION    LABEL VAR  OP       VARIABLE FIELD    
+
+0081  0 0000440122            STP       .DEFL           DEFINE        
+0082  0 0000300093            BUN       DEFLA             THE LABEL   
+0083  0 0401261556        0401IFL       LOCNT           BUMP LOCNT 1  
+0084  0 0000300056            BUN       NEXT1           AND CONTINUE. 
+0085  0 0410400088  PSUD1 0410STA       *$3             GET BRANCH AD 
+0086  0 4210400087        4210STA       *$1             AND REL ADRES 
+0087  0 0400260088        0400IFL       *$1             CALC ENTRY PT 
+0088  0 0000300000            BUN       **              AND BRANCH... 
+0089  0 0000380057  CKPTO 0   BCS       NEXT1$1         *PTO* GO BACK 
+0090  0 0000440637            STP       .READ           INPUT IS FROM 
+0091  0 0000300629            BUN       READ            MAG-TAPE...   
+0092  0 0000300063            BUN       NEXXX           AND GO BACK.. 
+
+
+                   *           DEFLA --LABEL DEFINING SUBROUTINE     
+0093  0 0000100409  DEFLA     CAD       LABEL           GET LABEL     
+0094  0 0000360122            BFA       .DEFL           RET. IF BLANK 
+0095  0 0000440216            STP       .BINL           SEARCH        
+0096  0 0000300176            BUN       BINLA             TABLE....   
+0097  0 0000300123            BUN       MULER           FOUND....     
+0098  0 0002210099           2DBB       *$1             NOT FOUND...  
+0099  0 0412400539        0410STB       HOLDB           SAVE B        
+0100  0 0402261096        0402IFL       TABSZ           BUMP TABSZ    
+0101  0 0000101096            CAD       TABSZ           COMPARE       
+0102  0 0410180026        0410CFA       TABLN           WITH MAX....  
+0103  0 0000340129            BCH       ERS3            ERROR IF HIGH 
+0104  0 0000120539            ADD       HOLDB           SUB REL LOCTN 
+0105  0 0000460609            CLL       HOLDA           CLEAR HOLDA   
+0106  0 8210400609        8210STA       HOLDA           KEEP HUNDREDS 
+0107  0 0000100132            CAD       .TAB.           GET ¤TABLE¤   
+0108  0 0000120539            ADD       HOLDB           SUB REL LOCTN 
+0109  0 0000130609            SUB       HOLDA           SUB 100¤N-1¤  
+0110  0 0000130133            SUB       101E0           SUB #101      
+0111  0 0410400610        0410STA       HOLDR           MODULO 10000  
+0112  0 0000420610            LDB       HOLDR           B#RESULT.     
+0113  1 0000290002       -    RTF       0002            MOVE LABELS   
+0114  0 8201270609        8201DFL       HOLDA           BUMP TALLY..  
+0115  0 0000320113            BRP       *-2             AND GO AGAIN. 
+0116  0 0000420539            LDB       HOLDB           RESTORE B#LOC 
+0117  0 0000100409            CAD       LABEL           INSERT        
+0118  1 0000404999       -    STA       TABLE            THE LABEL... 
+0119  0 0000101556            CAD       LOCNT           AND ITS       
+0120  1 0000404998       -    STA       TABLE-1           VALUE....   
+0121  1 1101264998       -1101IFL       TABLE-1         SET UNREF FLAG
+0122  0 0000300000  .DEFL     BUN       **              RETURN.....   
+0123  0 0000010122  MULER     NOP       .DEFL         *SET*SWITCH       
+  
+    
+    
+    
+   
+
+
+
+
+
+
+
+
+
+
+
+
+
+ADRES INSTRUCTION    LABEL VAR  OP       VARIABLE FIELD    
+
+0124  0 0100100124         100CAD       *               GET FLAG      
+0125  1 2110404998       -2110STA       TABLE-1         SET MLDEF FLG 
+0126  0 0000440647            STP       .ERRO         MUL-DEF SYMBOL  
+0127  0 6282300638        6282BUN       ERROR         ER S2....       
+0128  0 0000300122            BUN       .DEFL           AND GO HOME.. 
+0129  0 0000440647  ERS3      STP       .ERRO    ER S3-SYMBOL         
+0130  0 6283300638        6283BUN       ERROR           TABLE FULL... 
+0131  0 0000300002            BUN       RESET           TERMINATE.... 
+0132  0 0000004999  .TAB.     HLT       TABLE           ¤TABLE¤       
+0133  0 0000000101  101E0     DEC       101             #101          
+
+
+                   *           WRITE --MAG-TAPE WRITE SUBROUTINE     
+                   *                   BLOCKS TAPE AS NEEDED         
+                   *                   ¤MUST BE EDITED UPON LOADING¤ 
+0134  0 1008501562  WOPEN 1000MRW       IOBUF           PREPARE TAPE1 
+0135  0 0000420152            LDB       BTOTL           SET BTOGO     
+0136  0 0412400147        0410STB       BTOGO           # BTOTL       
+0137  0 0000100159            CAD       .WRIT           GET #9 ¤44 F¤ 
+0138  0 4410400144        4410STA       CLOSE-1         SET TALY#9.   
+0139  0 0000300157            BUN       WRTRC$1         AND GO ON..   
+0140  0 0000420134  WRITE     LDB       WOPEN           HOLD BUF ADDR 
+0141  0 0100290409         100RTF       LABEL           MOVE RECORD   
+0142  0 0412400134        0410STB       WOPEN           HOLD BUF ADDR 
+0143  0 4101270144        4101DFL       *$1             BUMP TALLY    
+0144  0 0009320159           9BRP       .WRIT           IS IT TENTH.. 
+0145  0 0401270147  CLOSE 0401DFL       BTOGO           ANY BLKS LEFT 
+0146  0 0000320156            BRP       WRTRC           YES.WRITE.... 
+0147  0 1002580000  BTOGO 1000MPE       0000            NO.SET AND    
+0148  0 1000541562        1000MIW       IOBUF           WRITE 10 BLKS 
+0149  0 1000590151        1000MIB       *$2             DELAY UNTIL   
+0150  0 0000300149            BUN       *-1             TAPE STOPS... 
+0151  0 1001590160        1000MIE       ERT1            T1-E.O.T.     
+0152  0 1001580000  BTOTL 1000MPB       0000            BACKSPACE 10. 
+0153  0 0410260147        0410IFL       BTOGO           BUMP BTOGO 10 
+0154  0 0000310155            BOF       *$1             RESET OVFLOW. 
+0155  0 0410260152        0410IFL       BTOTL           BUMP BTOTL 10 
+0156  0 1100561562  WRTRC 1100MOW       IOBUF           WRITE BUFFER. 
+0157  0 0000420156            LDB       WRTRC           RESET BUFFER  
+0158  0 0412400134        0410STB       WOPEN                ADDRESS. 
+0159  0 0009300000  .WRIT    9BUN       **              AND GO HOME.. 
+
+
+0160  0 0000440647  ERT1      STP       .ERRO     ER T1-INSUFFICNT    
+0161  0 6381300638        6381BUN       ERROR           MAG-TAPE...   
+0162  0 0000300029            BUN       START-2         TERMINATE...    
+  
+    
+    
+    
+   
+
+
+
+
+
+
+
+
+
+
+
+
+
+ADRES INSTRUCTION    LABEL VAR  OP       VARIABLE FIELD    
+
+
+
+                   *           TRANS-ASTERISK TRANSLATION SUBROUTINE 
+0163  0 4400280174  TRANS 4400DLB       ADD12$1         SET B#9       
+0164  1 0000100409       -    CAD       LABEL           GET A WORD    
+0165  0 0000360171            BFA       ADD12-2         SKIP IF BLANK 
+0166  0 0500210167         500DBB       TRANL           SET LOOP TALY 
+0167  0 0202360173  TRANL 0202BFA       ADD12           IF 02 ADD 12. 
+0168  0 0001480002            SRT       2               GET NEXT CHAR 
+0169  0 0100200167         100IBB       TRANL           ¤CHAR LOOP¤   
+0170  1 0011400409       -  10STR       LABEL           REPLACE WORD. 
+0171  0 0001210164           1DBB       TRANS$1         ¤WORD LOOP¤   
+0172  0 0000300000  .TRAN     BUN       **              RETURN..      
+0173  0 0000120175  ADD12     ADD       TRA12           ADD TWELVE    
+0174  0 0009300168           9BUN       TRANL$1         AND GO BACK.. 
+0175  0 0000000012  TRA12     DEC       0000000012      #12           
+
+
+                   *           BINLA--BINARY LABEL TABLE             
+                   *                  SEARCH SUBROUTINE              
+0176  0 0004450000  BINLA     CLB                       B#0           
+0177  1 0010183975       -  10CFA       TABLE-1024      IS IT IN      
+0178  0 0000340183            BCH       *$5             TOP 1/3...    
+0179  0 1024210180        1024DBB       *$1             NO.DECREASE B 
+0180  1 0010183975       -  10CFA       TABLE-1024      IS IT IN      
+0181  0 0000340183            BCH       *$2             THIS HALF...  
+0182  0 1024210183        1024DBB       *$1             NO.DECREASE B 
+0183  1 0010184487       -  10CFA       TABLE-512       IS IT IN      
+0184  0 0000340186            BCH       *$2             THIS HALF...  
+0185  0 0512210186         512DBB       *$1             NO.DECREASE B 
+0186  1 0010184743       -  10CFA       TABLE-256       IS IT IN      
+0187  0 0000340189            BCH       *$2             THIS HALF...  
+0188  0 0256210189         256DBB       *$1             NO.DECREASE B 
+0189  1 0010184871       -  10CFA       TABLE-128       IS IT IN      
+0190  0 0000340192            BCH       *$2             THIS HALF...  
+0191  0 0128210192         128DBB       *$1             NO.DECREASE B 
+0192  1 0010184935       -  10CFA       TABLE-64        IS IT IN      
+0193  0 0000340195            BCH       *$2             THIS HALF...  
+0194  0 0064210195          64DBB       *$1             NO.DECREASE B 
+0195  1 0010184967       -  10CFA       TABLE-32        IS IT IN      
+0196  0 0000340198            BCH       *$2             THIS HALF...  
+0197  0 0032210198          32DBB       *$1             NO.DECREASE B 
+0198  1 0010184983       -  10CFA       TABLE-16        IS IT IN      
+0199  0 0000340201            BCH       *$2             THIS HALF...  
+0200  0 0016210201          16DBB       *$1             NO.DECREASE B 
+0201  1 0010184991       -  10CFA       TABLE-8         IS IT IN        
+  
+    
+    
+    
+   
+
+
+
+
+
+
+
+
+
+
+
+
+
+ADRES INSTRUCTION    LABEL VAR  OP       VARIABLE FIELD    
+
+0202  0 0000340204            BCH       *$2             THIS HALF...  
+0203  0 0008210204           8DBB       *$1             NO.DECREASE B 
+0204  1 0010184995       -  10CFA       TABLE-4         IS IT IN      
+0205  0 0000340207            BCH       *$2             THIS HALF...  
+0206  0 0004210207           4DBB       *$1             NO.DECREASE B 
+0207  1 0010184997       -  10CFA       TABLE-2         IS IT IN      
+0208  0 0000340210            BCH       *$2             THIS HALF...  
+0209  0 0002210210           2DBB       *$1             NO.DECREASE B 
+0210  1 0010184999       -  10CFA       TABLE           IS THE LABEL  
+0211  0 0000350214            BCE       LAOK            FOUND...      
+0212  0 0401260216        0401IFL       .BINL           NO. SET UP    
+0213  0 0000300216            BUN       .BINL           ERROR RETURN. 
+0214  1 0000104998  LAOK -    CAD       TABLE-1         YES.GET VALUE 
+0215  1 1112404998       -1110STB       TABLE-1         CLR UNREF FLG 
+0216  0 0000300000  .BINL     BUN       **              AND RETURN... 
+
+
+                   *           INTER --INTERLUDE PASS...             
+                   *                   SETS TRANSFER VECTOR AND      
+                   *                   INITIALIZES MAG-TAPE... THEN  
+                   *                   PUNCHES SPAC CALL-IN SEQUENCE 
+0217  0 0402271096  INTER 0402DFL       TABSZ           TABSZ#2¤N-1¤  
+0218  0 0000101094            CAD       GOON            CHECK ERROR   
+0219  0 0000360029            BFA       START-2         FLAG...       
+0220  0 0000380311        0   BCS       PTHLT           SKIP MAG-TAPE 
+0221  0 0000440159            STP       .WRIT           INITIALIZATN  
+0222  0 0000300145            BUN       CLOSE           IF PAPER      
+0223  0 1008500000        1000MRW                       TAPE ONLY...  
+0224  0 0020061089  P2TYP   20PWR       MESP2           TYPE *PASS 2* 
+0225  0 0000101092            CAD       .BUN.           INITIALIZE    
+0226  0 6210400651        6210STA       PUNC.           TRANSFER      
+0227  0 6210400652        6210STA       TYPE.           VECTOR FOR    
+0228  0 6210400653        6210STA       NEXR.           PASS TWO...   
+0229  0 0000101091            CAD       .FLG.           INITIALIZE    
+0230  0 0000400408            STA       LABEL-1         LIST FLAG FLD 
+0231  0 0000101095            CAD       SPCSZ           SPCSZ#NUM SUB 
+0232  0 0000360238            BFA       TYPTA-7         SKIP IF ZERO. 
+0233  0 6000380238        6   BCS       *$5             SW 6 OMITS PCH
+0234  0 1120061000        1120PWR       SPACL           PUNCH CALL-IN 
+0235  0 0000421095            LDB       SPCSZ           B#SPCSZ       
+0236  1 1010061662       -1010PWR       SPACT           PUNCH ENTRY   
+0237  0 0001210236           1DBB       *-1             AND GO AGAIN. 
+0238  0 4412400400        4410STB       PAGCK           SET PAGCK#0   
+0239  0 0000101096            CAD       TABSZ           IF TABSZ#0    
+0240  0 0400360313        0400BFA       PASS2           OMIT TABLE... 
+0241  0 9000380313        9   BCS       PASS2           SUPPRESS TABL   
+  
+    
+    
+    
+   
+
+
+
+
+
+
+
+
+
+
+
+
+
+ADRES INSTRUCTION    LABEL VAR  OP       VARIABLE FIELD    
+
+0242  0 2290260400        2290IFL       PAGCK           SET PAGCK#90  
+0243  0 4412400265        4410STB       WRDCK           SET WRDCK     
+0244  0 4275260265        4275IFL       WRDCK           #75.          
+
+
+                   *           TYPTA -- SYMBOL TABLE TYPER           
+0245  0 0100090278  TYPTA  100SPO       TAHED           TYPE INIT HED 
+0246  0 0140090294         140SPO       BLANK           WRITE HEADING 
+0247  0 0001421096            LBC       TABSZ           B#2¤N-1¤      
+0248  0 0000100294  LOOP2     CAD       BLANK           N#NO. OF ENTR 
+0249  0 0000400308            STA       FLAG            SET FLAG TO   
+0250  1 0000104999       -    CAD       TABLE           BLANK. MOVE   
+0251  0 0000400309            STA       OUTLA           LABEL         
+0252  1 0000104998       -    CAD       TABLE-1         GET VALUE     
+0253  0 2101360273        2101BFA       MLDEF                         
+0254  0 0001480004  SPRED     SRT       4               NUM TO ALPH   
+0255  0 0001450000            CLA                       REMOVE JUNK   
+0256  0 0000490001            SLA       1                             
+0257  0 0001490001            SLT       1                             
+0258  0 4225270259        4225DFL       TALY4                         
+0259  0 0075320256  TALY4   75BRP       SPRED$2         GO 4 TIMES    
+0260  0 0000120277            ADD       EIGHT           ZONE DIGITS   
+0261  0 0002430000           2LSA                       ADD ALPH FLAG 
+0262  0 0000400310            STA       OUTAD           TO OUTPUT LOC 
+0263  0 0030090308          30SPO       FLAG            OUTPUT A SET  
+0264  0 4225270265        4225DFL       WRDCK           4 SETS TO LIN 
+0265  0 0075320271  WRDCK   75BRP       AHEAD               TALLY     
+0266  0 0010090288          10SPO       NULIN           CR B B B B    
+0267  0 2202270400        2202DFL       PAGCK           46 LINES PER  
+0268  0 0000320271            BRP       AHEAD              PAGE       
+0269  0 2208270400        2208DFL       PAGCK           SET TO 90     
+0270  0 0190090289         190SPO       NUPAG                         
+0271  0 0002200248  AHEAD    2IBB       LOOP2           NEXT ENTRY    
+0272  0 0000300313            BUN       PASS2                         
+0273  0 0000410276  MLDEF     LDR       .M.                           
+0274  0 0001400308            STR       FLAG                          
+0275  0 0000300254            BUN       SPRED                         
+0276  2 0000135413  .M.       ALPH        $M$           B B $M$       
+0277  0 0080808080  EIGHT     DEC       0080808080      ZONE DIGITS   
+0278  2 1600000000  TAHED    6ALPH      %                             
+0284  2 0000444943           4ALPH        DICTIONARY%  %              
+0288  2 1600000000  NULIN     ALPH      %               CR B B B B    
+0289  2 0000000016  NUPAG    5ALPH          %   %   %   %  ,%         
+0294  2 0000000000  BLANK    2ALPH           LABEL                    
+0296  2 0065415364           6ALPH       VALUE    LABEL VALUE    LABEL
+0302  2 0065415364           6ALPH       VALUE    LABEL VALUE%   %      
+  
+    
+    
+    
+   
+
+
+
+
+
+
+
+
+
+
+
+
+
+ADRES INSTRUCTION    LABEL VAR  OP       VARIABLE FIELD    
+
+0308  2 0000000000  FLAG      ALPH                                    
+0309  2 0000000000  OUTLA     ALPH                                    
+0310  2 0000000000  OUTAD     ALPH                                    
+
+
+0311  0 0766004740  PTHLT  766HLT       4740            P-T HALT      
+0312  0 0000300224            BUN       P2TYP           CONTINUE...   
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    
+    
+    
+    
+   
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ADRES INSTRUCTION    LABEL VAR  OP       VARIABLE FIELD    
+
+                   *           PASS2 --INSTRUCTION GENERATING PASS   
+0313  0 0000380318  PASS2 0   BCS       *$5             SKIP IF *PTO* 
+0314  0 0000440622            STP       .REOP           RESET         
+0315  0 0000300611            BUN       REOPT           OP TABLE...   
+0316  0 0000440637            STP       .READ           PREPARE       
+0317  0 0000300625            BUN       ROPEN           MAG-TAPE      
+0318  0 0000461555            CLL       OSIGN           SET ABSMOD    
+0319  0 0000461556            CLL       LOCNT           LOCNT#0       
+0320  0 0000300816            BUN       EJECT           START LISTING 
+0321  0 0000380436  NEXRC 0   BCS       PREAD           IF P.T.ONLY   
+0322  0 0000440637            STP       .READ           CALL READ     
+0323  0 0000300629            BUN       READ            FOR A RECORD  
+0324  0 0000100409            CAD       LABEL           CHECK FOR     
+0325  0 0000330002        0   BSA       RESET           ABNORMAL*END* 
+0326  0 2214360923        2214BFA       REM             REMARK...     
+0327  0 6612401556        6610STB       LOCNT         LOCNT MOD 10000 
+0328  0 0000461561            CLL       TEMP1           SET TEMP1     
+0329  0 1230261561        1230IFL       TEMP1           SIGN # 3....  
+0330  0 0000460407            CLL       INSTR           CLEAR INSTR.. 
+0331  0 6212400373        6210STB       BUMPL           RESET         
+0332  0 6201260373        6201IFL       BUMPL             SWITCH...   
+
+
+                   *           VCONV --VARIANT CONVERSION ROUTINE    
+0333  0 0000100410  VCONV     CAD       VAR             CAD VAR FIELD 
+0334  0 0000461558            CLL       VARNT           CLEAR VARNT   
+0335  0 0000360350            BFA       SNEG$3          EXIT IF BLANK 
+0336  0 0006450000            CRB                       CLEAR R AND B 
+0337  0 0003200338           3IBB       LOOPV           SET B#3       
+0338  0 0001480001  LOOPV     SRT       1               GET NUMBER    
+0339  0 0000480001            SRA       1               INTO R-REG.   
+0340  0 0001210338           1DBB       LOOPV                         
+0341  0 0220360347        0220BFA       SNEG            IS SIGN -     
+0342  0 9108360345        9108BFA       NSIGN           IS SIGN NUM.. 
+0343  0 0001450001  WUN       CLA       1               NO. S#0       
+0344  0 0000300348            BUN       SNEG$1                        
+0345  0 0000170343  NSIGN     EXT       WUN             YES.SAVE NUM. 
+0346  0 0000300348            BUN       SNEG$1                        
+0347  0 0000100343  SNEG      CAD       WUN             YES. S#1      
+0348  0 0001490009            SLT       9                             
+0349  0 0010401558        0010STA       VARNT           AND STASH IT. 
+
+
+                   *           DECOD --OP-CODE DECODER AND           
+                   *                   MACHINE INSTRUCTION FORMER    
+0350  0 0000100411            CAD       OPCOD           GET OP CODE     
+  
+    
+    
+    
+   
+
+
+
+
+
+
+
+
+
+
+
+
+
+ADRES INSTRUCTION    LABEL VAR  OP       VARIABLE FIELD    
+
+0351  0 0000440496            STP       .BINO           CALL          
+0352  0 0000300465            BUN       BINOP            BINOP...     
+0353  0 0000300358            BUN       DECOD           FOUND...      
+0354  0 1108360442        1108BFA       LITOP    NOT FOUND...         
+0355  0 0000440647  ERO1      STP       .ERRO    CALL ERROR           
+0356  0 5681300638        5681BUN       ERROR           O1-UNDEF OP   
+0357  0 0001450000            CLA                       SET OP # 00.. 
+0358  0 0001330449  DECOD    1BSA       PSUDO           1#PSEUDO-OP   
+0359  0 1109360463        1109BFA       BUMPZ           NUM-ASSEM P/O 
+0360  0 8100360362        8100BFA       *$2             USE ¤4/1¤ DIG 
+0361  0 5112401558        5110STB       VARNT           SET ¤4/1¤#0   
+0362  0 0000121558            ADD       VARNT           ADD IN VARNT  
+0363  0 0000310451            BOF       ERV1            BAD VARNT..   
+0364  0 9101360454  RELCK 9101BFA       UNREL           NG IN RELMOD. 
+0365  0 0101360368        0101BFA       ABSAD           ABSOL ADDRESS 
+0366  0 0000121555            ADD       OSIGN           REL IF RELMOD 
+0367  0 0000310460            BOF       ERV2            ILLEGAL SIGN  
+0368  0 0002490001  ABSAD     SLS       1               LINE UP INSTR 
+0369  0 0000400407            STA       INSTR           AND STORE IT. 
+0370  0 0000440603            STP       .CALA           CALL CALAD    
+0371  0 0000300498            BUN       CALAD           FOR ADDRESS.. 
+0372  0 0410400407        0410STA       INSTR           AND STORE IT. 
+0373  0 0000010377  BUMPL     NOP       PUNCH           BUMPZ SWITCH..
+0374  0 0401261556        0401IFL       LOCNT           BUMP LOCNT    
+0375  0 0000461557            CLL       DELTA           SET DELTA     
+0376  0 0401261557        0401IFL       DELTA           EQUAL TO ONE. 
+
+
+                   *           PUNCH AND TYPER --PASS 2 NORMAL       
+                   *                             OUTPUT ROUTINES     
+0377  0 6000380379  PUNCH 6   BCS       TYPER           SW 6 OMITS PCH
+0378  0 1010060407        1010PWR       INSTR           PUNCH INSTR.. 
+0379  0 0000101556  TYPER     CAD       LOCNT           GET LOCNT     
+0380  0 0000131557            SUB       DELTA           SET FOR LIST. 
+0381  0 0001480004            SRT       4               PUT NUM IN R  
+0382  0 0000420392            LDB       TALY3           B#3           
+0383  0 0000490001            SLA       1               SPREAD THE    
+0384  0 0001490001            SLT       1               NUMBER....    
+0385  0 0001210383           1DBB       *-2             GO 4 TIMES... 
+0386  0 0000120277            ADD       EIGHT           ZONE DIGITS.. 
+0387  0 0810400405        0810STA       LIST$1          AND STORE IT. 
+0388  0 0000100407            CAD       INSTR                         
+0389  0 0002480006            SRS       6               GET SIGN DIG. 
+0390  0 6110400406        6110STA       LIST$2          AND STORE IT. 
+0391  0 0000100407            CAD       INSTR           GET INSTR     
+0392  0 0000430003  TALY3    0LSA       3               CLEAR SIGN      
+  
+    
+    
+    
+   
+
+
+
+
+
+
+
+
+
+
+
+
+
+ADRES INSTRUCTION    LABEL VAR  OP       VARIABLE FIELD    
+
+0393  0 0000400407            STA       INSTR           AND STORE IT. 
+0394  0 0000100294            CAD       BLANK           RESET SPACER  
+0395  0 0000400412            STA       ADRES-1         FIELD.....    
+0396  0 0150090404         150SPO       LIST            PRINT A LINE. 
+0397  0 0000101091            CAD       .FLG.           RESET         
+0398  0 0000400408            STA       LABEL-1          ERROR FLAG.. 
+0399  0 2202270400        2202DFL       PAGCK           ALLOW 46      
+0400  0 9000320321  PAGCK 9000BRP       NEXRC           LINES/PAGE... 
+0401  0 2208270400        2208DFL       PAGCK           TALLY#90      
+0402  0 0170090419         170SPO       NXPAG           START NEW PAG 
+0403  0 0000300321            BUN       NEXRC           EXIT...       
+0404  2 1614141414  LIST      ALPH      %****           CR 4¤IG¤      
+0405  2 1480808080            ALPH      *0000           IG 0 0 0 0    
+0406  2 0000801414            ALPH        0**           B B 0 IG IG   
+0407  0 0000000000  INSTR     DEC                                     
+0408  2 0000000000            ALPH                      FLAG FIELD    
+0409  2 0000000000  LABEL     ALPH                      LABEL FIELD   
+0410  2 0000000000  VAR       ALPH                      VARIANT FIELD 
+0411  2 0000000000  OPCOD     ALPH                      OP CODE FIELD 
+0412  2 0000000000            ALPH                      ¤5 BLANKS¤    
+0413  2 0000000000  ADRES    6ALPH                                    
+0419  2 0000000016  NXPAG    5ALPH          %    %    %    %   ,%     
+0424  2 4144594562           6ALPH      ADRES INSTRUCTION    LABEL VAR
+0430  2 0000565700           6ALPH        OP       VARIABLE FIELD    %
+
+
+                   *           OPTIONAL PAPER TAPE INPUT FOR PASS 2  
+0436  0 1110030408  PREAD 1110PRD       LABEL-1         READ PT REC.  
+0437  0 0000440172            STP       .TRAN           CALL TRANS    
+0438  0 0000300163            BUN       TRANS           TO FIX *...   
+0439  0 0000101091            CAD       .FLG.           RESET LISTING 
+0440  0 0000400408            STA       LABEL-1         FLAG FIELD... 
+0441  0 0000300324            BUN       NEXRC$3         AND CONTINUE. 
+
+
+                   *           NON IN-LINE SEGMENTS OF DECODER       
+0442  0 3108360444  LITOP 3108BFA       *$2     SEE IF LITERAL        
+0443  0 0000300355            BUN       ERO1    NO. ERROR O1          
+0444  0 0002490002            SLS       2       GET TWO               
+0445  0 0000490001            SLA       1       OP-CODE               
+0446  0 0002480009            SRS       9       DIGITS...             
+0447  0 0000490003            SLA       3       LINE UP...            
+0448  0 0000300362            BUN       DECOD$4 AND RETURN.           
+0449  0 0410400450  PSUDO 0410STA       *$1             STORE BRANCH  
+0450  0 0000300000            BUN       **              AD.AND DO IT. 
+0451  0 0000440647  ERV1      STP       .ERRO   ER V1-ILLEGAL           
+  
+    
+    
+    
+   
+
+
+
+
+
+
+
+
+
+
+
+
+
+ADRES INSTRUCTION    LABEL VAR  OP       VARIABLE FIELD    
+
+0452  0 6581300638        6581BUN       ERROR   SIGN OR VARIANT       
+0453  0 0000300364            BUN       RELCK           BUT CONTINUE. 
+0454  0 4400281555  UNREL 4400DLB       OSIGN           CHECK OSIGN   
+0455  0 1000210457        1000DBB       *$2             IS IT ZERO... 
+0456  0 0000300368            BUN       ABSAD           YES.ABSMOD... 
+0457  0 0000440647            STP       .ERRO           CALL ERROR    
+0458  0 5683300638        5683BUN       ERROR           O3-ILL.IN REL 
+0459  0 0000300368            BUN       ABSAD           TREAT AS ABS. 
+0460  0 0000440647  ERV2      STP       .ERRO   CALL ERROR V2         
+0461  0 6582300638        6582BUN       ERROR   ILLEGAL SIGN...       
+0462  0 0000300368            BUN       ABSAD           BUT CONTINUE. 
+0463  0 6229260373  BUMPZ 6229IFL       BUMPL           SET SWITCH... 
+0464  0 0000300360            BUN       DECOD$2                       
+
+
+                   *           BINOP --BINARY ¤AND SEQUENTIAL¤       
+                   *                   OPTAB SEARCH SUBROUTINE       
+0465  0 0004450000  BINOP     CLB                       B#0           
+0466  1 0010181427       -  10CFA       OPTAB$128       IS IT IN THIS 
+0467  0 0001340469            BCL       *$2             HALF..        
+0468  0 0128200469         128IBB       *$1             NO.INCREASE B 
+0469  1 0010181363       -  10CFA       OPTAB$64        IS IT IN THIS 
+0470  0 0001340472            BCL       *$2             HALF..        
+0471  0 0064200472          64IBB       *$1             NO.INCREASE B 
+0472  1 0010181331       -  10CFA       OPTAB$32        IS IT IN THIS 
+0473  0 0001340475            BCL       *$2             HALF..        
+0474  0 0032200475          32IBB       *$1             NO.INCREASE B 
+0475  1 0010181315       -  10CFA       OPTAB$16        IS IT IN THIS 
+0476  0 0001340478            BCL       *$2             HALF..        
+0477  0 0016200478          16IBB       *$1             NO.INCREASE B 
+0478  1 0010181307       -  10CFA       OPTAB$8         IS IT IN THIS 
+0479  0 0001340481            BCL       *$2             HALF..        
+0480  0 0008200481           8IBB       *$1             NO.INCREASE B 
+0481  1 0010181303       -  10CFA       OPTAB$4         IS IT IN THIS 
+0482  0 0001340484            BCL       *$2             HALF..        
+0483  0 0004200484           4IBB       *$1             NO.INCREASE B 
+0484  1 0010181301       -  10CFA       OPTAB$2         IS IT IN THIS 
+0485  0 0001340487            BCL       *$2             HALF..        
+0486  0 0002200487           2IBB       *$1             NO.INCREASE B 
+0487  1 0010181299       -  10CFA       OPTAB           IS IT EQUAL.. 
+0488  0 0000350495            BCE       OPOK            YES.GO OUT.   
+0489  0 0001420497  SEQOP     LBC       2XDFT           NO.SEQ-SEARCH 
+0490  1 0010181299       -  10CFA       OPTAB           IS THIS IT..  
+0491  0 0000350495            BCE       OPOK            YES.GO OUT.   
+0492  0 0002200490           2IBB       SEQOP$1         NOPE.GO ON..  
+0493  0 0401260496        0401IFL       .BINO           SET UP NOT-     
+  
+    
+    
+    
+   
+
+
+
+
+
+
+
+
+
+
+
+
+
+ADRES INSTRUCTION    LABEL VAR  OP       VARIABLE FIELD    
+
+0494  0 0000300496            BUN       .BINO           FOUND RETURN. 
+0495  1 0000101300  OPOK -    CAD       OPTAB$1         CAD DEFINITIO 
+0496  0 0000300000  .BINO     BUN       **              AND RETURN... 
+0497  0 0000000200  2XDFT     DEC       0000000200      #2¤MAX. NO.¤  
+
+
+                   *           CALAD --ADDRESS FIELD EXPRESSION      
+                   *                   EVALUATING SUBROUTINE  PART 1 
+0498  0 0000100605  CALAD     CAD       .LDR.           INITIALIZE    
+0499  0 0000400512            STA       LOADR             TALLIES...  
+0500  0 0000460607            CLL       ATERM           ATERM#0       
+0501  0 0000460606            CLL       ACCUM           ACCUM#0       
+0502  0 0000460608            CLL       LOPER           SET LOPER     
+0503  0 0213260608        0213IFL       LOPER           #13 ¤$¤       
+0504  0 0001450000            CLA                       AC#0          
+0505  0 0000410413            LDR       ADRES           GET FRST WORD 
+0506  0 2200370603        2200BFR       .CALA           BLNK#ALL DONE 
+0507  0 2220370526        2220BFR       SYMBL           - GO ON...    
+0508  0 2213370526        2213BFR       SYMBL           $ GO ON...    
+0509  0 0001490002  NEXSM     SLT       2               SHIFT 1 CHAR. 
+0510  0 4102270512        4102DFL       LOADR           BUMP CHAR TAL 
+0511  0 0000320518            BRP       CHKSP           BRANCH IF MOR 
+0512  0 0058410414  LOADR   58LDR       ADRES$1         ¤TALLIES¤     
+0513  0 0401260512        0401IFL       LOADR           BUMP ADDRESS  
+0514  0 3101270512        3101DFL       LOADR           AND WORD TALY 
+0515  0 0000320518            BRP       CHKSP           BRANCH IF MOR 
+0516  0 0002450000            CLR                       SET R BLANK   
+0517  0 0000300526            BUN       SYMBL           END OF REC... 
+0518  0 2211180604  CHKSP 2210CFR       21E8            COMPARE WITH  
+0519  0 0000340509            BCH       NEXSM           #21. BR IF HI 
+0520  0 0000350526            BCE       SYMBL           #21..¤/¤      
+0521  0 2200370526        2200BFR       SYMBL           #00..¤ ¤      
+0522  0 2213370526        2213BFR       SYMBL           #13..¤$¤      
+0523  0 2220370526        2220BFR       SYMBL           #20..¤-¤      
+0524  0 2214370526        2214BFR       SYMBL           #14..¤*¤      
+0525  0 0000300509            BUN       NEXSM           NOT SP. GO ON 
+0526  0 0001400610  SYMBL     STR       HOLDR           SAVE R-REG    
+0527  0 0214360595        0214BFA       SELF            *#SELF SYMBOL 
+
+
+                   *           NCONV --CALAD PURE NUMBER             
+                   *                   CONVERSION ROUTINE            
+0528  0 0000400609  NCONV     STA       HOLDA           SAVE ACCUM    
+0529  0 0006450000            CRB                                     
+0530  0 9108360534  LOOPN 9108BFA       NUM             RT. CHAR. IS  
+0531  0 0200360537        0200BFA       BRNGN           DG./BLANK       
+  
+    
+    
+    
+   
+
+
+
+
+
+
+
+
+
+
+
+
+
+ADRES INSTRUCTION    LABEL VAR  OP       VARIABLE FIELD    
+
+0532  0 0000100609            CAD       HOLDA           RESTORE ACCUM 
+0533  0 0000300541            BUN       LITCH$1         AND GO ON...  
+0534  0 0001480001  NUM       SRT       1               DIG TO R-REG  
+0535  0 0000480001            SRA       1               DROP ZONE DIG 
+0536  0 0001200530           1IBB       LOOPN           KEEP SCORE.   
+0537  0 0001450000  BRNGN     CLA                       DUMP RESIDUE  
+0538  1 0001490000       -    SLT       0               SHIFT IT BACK 
+0539  0 0000430000  HOLDB    0LSA                       MAKE IT $     
+
+
+                   *           CALAD --PART 2                        
+0540  0 0000330557  LITCH    0BSA       VALUE$1         #LITERAL...   
+0541  0 2200360543        2200BFA       *$2             NOT LITERAL.. 
+0542  0 0000300545            BUN       *$3             NORMALIZE THE 
+0543  0 0000490002            SLA       2               SYMBOL....    
+0544  0 0000300541            BUN       *-3             TIL DONE...   
+0545  0 0000440216            STP       .BINL           SEARCH        
+0546  0 0000300176            BUN       BINLA           TABLE.....    
+0547  0 0000300556            BUN       VALUE           FOUND...      
+0548  0 0000440647            STP       .ERRO           CALL ERROR S1 
+0549  0 6281300638        6281BUN       ERROR           UNDEF SYMBOL. 
+0550  0 7000380554        7   BCS       *$4             HALT IF ERROR 
+0551  0 0001450000            CLA                       VALUE#0....   
+0552  0 0000461094            CLL       GOON            ABANDN PASS2. 
+0553  0 0000300600            BUN       MODLO           ALL DONE....  
+0554  0 7777007777        7777HLT       7777            HLT FOR VALUE 
+0555  0 0000300600            BUN       MODLO           ALL DONE....  
+0556  0 0000171097  VALUE     EXT       04FLD         ONLY USE VALUE. 
+0557  0 0000410608            LDR       LOPER           GET LAST OPER 
+0558  0 0213370575        0213BFR       ADD             #13..¤$¤      
+0559  0 0220370570        0220BFR       SUB             #20..¤-¤      
+0560  0 0214370572        0214BFR       MUL             #14..¤*¤      
+0561  0 0000400609            STA       HOLDA           #21..¤/¤      
+0562  0 0000100607            CAD       ATERM           S¤AC¤#S¤ATERM¤
+0563  0 0001480010            SRT       10              LOAD DIVIDEND 
+0564  0 0000150609            DIV       HOLDA           DIVIDE...     
+0565  0 0000310567            BOF       *$2             OVFLOW...     
+0566  0 0000300568            BUN       *$2             NO OVFLOW...  
+0567  0 0001450000            CLA                       DIV BY 0#0.   
+0568  0 0000400607            STA       ATERM           KEEP QUOTIENT 
+0569  0 0000300580            BUN       ONECH           GO ON....     
+0570  0 0001430000  SUB      1LSA                       SET SIGN -    
+0571  0 0000300575            BUN       ADD             AND ADD..     
+0572  0 0000140607  MUL       MUL       ATERM           MULTIPLY..    
+0573  0 0001400607            STR       ATERM           AND KEEP PROD 
+0574  0 0000300580            BUN       ONECH           GO ON...        
+  
+    
+    
+    
+   
+
+
+
+
+
+
+
+
+
+
+
+
+
+ADRES INSTRUCTION    LABEL VAR  OP       VARIABLE FIELD    
+
+0575  0 0001480010  ADD       SRT       10              SAVE A-REG.   
+0576  0 0000100607            CAD       ATERM           GET ATERM     
+0577  0 0001400607            STR       ATERM           ATERM#¤A-REG¤ 
+0578  0 0000190606            ADL       ACCUM           ADD TERM ON.. 
+0579  0 0000310580            BOF       *$1             RESET OVFLOW..
+0580  0 0000410610  ONECH     LDR       HOLDR           RESTORE R-REG 
+0581  0 0001490002            SLT       2               SHIFT 1 CHAR. 
+0582  0 4102270512        4102DFL       LOADR           BUMP TALLY... 
+0583  0 0000320590            BRP       OPER            GO ON IF MORE 
+0584  0 0000420512            LDB       LOADR           SET B AND     
+0585  1 0000410000       -    LDR       0000            GET NEXT WORD 
+0586  0 0401260512        0401IFL       LOADR           BUMP ADDRESS. 
+0587  0 3101270512        3101DFL       LOADR           BUMP WORD TAL 
+0588  0 0000320590            BRP       OPER            GO ON IF MORE 
+0589  0 0002450000            CLR                       R#BLANK       
+0590  0 0200360597  OPER  0200BFA       CALRT           BLNK#ALL DONE 
+0591  0 0210400608        0210STA       LOPER           SAVE OPERATOR 
+0592  0 0001450000            CLA                       AC#0          
+0593  0 2200370526        2200BFR       SYMBL           IF NEXT#BLANK 
+0594  0 0000300509            BUN       NEXSM           GO AGAIN....  
+0595  0 0000101556  SELF      CAD       LOCNT           GET LOCNT     
+0596  0 0000300556            BUN       VALUE           AND GO BACK.. 
+0597  0 0000100606  CALRT     CAD       ACCUM           GET RESULT    
+0598  0 0000120607            ADD       ATERM           ADD FINAL TERM
+0599  0 0000310600            BOF       *$1             RESET OVFLOW. 
+0600  0 0000171097  MODLO     EXT       04FLD           MODULO        
+0601  0 0000121098            ADD       10E4            10000         
+0602  0 0000171097            EXT       04FLD           FINAL RESULT. 
+0603  0 0000300000  .CALA     BUN       **              RETURN......  
+0604  0 2100000000  21E8      DEC       2100000000      #21 X E8      
+0605  0 0058410414  .LDR.   58LDR       ADRES$1         ¤TALLY RESET¤ 
+0606  0 0000000000  ACCUM     DEC                       DUMMY ACCUM   
+0607  0 0000000000  ATERM     DEC                       DUMY TERM ACUM
+0608  0 0000000000  LOPER     DEC                       OPERATOR STOR 
+0609  0 0000000000  HOLDA     DEC                       TEMP STORAGE  
+0610  0 0000000000  HOLDR     DEC                       TEMP STORAGE  
+
+
+                   *           REOPT --OP TABLE RESETTING SUBROUTINE 
+0611  0 0001450000  REOPT     CLA                       SET FOR RETURN
+0612  0 0000380622        0   BCS       .REOP           SKIP IF *PTO* 
+0613  0 1018500000        1010MRW                       SET ODD LANE  
+0614  0 1014500000        1010MLS                       AND BE SURE...
+0615  0 1300521299        1300MRD       OPTAB           RESET OPTAB.. 
+0616  0 1008500255        1000MRW       255             READY TAPE 1  
+0617  0 0000420616            LDB       *-1             B#255           
+  
+    
+    
+    
+   
+
+
+
+
+
+
+
+
+
+
+
+
+
+ADRES INSTRUCTION    LABEL VAR  OP       VARIABLE FIELD    
+
+0618  0 0000100624            CAD       OPSUM           GET OPTAB SUM 
+0619  1 0000121299       -    ADD       OPTAB           SUMMING LOOP. 
+0620  0 0000310621            BOF       *$1             RESET OVFLOW. 
+0621  0 0001210619           1DBB       *-2             GO TIL FINISH 
+0622  0 0000360000  .REOP     BFA       **              GO HOME IF OK 
+0623  0 0000300611            BUN       REOPT           N.G. TRY OVER 
+0624  1 8903503619  OPSUM     DEC       -8903503619   OPTAB CK SUM.   
+
+
+                   *           READ -- MAG-TAPE READ SUBROUTINE      
+0625  0 1008500409  ROPEN 1000MRW       LABEL           PREPARE TAPE1 
+0626  0 0000100637            CAD       .READ           GET #9 ¤44 F¤ 
+0627  0 4410400633        4410STA       RDREC-1         SET TALY#9.   
+0628  0 0000300634            BUN       RDREC           GO READ BLOK. 
+0629  0 0000420625  READ      LDB       ROPEN           GET ¤LABEL¤   
+0630  0 0100291562         100RTF       IOBUF           MOVE RECORD   
+0631  0 0410260630        0410IFL       READ$1          BUMP BUF ADDR 
+0632  0 4101270633        4101DFL       *$1             BUMP TALLY    
+0633  0 0009320637           9BRP       .READ           IS IT TENTH.. 
+0634  0 1100521562  RDREC 1100MRD       IOBUF           READ A BLOCK. 
+0635  0 0000420634            LDB       RDREC           GET ¤IOBUF¤   
+0636  0 0412400630        0410STB       READ$1          RESET BUF ADR 
+0637  0 0009300000  .READ    9BUN       **              AND GO HOME.. 
+
+
+                   *           ERROR --ERROR SUBROUTINE              
+0638  0 0000420647  ERROR     LDB       .ERRO    WHO CALLED..         
+0639  1 4400289999       -4400DLB       -1       GET MESSAGE          
+0640  0 0412400649        0410STB       ERMES$1  STORE IT...          
+0641  0 0412400408        0410STB       LABEL-1         AND FLAG LIST 
+0642  0 8000380647        8   BCS       .ERRO           SUPRES TYPING 
+0643  0 0030060648          30PWR       ERMES           WRITE MESS    
+0644  0 0100060409         100PWR       LABEL           AND OFFENDER  
+0645  0 4100280646        4100DLB       *$1             DELAY FOR     
+0646  0 0001210646           1DBB       *               150 MS....    
+0647  0 0000300000  .ERRO     BUN       **              AND CONTINUE. 
+0648  2 1600000016  ERMES    3ALPH      %   %ER   %                   
+
+
+                   *           TRANSFER VECTOR FOR PSEUDO-OP EXITS   
+0651  0 0000010377  PUNC.     NOP       PUNCH           ¤BUN DUR P2¤  
+0652  0 0000010379  TYPE.     NOP       TYPER           ¤BUN DUR P2¤  
+0653  0 0000010321  NEXR.     NOP       NEXRC           ¤BUN DUR P2¤  
+0654  0 0000300056            BUN       NEXT1           PASS 1 EXIT.. 
+
+    
+    
+    
+    
+   
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ADRES INSTRUCTION    LABEL VAR  OP       VARIABLE FIELD    
+
+                   *           PSEUDO-OPERATION SUBROUTINES          
+                   *                                                 
+                   *           ¤ENTERED AT NAME DURING PASS 2 --     
+                   *            ENTERED AT NN REL TO NAME IN PASS 1¤ 
+
+
+0655  0 0000101556  ABS       CAD       LOCNT           SET DELTA     
+0656  0 0000401557            STA       DELTA             #LOCNT      
+                   *           PASS 1 ENTRY POINT                    
+0657  0 0000461555            CLL       OSIGN           OSIGN#0       
+0658  0 0000300652            BUN       TYPE.           EXIT...       
+
+
+0659  0 0000440694  ALPH      STP       .LENG           FIND          
+0660  0 0000300688            BUN       LENGT              LENGTH...  
+0661  0 0000401557            STA       DELTA           DELTA#LENGTH  
+0662  0 6000380666        6   BCS       *$4             SW 6 OMITS PCH
+0663  0 0000490007            SLA       7               SHIFT IT..    
+0664  0 3110400665        3110STA       *$1             STORE IT AND  
+0665  0 1000060413        1000PWR       ADRES           PUNCH L WORDS 
+0666  0 0000100413            CAD       ADRES           MOVE 1 WORD   
+0667  0 0000400407            STA       INSTR           FOR LISTING.. 
+                   *TRANSLATE CARRIAGE-CONTROL CHARACTERS FOR LISTING
+0668  0 4400280681  ATRAN 4400DLB       ADD8$1          B#5           
+0669  1 0000100413       -    CAD       ADRES           GET A WORD    
+0670  0 0000360678            BFA       ADD8-2          SKIP IF BLANK 
+0671  0 0500210672         500DBB       *$1             SET LOOP TALLY
+0672  0 0216360680  ATRAL 0216BFA       ADD8            CR#PHI        
+0673  0 0226360680        0226BFA       ADD8            TAB#THETA     
+0674  0 0215360680        0215BFA       ADD8            EJECT#COMMA   
+0675  0 0001480002            SRT       2               GET NEXT CHAR.
+0676  0 0100200672         100IBB       ATRAL           ¤CHAR. LOOP¤  
+0677  1 0011400413       -  10STR       ADRES           REPLACE WORD  
+0678  0 0001210669           1DBB       ATRAN$1         ¤WORD LOOP¤   
+0679  0 0000300379            BUN       TYPER           PASS 2 EXIT.. 
+0680  0 0000120682  ADD8      ADD       ATRA8           ADD 8         
+0681  0 0005300675           5BUN       ATRAL$3         AND GO BACK...
+0682  0 0000000008  ATRA8     DEC       8               #8            
+                   *           PASS 1 ENTRY POINT                    
+0683  0 0000440122            STP       .DEFL           DEFINE        
+0684  0 0000300093            BUN       DEFLA             LABEL..     
+0685  0 0000440694            STP       .LENG           BUMP LOCNT    
+0686  0 0000300688            BUN       LENGT           BY LENGTH...  
+0687  0 0000300056            BUN       NEXT1           PASS 1 EXIT.. 
+0688  0 0000100410  LENGT     CAD       VAR             GET LENGTH    
+0689  0 0000170701            EXT       01FLD              DIGIT..      
+  
+    
+    
+    
+   
+
+
+
+
+
+
+
+
+
+
+
+
+
+ADRES INSTRUCTION    LABEL VAR  OP       VARIABLE FIELD    
+
+0690  0 0000360695            BFA       ADD1            ADD 1 IF#0    
+0691  0 0000180702            CFA       SIX             SEE IF        
+0692  0 0000340697            BCH       ERV3            TOO LARGE...  
+0693  0 0000191556            ADL       LOCNT           BUMP LOCNT    
+0694  0 0000300000  .LENG     BUN       **              RETURN....    
+0695  0 0000120701  ADD1      ADD       01FLD           ADD 1         
+0696  0 0000300693            BUN       .LENG-1         GO BACK...    
+0697  0 0000440647  ERV3      STP       .ERRO    ER V3-ALPH VARIANT   
+0698  0 6583300638        6583BUN       ERROR           GR THAN 6...  
+0699  0 0000100702            CAD       SIX             ASSUME#6      
+0700  0 0000300693            BUN       .LENG-1         AND GO BACK.. 
+0701  0 0000000001  01FLD     DEC       0000000001      0/1 FLD MASK  
+0702  0 0000000006  SIX       DEC       6               #6            
+
+
+0703  0 0000461557  BES       CLL       DELTA           DELTA#0       
+0704  0 0000440603            STP       .CALA           CALCULATE     
+0705  0 0000300498            BUN       CALAD             LENGTH...   
+0706  0 0000300716            BUN       BSS$3           PASS 2 EXIT.. 
+                   *           PASS 1 ENTRY POINT                    
+0707  0 0000440603            STP       .CALA           CALCULATE     
+0708  0 0000300498            BUN       CALAD             LENGTH...   
+0709  0 0000191556            ADL       LOCNT           BUMP LOCNT..  
+0710  0 0000440122            STP       .DEFL           DEFINE        
+0711  0 0000300093            BUN       DEFLA             LABEL...    
+0712  0 0000300056            BUN       NEXT1           PASS 1 EXIT.. 
+
+
+0713  0 0000440603  BSS       STP       .CALA           CALCULATE     
+0714  0 0000300498            BUN       CALAD             LENGTH...   
+0715  0 0000401557            STA       DELTA           DELTA#LENGTH  
+                   *           BES ENTERS HERE IN PASS 2             
+0716  0 0000191556            ADL       LOCNT           BUMP LOCNT..  
+0717  0 0000411555            LDR       OSIGN           SEE IF        
+0718  0 0000100857            CAD       RLOAD           RELMOD...     
+0719  0 1108370721        1108BFR       *$2             YES. BRANCH.. 
+0720  0 0000100856  LODER     CAD       ALOAD           NO.ABSMOD...  
+0721  0 0002490001            SLS       1               LINE PRD UP.. 
+0722  0 0000400407            STA       INSTR           AND STORE IT. 
+0723  0 0000101556            CAD       LOCNT           GET LOCNT     
+0724  0 0410400407        0410STA       INSTR           AND STORE IT. 
+0725  0 0000300377            BUN       PUNCH           PASS 2 EXIT.. 
+                   *           PASS 1 ENTRY POINT                    
+0726  0 0000440122            STP       .DEFL           DEFINE        
+0727  0 0000300093            BUN       DEFLA             LABEL...    
+0728  0 0000440603            STP       .CALA           CALCULATE       
+  
+    
+    
+    
+   
+
+
+
+
+
+
+
+
+
+
+
+
+
+ADRES INSTRUCTION    LABEL VAR  OP       VARIABLE FIELD    
+
+0729  0 0000300498            BUN       CALAD             LENGTH...   
+0730  0 0000191556            ADL       LOCNT           BUMP LOCNT    
+0731  0 0000300056            BUN       NEXT1           PASS 1 EXIT.. 
+
+
+0732  0 0000101558  CALL      CAD       VARNT           GET VARIANT   
+0733  0 0002490001            SLS       1                LINE IT UP.. 
+0734  0 4510400407        4510STA       INSTR           AND STORE IT. 
+0735  0 6244260407        6244IFL       INSTR           SET UP STP    
+0736  0 0000440603            STP       .CALA           CALCULATE     
+0737  0 0000300498            BUN       CALAD             ADDRESS...  
+0738  0 0410400407        0410STA       INSTR           AND STORE IT. 
+0739  0 0000100407            CAD       INSTR           GET COMPLETE  
+0740  0 0000401559            STA       SAVEA           INSTRUCTION.. 
+0741  0 6214271559        6214DFL       SAVEA           SET UP BUN    
+0742  0 0401261559        0401IFL       SAVEA           BUMP ADRES 1  
+0743  0 6000380746        6   BCS       *$3             SW 6 OMITS PCH
+0744  0 1010060407        1010PWR       INSTR           PUNCH         
+0745  0 1010061559        1010PWR       SAVEA           INSTRUCTIONS. 
+0746  0 0402261556        0402IFL       LOCNT           BUMP LOCNT 2  
+0747  0 0000461557            CLL       DELTA           SET DELTA     
+0748  0 0402261557        0402IFL       DELTA           #2.....       
+0749  0 0000300379            BUN       TYPER           PASS 2 EXIT.. 
+                   *           PASS 1 ENTRY POINT                    
+0750  0 0000440122            STP       .DEFL           DEFINE        
+0751  0 0000300093            BUN       DEFLA            THE LABEL... 
+0752  0 0402261556        0402IFL       LOCNT           BUMP LOCNT 2  
+0753  0 0000300056            BUN       NEXT1           PASS 1 EXIT.. 
+
+
+0754  0 0000100605  DEC       CAD       .LDR.           RESET NEXCH   
+0755  0 0000400803            STA       DLDR              TALLIES.... 
+0756  0 0000461560            CLL       SAVEB           CLEAR SOME    
+0757  0 0000460809            CLL       DCNT            WORKING       
+0758  0 0000460810            CLL       NCNT            SPACE......   
+0759  0 6212400775        6210STB       8ZONE$1         RESET FIRST   
+0760  0 6237260775        6237IFL       8ZONE$1         DIGIT FINDER. 
+0761  0 0000410413            LDR       ADRES           GET FIRST WRD 
+0762  0 2220370768        2220BFR       C2              SIGN IS -     
+0763  0 2213370768        2213BFR       C2              SIGN IS $     
+0764  0 2200370780  COUNT 2200BFR       TYPCK           A BLANK.GO ON 
+0765  0 0401261560        0401IFL       SAVEB           ¤DCNT COUNT¤  
+0766  0 2203370771        2203BFR       DECPT           FOUND A .     
+0767  0 1108370774  C1    1108BFR       8ZONE           IF NUMERIC... 
+0768  0 0000440808  C2        STP       .NEXC           NOPE.GET      
+0769  0 0000300800            BUN       NEXCH           NEXT CHAR...    
+  
+    
+    
+    
+   
+
+
+
+
+
+
+
+
+
+
+
+
+
+ADRES INSTRUCTION    LABEL VAR  OP       VARIABLE FIELD    
+
+0770  0 0000300764            BUN       COUNT           AND GO AGAIN. 
+0771  0 0000421560  DECPT     LDB       SAVEB           GET . COUNT   
+0772  0 0002400809            STB       DCNT            AND SAVE IT.. 
+0773  0 0000300767            BUN       C1              GO BACK...    
+0774  0 4401261560  8ZONE 4401IFL       SAVEB           KEEP N COUNT. 
+0775  0 2100370768        2100BFR       C2              #0.GO AGAIN.. 
+0776  0 6112400775        6110STB       *-1             SAVE ONLY 1CE 
+0777  0 4400281560        4400DLB       SAVEB           NOT 0.SAVE    
+0778  0 0002400810            STB       NCNT            N COUNT....   
+0779  0 0000300768            BUN       C2              GO TIL BLANK. 
+0780  0 0000441086  TYPCK     STP       .GETN           GET FIRST 10  
+0781  0 0000301055            BUN       GETNM           DIGITS AND SN 
+0782  0 0001480010            SRT       10              SAVE IT....   
+0783  0 0000100809            CAD       DCNT            GET COUNT..   
+0784  0 0200360789        0200BFA       FIXED           FIXED PT NUMB 
+0785  0 0000130810            SUB       NCNT            FLOATING.GET  
+0786  0 0000120811            ADD       FIFTY           EXPONENT...   
+0787  0 0001490008            SLT       8               LINE IT UP..  
+0788  0 0000300791            BUN       DOUT            LETS GO HOME. 
+0789  0 0001490010  FIXED     SLT       10              RETRIEVE N... 
+0790  1 0001480001       -    SRT       1               RT.JUSTIFY IT 
+0791  0 0000400407  DOUT      STA       INSTR           AND STORE IT. 
+0792  0 0401261556        0401IFL       LOCNT           BUMP LOCNT... 
+0793  0 0000461557            CLL       DELTA           DELTA         
+0794  0 0401261557        0401IFL       DELTA           #ONE...       
+0795  0 0000300377            BUN       PUNCH           PASS 2 EXIT.. 
+                   *           PASS 1 ENTRY POINT                    
+0796  0 0000440122            STP       .DEFL           DEFINE THE    
+0797  0 0000300093            BUN       DEFLA             LABEL...    
+0798  0 0401261556        0401IFL       LOCNT           BUMP LOCNT... 
+0799  0 0000300056            BUN       NEXT1           PASS 1 EXIT.. 
+                   *         NEXCH --SUBROUTINE FOR FETCHING ONE     
+                   *                 CHARACTER AT A TIME INTO A-REG. 
+0800  0 0001490002  NEXCH     SLT       2               SHIFT 1 CHAR. 
+0801  0 4102270803        4102DFL       DLDR            BUMP TALLY..  
+0802  0 0000320808            BRP       .NEXC           EXIT IF MORE. 
+0803  0 0058410414  DLDR  0058LDR       ADRES$1         ¤TALLIES¤     
+0804  0 0401260803        0401IFL       DLDR            BUMP ADRES... 
+0805  0 3101270803        3101DFL       DLDR            BUMP TALLY    
+0806  0 0000320808            BRP       .NEXC           EXIT IF MORE. 
+0807  0 0002450000            CLR                       THATS ALL.R#0 
+0808  0 0000300000  .NEXC     BUN       **              RETURN...     
+0809  0 0000000000  DCNT      DEC                       DECPT COUNTER 
+0810  0 0000000000  NCNT      DEC                       1ST DIG COUNT 
+0811  0 0000000050  FIFTY     DEC       50              CONSTANT#50   
+    
+    
+    
+    
+   
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ADRES INSTRUCTION    LABEL VAR  OP       VARIABLE FIELD    
+
+0812  0 0000300923  DUP       BUN       REM             PASS 2 EXIT.. 
+                   *           PASS 1 ENTRY POINT                    
+0813  0 0000440122            STP       .DEFL           DEFINE        
+0814  0 0000300093            BUN       DEFLA           THE LABEL...  
+0815  0 0000300056            BUN       NEXT1           PASS 1 EXIT.. 
+
+
+0816  0 0010090823  EJECT   10SPO       1CR             SPACE 1...    
+0817  0 4304270818        4304DFL       *$1             94 MS. TIME   
+0818  0 0998320817        0998BRP       *-1             DELAY...      
+0819  0 2202270400        2202DFL       PAGCK           BUMP TALLY    
+0820  0 0000320816            BRP       EJECT           AND GO AGAIN. 
+0821  0 0000300401            BUN       PAGCK$1         GO RESET TALY 
+                   *           PASS 1 ENTRY POINT                    
+0822  0 0000300056            BUN       NEXT1           PASS 1 EXIT.. 
+0823  2 1414141416  1CR       ALPH      ****%           4¤IG¤ AND CR  
+
+
+0824  0 0020090929  END     20SPO       REMSP           SPACE OVER..  
+0825  0 0100090409         100SPO       LABEL           PRINT RECORD. 
+0826  0 0000300002            BUN       RESET           PASS 2 EXIT.. 
+                   *           PASS 1 ENTRY POINT                    
+0827  0 0000300217            BUN       INTER           PASS 1 EXIT.. 
+
+
+0828  0 0000300923  EQU       BUN       REM             PASS 2 EXIT.. 
+                   *           PASS 1 ENTRY POINT                    
+0829  0 0000100409            CAD       LABEL           SKIP IF LABEL 
+0830  0 0000360840            BFA       ERS4            IS BLANK...   
+0831  0 0000440603            STP       .CALA           CALCULATE     
+0832  0 0000300498            BUN       CALAD           ADDRESS..     
+0833  0 0000401559            STA       SAVEA           SAVE IT...    
+0834  0 0000440122            STP       .DEFL           DEFINE        
+0835  0 0000300093            BUN       DEFLA           THE LABEL.... 
+0836  0 2101360056        2101BFA       NEXT1         QUIT IF MUL-DEF 
+0837  0 0000101559            CAD       SAVEA           AND THEN      
+0838  1 0410404998       -0410STA       TABLE-1         RE-DEFINE IT. 
+0839  0 0000300056            BUN       NEXT1           PASS 1 EXIT.. 
+0840  0 0000440647  ERS4      STP       .ERRO    ER S4-EQU LABEL      
+0841  0 6284300638        6284BUN       ERROR           LEFT BLANK... 
+0842  0 0000300056            BUN       NEXT1           CONTINUE...   
+
+
+0843  0 0000411555  LOAD      LDR       OSIGN           SEE IF        
+0844  0 0000100857            CAD       RLOAD           RELMOD...     
+0845  0 1108370847        1108BFR       *$2             YES.BRANCH...   
+  
+    
+    
+    
+   
+
+
+
+
+
+
+
+
+
+
+
+
+
+ADRES INSTRUCTION    LABEL VAR  OP       VARIABLE FIELD    
+
+0846  0 0000100856            CAD       ALOAD           NO.ABSMOD...  
+0847  0 0002490001            SLS       1               LINE PRB UP.. 
+0848  0 0000400407            STA       INSTR           AND STORE IT. 
+0849  0 0000440603            STP       .CALA           CALCULATE     
+0850  0 0000300498            BUN       CALAD           ADDRESS...    
+0851  0 0410400407        0410STA       INSTR           AND STORE IT. 
+0852  0 0000401556            STA       LOCNT           SET LOCNT...  
+0853  0 0000461557            CLL       DELTA           DELTA#0       
+0854  0 0000300377            BUN       PUNCH           PASS 2 EXIT.. 
+                   *           PASS 1 ENTRY POINT                    
+0855  0 0000300905            BUN       ORG$5           PASS 1 EXIT.. 
+0856  0 6000004000  ALOAD     DEC       6000004000      ABSMOD PRB    
+0857  0 7000804000  RLOAD     DEC       7000804000      RELMOD PRB    
+
+
+0858  0 0000100861  MACRO     CAD       .REM.           GET REM       
+0859  0 0000401561            STA       TEMP1           DEFINITION    
+0860  0 0000300862            BUN       OPDEF           GO TO OPDEF.. 
+0861  1 0005000923  .REM.-   5HLT       REM             REM DEFINITION
+
+
+0862  0 0000101556  OPDEF     CAD       LOCNT           SET DELTA     
+0863  0 0000401557            STA       DELTA           #LOCNT        
+0864  0 0000100409            CAD       LABEL           GET LABEL FLD 
+0865  0 0000440496            STP       .BINO           SEARCH OP     
+0866  0 0000300465            BUN       BINOP           CODE TABLE... 
+0867  0 0000300878            BUN       REDEF           FOUND..       
+0868  0 0000401559            STA       SAVEA           NOT FOUND.    
+0869  0 0001450000            CLA                       NEW OPCODE..  
+0870  0 0000440496            STP       .BINO           LOOK FOR      
+0871  0 0000300489            BUN       SEQOP           A BLANK...    
+0872  0 0000300876            BUN       NAMOP           FOUND..       
+0873  0 0000440647            STP       .ERRO    ER O2-OPDEF          
+0874  0 5682300638        5682BUN       ERROR    TABLE FULL....       
+0875  0 0000300652            BUN       TYPE.           AND GO ON...  
+0876  0 0000101559  NAMOP     CAD       SAVEA           RETRIEVE OP   
+0877  1 0000401299       -    STA       OPTAB           AND STORE IT. 
+0878  0 0002401560  REDEF     STB       SAVEB           SAVE B-REG.   
+0879  0 0000101561            CAD       TEMP1           IS TEMP1 USED 
+0880  0 0003330882           3BSA       *$2             NO.USE GETNM. 
+0881  0 0000300885            BUN       *$4             YES.USE TEMP1 
+0882  0 0000441086            STP       .GETN           CALCULATE VAL 
+0883  0 0000301055            BUN       GETNM           OF ADRES FLD. 
+0884  1 0001480001       -    SRT       1               RT. JUSTIFY.. 
+0885  0 0000421560            LDB       SAVEB           RESTORE B-REG 
+0886  1 0000401300       -    STA       OPTAB$1         STORE DEFINIT   
+  
+    
+    
+    
+   
+
+
+
+
+
+
+
+
+
+
+
+
+
+ADRES INSTRUCTION    LABEL VAR  OP       VARIABLE FIELD    
+
+0887  0 0000400407            STA       INSTR           AND LIST IT   
+0888  0 0000300652            BUN       TYPE.           AND GO ON...  
+
+
+0889  0 0000101556  OPSYN     CAD       LOCNT           SET DELTA     
+0890  0 0000401557            STA       DELTA           #LOCNT        
+0891  0 0000100413            CAD       ADRES           GET DEF. NAME 
+0892  0 0000440496            STP       .BINO           GET NUMERIC   
+0893  0 0000300465            BUN       BINOP           DEFINITION..  
+0894  0 0000300898            BUN       OPSOK           FOUND.        
+0895  0 0000440647            STP       .ERRO           CALL ERROR    
+0896  0 5681300638        5681BUN       ERROR           O1.UNDEF. OP. 
+0897  0 0000300652            BUN       TYPE.           AND GO ON...  
+0898  0 0000401561  OPSOK     STA       TEMP1           DEF TO TEMP1  
+0899  0 0000300862            BUN       OPDEF           GO TO OPDEF.. 
+
+
+0900  0 0000440603  ORG       STP       .CALA           CALCULATE     
+0901  0 0000300498            BUN       CALAD           ADRES...      
+0902  0 0000401556            STA       LOCNT           AND SET LOCNT 
+0903  0 0000461557            CLL       DELTA           DELTA#0       
+0904  0 0000300379            BUN       TYPER           PASS 2 EXIT.. 
+                   *           PASS 1 ENTRY POINT                    
+0905  0 0000440603            STP       .CALA           CALCULATE     
+0906  0 0000300498            BUN       CALAD           ADRES...      
+0907  0 0000401556            STA       LOCNT           AND SET LOCNT 
+0908  0 0000440122            STP       .DEFL           DEFINE        
+0909  0 0000300093            BUN       DEFLA           LABEL...      
+0910  0 0000300056            BUN       NEXT1           PASS 1 EXIT...
+
+
+0911  0 0000380913  PAUSE 0   BCS       *$2             PAUSE IF PAPR 
+0912  0 0000300321            BUN       NEXRC           TAPE *ONLY*.  
+                   *           PASS 1 ENTRY POINT                    
+0913  0 0474004740         474HLT       4740            T-T HALT      
+0914  0 0000300653            BUN       NEXR.           EXIT...       
+
+
+0915  0 0000101556  REL       CAD       LOCNT           SET DELTA     
+0916  0 0000401557            STA       DELTA            #LOCNT       
+                   *           PASS 1 ENTRY POINT                    
+0917  0 0000100920            CAD       8SIGN           SET           
+0918  0 0000401555            STA       OSIGN           OSIGN # 8..   
+0919  0 0000300652            BUN       TYPE.           EXIT...       
+0920  0 8000000000  8SIGN     DEC       8000000000                    
+    
+    
+    
+    
+   
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ADRES INSTRUCTION    LABEL VAR  OP       VARIABLE FIELD    
+
+0921  0 0000100294            CAD       BLANK           UNLIST THE    
+0922  0 0000400411            STA       OPCOD           *REM*...      
+0923  0 0020090929  REM     20SPO       REMSP           SPACE OVER..  
+0924  0 0100090409         100SPO       LABEL           PRINT REMARKS 
+0925  0 2202270400        2202DFL       PAGCK           BUMP PAGE TALY
+0926  0 0000320321            BRP       NEXRC           STILL THIS PAG
+0927  0 0000300401            BUN       PAGCK$1         GET NEW PAGE. 
+                   *           PASS 1 ENTRY POINT                    
+0928  0 0000300056            BUN       NEXT1           PASS 1 EXIT.. 
+0929  2 1600000000  REMSP     ALPH      %               CR B B B B    
+0930  2 2626000000            ALPH      @@              T T B B B     
+
+
+0931  0 0000100409  SET       CAD       LABEL           GET LABEL     
+0932  0 0000461557            CLL       DELTA           SET DELTA#0   
+0933  0 0000360950            BFA       CKSET$1         ER S5 IF BLANK
+0934  0 0000440216            STP       .BINL           SEARCH FOR THE
+0935  0 0000300176            BUN       BINLA           LABEL...      
+0936  0 0000300949            BUN       CKSET           FOUND...      
+0937  0 0000440603  SETIT     STP       .CALA           NOT FOUND SO  
+0938  0 0000300498            BUN       CALAD           CALC VALUE AND
+0939  0 0000401559            STA       SAVEA           SAVE IT...    
+0940  0 6229260123        6229IFL       MULER           FLIP SWTCH AND
+0941  0 0000440122            STP       .DEFL           GO DEFINE THE 
+0942  0 0000300093            BUN       DEFLA           NEW LABEL...  
+0943  0 6229270123        6229DFL       MULER           RESET SWITCH..
+0944  0 0000101559            CAD       SAVEA           RETRIEVE VALUE
+0945  1 0000404998       -    STA       TABLE-1         AND STORE IT  
+0946  1 1101264998       -1101IFL       TABLE-1         MAKE UNREF FLG
+0947  1 3101264998       -3101IFL       TABLE-1         SET *SET* FLAG
+0948  0 0000300652            BUN       TYPE.           EXIT......    
+0949  0 3101360937  CKSET 3101BFA       SETIT           OK/*SET* SYMBL
+0950  0 0000440647            STP       .ERRO      ER S5-NON *SET*    
+0951  0 6285300638        6285BUN       ERROR           TYPE LABEL... 
+0952  0 0000300652            BUN       TYPE.           EXIT.....     
+
+
+0953  0 8901270407  SEX   8901DFL       INSTR           SET # 9....9  
+0954  0 0000461557            CLL       DELTA           SET DELTA#0   
+                   *           PASS 1 ENTRY POINT                    
+0955  0 0000440603            STP       .CALA           CALCULATE     
+0956  0 0000300498            BUN       CALAD             SECTION.... 
+0957  0 0310400407        0310STA       INSTR           AND STORE IT. 
+0958  0 0000490002            SLA       2               MULT BY 100   
+0959  0 0000461556            CLL       LOCNT           AND SET       
+0960  0 8210401556        8210STA       LOCNT           LOCNT....       
+  
+    
+    
+    
+   
+
+
+
+
+
+
+
+
+
+
+
+
+
+ADRES INSTRUCTION    LABEL VAR  OP       VARIABLE FIELD    
+
+0961  0 0000300651            BUN       PUNC.           EXIT......    
+
+
+0962  0 0000101558  SPAC      CAD       VARNT           GET LENGTH    
+0963  0 0002480005            SRS       5               LINE IT UP    
+0964  0 0000171097            EXT       04FLD           DUMP SIGN AND 
+0965  0 0000191556            ADL       LOCNT           BUMP LOCNT    
+0966  0 0410401557        0410STA       DELTA           DELTA#LENGTH  
+0967  0 0000300720            BUN       LODER           PASS 2 EXIT.. 
+                   *           PASS 1 ENTRY POINT                    
+0968  0 0000101555            CAD       OSIGN           SEE IF        
+0969  0 0000360974            BFA       SPCOK           RELMOD...     
+0970  0 0000440647            STP       .ERRO           CALL ERROR    
+0971  0 5684300638        5684BUN       ERROR           O4-SPAC N.G.  
+0972  0 0000461094            CLL       GOON            PASS 2 ABANDON
+0973  0 0000300056            BUN       NEXT1           TO NEXT REC.. 
+0974  0 0000440122  SPCOK     STP       .DEFL           NO.ABSMOD...  
+0975  0 0000300093            BUN       DEFLA           DEFINE LABEL. 
+0976  0 0000440603            STP       .CALA           CALCULATE     
+0977  0 0000300498            BUN       CALAD           SPAC NUMBER.. 
+0978  0 0401261095        0401IFL       SPCSZ           BUMP SPCSZ    
+0979  0 0000421095            LDB       SPCSZ           B#SPCSZ       
+0980  0 0000490004            SLA       4               SHIFT NUMBER. 
+0981  1 0000401662       -    STA       SPACT           PUT IN SPACT  
+0982  0 0000101556            CAD       LOCNT           GET LOCNT     
+0983  1 0410401662       -0410STA       SPACT           AND ENTER IT. 
+0984  0 0410180999        0410CFA       E400     ERROR IF             
+0985  0 0001340995            BCL       ERL1     UNDER 400...         
+0986  0 0000100410  SPCLG     CAD       VAR      GET LENGTH           
+0987  0 0000420991            LDB       TALY1           B#3           
+0988  0 0001480001            SRT       1               ALPH TO NUM   
+0989  0 0000480001            SRA       1               CONVERSION... 
+0990  0 0001210988           1DBB       *-2             ¤4 DIGITS¤    
+0991  0 0001450003  TALY1     CLA       3               DUMP RESIDUE  
+0992  0 0001490004            SLT       4               LINE LENGTH UP
+0993  0 0000191556            ADL       LOCNT           BUMP LOCNT... 
+0994  0 0000300056            BUN       NEXT1           PASS 1 EXIT.. 
+0995  0 0000440647  ERL1      STP       .ERRO    CALL ERROR           
+0996  0 5381300638        5381BUN       ERROR    L1-SPAC UNDER 400... 
+0997  0 0000461094            CLL       GOON     KILL PASS 2..        
+0998  0 0000300986            BUN       SPCLG    AND GO ON..          
+0999  0 0000000400  E400      DEC       400                           
+1000  0 0000040350  SPACL     PRB       350      SPAC SUBR CALL-IN... 
+1001  0 2008500000        2000MRW                FIRST AND LAST       
+1002  0 0007450000            CLT                INSTRUCTIONS OF      
+1003  0 2309520000        2309MRD       0        CALL-IN WILL           
+  
+    
+    
+    
+   
+
+
+
+
+
+
+
+
+
+
+
+
+
+ADRES INSTRUCTION    LABEL VAR  OP       VARIABLE FIELD    
+
+1004  0 1210260298        1210IFL       298      HAVE SIGNS SET TO    
+1005  0 0000420353            LDB       353      SIX BY INITL.....    
+1006  1 0000120000       -    ADD       0        SUBROUTINE CALL-IN   
+1007  0 0000310357            BOF       357      OPERATION IS NOT     
+1008  0 0001210355           1DBB       355      DEPENDENT ON SWITCH  
+1009  0 0000360019            BFA       19       SETTINGS....         
+1010  0 0000300350            BUN       350      SUM CK FAILED.RETRY..
+1011  0 0000300350            BUN       350      ¤LAST INSTR¤         
+
+
+1012  0 0000440603  SPACE     STP       .CALA           CALL CALAD    
+1013  0 0000300498            BUN       CALAD           FOR N...      
+1014  0 0000401559            STA       SAVEA           STORE IT..    
+1015  0 0000361018            BFA       *$3             BLANK # 1...  
+1016  0 0000191559            ADL       SAVEA           DOUBLE IT..   
+1017  0 0202271559        0202DFL       SAVEA           SUB 2...      
+1018  0 0000100400            CAD       PAGCK           GET PAGE TALY 
+1019  0 0000480008            SRA       8               LINE IT UP..  
+1020  0 0210181559        0210CFA       SAVEA           AND COMPARE   
+1021  0 0000341023            BCH       SAMPG           SAME PAGE...  
+1022  0 0000300816            BUN       EJECT           NEW PAGE...   
+1023  0 0000421559  SAMPG     LDB       SAVEA           LOAD 2¤N-1¤   
+1024  0 0010090823          10SPO       1CR             SPACE ONCE..  
+1025  0 4304271026        4304DFL       *$1             94 MS. TIME   
+1026  0 0998321025         998BRP       *-1             DELAY...      
+1027  0 2202270400        2202DFL       PAGCK           ADJUST TALLY  
+1028  0 0002211024           2DBB       *-4             AND GO AGAIN. 
+                   *           PASS 1 ENTRY POINT                    
+1029  0 0000300653            BUN       NEXR.           EXIT....      
+
+
+1030  0 0000101556  TCD       CAD       LOCNT           SET DELTA     
+1031  0 0000401557            STA       DELTA           #LOCNT        
+1032  0 0000411555            LDR       OSIGN           SEE IF        
+1033  0 0000101043            CAD       RTCD            RELMOD...     
+1034  0 1108371036        1108BFR       *$2             YES.BRANCH... 
+1035  0 0000101042            CAD       ATCD            NO.ABSMOD.... 
+1036  0 0002490001            SLS       1               LINE BUN UP.. 
+1037  0 0000400407            STA       INSTR           AND STORE IT. 
+1038  0 0000440603            STP       .CALA           CALCULATE     
+1039  0 0000300498            BUN       CALAD           ADDRESS...    
+1040  0 0410400407        0410STA       INSTR           AND STORE IT. 
+                   *           PASS 1 ENTRY POINT                    
+1041  0 0000300651            BUN       PUNC.           EXIT.....     
+1042  0 6000030000  ATCD      DEC       6000030000      ABSMOD BUN    
+1043  0 7000030000  RTCD      DEC       7000030000      RELMOD BUN      
+  
+    
+    
+    
+   
+
+
+
+
+
+
+
+
+
+
+
+
+
+ADRES INSTRUCTION    LABEL VAR  OP       VARIABLE FIELD    
+
+
+
+1044  0 0000101054  ZZZ       CAD       .ZZZ.           GET DEFINITION
+1045  0 0002490001            SLS       1               LINE IT UP    
+1046  0 0000400407            STA       INSTR           AND STORE IT. 
+1047  0 0000101558            CAD       VARNT           GET VARIANT   
+1048  0 0000490001            SLA       1               LINE IT UP    
+1049  0 4410400407        4410STA       INSTR           AND STORE IT. 
+1050  0 0000440603            STP       .CALA           CALCULATE     
+1051  0 0000300498            BUN       CALAD             SECTION.... 
+1052  0 0210400407        0210STA       INSTR           AND STORE IT. 
+                   *           PASS 1 ENTRY POINT                    
+1053  0 0000300651            BUN       PUNC.           EXIT.....     
+1054  0 9000090900  .ZZZ.     DEC       9000090900      ZZZ DEFINITION
+
+
+                   *           GETNM --SIGNIFICANT DIGIT STRIPPING   
+                   *                   SUBROUTINE FOR DEC AND OPDEF. 
+1055  0 0000461559  GETNM     CLL       SAVEA           SAVEA#0       
+1056  0 0000421085            LDB       .GETN-1         B#9           
+1057  0 0000101077            CAD       SETSN-1         RESET ZERO    
+1058  0 0410401069        0410STA       ZONE8             SKIPPER...  
+1059  0 0000100605            CAD       .LDR.           INITIALIZE    
+1060  0 0000400803            STA       DLDR            NEXCH....     
+1061  0 1112401073        1110STB       STALY           SET STALY     
+1062  0 1101261073        1101IFL       STALY           #ONE          
+1063  0 0000410413            LDR       ADRES           GET FIRST WRD 
+1064  0 1108371069        1108BFR       ZONE8           A NUMBER...   
+1065  0 2200371078        2200BFR       SETSN           A BLANK.DONE. 
+1066  0 0000440808  NEXTC     STP       .NEXC           GET NEXT      
+1067  0 0000300800            BUN       NEXCH           CHARACTER...  
+1068  0 0000301064            BUN       NEXTC-2         AND GO AGAIN. 
+1069  0 2100371066  ZONE8 2100BFR       NEXTC           SKIP LEAD 0.. 
+1070  0 0000101070            CAD       *               DISABLE ZERO  
+1071  0 0410401069        0410STA       ZONE8             SKIPPER...  
+1072  1 0001490002       -    SLT       2               MOVE IT OVER  
+1073  0 1110401559  STALY 1110STA       SAVEA           STORE DIGIT   
+1074  1 0001480002       -    SRT       2               MOVE IT BACK. 
+1075  0 1101261073        1101IFL       STALY           BUMP STALY..  
+1076  0 0000311077            BOF       *$1             RESET OVFLOW. 
+1077  0 0001211066           1DBB       NEXTC           GO TIL TEN... 
+1078  0 0000100413  SETSN     CAD       ADRES           SEE IF SIGN   
+1079  0 2220361087        2220BFA       DNEG            IS MINUS...   
+1080  0 0000100410            CAD       VAR             GET VAR..     
+1081  0 2220361087        2220BFA       DNEG            IS IT -...    
+1082  0 0000480002            SRA       2               GET SIGN        
+  
+    
+    
+    
+   
+
+
+
+
+
+
+
+
+
+
+
+
+
+ADRES INSTRUCTION    LABEL VAR  OP       VARIABLE FIELD    
+
+1083  0 4110401085  S1    4110STA       *$2             SAVE IT...    
+1084  0 0000101559            CAD       SAVEA           GET NUMBER    
+1085  0 0000430009           0LSA       9               LOAD SIGN...  
+1086  0 0000300000  .GETN     BUN       **              AND RETURN... 
+1087  0 0000101088  DNEG      CAD       *$1             SET SIGN#1    
+1088  0 0001301083           1BUN       S1              AND GO BACK.. 
+
+
+1089  2 1616165741  MESP2    2ALPH      %%%PASS 2%      PASS2 MESSAGE 
+1091  2 1414140000  .FLG.     ALPH      ***             IG IG IG B B  
+1092  0 0000300000  .BUN.     DEC       0000300000      ¤30 OP CODE¤  
+1093  0 0000010000  .NOP.     DEC       0000010000      ¤01 OP CODE¤  
+1094  0 0000000001  GOON      DEC       1         PASS 2 ABANDON FLAG 
+1095  0 0000000000  SPCSZ     DEC                       VARIABLE      
+1096  0 0000000000  TABSZ     DEC                       VARIABLE      
+1097  1 0000001111  04FLD     DEC       -0000001111     0/4 FLD MASK  
+1098  0 0000010000  10E4      DEC       10000           TEN THOUS.    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    
+    
+    
+    
+   
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ADRES INSTRUCTION    LABEL VAR  OP       VARIABLE FIELD    
+
+1099  6 0000041299            BSS       200             OPDEF TABLE   
+                   *           OPTAB --OP-CODE NAME/DEFINITION TABLE 
+                   *                   128 MAX ENTRIES IN ALPH ORDER 
+1299  2 0000000000  OPTAB     ALPH                      BLANK ENTRY   
+1300  0 0000000000            DEC                       BLANK # HLT   
+1301  2 0000000000            ALPH                      DUMMY ENTRY   
+1302  0 0000000000            DEC                       DUMMY ENTRY   
+1303  2 0000000000            ALPH                      DUMMY ENTRY   
+1304  0 0000000000            DEC                       DUMMY ENTRY   
+1305  2 4142620000            ALPH      ABS             PSEUDO-OP     
+1306  1 0002000655       -   2HLT       ABS                           
+1307  2 4144410000            ALPH      ADA                           
+1308  0 0000112100            DEC       0000112100      ADA           
+1309  2 4144440000            ALPH      ADD                           
+1310  0 0000012100            DEC       0000012100      ADD           
+1311  2 4144530000            ALPH      ADL                           
+1312  0 0000019000            DEC       0000019000      ADL           
+1313  2 4153574800            ALPH      ALPH            PSEUDO-OP     
+1314  1 0024000659       -  24HLT       ALPH                          
+1315  2 4164670000            ALPH      AUX             NUM-ASSEM P/O 
+1316  0 9000081010            DEC       9000081010      AUX           
+1317  2 4243450000            ALPH      BCE                           
+1318  0 0000035100            DEC       0000035100      BCE           
+1319  2 4243480000            ALPH      BCH                           
+1320  0 0000034100            DEC       0000034100      BCH           
+1321  2 4243530000            ALPH      BCL                           
+1322  0 0000134100            DEC       0000134100      BCL           
+1323  2 4243620000            ALPH      BCS                           
+1324  0 0000038000            DEC       0000038000      BCS           
+1325  2 4243640000            ALPH      BCU                           
+1326  0 0000135100            DEC       0000135100      BCU           
+1327  2 4245620000            ALPH      BES             PSEUDO-OP     
+1328  1 0004000703       -   4HLT       BES                           
+1329  2 4246410000            ALPH      BFA                           
+1330  0 0000036000            DEC       0000036000      BFA           
+1331  2 4246590000            ALPH      BFR                           
+1332  0 0000037000            DEC       0000037000      BFR           
+1333  2 4256460000            ALPH      BOF                           
+1334  0 0000031000            DEC       0000031000      BOF           
+1335  2 4259560000            ALPH      BRO             NUM-ASSEM P/O 
+1336  0 9000096010            DEC       9000096010      BRO           
+1337  2 4259570000            ALPH      BRP                           
+1338  0 0000032000            DEC       0000032000      BRP           
+1339  2 4259640000            ALPH      BRU             NUM-ASSEM P/O 
+1340  0 9000095010            DEC       9000095010      BRU           
+1341  2 4259690000            ALPH      BRZ             NUM-ASSEM P/O   
+  
+    
+    
+    
+   
+
+
+
+
+
+
+
+
+
+
+
+
+
+ADRES INSTRUCTION    LABEL VAR  OP       VARIABLE FIELD    
+
+1342  0 9000097010            DEC       9000097010      BRZ           
+1343  2 4262410000            ALPH      BSA                           
+1344  0 0000033000            DEC       0000033000      BSA           
+1345  2 4262620000            ALPH      BSS             PSEUDO-OP     
+1346  1 0013000713       -  13HLT       BSS                           
+1347  2 4264550000            ALPH      BUN                           
+1348  0 0000030000            DEC       0000030000      BUN           
+1349  2 4341410000            ALPH      CAA                           
+1350  0 0000110100            DEC       0000110100      CAA           
+1351  2 4341420000            ALPH      CAB                           
+1352  0 0000545100            DEC       0000545100      CAB           
+1353  2 4341440000            ALPH      CAD                           
+1354  0 0000010100            DEC       0000010100      CAD           
+1355  2 4341535300            ALPH      CALL            PSEUDO-OP     
+1356  1 0018000732       -  18HLT       CALL                          
+1357  2 4341590000            ALPH      CAR                           
+1358  0 0000345100            DEC       0000345100      CAR           
+1359  2 4346410000            ALPH      CFA                           
+1360  0 0000018100            DEC       0000018100      CFA           
+1361  2 4346590000            ALPH      CFR                           
+1362  0 0000118100            DEC       0000118100      CFR           
+1363  2 4348410000            ALPH      CHA             NUM-ASSEM P/O 
+1364  0 9000093010            DEC       9000093010      CHA           
+1365  2 4353410000            ALPH      CLA                           
+1366  0 0000145100            DEC       0000145100      CLA           
+1367  2 4353420000            ALPH      CLB                           
+1368  0 0000445100            DEC       0000445100      CLB           
+1369  2 4353530000            ALPH      CLL                           
+1370  0 0000046000            DEC       0000046000      CLL           
+1371  2 4353590000            ALPH      CLR                           
+1372  0 0000245100            DEC       0000245100      CLR           
+1373  2 4353630000            ALPH      CLT                           
+1374  0 0000745100            DEC       0000745100      CLT           
+1375  2 4359420000            ALPH      CRB                           
+1376  0 0000645100            DEC       0000645100      CRB           
+1377  2 4362410000            ALPH      CSA                           
+1378  0 0000111100            DEC       0000111100      CSA           
+1379  2 4362640000            ALPH      CSU                           
+1380  0 0000011100            DEC       0000011100      CSU           
+1381  2 4442420000            ALPH      DBB                           
+1382  0 0000021000            DEC       0000021000      DBB           
+1383  2 4445430000            ALPH      DEC             PSEUDO-OP     
+1384  1 0042000754       -  42HLT       DEC                           
+1385  2 4445530000            ALPH      DEL             NUM-ASSEM P/O 
+1386  0 9000092010            DEC       9000092010      DEL           
+1387  2 4446530000            ALPH      DFL                             
+  
+    
+    
+    
+   
+
+
+
+
+
+
+
+
+
+
+
+
+
+ADRES INSTRUCTION    LABEL VAR  OP       VARIABLE FIELD    
+
+1388  0 0000027000            DEC       0000027000      DFL           
+1389  2 4449650000            ALPH      DIV                           
+1390  0 0000015000            DEC       0000015000      DIV           
+1391  2 4453420000            ALPH      DLB                           
+1392  0 0000028000            DEC       0000028000      DLB           
+1393  2 4464570000            ALPH      DUP             PSEUDO-OP     
+1394  1 0001000812       -   1HLT       DUP                           
+1395  2 4551454363            ALPH      EJECT           PSEUDO-OP     
+1396  1 0006000816       -   6HLT       EJECT                         
+1397  2 4555440000            ALPH      END             PSEUDO-OP     
+1398  1 0003000824       -   3HLT       END                           
+1399  2 4558640000            ALPH      EQU             PSEUDO-OP     
+1400  1 0001000828       -   1HLT       EQU                           
+1401  2 4567630000            ALPH      EXT                           
+1402  0 0000017000            DEC       0000017000      EXT           
+1403  2 4641410000            ALPH      FAA                           
+1404  0 0000122100            DEC       0000122100      FAA           
+1405  2 4641440000            ALPH      FAD                           
+1406  0 0000022100            DEC       0000022100      FAD           
+1407  2 4644650000            ALPH      FDV                           
+1408  0 0000025000            DEC       0000025000      FDV           
+1409  2 4654640000            ALPH      FMU                           
+1410  0 0000024000            DEC       0000024000      FMU           
+1411  2 4662410000            ALPH      FSA                           
+1412  0 0000123100            DEC       0000123100      FSA           
+1413  2 4662640000            ALPH      FSU                           
+1414  0 0000023100            DEC       0000023100      FSU           
+1415  2 4853630000            ALPH      HLT                           
+1416  0 0000000000            DEC       0000000000      HLT           
+1417  2 4942420000            ALPH      IBB                           
+1418  0 0000020000            DEC       0000020000      IBB           
+1419  2 4946530000            ALPH      IFL                           
+1420  0 0000026000            DEC       0000026000      IFL           
+1421  2 4955620000            ALPH      INS             NUM-ASSEM P/O 
+1422  0 9000091010            DEC       9000091010      INS           
+1423  2 4956540000            ALPH      IOM                           
+1424  0 0000239100            DEC       0000239100      IOM           
+1425  2 5241440000            ALPH      KAD                           
+1426  0 0000008000            DEC       0000008000      KAD           
+1427  2 5342430000            ALPH      LBC                           
+1428  0 0000142100            DEC       0000142100      LBC           
+1429  2 5344420000            ALPH      LDB                           
+1430  0 0000042100            DEC       0000042100      LDB           
+1431  2 5344590000            ALPH      LDR                           
+1432  0 0000041000            DEC       0000041000      LDR           
+1433  2 5356414400            ALPH      LOAD            PSEUDO-OP       
+  
+    
+    
+    
+   
+
+
+
+
+
+
+
+
+
+
+
+
+
+ADRES INSTRUCTION    LABEL VAR  OP       VARIABLE FIELD    
+
+1434  1 0012000843       -  12HLT       LOAD                          
+1435  2 5362410000            ALPH      LSA                           
+1436  0 0000043000            DEC       0000043000      LSA           
+1437  2 5441435956            ALPH      MACRO           PSEUDO-OP     
+1438  1 0000000858       -    HLT       MACRO                         
+1439  2 5444410000            ALPH      MDA                           
+1440  0 0000950100            DEC       0000950100      MDA           
+1441  2 5446430000            ALPH      MFC                           
+1442  0 4000051010            DEC       4000051010      MFC           
+1443  2 5446620000            ALPH      MFS                           
+1444  0 4000050110            DEC       4000050110      MFS           
+1445  2 5449420000            ALPH      MIB                           
+1446  0 0000059100            DEC       0000059100      MIB           
+1447  2 5449450000            ALPH      MIE                           
+1448  0 0000159100            DEC       0000159100      MIE           
+1449  2 5449590000            ALPH      MIR                           
+1450  0 0000055000            DEC       0000055000      MIR           
+1451  2 5449660000            ALPH      MIW                           
+1452  0 0000054000            DEC       0000054000      MIW           
+1453  2 5453620000            ALPH      MLS                           
+1454  0 0000450100            DEC       0000450100      MLS           
+1455  2 5456590000            ALPH      MOR                           
+1456  0 0000057000            DEC       0000057000      MOR           
+1457  2 5456660000            ALPH      MOW                           
+1458  0 0000056000            DEC       0000056000      MOW           
+1459  2 5457420000            ALPH      MPB                           
+1460  0 0000158100            DEC       0000158100      MPB           
+1461  2 5457450000            ALPH      MPE                           
+1462  0 0000258100            DEC       0000258100      MPE           
+1463  2 5457460000            ALPH      MPF                           
+1464  0 0000058100            DEC       0000058100      MPF           
+1465  2 5459440000            ALPH      MRD                           
+1466  0 0000052000            DEC       0000052000      MRD           
+1467  2 5459590000            ALPH      MRR                           
+1468  0 0000053000            DEC       0000053000      MRR           
+1469  2 5459660000            ALPH      MRW                           
+1470  0 0000850100            DEC       0000850100      MRW           
+1471  2 5462590000            ALPH      MSR             NUM-ASSEM P/O 
+1472  0 9000080010            DEC       9000080010      MSR           
+1473  2 5463430000            ALPH      MTC                           
+1474  0 0000051000            DEC       0000051000      MTC           
+1475  2 5463620000            ALPH      MTS                           
+1476  0 0000050100            DEC       0000050100      MTS           
+1477  2 5464530000            ALPH      MUL                           
+1478  0 0000014000            DEC       0000014000      MUL           
+1479  2 5556570000            ALPH      NOP                             
+  
+    
+    
+    
+   
+
+
+
+
+
+
+
+
+
+
+
+
+
+ADRES INSTRUCTION    LABEL VAR  OP       VARIABLE FIELD    
+
+1480  0 0000001000            DEC       0000001000      NOP           
+1481  2 5657444546            ALPH      OPDEF           PSEUDO-OP     
+1482  1 0000000862       -    HLT       OPDEF                         
+1483  2 5657626855            ALPH      OPSYN           PSEUDO-OP     
+1484  1 0000000889       -    HLT       OPSYN                         
+1485  2 5659470000            ALPH      ORG             PSEUDO-OP     
+1486  1 0005000900       -   5HLT       ORG                           
+1487  2 5741646245            ALPH      PAUSE           PSEUDO-OP     
+1488  1 0002000911       -   2HLT       PAUSE                         
+1489  2 5759420000            ALPH      PRB                           
+1490  0 0000004000            DEC       0000004000      PRB           
+1491  2 5759440000            ALPH      PRD                           
+1492  0 0000003000            DEC       0000003000      PRD           
+1493  2 5759490000            ALPH      PRI                           
+1494  0 0000005000            DEC       0000005000      PRI           
+1495  2 5762590000            ALPH      PSR             NUM-ASSEM P/O 
+1496  0 9000082010            DEC       9000082010      PSR ¤82 VER.¤ 
+1497  2 5766490000            ALPH      PWI                           
+1498  0 0000007000            DEC       0000007000      PWI           
+1499  2 5766590000            ALPH      PWR                           
+1500  0 0000006000            DEC       0000006000      PWR           
+1501  2 5945460000            ALPH      REF             NUM-ASSEM P/O 
+1502  0 9000098010            DEC       9000098010      REF           
+1503  2 5945530000            ALPH      REL             PSEUDO-OP     
+1504  1 0002000915       -   2HLT       REL                           
+1505  2 5945540000            ALPH      REM             PSEUDO-OP     
+1506  1 0007000921       -   7HLT       REM-2                         
+1507  2 5955440000            ALPH      RND                           
+1508  0 0000016000            DEC       0000016000      RND           
+1509  2 5963460000            ALPH      RTF                           
+1510  0 0000029000            DEC       0000029000      RTF           
+1511  2 6245430000            ALPH      SEC             NUM-ASSEM P/O 
+1512  0 9000094010            DEC       9000094010      SEC           
+1513  2 6245630000            ALPH      SET             PSEUDO-OP     
+1514  1 0000000931       -    HLT       SET                           
+1515  2 6245670000            ALPH      SEX             NUM-ASSEM P/0 
+1516  1 0002000953       -   2HLT       SEX                           
+1517  2 6253410000            ALPH      SLA                           
+1518  0 0000049101            DEC       0000049101      SLA           
+1519  2 6253620000            ALPH      SLS                           
+1520  0 0000249101            DEC       0000249101      SLS           
+1521  2 6253630000            ALPH      SLT                           
+1522  0 0000149101            DEC       0000149101      SLT           
+1523  2 6256480000            ALPH      SOH                           
+1524  0 0000139100            DEC       0000139100      SOH           
+1525  2 6256590000            ALPH      SOR                             
+  
+    
+    
+    
+   
+
+
+
+
+
+
+
+
+
+
+
+
+
+ADRES INSTRUCTION    LABEL VAR  OP       VARIABLE FIELD    
+
+1526  0 0000039100            DEC       0000039100      SOR           
+1527  2 6257414300            ALPH      SPAC            PSEUDO-OP     
+1528  1 0006000962       -   6HLT       SPAC                          
+1529  2 6257414345            ALPH      SPACE           PSEUDO-OP     
+1530  1 0017001012       -  17HLT       SPACE                         
+1531  2 6257560000            ALPH      SPO                           
+1532  0 0000009000            DEC       0000009000      SPO           
+1533  2 6259410000            ALPH      SRA                           
+1534  0 0000048101            DEC       0000048101      SRA           
+1535  2 6259620000            ALPH      SRS                           
+1536  0 0000248101            DEC       0000248101      SRS           
+1537  2 6259630000            ALPH      SRT                           
+1538  0 0000148101            DEC       0000148101      SRT           
+1539  2 6263410000            ALPH      STA                           
+1540  0 0000040100            DEC       0000040100      STA           
+1541  2 6263420000            ALPH      STB                           
+1542  0 0000240100            DEC       0000240100      STB           
+1543  2 6263570000            ALPH      STP                           
+1544  0 0000044000            DEC       0000044000      STP           
+1545  2 6263590000            ALPH      STR                           
+1546  0 0000140100            DEC       0000140100      STR           
+1547  2 6264410000            ALPH      SUA                           
+1548  0 0000113100            DEC       0000113100      SUA           
+1549  2 6264420000            ALPH      SUB                           
+1550  0 0000013100            DEC       0000013100      SUB           
+1551  2 6343440000            ALPH      TCD             PSEUDO-OP     
+1552  1 0011001030       -  11HLT       TCD                           
+1553  2 6969690000            ALPH      ZZZ             NUM-ASSEM P/O 
+1554  1 0009001044       -   9HLT       ZZZ                           
+
+
+1555  0 0000000000  OSIGN     DEC                       MODE SIGN     
+1556  0 0000000000  LOCNT     DEC                       VARIABLE      
+1557  0 0000000000  DELTA     DEC                       VARIABLE      
+1558  0 0000000000  VARNT     DEC                       VARIABLE      
+1559  0 0000000000  SAVEA     DEC                       TEMP STORAGE  
+1560  0 0000000000  SAVEB     DEC                       TEMP STORAGE  
+1561  0 0000000000  TEMP1     DEC                       TEMP STORAGE  
+1562  6 0000041662  IOBUF     BSS       100             I-O BUFFER    
+1662  0 0000000000  SPACT     DEC       0000000000      SPAC TABLE    
+
+
+
+
+
+    
+    
+    
+    
+   
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ADRES INSTRUCTION    LABEL VAR  OP       VARIABLE FIELD    
+
+                   *           INITL --DOES ONE-SHOT INITIALIZATION  
+                   *                   AND PRINTS TITLE AND OPTIONS. 
+                   *                   ¤OVERWRITTEN BY SPACT¤        
+1663  0 0000381668  INITL 0   BCS       GENIG           SKIP IF *PTO* 
+1664  0 1018500000        1010MRW                       SET ODD LANE  
+1665  0 1002580000        1000MPE                       READY FOR MIW 
+1666  0 1386541299        1386MIW       OPTAB           SAVE OPTAB    
+1667  0 1008500000        1000MRW                       READY TAPE 1  
+1668  0 0000101689  GENIG     CAD       .IG.            GET           
+1669  0 0810400404        0810STA       LIST            ALL           
+1670  0 2210400405        2210STA       LIST$1          THE           
+1671  0 0410400406        0410STA       LIST$2          ¤IG¤ CODES... 
+1672  0 6610401091        6610STA       .FLG.           WHERE         
+1673  0 8810400823        8810STA       1CR             NEEDED....    
+1674  0 1260261000        1260IFL       SPACL           SET SPAC CALL-
+1675  0 1260261011        1260IFL       SPACL$11        IN SIGN#6.... 
+1676  0 0000101690            CAD       RSTRT    BURN BRIDGE AND      
+1677  0 0000400000            STA       ENTRY    SET FOR RESTART...   
+1678  0 0090091691          90SPO       IDMES           PRINT I.D.    
+1679  0 0100091700         100SPO       SWMES           PRINT         
+1680  0 0070091710          70SPO       S5MES           THE           
+1681  0 0060091717          60SPO       S6MES           HEADING AND   
+1682  0 0100091723         100SPO       S7MES           THE           
+1683  0 0070091733          70SPO       S8MES           LIST          
+1684  0 0080091740          80SPO       S9MES           OF            
+1685  0 0080091748          80SPO       S0MES           OPTIONS....   
+1686  0 0050090289          50SPO       NUPAG           GET NEW PAGE. 
+1687  0 6996006996        6996HLT       6996            O-O HALT...   
+1688  0 0000300034            BUN       START$3         GO ASSEMBLE.. 
+1689  0 0202020202  .IG.      DEC       0202020202      PSEUDO ¤IG¤S  
+1690  0 2000380220  RSTRT 2   BCS       INTER$3  RESTART PASS 2...    
+1691  2 6200550041  IDMES    6ALPH      S N A P   VER. 1E    5/10/64% 
+1697  2 0000000016           3ALPH          %    %    % 3¤B B B B CR¤ 
+1700  2 6266496343  SWMES    6ALPH      SWITCH OPTIONS MUST BE SET DUR
+1706  2 4955470056           4ALPH      ING O-O HALT.%     %          
+1710  2 6266008500  S5MES    6ALPH      SW 5 ON IF INPUT IS ON MAG-TAP
+1716  2 4500000016            ALPH      E   %                         
+1717  2 6266008600  S6MES    6ALPH      SW 6 ON SUPPRESSES PUNCHING  %
+1723  2 6266008700  S7MES    6ALPH      SW 7 ON TO INSERT VALUE IN AC 
+1729  2 4656590064           4ALPH      FOR UNDEFINED ADRES%          
+1733  2 6266008800  S8MES    6ALPH      SW 8 ON SUPPRESSES ERROR TYPIN
+1739  2 4700000016            ALPH      G   %           CR AT END     
+1740  2 6266008900  S9MES    6ALPH      SW 9 ON SUPPRESSES DICTIONARY 
+1746  2 5759495563           2ALPH      PRINTING %      CR AT END     
+1748  2 6266008000  S0MES    6ALPH      SW 0 ON INDICATES PAPER-TAPE-O
+1754  2 5553680054           2ALPH      NLY MODE %      CR AT END       
+  
+    
+    
+    
+   
+
+
+
+
+
+
+
+
+
+
+
+
+
+ADRES INSTRUCTION    LABEL VAR  OP       VARIABLE FIELD    
+
+0000  6 0000300000            TCD       ENTRY                         
+                             END                                        
+ 
+   
+   
+   
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    
+NCONV  IS NOT REFERENCED
+
+PASS1  IS NOT REFERENCED
+
+VCONV  IS NOT REFERENCED
+    
+   
+   
+   
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    
+
+END OF ASSEMBLY
+
+
