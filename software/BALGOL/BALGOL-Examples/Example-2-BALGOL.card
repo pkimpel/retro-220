@@ -71,7 +71,7 @@
 2       *NORTH-SOUTH EAST-WEST*, W6,
 2       *NO. DD MM SS Q DISTANCE DISTANCE DISPLACEMENT DISPLACEMENT*,
 2       2W),
-2   F2,(I3, I5, 2I3, I2, 4X13.2, W),                                            *WAS F2,(*
+2   F2 (I3, I5, 2I3, I2, 4X13.2, W),                                            *WAS F2,(*
 2   F3 (B6, *TOTALS*, B4, 4X13.2, W4, *AREA OF TRAVERSE*, X13.2,
 2       *SQUARE FEET*, X13.2, *ACRES*, W6);
 2 FINISH;

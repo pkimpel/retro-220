@@ -40,7 +40,7 @@
 2
 2   IF (((-40) LEQ F) AND (F LEQ 58));
 2     BEGIN
-2     P = (Q.(10.0*9).(10.0*(F-9));
+2     P = (Q.(10.0*9)).(10.0*(F-9));
 2     E = 0;
 2     RETURN
 2     END;
@@ -126,7 +126,7 @@
 2     FOR J = (K+1,1,N);
 2       A(K,J) = A(K,J) - IP(1, K-1, A(K,), A(,J));
 2
-2     B(K) = B(K) - IP(1, K-1, A(K), B())
+2     B(K) = B(K) - IP(1, K-1, A(K,), B())
 2     END;
 2
 2   FOR I = (1,1,N);
@@ -147,12 +147,11 @@
 2   RETURN;
 2   END CROUT4();
 2
-2 PROCEDURE SOLV2 (; N, B(,), C(), PIVOT(), Z(), IP());
+2 PROCEDURE SOLV2 (; N, B(,), C(), PIVOT(), Z(); IP());
 2   BEGIN COMMENT IT IS ASSUMED THAT A MATRIX A HAS ALREADY BEEN
-2       TRANSFORMED INTO B BY CROUT, BUT THAT A NEW COLUMN C HAS NOT
-2       BEEN PROCESSED. SOLV2() SOLVES
-2       THE SYSTEM BZ = C. AN INNERPRODUCT PROCEDURE MUST BE USED WITH
-2       SOLV2();
+2       TRANSFORMED INTO B BY CROUT, BUT THAT A NEW COLUMN C HAS
+2       NOT BEEN PROCESSED. SOLV2() SOLVES THE SYSTEM BZ = C.
+2       AN INNERPRODUCT PROCEDURE MUST BE USED WITH SOLV2();
 2   INTEGER K, N, PIVOT;
 2
 2   FOR K = (1,1,N);
@@ -164,17 +163,17 @@
 2     END;
 2
 2   FOR K = (N,-1,1);
-2     Z(K) = (C(K) - IP(K+1, N, B(K), Z()))/B(K,K);                             *WAS N,B(K), *
+2     Z(K) = (C(K) - IP(K+1, N, B(K,), Z()))/B(K,K);                            *WAS N,B(K), *
 2   RETURN
 2   END SOLV2();
 2
 2 COMMENT FORSYTHE TEST CROUT US169 EXT 2274;
-2 FORMAT FRMTFL(W0, (6F19.8, W0));
-2 FORMAT FMTFX (W0, (6I19, W0));
+2 FORMAT FRMTFL (W0, (6F19.8, W0));
+2 FORMAT FRMTFX (W0, (6I19, W0));
 2 INTEGER PIVOT();
 2 INTEGER EX;
 2 INTEGER I, J, N;
-2 ARRAY A(70,70, B(70), Y(70), C(70), PIVOT(70);                                *WAS A(70,70, B(*
+2 ARRAY A(70,70), B(70), Y(70), C(70), PIVOT(70);                               *WAS A(70,70, B(*
 2 INPUT DATA (N, FOR I=(1,1,N); (FOR J=(1,1,N); A(I,J), B(I)));
 2 INPUT VECTOR (N, FOR I=(1,1,N); C(I));
 2

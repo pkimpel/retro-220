@@ -1,7 +1,8 @@
- $ SET LINEINFO                                                         00000100170222PK  
+ $ SET LINEINFO                                                         00000100180203PK  
 BEGIN                                                                   00001000          
 COMMENT                                                                 00001100          
-  BAC-EXAMPLE-1 CONVERTED FROM BALGOL TO BURROUGHS B5500 EXTENDED ALGOL.00001200          
+  BAC-EXAMPLE-1 CONVERTED FROM BALGOL TO BURROUGHS B5500 EXTENDED ALGOL,00001200180203PK  
+  THEN TO UNISYS MCP EXTENDED ALGOL.                                    00001220180203PK  
   2017-02-13  P.KIMPEL                                                  00001300          
   ;                                                                     00001400          
                                                                         00010000          
@@ -49,7 +50,7 @@ LABEL                                                                   00080000
          HFNRES (FOR K:=1 STEP 1 UNTIL 29 DO HFN[K]),                   00202300170222PK  
          CRES(CONST), HFCNRES (TH, FOR K:=1 STEP 1 UNTIL 5 DO HFCN[K]), 00202400170222PK  
          HFCENRES(TH, FOR K:=1 STEP 1 UNTIL 6 DO HFCEN[K]);             00202500170222PK  
-  FORMAT VECTOR (X8,6F16.8),                                            00202600170222PK  
+  FORMAT VECTOR (X8,6E16.7),                                            00202600180203PK  
          FTITLE (/,X48,"FRESULTS,FA[I,J]"),                             00202700          
          BTITLE (/,X48,"BRESULTS,B[I,J]"),                              00202800170222PK  
          ATITLE (/,X48,"ARESULTS,A[I,J]"),                              00202900          
@@ -57,14 +58,14 @@ LABEL                                                                   00080000
          BDYVALUES (/,X42,"PRELIMINARY BOUNDARY VALUES"),               00203100          
          CBDYVALUES (/,X43,"CORRECTED BOUNDARY VALUES"),                00203200          
          CONTITLE (/,X50,"CONSTANT"),                                   00203300          
-         TABLE (X8,I2,X6,6F16.8),                                       00203400          
+         TABLE (X8,I2,X6,6E16.7),                                       00203400180203PK  
          TABLEHEAD (/,X40, "THE VALUES OF H(RHO,TH) IN B"),             00203500          
          TABLELINE (X13,"RHO",X6,"0.5",X13,"1.0",X13,"1.5",X13,         00203600          
                     "2.0",X13,"2.5",X13,"3.0"),                         00203700          
          TABLETH (X8,"TH");                                             00203800          
   START:                                                                00800100          
     READ (INPUT, /, DATA);                                              00800200          
-    WRITE (OUTPUT, <"INPUT DATA:",/,6(5F16.4,/)>, DATA);                00800250          
+    WRITE (OUTPUT, <"INPUT DATA:",/,6(5E16.7,/)>, DATA);                00800250180203PK  
   RDIM:                                                                 00800300          
     READ (INPUT, /, DIMEN) [FINISH];                                    00800400          
     WRITE (OUTPUT, <"NUMBER OF DIMENSIONS:",I3>, DIMEN);                00800450          

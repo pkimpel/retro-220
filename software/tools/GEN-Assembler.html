@@ -14,7 +14,7 @@
 * Generator utility.
 *
 * Assembles source for the 220 machine language generator utility for the
-* BALGOL compiler. Source is read from an emulated card deck -- a text
+* BALGOL compiler. Source is read from an emulated card deck, a text
 * file with the following format:
 *
 *     col 1     Cardatron format band selection digit. Can be anything,
@@ -39,7 +39,21 @@
 * and data. It is designed to match the listing from which the compiler
 * was transcribed, so that it may be compared for proofing purposes.
 *
-* Output of the generated code and data is... *TBD*
+* Output of the generated code and data can be obtained in three forms:
+*
+*   - Punched cards in a self-loading band-6 format (default).
+*
+*   - Punched cards in BALGOL Machine Language format. This is also a
+*     band-6 format, but requires a separate loader program. See Appendix
+*     F in the BAC-220 reference manual.
+*
+*   - Magnetic tape image recorded in 100-word blocks. The code is
+*     written to lane 0 of the tape image.
+*
+* The form of output is selected from a pull-down list on the browser
+* page. The output is displayed in a sub-window that opens at the end of
+* the assembly. From there is can be saved or copied to the local file
+* system.
 *
 ************************************************************************
 * 2017-12-02  P.Kimpel
@@ -103,15 +117,11 @@ LABEL {
     width:              100%;
     border:             1px solid white}
 
-#OptionsPanel {
+#OptionsTable {
     position:           relative;
     margin-top:         4px;
     margin-bottom:      4px;
     width:              640px}
-
-#SelectListing {
-    position:           absolute;
-    right:              0px}
 
 #TextDiv {
     position:           relative;
@@ -138,6 +148,11 @@ LABEL {
     top:                200px;
     left:               200px;
     z-index:            10}
+
+.center {
+    text-align:         center}
+.rj {
+    text-align:         right}
 </style>
 </head>
 
@@ -156,20 +171,35 @@ LABEL {
     </table>
 </div>
 
-<div id=OptionsPanel>
-    <input id=Pass1ListCheck type=checkbox value=1>
-    <label for=Pass1ListCheck>Pass 1 Listing</label>
-    &nbsp;&nbsp;
-    <input id=Pass2ListCheck type=checkbox value=1 CHECKED>
-    <label for=Pass2ListCheck>Pass 2 Listing</label>
-    &nbsp;&nbsp;
-    <input id=ChecksumCheck type=checkbox value=1>
-    <label for=ChecksumCheck>Write Checksum</label>
-
-    <button id=SelectListing type=button>Select Listing</button>
-</div>
+<table id=OptionsTable>
+<thead>
+<tr>
+    <th><label for=Pass1ListCheck>List Pass 1</label>
+    <th><label for=Pass2ListCheck>List Pass 2</label>
+    <th><label for=ChecksumCheck>Write Checksum</label>
+    <th><label for=OutputModeSelect>Output Mode</label>
+    <th>&nbsp;
+<tbody>
+<tr>
+    <td class=center>
+        <input id=Pass1ListCheck type=checkbox value=1>
+    <td class=center>
+        <input id=Pass2ListCheck type=checkbox value=1 CHECKED>
+    <td class=center>
+        <input id=ChecksumCheck type=checkbox value=1>
+    <td class=center>
+        <select id=OutputModeSelect>
+             <option value=""        >No Object
+             <option value=L SELECTED>Loadable Deck
+             <option value=M         >BALGOL ML Deck
+             <option value=T         >Object Tape
+         </select>
+    <td class=rj>
+        <button id=SelectListing type=button>Select Listing</button>
+</table>
 
 <div id=TextDiv><pre id=TextPanel></pre></div>  <!-- Don't add any whitespace! -->
+
 
 <script>
 "use strict";
@@ -221,10 +251,11 @@ window.addEventListener("load", function() {
     var outputChecksum = false;
 
     var panel = $$("TextPanel");
+    var cardReaderUnit = 1;             // Cardatron input unit number for object card decks
 
     // Token.type values
     var tokEmpty = 0;                   // empty primary
-    var tokLocation = 1;                // $: the current location counter
+    var tokLocation = 1;                // $, the current location counter
     var tokInteger = 2;                 // integer literal
     var tokLabel = 3;                   // regular label
     var tokBackwardPoint = 4;           // backward point label (without the leading * or the trailing -)
@@ -270,6 +301,7 @@ window.addEventListener("load", function() {
     var poolSetName = "";               // name of optional pool set data file
     var poolUnresolved = 0;             // count of unresolved pool literal values
     var programUnitNr = 0;              // ordinal number of the program unit being assembled
+    var startAddress = -1;              // starting execution address, from END card
     var symTab = {};                    // symbol table: holds the address value for each label, initially NaN
 
     var poolSets = [                    // skeleton table of pre-loaded pools for default program unit #0
@@ -2385,7 +2417,8 @@ window.addEventListener("load", function() {
 
         switch (assembly.opCode) {
         case pseudoEND:                 // end of assembly
-            token.value = tensComp(parseExpression(token, pass2, false))%10000; // dunno how this should be used
+            token.value = tensComp(parseExpression(token, pass2, false));
+            startAddress = token.value%10000;
             break;
 
         case pseudoIS:                  // equate label to address
@@ -2868,7 +2901,282 @@ window.addEventListener("load", function() {
 
 
     /*******************************************************************
-    * Initialization & Termination                                     *
+    * Object Code Output                                               *
+    *******************************************************************/
+
+    /**************************************/
+    function generateFormat6LoadableDeck(asmCode, outputChecksum, startAddress) {
+        /* Formats the assembled object code as a standard Cardatron format-6
+        loadable deck in a temporary window. From there it can be save, copied,
+        etc. */
+        var crdSkeleton = "";           // skeleton card-read instruction
+        var doc = null;                 // temp window document object
+        var deck = null;                // temp window text area
+        var pval = p10[10];             // modulus for a word's absolute value
+        var psign = pval*2;             // modulus for a word's sign bit
+        var title = "220 GEN-Assembler Band-6 Loadable Deck";
+        var win = window.open("../../webUI/B220FramePaper.html", "GEN-Asm-Object",
+                "scrollbars,resizable,width=600,height=500");
+
+        function checksum(cksum, word) {
+            var sw = word%psign;        // will be the signed algebraic value of word
+
+            if (sw >= pval) {           // check if word has sign bit=1
+                sw = pval - sw;         // if so, make it algebraically negative
+            }
+
+            return (cksum+sw)%pval;     // compute the algebraic checksum
+        }
+
+        function writeCard(card, addr) {
+
+            deck.appendChild(doc.createTextNode("666" +
+                    padLeft(crdSkeleton + padLeft(addr, 4, "0") + card, 77, " ") + "\n"));
+        }
+
+        function generateDeck(ev) {
+            var addr = 0;               // assembled code address
+            var card = "";              // text line for an 80-column card image
+            var cksum = 0;              // algebraic value of the checksum word
+            var count = 0;              // number of words on card
+            var gapCount = 0;           // number of consecutive undefined words
+            var priorAddr = 0;          // CRD address for prior card image
+            var priorCard = "";         // prior image, awaiting terminating CRD instruction
+            var word = undefined;       // object code word
+            var x = 0;                  // scratch index
+
+            win.removeEventListener("load", generateDeck, false);
+            doc = win.document;
+            doc.title = title;
+            deck = doc.getElementById("Paper");
+
+            while (addr < asmCode.length && asmCode[addr] === undefined) {
+                ++addr;
+            }
+
+            while (addr < asmCode.length) {
+                word = asmCode[addr];
+                if (word === undefined) {
+                    ++gapCount;
+                } else {
+                    if (count > 5 || gapCount > 0) {
+                        writeCard(priorCard, priorAddr);
+                        priorCard = card;
+                        card = "";
+                        gapCount = 0;
+                        count = 0;
+                    }
+
+                    priorAddr = addr;
+                    card += padLeft(word, 11, "0");
+                    ++count;
+                    if (outputChecksum) {
+                        cksum = checksum(cksum, word);
+                    }
+                }
+
+                ++addr;
+            } // while addr
+
+            writeCard(priorCard, priorAddr);
+            if (outputChecksum) {
+                // Compute and output a card with the 220 negative checksum at the next address
+                writeCard(card, priorAddr+1);
+                card = crdSkeleton + "9999";
+                if (cksum < 0) {
+                    card += padLeft(-cksum, 11, "0");
+                } else {
+                    card += padLeft(cksum+pval, 11, "0");
+                }
+
+                card = "***CHECKSUM FOR " + sourceName + " " + card;
+            }
+
+            writeCard(card, 9999);
+            if (startAddress >= 0) {
+                writeCard("6000030" + padLeft(startAddress, 4, "0"), 9999); // BUN to start
+            } else {
+                writeCard("69999009999", 9999);                             // HLT 9999
+            }
+        }
+
+        crdSkeleton = "6" + padLeft(cardReaderUnit, 1, "0") + "00060";
+        win.addEventListener("load", generateDeck, false);
+        win.moveTo((screen.availWidth-win.outerWidth)/2, (screen.availHeight-win.outerHeight)/2);
+    }
+
+    /**************************************/
+    function generateMachineLanguageDeck(asmCode, outputChecksum, startAddress) {
+        /* Formats the assembled object code as a BALGOL Machine-Language deck
+        in a temporary window. From there it can be save, copied, etc. */
+        var doc = null;                 // temp window document object
+        var deck = null;                // temp window text area
+        var pval = p10[10];             // modulus for a word's absolute value
+        var psign = pval*2;             // modulus for a word's sign bit
+        var title = "220 GEN-Assembler Machine-Language Deck";
+        var win = window.open("../../webUI/B220FramePaper.html", "GEN-Asm-Object",
+                "scrollbars,resizable,width=600,height=500");
+
+        function checksum(cksum, word) {
+            var sw = word%psign;        // will be the signed algebraic value of word
+
+            if (sw >= pval) {           // check if word has sign bit=1
+                sw = pval - sw;         // if so, make it algebraically negative
+            }
+
+            return (cksum+sw)%pval;     // compute the algebraic checksum
+        }
+
+        function writeCard(card, count, addr, seq) {
+
+            deck.appendChild(doc.createTextNode(
+                    "60" + padLeft(count, 1, "0") + padLeft(seq, 7, "0") +
+                    padLeft(addr, 4, "0") + card + "\n"));
+        }
+
+        function generateDeck(ev) {
+            var addr = 0;               // assembled code address
+            var card = "";              // text line for an 80-column card image
+            var cardAddr = 0;           // first address of words on card
+            var cksum = 0;              // algebraic value of the checksum word
+            var count = 0;              // number of words on card
+            var gapCount = 0;           // number of consecutive undefined words
+            var seq = 10;               // card sequence number
+            var word = undefined;       // object code word
+            var x = 0;                  // scratch index
+
+            win.removeEventListener("load", generateDeck, false);
+            doc = win.document;
+            doc.title = title;
+            deck = doc.getElementById("Paper");
+
+            while (addr < asmCode.length) {
+                word = asmCode[addr];
+                if (word === undefined) {
+                    ++gapCount;
+                } else {
+                    if (count > 5 || gapCount > 0) {
+                        writeCard(card, count, cardAddr, seq);
+                        card = "";
+                        cardAddr = addr;
+                        gapCount = 0;
+                        count = 0;
+                        seq += 10;
+                    }
+
+                    card += padLeft(word, 11, "0");
+                    ++count;
+                    if (outputChecksum) {
+                        cksum = checksum(cksum, word);
+                    }
+                }
+
+                ++addr;
+            } // while addr
+
+            writeCard(card, count, cardAddr, seq);
+            if (outputChecksum) {
+                // Compute and output a card with the 220 negative checksum at the next address
+                if (cksum < 0) {
+                    card = padLeft(-cksum, 11, "0");
+                } else {
+                    card = padLeft(cksum+pval, 11, "0");
+                }
+
+                writeCard(card + " ***CHECKSUM FOR " + sourceName, 1, addr, 9999990);
+            }
+        }
+
+        win.addEventListener("load", generateDeck, false);
+        win.moveTo((screen.availWidth-win.outerWidth)/2, (screen.availHeight-win.outerHeight)/2);
+    }
+
+    /**************************************/
+    function generateObjectTape(asmCode, outputChecksum, startAddress) {
+        /* Formats the assembled object code as a 220 tape image in a temporary
+        window. From there it can be save, copied, etc. */
+        var doc = null;                 // temp window document object
+        var pval = p10[10];             // modulus for a word's absolute value
+        var psign = pval*2;             // modulus for a word's sign bit
+        var tape = null;                // temp window text area
+        var title = "220 GEN-Assembler Object Tape";
+        var win = window.open("../../webUI/B220FramePaper.html", "GEN-Asm-Object",
+                "scrollbars,resizable,width=500,height=500");
+
+        function checksum(cksum, word) {
+            var sw = word%psign;        // will be the signed algebraic value of word
+
+            if (sw >= pval) {           // check if word has sign bit=1
+                sw = pval - sw;         // if so, make it algebraically negative
+            }
+
+            return (cksum+sw)%pval;     // compute the algebraic checksum
+        }
+
+        function generateTape(ev) {
+            var addr = 0;               // assembled code address
+            var block = "";             // text line for a 100-word tape block
+            var blockPrefix = "0,100";  // lane and prefix word count for block
+            var count = 0;              // count of words in block
+            var cksum = 0;              // algebraic value of the checksum word
+            var length = asmCode.length;// number of words to output
+            var word = 0;               // object code word
+            var x = 0;                  // scratch index
+
+            win.removeEventListener("load", generateTape, false);
+            doc = win.document;
+            doc.title = title;
+            tape = doc.getElementById("Paper");
+            block = blockPrefix;
+
+            while (addr < length) {
+                if (count >= 100) {
+                    tape.appendChild(doc.createTextNode(block + "\n"));
+                    count = 0;
+                    block = blockPrefix;
+                }
+
+                word = asmCode[addr] || 0;
+                block += "," + word.toString();
+                ++count;
+                ++addr;
+                if (outputChecksum) {
+                    cksum = checksum(cksum, word);
+                }
+            } // while addr
+
+            if (outputChecksum) {
+                // Compute and output a block with the 220 negative checksum at the next address
+                if (count >= 100) {
+                    tape.appendChild(doc.createTextNode(block + "\n"));
+                    count = 0;
+                    block = blockPrefix;
+                }
+
+                if (cksum < 0) {
+                    block += "," + padLeft(-cksum, 11, "0");
+                } else {
+                    block += "," + padLeft(cksum+pval, 11, "0");
+                }
+            }
+
+            tape.appendChild(doc.createTextNode(block + "\n"));
+            while (addr < 10000) {
+                addr += 100;
+                tape.appendChild(doc.createTextNode("0,100,0\n"));
+            }
+
+            tape.appendChild(doc.createTextNode("0,1,1\n"));    // EOT control word for lane 0
+            tape.appendChild(doc.createTextNode("1,1,1\n"));    // EOT control word for lane 1
+        }
+
+        win.addEventListener("load", generateTape, false);
+        win.moveTo((screen.availWidth-win.outerWidth)/2, (screen.availHeight-win.outerHeight)/2);
+    }
+
+
+    /*******************************************************************
+    * Initialization and Termination                                   *
     *******************************************************************/
 
     /**************************************/
@@ -2932,92 +3240,11 @@ window.addEventListener("load", function() {
     }
 
     /**************************************/
-    function generateObjectTape(asmCode, outputChecksum) {
-        /* Formats the assembled object code as a 220 tape image in a temporary
-        window. From there it can be save, copied, etc. */
-        var doc = null;                 // temp window document object
-        var pval = p10[10];             // modulus for a word's absolute value
-        var psign = pval*2;             // modulus for a word's sign bit
-        var tape = null;                // temp window text area
-        var title = "220 GEN-Assembler Object Tape";
-        var win = window.open("../../webUI/B220FramePaper.html", "GEN-Asm-Object",
-                "scrollbars,resizable,width=500,height=500");
-
-        function checksum(cksum, word) {
-            var sw = word%psign;        // will be the signed algebraic value of word
-
-            if (sw >= pval) {           // check if word has sign bit=1
-                sw = pval - sw;         // if so, make it algebraically negative
-            }
-
-            return (cksum+sw)%pval;     // compute the algebraic checksum
-        }
-
-        function generateTape(ev) {
-            var addr = 0;               // assembled code address
-            var block = "";             // text line for a 100-word tape block
-            var blockPrefix = "0,100";  // lane and prefix word count for block
-            var count = 0;              // count of words in block
-            var cksum = 0;              // algebraic value of the checksum word
-            var length = asmCode.length;// number of words to output
-            var word = 0;               // object code word
-            var x = 0;                  // scratch index
-
-            win.removeEventListener("load", generateTape, false);
-            doc = win.document;
-            doc.title = title;
-            tape = doc.getElementById("Paper");
-            block = blockPrefix;
-
-            while (addr < length) {
-                if (count >= 100) {
-                    tape.appendChild(doc.createTextNode(block + "\n"));
-                    count = 0;
-                    block = blockPrefix;
-                }
-
-                word = asmCode[addr];
-                block += "," + word.toString();
-                ++count;
-                ++addr;
-                if (outputChecksum) {
-                    cksum = checksum(cksum, word);
-                }
-            } // while addr
-
-            if (outputChecksum) {
-                // Compute and output a block with the 220 negative checksum at the next address
-                if (count >= 100) {
-                    tape.appendChild(doc.createTextNode(block + "\n"));
-                    count = 0;
-                    block = blockPrefix;
-                }
-
-                if (cksum < 0) {
-                    block += "," + padLeft(-cksum, 11, "0");
-                } else {
-                    block += "," + padLeft(cksum+pval, 11, "0");
-                }
-            }
-
-            tape.appendChild(doc.createTextNode(block + "\n"));
-            while (addr < 10000) {
-                addr += 100;
-                tape.appendChild(doc.createTextNode("0,100,0\n"));
-            }
-
-            tape.appendChild(doc.createTextNode("0,1,1"));      // EOT control word for lane 0
-            tape.appendChild(doc.createTextNode("1,1,1"));      // EOT control word for lane 1
-        }
-
-        win.addEventListener("load", generateTape, false);
-        win.moveTo((screen.availWidth-win.outerWidth)/2, (screen.availHeight-win.outerHeight)/2);
-    }
-
-    /**************************************/
     function finishAssembly() {
         /* Finishes the assembly of a program unit, and if appropriate, starts
         assembly of the next one */
+        var oms = $$("OutputModeSelect");
+        var x = oms.selectedIndex;
 
         cardData.fileOffset = bufferOffset;
         cardData.fileSerial = cardData.serial;
@@ -3027,9 +3254,19 @@ window.addEventListener("load", function() {
             if (pass1List) {
                 printLine("\f");
             }
-        } else {                        // We're done, just exit
-            if (errorCount == 0) {
-                generateObjectTape(asmCode, outputChecksum);
+        } else {                        // We're done, just output code and exit
+            if (errorCount == 0 && x >= 0) {
+                switch(oms.options[x].value) {
+                case "L":
+                    generateFormat6LoadableDeck(asmCode, outputChecksum, startAddress);
+                    break;
+                case "M":
+                    generateMachineLanguageDeck(asmCode, outputChecksum, startAddress);
+                    break;
+                case "T":
+                    generateObjectTape(asmCode, outputChecksum, startAddress);
+                    break;
+                }// switch oms.options
             }
 
             $$("CRFileSelector").value = null;  // reset the <input> elements

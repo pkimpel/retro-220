@@ -42,7 +42,7 @@
 2       S = 0;
 2       FOR K = (L,1,N);
 2         S = S + A(MIN(J,K), MAX(J,K)).X(K);
-2         P(J) = S
+2       P(J) = S
 2       END;
 2
 2     S = 0;

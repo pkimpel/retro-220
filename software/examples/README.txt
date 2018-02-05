@@ -74,4 +74,3 @@ WINTER-PI.Load-Inverse.pt
 
 Paul Kimpel
 January 2017
-

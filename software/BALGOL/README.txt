@@ -8,14 +8,17 @@ format, with carriage-return/line-feed delimiters.
 
 
 BAC-220-Compiler.tape
-    Loadable BALGOL compiler tape produced by the Generator.
+    Loadable BAC-220 Compiler tape produced by the Generator. This
+    contains the compiler and library, configured according to the
+    statements in BAC-220-Generator-Callout.card
 
 BAC-220-Compiler-Callout.card
     Bootstrap card deck to load the compiler from its tape and initiate
     compilation. Source cards should follow this deck.
 
 BAC-220-Generator-tape.
-    Loadable generator tape.
+    Loadable BAC-220 Generator tape. Use this to generate new versions
+    of the Compiler tape.
 
 BAC-220-Generator-Bootstrap.card
     Bootstrap card deck and configuration statements to generate an
@@ -25,6 +28,10 @@ BAC-220-Generator-Bootstrap.card
 BAC-220-Generator-Callout.card
     Bootstrap card deck and typical configuration statements for
     generating a standard compiler tape from BAC-220-Generator.tape.
+
+BAC-220-Object-Tape-Callout.card
+    Loadable object deck for a utility that will load a program from an
+    object tape (unit #1) produced by the BALGOL compiler.
 
 BALGOL-Build-Notes.txt
     Notes for bootstrapping the BALGOL Generator and Compiler programs
@@ -44,7 +51,8 @@ BALGOL-Generator.card
 
 BALGOL-Generator-List.lst
     Assembly listing of BALGOL-Generator.card produced by the
-    tools/GEN-Assembler.
+    tools/GEN-Assembler. Compared to BALGOL-Generator.bacg to verify the
+    transcription of the Generator.
 
 BALGOL-Generator-Object.tape
     Object code tape image for the Generator produced by GEN-Assembler
@@ -130,7 +138,9 @@ BALGOL-Library/
     produced by the Generator program PUNCH LIBRARY... statement.
 
 BALGOL-Examples/
-    Source code and listings for sample BALGOL programs.
+    Source code and listings for sample BALGOL programs. See the README
+    file in this directory for details.
 
 Paul Kimpel
 January 2018
+

@@ -20,6 +20,10 @@ Example-4-BALGOL.card
     http://bitsavers.org/pdf/burroughs/electrodata/220/
     220-21017_B220_BALGOL_Mar63.pdf.
 
+Library-test-1.card
+    Program to compute values from various library routines to test the
+    compiler and library.
+
 U.Dayton-Program-NOT-OK.card
     Source for a short BALGOL program submitted to Burroughs by the
     University of Dayton in 1963 to report a compiler issue. See also

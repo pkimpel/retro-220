@@ -13,7 +13,7 @@
 * Cross-Assembler for the Burroughs 220 Algebraic Compiler (BALGOL).
 *
 * Assembles source for 220 machine language programs as used in the
-* BALGOL compiler. Source is read from an emulated card deck -- a text
+* BALGOL compiler. Source is read from an emulated card deck, a text
 * file with the following format:
 *
 *     col 1     Cardatron format band selection digit. Can be anything,
@@ -26,15 +26,35 @@
 *
 * All other columns are ignored by this assembler.
 *
+* To maintain the same addresses for literal pool entries, a JSON file
+* containing a "pool set" of one or more arrays of literal word values
+* and their starting memory location may be pre-loaded into the assembler
+* before loading the source code.
+*
 * Output is a simulated line printer listing in the <iframe> of the web
 * page from which the assembler is run. The output of Pass 1 is designed
 * to match the listing from which the compiler was transcribed, so that
-* it may be compared for proofing purposes.
+* it may be compared for proofing purposes. This listing is suppressed by
+* default.
 *
 * Output of Pass 2 is a traditional assembler listing, with words of
-* generated object code and data.
+* generated object code and data. This listing is created by default.
 *
-* Output of the generated code and data is... *TBD*
+* Output of the generated code and data can be obtained in three forms:
+*
+*   - Punched cards in a self-loading band-6 format (default).
+*
+*   - Punched cards in BALGOL Machine Language format. This is also a
+*     band-6 format, but requires a separate loader program. See Appendix
+*     F in the BAC-220 reference manual.
+*
+*   - Magnetic tape image recorded in 100-word blocks. The code is
+*     written to lane 0 of the tape image.
+*
+* The form of output is selected from a pull-down list on the browser
+* page. The output is displayed in a sub-window that opens at the end of
+* the assembly. From there is can be saved or copied to the local file
+* system.
 *
 ************************************************************************
 * 2016-12-09  P.Kimpel
@@ -216,7 +236,7 @@ window.addEventListener("load", function() {
     var outputChecksum = false;
 
     var panel = $$("TextPanel");
-    var cardReaderUnit = 1;             // Cardatron output unit number for card decks
+    var cardReaderUnit = 1;             // Cardatron input unit number for object card decks
 
     // Token.type values
     var tokEmpty = 0;                   // empty primary
@@ -2689,8 +2709,8 @@ window.addEventListener("load", function() {
                 tape.appendChild(doc.createTextNode("0,100,0\n"));
             }
 
-            tape.appendChild(doc.createTextNode("0,1,1"));      // EOT control word for lane 0
-            tape.appendChild(doc.createTextNode("1,1,1"));      // EOT control word for lane 1
+            tape.appendChild(doc.createTextNode("0,1,1\n"));    // EOT control word for lane 0
+            tape.appendChild(doc.createTextNode("1,1,1\n"));    // EOT control word for lane 1
         }
 
         win.addEventListener("load", generateTape, false);
@@ -2720,7 +2740,7 @@ window.addEventListener("load", function() {
             case "T":
                 generateObjectTape(asmCode, outputChecksum, startAddress);
                 break;
-            }// oms.options
+            }// switch oms.options
         }
 
         $$("CRFileSelector").value = null;  // reset the <input> elements
