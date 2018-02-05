@@ -33,6 +33,9 @@
     font-size:          36px;
     font-weight:        bold}
 
+#B220Logo.tracing {
+    color:              red}
+
 #IntervalTimerResetCaption {
     left:               calc(50% - 206px);
     bottom:             20px;

@@ -433,7 +433,7 @@ B220CardatronOutput.prototype.initiateWrite = function initiateWrite() {
         case 1:                         // Relay 1 (eject page after printing)
         case 9:                         // same as 1
             this.printLine(line, this.pendingSpaceBefore);
-            this.pendingSpaceBefore = 0;
+            this.pendingSpaceBefore = -99;
             break;
         case 2:                         // Relay 2 (single space before and after printing)
             this.printLine(line, this.pendingSpaceBefore+1);

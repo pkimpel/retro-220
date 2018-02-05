@@ -33,6 +33,7 @@ function B220ConsolePrinter(mnemonic, unitIndex, config) {
     this.tabStop = [];                  // 0-relative tab stop positions
     this.zeroSuppress = 0;              // zero-suppression switch setting
     this.charPeriod = 0;                // printer speed, ms/char
+    this.newLinePeriod = 0;             // delay for carriage-returns
 
     this.boundButton_Click = B220ConsolePrinter.prototype.button_Click.bind(this);
     this.boundText_OnChange = B220ConsolePrinter.prototype.text_OnChange.bind(this);
@@ -60,8 +61,11 @@ B220ConsolePrinter.offSwitchImage = "./resources/ToggleDown.png";
 B220ConsolePrinter.onSwitchImage = "./resources/ToggleUp.png";
 
 B220ConsolePrinter.ttySpeed = 10;       // TTY printer speed, char/sec
-B220ConsolePrinter.whippetSpeed = 200;  // Whippet printer speed, char/sec
-                                        // Inter-character period, ms
+B220ConsolePrinter.ttyNewLine = 200;    // TTY carriage-return delay, ms
+B220ConsolePrinter.whippetSpeed = 5000; // Whippet printer speed, char/sec
+B220ConsolePrinter.whippetNewLine = 200;// Whippet carriage-return delay, ms
+B220ConsolePrinter.formFeedPeriod = 500;// form-feed average delay, ms
+
 B220ConsolePrinter.pageSize = 66;       // lines/page for form-feed
 B220ConsolePrinter.maxScrollLines = 15000;
                                         // Maximum amount of paper scrollback
@@ -282,8 +286,10 @@ B220ConsolePrinter.prototype.flipSwitch = function flipSwitch(ev) {
         prefs.printerSpeed = this.speedSwitch.state;
         if (this.speedSwitch.state) {
             this.charPeriod = 1000/B220ConsolePrinter.whippetSpeed;
+            this.newLinePeriod = B220ConsolePrinter.whippetNewLine;
         } else {
             this.charPeriod = 1000/B220ConsolePrinter.ttySpeed;
+            this.newLinePeriod = B220ConsolePrinter.ttyNewLine;
         }
         break;
     default:
@@ -409,8 +415,10 @@ B220ConsolePrinter.prototype.printerOnLoad = function printerOnLoad() {
     this.speedSwitch.set(prefs.printerSpeed);
     if (this.speedSwitch.state) {
         this.charPeriod = 1000/B220ConsolePrinter.whippetSpeed;
+        this.newLinePeriod = B220ConsolePrinter.whippetNewLine;
     } else {
         this.charPeriod = 1000/B220ConsolePrinter.ttySpeed;
+        this.newLinePeriod = B220ConsolePrinter.ttyNewLine;
     }
 
     mask = 0x001;
@@ -538,13 +546,13 @@ B220ConsolePrinter.prototype.receiveChar = function receiveChar(char, successor)
         break;
 
     case 0x15:                          // form-feed
-        delay *= 4;
+        delay = B220ConsolePrinter.formFeedPeriod;
         this.suppressLZ = 0;
         this.printFormFeed();
         break;
 
     case 0x16:                          // carriage-return
-        delay *= 2;
+        delay = this.newLinePeriod;
         this.suppressLZ = 0;
         this.emptyLine();
         break;
@@ -565,7 +573,7 @@ B220ConsolePrinter.prototype.receiveChar = function receiveChar(char, successor)
                 this.printTab();
                 break;
             case 2:                             // EOW = carriage-return
-                delay *= 2;
+                delay = this.newLinePeriod;
                 this.emptyLine();
                 break;
             }

@@ -197,7 +197,7 @@ B220PaperTapeReader.prototype.flipSwitch = function flipSwitch(ev) {
     /* Handler for switch clicks */
     var id = ev.target.id;
     var prefs = this.config.getNode("ConsoleInput.units", this.unitIndex);
-    var x;
+    var x = 0;
 
     switch (id) {
     case "RemoteSwitch":
@@ -214,12 +214,12 @@ B220PaperTapeReader.prototype.flipSwitch = function flipSwitch(ev) {
     case "UnitDesignateKnob":
         x = this.unitDesignateKnob.selectedIndex;
         if (x < 0) {
-            x = this.unitDesignateKnob.length-1;
             this.unitMask = 0;
         } else {
-            this.unitMask = B220Processor.pow2[x];
-            prefs.unitMask = this.unitMask
+            this.unitMask = B220Processor.pow2[x+1];
         }
+
+        prefs.unitMask = this.unitMask;
         break;
     }
 
@@ -258,11 +258,11 @@ B220PaperTapeReader.prototype.readerOnload = function readerOnload() {
     this.charPeriod = (this.speedSwitch.state ? B220PaperTapeReader.highSpeedPeriod : B220PaperTapeReader.lowSpeedPeriod);
 
     this.unitDesignateKnob = this.$$("UnitDesignateKnob");
-    mask = 0x001;
     this.unitMask = prefs.unitMask;
     if (this.unitMask == 0) {
         this.unitDesignateKnob.selectedIndex = this.unitDesignateKnob.length-1; // OFF
     } else {
+        mask = 0x002;                   // ignore the 1-bit (used for SPO on output devices)
         for (x=0; x<this.unitDesignateKnob.length; ++x) {
             if (this.unitMask & mask) {
                 this.unitDesignateKnob.selectedIndex = x;

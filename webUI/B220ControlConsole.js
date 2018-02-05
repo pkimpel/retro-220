@@ -469,7 +469,7 @@ B220ControlConsole.prototype.updatePanel = function updatePanel() {
     text = (timer/1000 + 10000).toFixed(1);
     this.intervalTimer.textContent = text.substring(text.length-6);
 
-    p.updateLampGlow(0);
+    p.updateLampGlow(p.AST.value ? 0.25 : 0);
     eLevel = (p.RUT.value ? p.EXT.glow : p.EXT.value);
 
     // Primary Registers
@@ -762,13 +762,23 @@ B220ControlConsole.prototype.switch_Click = function switch_Click(ev) {
             p.RPT.flip();
             break;
         case "LowLamp":
-            p.toggleCompare(-1);
+            p.toggleCompareLamps(-1);
             break;
         case "EqualLamp":
-            p.toggleCompare(0);
+            p.toggleCompareLamps(0);
             break;
         case "HighLamp":
-            p.toggleCompare(+1);
+            p.toggleCompareLamps(+1);
+            break;
+
+        case "B220Logo":
+            p.tracing = !p.tracing;
+            this.$$("LeftPanelBtn").focus();    // release any selection by the click
+            if (p.tracing) {
+                B220Util.addClass(ev.target, "tracing");
+            } else {
+                B220Util.removeClass(ev.target, "tracing");
+            }
             break;
         } // switch ev.target.id
     }
@@ -985,6 +995,7 @@ B220ControlConsole.prototype.consoleOnLoad = function consoleOnLoad() {
     this.tcuClearSwitch.addEventListener("click", this.boundSwitch_Click);
 
     this.$$("BurroughsMeatball").addEventListener("click", this.boundMeatballMemdump, false);
+    this.$$("B220Logo").addEventListener("dblclick", this.boundSwitch_Click);
     this.$$("IntervalTimerResetBtn").addEventListener("click", this.boundResetTimer, false);
     this.$$("PowerOffBtn").addEventListener("dblclick", this.boundPowerBtn_Click, false);
 
