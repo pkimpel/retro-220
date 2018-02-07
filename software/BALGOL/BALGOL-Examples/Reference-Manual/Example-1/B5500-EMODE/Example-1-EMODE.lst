@@ -1,0 +1,448 @@
+ 
+Sat, Feb 3, 2018 12:25:53, SYSTEM SERIAL: 4448, LX100 MCP: *SYSTEM/511/051-1A-45/DELTA/MCP. 51.190.8474, HOSTNAME: MCPVMMA
+ 
+
+ 
+
+                                         W O R K   F L O W   S T A T E M E N T S
+ 
+
+        00100100  ?BEGIN JOB BALGOL/EXAMPLE1;
+        00100200  JOBSUMMARY=UNCONDITIONAL;
+        00100250  PRINTDEFAULTS=(PRINTDISPOSITION=EOJ);
+        00100300
+        00100400  COMPILE OBJECT/BALGOL/EXAMPLE1 ALGOL GO;
+        00100500      ALGOL FILE CARD=SRCE/DEMO/BALGOL/EXAMPLE1 ON OPS;
+        00100600      OPTION=(FAULT,DSED,ARRAY);
+        00100700  DATA INPUT
+        00999900  ? END JOB
+ 
+
+                                                 J O B   S U M M A R Y
+ 
+Sat, Feb 3, 2018
+ 
+   12:25:52    BOJ   6421 BALGOL/EXAMPLE1.
+                          JOB ENTERED SYSTEM: 02/03/2018 12:25:52 FROM WFL 51.189
+                          QUEUE: 0, ORIGINATING LSN: 255 MCS: 1
+                          STACK NUMBER: 01C2, PRIORITY: 50, SOURCENAME: DIGMGX39/CANDE/1.
+                          USERCODE: PAUL.  REALUSERCODE: PAUL.
+                          INITIATING MCS: SYSTEM/CANDE.
+   12:25:52    BOT   6422 *SYSTEM/ALGOL.
+                          CODE COMPILED: 09/07/2005 15:02:44 BY ALGOL 51.190
+                          RELEASE ID: IC ALGOL-051.1A.4 [51.190.004] (51.190.8023)
+                          TASK TYPE: COROUTINE (CALL)
+                          STACK NUMBER: 01C4, PRIORITY: 50, SOURCENAME: DIGMGX39/CANDE/1.
+                          CODEFILE: OBJECT/BALGOL/EXAMPLE1.
+                          USERCODE: PAUL.  REALUSERCODE: PAUL.
+                          INITIATING MCS: SYSTEM/CANDE.
+   12:25:53    BOT   6423 (PAUL)OBJECT/BALGOL/EXAMPLE1 ON OPS.
+                          CODE COMPILED: 02/03/2018 12:25:52 BY ALGOL 51.190
+                          TASK TYPE: DEPENDENT TASK (PROCESS)
+                          STACK NUMBER: 01C6, PRIORITY: 50, SOURCENAME: DIGMGX39/CANDE/1.
+                          USERCODE: PAUL.  REALUSERCODE: PAUL.
+                          INITIATING MCS: SYSTEM/CANDE.
+   12:25:53          6423 MESSAGE: STACK EXTENDED FROM 1602 TO 1852 WORDS.
+   12:25:53    EOT   6422 *SYSTEM/ALGOL.
+                          RELEASE ID:IC ALGOL-051.1A.4 [51.190.004] (51.190.8023)
+                          USERCODE: PAUL.  REALUSERCODE: PAUL.
+                          STACK NUMBER: 01C4             AVERAGE DISK SECTORS IN USE BY PERMANENT FILES: 1173.
+                          PROCESSOR TIME: 00:00:00.2464  LINES PRINTED: 231.
+                          I/O       TIME: 00:00:00.1311  NUMBER OF ARRAY RESIZES: 4.
+                          READYQ    TIME: 00:00:00.0899  AVERAGE MEMORY USAGE: CODE=22133, DATA=83684
+                          INITPBIT  TIME: 00:00:00.1357  MEMORY INTEGRAL: CODE=8.357, DATA=31.599
+                          ELAPSED   TIME: 00:00:00.6789  INITIAL PBITS: 451.
+                                                         MAXIMUM NUMBER OF ASDS USED: 164.
+                                                         MAXIMUM SAVE MEMORY USED: 12408.
+ 
+   12:25:53          6423 MESSAGE: STACK EXTENDED FROM 1852 TO 2102 WORDS.
+   12:25:53    EOT   6423 (PAUL)OBJECT/BALGOL/EXAMPLE1 ON OPS.
+                          USERCODE: PAUL.  REALUSERCODE: PAUL.
+                          STACK NUMBER: 01C6             AVERAGE DISK SECTORS IN USE BY PERMANENT FILES: 633.
+                          PROCESSOR TIME: 00:00:00.1349  CARDS READ: 3.
+                          I/O       TIME: 00:00:00.0528  LINES PRINTED: 123.
+                          READYQ    TIME: 00:00:00.0390  NUMBER OF ARRAY RESIZES: 5.
+                          INITPBIT  TIME: 00:00:00.0304  AVERAGE MEMORY USAGE: CODE=943, DATA=5096
+                          ELAPSED   TIME: 00:00:00.2996  MEMORY INTEGRAL: CODE=0.177, DATA=0.957
+                                                         INITIAL PBITS: 143.
+                                                         MAXIMUM NUMBER OF ASDS USED: 70.
+                                                         MAXIMUM SAVE MEMORY USED: 8421.
+ 
+   12:25:53    EOJ   6421 BALGOL/EXAMPLE1.
+                          USERCODE: PAUL.  REALUSERCODE: PAUL.
+                          STACK NUMBER: 01C2             NUMBER OF ARRAY RESIZES: 1.
+                          PROCESSOR TIME: 00:00:00.0000  AVERAGE MEMORY USAGE: CODE=88, DATA=1913
+                          I/O       TIME: 00:00:00.0007  MEMORY INTEGRAL: CODE=0.000, DATA=0.001
+                          READYQ    TIME: 00:00:00.0120  INITIAL PBITS: 38.
+                          INITPBIT  TIME: 00:00:00.0061  MAXIMUM NUMBER OF ASDS USED: 10.
+                          ELAPSED   TIME: 00:00:00.9572  MAXIMUM SAVE MEMORY USED: 1808.
+ 
+
+Unisys ClearPath LX Series SYSTEMS BDMSALGOL COMPILER, VERSION 51.190.8023, SATURDAY, 02/03/2018, 12:25 PM.
+ 
+
+ 
+                         ( P A U L ) O B J E C T / B A L G O L / E X A M P L E 1   O N   O P S
+                         = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+
+ 
+                 $ SET LINEINFO                                                                 00000100  0000:0000:0  180203PK
+                BEGIN                                                                           00001000  0000:0000:0
+                                                                                              BLOCK#1 IS SEGMENT 0003
+                COMMENT                                                                     1   00001100  0003:0000:1
+                  BAC-EXAMPLE-1 CONVERTED FROM BALGOL TO BURROUGHS B5500 EXTENDED ALGOL,        00001200  0003:0000:1  180203PK
+                  THEN TO UNISYS MCP EXTENDED ALGOL.                                            00001220  0003:0000:1  180203PK
+                  2017-02-13  P.KIMPEL                                                          00001300  0003:0000:1
+                  ;                                                                             00001400  0003:0000:1
+                                                                                                00010000  0003:0000:1
+                FILE INPUT (KIND=READER, MAXRECSIZE=80, FRAMESIZE=8);                           00010100  0003:0000:1  170222PK
+                                                                                           DATA LENGTH IN WORDS IS 000C
+                FILE OUTPUT (KIND=PRINTER, MAXRECSIZE=120, FRAMESIZE=8);                        00010200  0003:0000:1  170222PK
+                                                                                           DATA LENGTH IN WORDS IS 000C
+                                                                                                00011000  0003:0000:1  170222PK
+                DEFINE                                                                          00011100  0003:0000:1  170222PK
+                  DEGREE1 =             0.017453293 #,  % PI/180 = 1 DEGREE                     00011200  0003:0000:1  170222PK
+                  DEGREE2 =             0.034906585 #,  % PI/90 = 2 DEGREES                     00011300  0003:0000:1  170222PK
+                  DEGREE5 =             0.087266463 #,  % PI/36 = 5 DEGREES                     00011400  0003:0000:1  170222PK
+                  DEGREE34 =            0.59341195 #,   % 34PI/180 = 34 DEGREES                 00011500  0003:0000:1  170222PK
+                  DEGREE45 =            0.78539816 #;   % PI/4 = 45 DEGREES                     00011600  0003:0000:1  170222PK
+                                                                                                00020000  0003:0000:1
+                REAL                                                                            00050000  0003:0000:1
+                  AVT,                                                                          00050100  0003:0000:1
+                  CONST,                                                                        00050200  0003:0000:1
+                  SUM;                                                                          00050300  0003:0000:1
+                LABEL                                                                           00080000  0003:0000:1
+                  FINISH,                                                                       00080100  0003:0000:1
+                  RDIM,                                                                         00080200  0003:0000:1
+                  START;                                                                        00080300  0003:0000:1
+                                                                                                00200000  0003:0000:1
+                  COMMENT FIRST EXAMPLE PROGRAM FROM BALGOL MANUAL, MARCH 1963.                 00200100  0003:0000:1  170222PK
+                  J.G. HERRIOT, OF STANFORD UNIVERSITY, HAS WRITTEN THE FOLLOWING               00200200  0003:0000:1
+                  PROGRAM TO DETERMINE AN APROXIMATION OF HARMONIC-BOUNDARY VALUES,             00200300  0003:0000:1
+                  USING ORTHONORMAL FUNCTIONS;                                                  00200400  0003:0000:1
+                                                                                                00200500  0003:0000:1
+                  COMMENT THIS PROGRAM FIRST CONSTRUCTS A SET OF ORTHONORMAL FUNCTIONS          00200600  0003:0000:1
+                  AND THEN USES THEM TO FIND AN APPROXIMATION TO THE SOLUTION OF A              00200700  0003:0000:1
+                  HARMONIC BOUNDARY-VALUE PROBLEM;                                              00200800  0003:0000:1
+                                                                                                00200900  0003:0000:1
+                  COMMENT WE FIRST CONSTRUCT THE ORTHONORMAL FUNCTIONS;                         00201000  0003:0000:1
+                                                                                                00201100  0003:0000:1
+                  INTEGER I, J, K, L, M, N, NU, TH;                                             00201200  0003:0000:1
+                  ARRAY R[1:29], HFN[1:29], DSUM[1:24], HFCN[1:5], HFCEN[1:6],                  00201300  0003:0000:1
+                        FA[1:25,1:25], A[1:25,1:25], B[1:25,1:25], HA[1:47], HAA[1:24];         00201400  0003:0000:1
+                  LIST DATA (FOR I:=1 STEP 1 UNTIL 29 DO R[I]), DIMEN(N);                       00201500  0003:0012:3  170222PK
+                  LIST FRESULTS (FOR I:=1 STEP 1 UNTIL N DO                                     00201600  0003:002F:3  170222PK
+                                     FOR J:=1 STEP 1 UNTIL N DO FA[I,J]),                       00201700  0003:0030:1  170222PK
+                         ARESULTS (FOR I:=1 STEP 1 UNTIL N DO                                   00201800  0003:0050:1  170222PK
+                                     FOR J:=1 STEP 1 UNTIL N DO A[I,J]),                        00201900  0003:0050:5  170222PK
+                         BRESULTS (FOR I:=1 STEP 1 UNTIL N DO                                   00202000  0003:0070:4  170222PK
+                                     FOR J:=1 STEP 1 UNTIL N DO B[I,J]),                        00202100  0003:0071:2  170222PK
+                         COEFFS (FOR NU:=4 STEP 4 UNTIL N-1 DO HA[2*NU-1]),                     00202200  0003:0091:1  170222PK
+                         HFNRES (FOR K:=1 STEP 1 UNTIL 29 DO HFN[K]),                           00202300  0003:00AA:1  170222PK
+                         CRES(CONST), HFCNRES (TH, FOR K:=1 STEP 1 UNTIL 5 DO HFCN[K]),         00202400  0003:00BE:4  170222PK
+                         HFCENRES(TH, FOR K:=1 STEP 1 UNTIL 6 DO HFCEN[K]);                     00202500  0003:00E1:1  170222PK
+                  FORMAT VECTOR (X8,6E16.7),                                                    00202600  0003:00FB:1  180203PK
+                         FTITLE (/,X48,"FRESULTS,FA[I,J]"),                                     00202700  0003:00FB:1
+                         BTITLE (/,X48,"BRESULTS,B[I,J]"),                                      00202800  0003:00FB:1  170222PK
+                         ATITLE (/,X48,"ARESULTS,A[I,J]"),                                      00202900  0003:00FB:1
+                         COEFTITLE (/,X30,"HA[8NU-1]"),                                         00203000  0003:00FB:1
+                         BDYVALUES (/,X42,"PRELIMINARY BOUNDARY VALUES"),                       00203100  0003:00FB:1
+                         CBDYVALUES (/,X43,"CORRECTED BOUNDARY VALUES"),                        00203200  0003:00FB:1
+                         CONTITLE (/,X50,"CONSTANT"),                                           00203300  0003:00FB:1
+                         TABLE (X8,I2,X6,6E16.7),                                               00203400  0003:00FB:1  180203PK
+                         TABLEHEAD (/,X40, "THE VALUES OF H(RHO,TH) IN B"),                     00203500  0003:00FB:1
+                         TABLELINE (X13,"RHO",X6,"0.5",X13,"1.0",X13,"1.5",X13,                 00203600  0003:00FB:1
+                                    "2.0",X13,"2.5",X13,"3.0"),                                 00203700  0003:00FB:1
+                         TABLETH (X8,"TH");                                                     00203800  0003:00FB:1
+                  START:                                                                        00800100  0003:00FB:1
+                    READ (INPUT, /, DATA);                                                      00800200  0003:00FB:1
+                    WRITE (OUTPUT, <"INPUT DATA:",/,6(5E16.7,/)>, DATA);                        00800250  0003:0104:4  180203PK
+                  RDIM:                                                                         00800300  0003:010B:4
+                    READ (INPUT, /, DIMEN) [FINISH];                                            00800400  0003:010B:4
+                    WRITE (OUTPUT, <"NUMBER OF DIMENSIONS:",I3>, DIMEN);                        00800450  0003:0116:3
+                    FOR I:=1 STEP 1 UNTIL N DO                                                  00800500  0003:011D:4  170222PK
+                      FOR J:=I STEP 4 UNTIL N DO                                                00800600  0003:011E:2  170222PK
+                        BEGIN                                                                   00800700  0003:011F:1
+                        L:= I-J; K:= I+J;                                                   2   00800800  0003:011F:1  170222PK
+                        SUM:= R[1]**K + 1.5*R[18]**K*COS(DEGREE34*L)                            00800900  0003:0122:1  170222PK
+                             + 0.5*R[29]**K*COS(DEGREE45*L);                                    00801000  0003:012A:0  170222PK
+                        FOR M:=2 STEP 1 UNTIL 17 DO                                             00801100  0003:0131:3  170222PK
+                          SUM:= SUM + 2.0*R[M]**K*COS((M-1)*DEGREE2*L);                         00801200  0003:0132:2  170222PK
+                        FOR M:=19 STEP 1 UNTIL 28 DO                                            00801300  0003:013C:5  170222PK
+                          SUM:= SUM + R[M]**K*COS((DEGREE34 + (M-18)*DEGREE1)*L);               00801400  0003:013D:4  170222PK
+                        FA[I,J]:= (8.0/K)*DEGREE1*SUM                                           00801500  0003:0149:0  170222PK
+                        END;                                                                    00801600  0003:014E:1
+                    WRITE (OUTPUT[SPACE 2]);                                                2   00801700  0003:0153:2  170222PK
+                    WRITE (OUTPUT, FTITLE);                                                     00801800  0003:015A:2
+                    WRITE (OUTPUT, VECTOR, FRESULTS);                                           00801900  0003:015F:4
+                    FOR J:=1 STEP 1 UNTIL N DO                                                  00802000  0003:0166:4  170222PK
+                      B[1,J]:= FA[1,J];                                                         00802100  0003:0167:2  170222PK
+                    FOR I:=2 STEP 1 UNTIL N DO                                                  00802200  0003:016C:4  170222PK
+                      BEGIN                                                                     00802300  0003:016D:3
+                      FOR J:=1 STEP 1 UNTIL I-1 DO                                          2   00802400  0003:016D:3  170222PK
+                        B[I,J]:= -B[J,I]/B[J,J];                                                00802500  0003:016F:3  170222PK
+                      FOR J:=I STEP 1 UNTIL N DO                                                00802600  0003:0177:1  170222PK
+                        BEGIN                                                                   00802700  0003:0178:0
+                        B[I,J]:= FA[I,J];                                                   3   00802800  0003:0178:0  170222PK
+                        FOR K:=1 STEP 1 UNTIL I-1 DO                                            00802900  0003:017C:1  170222PK
+                          B[I,J]:= B[I,J] + B[I,K]*B[K,J]                                       00803000  0003:017E:1  170222PK
+                        END;                                                                    00803100  0003:0186:0
+                      FOR J:=1 STEP 1 UNTIL I-1 DO                                          3   00803200  0003:018A:0  170222PK
+                        B[I,J]:= B[I,J]*SQRT(B[J,J]/B[I,I])                                     00803300  0003:018C:0  170222PK
+                      END;                                                                      00803400  0003:0194:2
+                    FOR I:=1 STEP 1 UNTIL N DO                                              2   00803500  0003:0198:3  170222PK
+                      B[I,I]:= 1.0/(SQRT(B[I,I])*I);                                            00803600  0003:0199:1  170222PK
+                    WRITE (OUTPUT, BTITLE);                                                     00803700  0003:01A1:5
+                    WRITE (OUTPUT, VECTOR, BRESULTS);                                           00803800  0003:01A6:4
+                    FOR I:=1 STEP 1 UNTIL N DO                                                  00803900  0003:01AD:4  170222PK
+                      FOR J:=1 STEP 1 UNTIL N DO                                                00804000  0003:01AE:2  170222PK
+                        A[I,J]:= 0;                                                             00804100  0003:01AF:0  170222PK
+                    A[1,1]:= B[1,1];                                                            00804200  0003:01B5:4  170222PK
+                    FOR I:=2 STEP 1 UNTIL N DO                                                  00804300  0003:01B7:5  170222PK
+                      BEGIN                                                                     00804400  0003:01B8:4
+                      FOR J:=1 STEP 1 UNTIL I-1 DO                                          2   00804500  0003:01B8:4  170222PK
+                        BEGIN                                                                   00804600  0003:01BA:4
+                        A[I,J]:= 0;                                                         3   00804700  0003:01BA:4  170222PK
+                        FOR K:=J STEP 1 UNTIL I-1 DO                                            00804800  0003:01BD:0  170222PK
+                          A[I,J]:= A[I,J] + B[I,K]*A[K,J]                                       00804900  0003:01BF:1  170222PK
+                        END;                                                                    00805000  0003:01C7:0
+                        A[I,I]:= B[I,I]                                                     3   00805100  0003:01CA:0  170222PK
+                      END;                                                                      00805200  0003:01CD:5
+                    WRITE (OUTPUT[SPACE 2]);                                                2   00805300  0003:01D0:2  170222PK
+                    WRITE (OUTPUT, ATITLE);                                                     00805400  0003:01D7:2
+                    WRITE (OUTPUT, VECTOR, ARESULTS);                                           00805500  0003:01DC:4
+                                                                                                00805600  0003:01E3:4
+                    COMMENT NOW CONSTRUCT THE APROXIMATION TO THE SOLUTION;                     00805700  0003:01E3:4
+                                                                                                00805800  0003:01E3:4
+                    FOR J:=4 STEP 4 UNTIL N-1 DO                                                00805900  0003:01E3:4  170222PK
+                      BEGIN                                                                     00806000  0003:01E5:5
+                      DSUM[J]:= 0;                                                          2   00806100  0003:01E5:5  170222PK
+                      FOR M:=1 STEP 1 UNTIL 17 DO                                               00806200  0003:01E7:2  170222PK
+                        DSUM[J]:= DSUM[J] + (R[M]**2 + R[M+1]**2)*                              00806300  0003:01E8:0  170222PK
+                                            (R[M+1]**J*SIN(M*DEGREE2*J)                         00806400  0003:01ED:2  170222PK
+                                            - R[M]**J*SIN((M-1)*DEGREE2*J));                    00806500  0003:01F3:1  170222PK
+                      FOR M:=18 STEP 1 UNTIL 28 DO                                              00806600  0003:01FC:5  170222PK
+                        DSUM[J]:= DSUM[J] + (R[M]**2 + R[M+1]**2*(R[M+1]**J*                    00806700  0003:01FD:4  170222PK
+                                            SIN((DEGREE34 + (M-17)*DEGREE1)*J)                  00806800  0003:0204:5  170222PK
+                                            - R[M]**J*SIN((DEGREE34                             00806900  0003:020A:2  170222PK
+                                                          + (M-18)*DEGREE1)*J)))                00807000  0003:020E:1  170222PK
+                      END;                                                                      00807100  0003:0212:2
+                    FOR NU:=4 STEP 4 UNTIL N-1 DO                                           2   00807200  0003:0217:3  170222PK
+                      BEGIN                                                                     00807300  0003:0219:4
+                      HA[2*NU-1]:= 0;                                                       2   00807400  0003:0219:4  170222PK
+                      FOR J:=4 STEP 4 UNTIL NU DO                                               00807500  0003:021C:0  170222PK
+                        HA[2*NU-1]:= HA[2*NU-1] + A[NU,J]*DSUM[J];                              00807600  0003:021C:5  170222PK
+                        HA[2*NU-1]:= 4.0*HA[2*NU-1]                                             00807700  0003:0226:5  170222PK
+                      END;                                                                      00807800  0003:022B:3
+                    WRITE (OUTPUT, COEFTITLE);                                              2   00807900  0003:022D:2
+                    WRITE (OUTPUT, VECTOR, COEFFS);                                             00808000  0003:0232:4
+                    FOR J:=4 STEP 4 UNTIL N-1 DO                                                00808100  0003:0239:4  170222PK
+                      BEGIN                                                                     00808200  0003:023B:5
+                      HAA[J]:= 0;                                                           2   00808300  0003:023B:5  170222PK
+                      FOR NU:=J STEP 4 UNTIL N-1 DO                                             00808400  0003:023D:2  170222PK
+                        HAA[J]:= HAA[J] + HA[2*NU-1]*A[NU,J]                                    00808500  0003:023F:3  170222PK
+                      END;                                                                      00808600  0003:0245:4
+                    FOR M:=1 STEP 1 UNTIL 18 DO                                             2   00808700  0003:0249:0  170222PK
+                      BEGIN                                                                     00808800  0003:0249:4
+                      HFN[M]:= 0;                                                           2   00808900  0003:0249:4  170222PK
+                      FOR J:=4 STEP 4 UNTIL N-1 DO                                              00809000  0003:024B:1  170222PK
+                        HFN[M]:= HFN[M] + HAA[J]*R[M]**J*COS((M-1)*DEGREE2*J)                   00809100  0003:024D:2  170222PK
+                      END;                                                                      00809200  0003:0256:1
+                    FOR M:=19 STEP 1 UNTIL 29 DO                                            2   00809300  0003:025A:5  170222PK
+                      BEGIN                                                                     00809400  0003:025B:4
+                      HFN[M]:= 0;                                                           2   00809500  0003:025B:4  170222PK
+                      FOR J:=4 STEP 4 UNTIL N-1 DO                                              00809600  0003:025D:1  170222PK
+                        HFN[M]:= HFN[M] + HAA[J]*R[M]**J*                                       00809700  0003:025F:2  170222PK
+                                          COS((DEGREE34 + (M-18)*DEGREE1)*J)                    00809800  0003:0264:0  170222PK
+                      END;                                                                      00809900  0003:026A:2
+                    WRITE (OUTPUT[SPACE 2]);                                                2   00810000  0003:026F:0  170222PK
+                    WRITE (OUTPUT, BDYVALUES);                                                  00810100  0003:0275:2
+                    WRITE (OUTPUT, VECTOR, HFNRES);                                             00810200  0003:027A:4
+                    AVT:= 0;                                                                    00810300  0003:0281:4  170222PK
+                    FOR M:=1 STEP 1 UNTIL 29 DO                                                 00810400  0003:0282:2  170222PK
+                      AVT:= AVT + R[M]**2 - HFN[M];                                             00810500  0003:0283:0  170222PK
+                    CONST:= AVT/29.0;                                                           00810600  0003:0289:0  170222PK
+                    WRITE (OUTPUT, CONTITLE);                                                   00810700  0003:028B:0
+                    WRITE (OUTPUT, VECTOR, CRES);                                               00810800  0003:028F:4
+                    FOR M:=1 STEP 1 UNTIL 29 DO                                                 00810900  0003:0296:4  170222PK
+                      HFN[M]:= CONST + HFN[M];                                                  00811000  0003:0297:2  170222PK
+                    WRITE (OUTPUT, CBDYVALUES);                                                 00811100  0003:029C:3
+                    WRITE (OUTPUT, VECTOR, HFNRES);                                             00811200  0003:02A1:4
+                    FOR I:=1 STEP 1 UNTIL 5 DO                                                  00811300  0003:02A8:4  170222PK
+                      BEGIN                                                                     00811400  0003:02A9:2
+                      TH:= 5*(I-1);                                                         2   00811500  0003:02A9:2  170222PK
+                      FOR J:=1 STEP 1 UNTIL 5 DO                                                00811600  0003:02AB:1  170222PK
+                        BEGIN                                                                   00811700  0003:02AB:5
+                        HFCN[J]:= CONST;                                                    3   00811800  0003:02AB:5  170222PK
+                        FOR M:=4 STEP 4 UNTIL N-1 DO                                            00811900  0003:02AD:3  170222PK
+                          HFCN[J]:= HFCN[J] + HAA[M]*(0.5*J)**M*COS((I-1)*DEGREE5*M)            00812000  0003:02AF:4  170222PK
+                        END;                                                                    00812100  0003:02B9:1
+                      WRITE (OUTPUT[SPACE 2]);                                              3   00812200  0003:02BD:5  170222PK
+                      WRITE (OUTPUT, TABLEHEAD);                                                00812300  0003:02C4:2
+                      WRITE (OUTPUT, TABLELINE);                                                00812400  0003:02C9:4
+                      WRITE (OUTPUT, TABLETH);                                                  00812500  0003:02CE:4
+                      WRITE (OUTPUT, TABLE, HFCNRES)                                            00812600  0003:02D3:4
+                      END;                                                                      00812700  0003:02D8:3
+                    FOR I:=6 STEP 1 UNTIL 10 DO                                             2   00812800  0003:02DC:5  170222PK
+                      BEGIN                                                                     00812900  0003:02DD:4
+                      TH:= 5*(I-1);                                                         2   00813000  0003:02DD:4  170222PK
+                      FOR J:=1 STEP 1 UNTIL 6 DO                                                00813100  0003:02DF:3  170222PK
+                        BEGIN                                                                   00813200  0003:02E0:1
+                        HFCEN[J]:= CONST;                                                   3   00813300  0003:02E0:1  170222PK
+                        FOR M:=4 STEP 4 UNTIL N-1 DO                                            00813400  0003:02E1:5  170222PK
+                          HFCEN[J]:= HFCEN[J] + HAA[M]*(0.5*J)**M*                              00813500  0003:02E4:0  170222PK
+                                                COS((I-1)*DEGREE5*M)                            00813550  0003:02E8:5  170222PK
+                        END;                                                                    00813600  0003:02ED:1
+                      WRITE (OUTPUT, TABLE, HFCNRES)                                        3   00813700  0003:02F1:5
+                      END;                                                                      00813800  0003:02F6:4
+                    GO TO RDIM;                                                             2   00813900  0003:02FA:5
+                                                                                                00899000  0003:02FB:2
+                FINISH:                                                                         00899100  0003:02FB:2
+                END.                                                                            00899800  0003:02FB:2
+                                                                                           DATA LENGTH IN WORDS IS 007B
+                                                                                           DATA LENGTH IN WORDS IS 002B
+                                                                                  BLOCK#1(0003) LENGTH IN WORDS IS 02FD
+                                                                                            STACKCODE IS SEGMENT 0010
+                                                                                STACKCODE(0010) LENGTH IN WORDS IS 006A
+ 
+====================================================================================================================================
+NUMBER OF ERRORS DETECTED = 0.
+NUMBER OF WARNINGS ISSUED = 1.
+NUMBER OF SEGMENTS = 14.  TOTAL SEGMENT SIZE = 1061 WORDS.  CORE ESTIMATE = 2165 WORDS.  STACK ESTIMATE = 66
+PROGRAM SIZE = 209 CARDS, 2091 SYNTACTIC ITEMS, 68 DISK SECTORS.
+PROGRAM FILE NAME:  (PAUL)OBJECT/BALGOL/EXAMPLE1 ON OPS.
+COMPILATION TIME = 0.355 SECONDS ELAPSED;  0.124 SECONDS PROCESSING;  0.123 SECONDS I/O.
+====================================================================================================================================
+
+INPUT DATA:
+   1.0000000E-01   2.0000000E-01   3.0000000E-01   4.0000000E-01   5.0000000E-01
+   6.0000000E-01   7.0000000E-01   8.0000000E-01   9.0000000E-01   1.0000000E-01
+   1.1000000E-01   1.2000000E-01   1.3000000E-01   1.4000000E-01   1.5000000E-01
+   1.6000000E-01   1.7000000E-01   1.8000000E-01   1.9000000E-01   2.0000000E-01
+   2.1000000E-01   2.2000000E-01   2.3000000E-01   2.4000000E-01   2.5000000E-01
+   2.6000000E-01   2.7000000E-01   2.8000000E-01   2.9000000E-01
+NUMBER OF DIMENSIONS: 10
+ 
+
+ 
+                                                FRESULTS,FA[I,J]
+           4.6363975E-01   0.              0.              0.              2.3764093E-02   0.
+           0.              0.             -7.1568338E-03   0.              0.              1.0859772E-01
+           0.              0.              0.              1.1793551E-02   0.              0.
+           0.             -4.6675572E-03   0.              0.              4.5596611E-02   0.
+           0.              0.              6.6280898E-03   0.              0.              0.
+           0.              0.              0.              2.3645568E-02   0.              0.
+           0.              4.0349229E-03   0.              0.              0.              0.
+           0.              0.              1.3723589E-02   0.              0.              0.
+           2.5944879E-03   0.              0.              0.              0.              0.
+           0.              8.5504599E-03   0.              0.              0.              1.7352780E-03
+           0.              0.              0.              0.              0.              0.
+           5.5925948E-03   0.              0.              0.              0.              0.
+           0.              0.              0.              0.              0.              3.7885971E-03
+           0.              0.              0.              0.              0.              0.
+           0.              0.              0.              0.              2.6349491E-03   0.
+           0.              0.              0.              0.              0.              0.
+           0.              0.              0.              1.8701737E-03
+ 
+                                                BRESULTS,B[I,J]
+           1.4686208E+00   0.              0.              0.              2.3764093E-02   0.
+           0.              0.             -7.1568338E-03   0.              0.              1.5172587E+00
+           0.              0.              0.              1.1793551E-02   0.              0.
+           0.             -4.6675572E-03   0.              0.              1.5610344E+00   0.
+           0.              0.              6.6280898E-03   0.              0.              0.
+           0.              0.              0.              1.6257926E+00   0.              0.
+           0.              4.0349229E-03   0.              0.             -3.1208978E-01   0.
+           0.              0.              1.7884575E+00   0.              0.              0.
+           2.9613151E-03   0.              0.             -4.1973584E-01   0.              0.
+           0.              1.9547471E+00   0.              0.              0.              2.2421677E-03
+           0.              0.             -4.5621891E-01   0.              0.              0.
+           2.0996801E+00   0.              0.              0.              0.              0.
+           0.             -4.7127520E-01   0.              0.              0.              2.2450408E+00
+           0.              0.              2.4615534E-01   0.              0.              0.
+          -6.2017166E-01   0.              0.              0.              2.6021729E+00   0.
+           0.              4.5290397E-01   0.              0.              0.             -8.4088529E-01
+           0.              0.              0.              3.1976199E+00
+ 
+
+ 
+                                                ARESULTS,A[I,J]
+           1.4686208E+00   0.              0.              0.              0.              0.
+           0.              0.              0.              0.              0.              1.5172587E+00
+           0.              0.              0.              0.              0.              0.
+           0.              0.              0.              0.              1.5610344E+00   0.
+           0.              0.              0.              0.              0.              0.
+           0.              0.              0.              1.6257926E+00   0.              0.
+           0.              0.              0.              0.             -4.5834154E-01   0.
+           0.              0.              1.7884575E+00   0.              0.              0.
+           0.              0.              0.             -6.3684787E-01   0.              0.
+           0.              1.9547471E+00   0.              0.              0.              0.
+           0.              0.             -7.1217340E-01   0.              0.              0.
+           2.0996801E+00   0.              0.              0.              0.              0.
+           0.             -7.6619571E-01   0.              0.              0.              2.2450408E+00
+           0.              0.              6.4575929E-01   0.              0.              0.
+          -1.1091507E+00   0.              0.              0.              2.6021729E+00   0.
+           0.              1.2226885E+00   0.              0.              0.             -1.6437181E+00
+           0.              0.              0.              3.1976199E+00
+ 
+                              HA[8NU-1]
+           5.0545968E+00   4.2274674E+00
+ 
+
+ 
+                                          PRELIMINARY BOUNDARY VALUES
+           4.9796075E-04   7.9116856E-03   3.9293002E-02   1.2059664E-01   2.8013585E-01   5.2195921E-01
+           7.4267215E-01   5.4385348E-01  -1.0833429E+00   1.5377222E-04   1.2638539E-04   3.5622261E-05
+          -1.4939201E-04  -4.6393685E-04  -9.4592533E-04  -1.6334449E-03  -2.5616608E-03  -3.7591899E-03
+          -4.9674793E-03  -6.4370028E-03  -8.1955274E-03  -1.0268523E-02  -1.2678082E-02  -1.5441808E-02
+          -1.8571693E-02  -2.2073045E-02  -2.5943473E-02  -3.0172002E-02  -3.4738329E-02
+ 
+                                                  CONSTANT
+           9.3176126E-02
+ 
+                                           CORRECTED BOUNDARY VALUES
+           9.3674086E-02   1.0108781E-01   1.3246913E-01   2.1377277E-01   3.7331197E-01   6.1513533E-01
+           8.3584828E-01   6.3702960E-01  -9.9016676E-01   9.3329898E-02   9.3302511E-02   9.3211748E-02
+           9.3026734E-02   9.2712189E-02   9.2230200E-02   9.1542681E-02   9.0614465E-02   8.9416936E-02
+           8.8208646E-02   8.6739123E-02   8.4980598E-02   8.2907603E-02   8.0498043E-02   7.7734318E-02
+           7.4604433E-02   7.1103081E-02   6.7232653E-02   6.3004123E-02   5.8437797E-02
+ 
+
+ 
+                                        THE VALUES OF H(RHO,TH) IN B
+             RHO      0.5             1.0             1.5             2.0             2.5             3.0
+        TH
+         0         4.4141586E-01   1.4562671E+01   2.6853740E+02   2.5094059E+03   1.4676440E+04
+ 
+
+ 
+                                        THE VALUES OF H(RHO,TH) IN B
+             RHO      0.5             1.0             1.5             2.0             2.5             3.0
+        TH
+         5         4.1397667E-01   1.2041987E+01   2.1011009E+02   1.9361708E+03   1.1276598E+04
+ 
+
+ 
+                                        THE VALUES OF H(RHO,TH) IN B
+             RHO      0.5             1.0             1.5             2.0             2.5             3.0
+        TH
+        10         3.3798098E-01   5.5551162E+00   6.1639052E+01   4.8302016E+02   2.6638224E+03
+ 
+
+ 
+                                        THE VALUES OF H(RHO,TH) IN B
+             RHO      0.5             1.0             1.5             2.0             2.5             3.0
+        TH
+        15         2.3022241E-01  -2.1629132E+00  -1.0892448E+02  -1.1749047E+03  -7.1436013E+03
+ 
+
+ 
+                                        THE VALUES OF H(RHO,TH) IN B
+             RHO      0.5             1.0             1.5             2.0             2.5             3.0
+        TH
+        20         1.1237179E-01  -7.9607582E+00  -2.2410073E+02  -2.2692024E+03  -1.3574640E+04
+        25         1.1237179E-01  -7.9607582E+00  -2.2410073E+02  -2.2692024E+03  -1.3574640E+04
+        30         1.1237179E-01  -7.9607582E+00  -2.2410073E+02  -2.2692024E+03  -1.3574640E+04
+        35         1.1237179E-01  -7.9607582E+00  -2.2410073E+02  -2.2692024E+03  -1.3574640E+04
+        40         1.1237179E-01  -7.9607582E+00  -2.2410073E+02  -2.2692024E+03  -1.3574640E+04
+        45         1.1237179E-01  -7.9607582E+00  -2.2410073E+02  -2.2692024E+03  -1.3574640E+04
+

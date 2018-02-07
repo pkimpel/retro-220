@@ -37,86 +37,113 @@ BALGOL-Build-Notes.txt
     Notes for bootstrapping the BALGOL Generator and Compiler programs
     from source code and generating loadable tapes for each one.
 
-BALGOL-Generator.bacg
-    Assembly listing of the BALGOL compiler-generator program,
-    transcribed by Paul Kimpel from:
-    http://archive.computerhistory.org/resources/text/Knuth_Don_X4100/
-    PDF_index/k-1-pdf/k-1-u2196-balgol220compiler.pdf.
-    This program is written using a different assembly language than the
-    other BALGOL components below.
+BALGOL-Generator/
+    Compiler generator program to build versions of the BAC-220 compiler
+    and library customized to a site's configuration and requirements.
+    Note that this program is written using a different assembly
+    language than the other BALGOL components below.
 
-BALGOL-Generator.card
-    Card-image input deck of BALGOL-Generator.bacg prepared for input to
-    the tools/GEN-Assembler script.
+    See Appendix A, F, and G in
+    http://bitsavers.org/pdf/burroughs/electrodata/220/
+    220-21017_B220_BALGOL_Mar63.pdf.
 
-BALGOL-Generator-List.lst
-    Assembly listing of BALGOL-Generator.card produced by the
-    tools/GEN-Assembler. Compared to BALGOL-Generator.bacg to verify the
-    transcription of the Generator.
+    .bacg
+        Assembly listing of the BALGOL compiler-generator program,
+        transcribed by Paul Kimpel from:
+        http://archive.computerhistory.org/resources/text/
+        Knuth_Don_X4100/PDF_index/k-1-pdf/k-1-u2196-
+        balgol220compiler.pdf.
 
-BALGOL-Generator-Object.tape
-    Object code tape image for the Generator produced by GEN-Assembler
-    from BALGOL-Generator.card. See BALGOL-Build-Notes.txt for how this
-    is used.
+    .card
+        Card-image assembler source deck extracted from the .bacg file
+        for input to the assembler.
+        Assemble with software/tools/GEN-Assembler.
 
-BALGOL-Generator-PoolSet.js
-    JSON text file containing literal-pool pre-load values for use by
-    the GEN-Assembler script in assembling the BALGOL-Generator utility.
-    Pre-loading the literal pool assures that the same addresses will
-    be assigned to literal values and strings in the pool as were
-    originally assigned in the transcribed BALGOL-Generator.bacg
-    listing.
+    -List.lst
+        Assembly listing of .card produced by the GEN-Assembler. This
+        output was compared back to the .bacg file to verify the
+        transcription of the Generator.
 
-BALGOL-Main.baca
-    Assembly listing of the BALGOL compiler main-line module,
-    transcribed by Paul Kimpel from:
-    http://archive.computerhistory.org/resources/text/Knuth_Don_X4100/
-    PDF_index/k-1-pdf/k-1-u2196-balgol220compiler.pdf.
-    This transcription reflects the corrections hand-coded on the
-    listing.
+    -Object.tape
+        Object code tape image for the Generator produced by GEN-
+        Assembler from the .card file. See BALGOL-Build-Notes.txt for
+        how this is used.
 
-BALGOL-Main.card
-    Card-image input deck of BALGOL-Main.baca prepared for input to the
-    tools/BAC-Assembler script.
+    -PoolSet.js
+        JSON text file containing literal-pool pre-load values for use
+        by the GEN-Assembler in assembling the Generator. Pre-loading
+        the literal pool assures that the same addresses will be
+        assigned by the assembler to literal values and strings as were
+        originally present in the transcribed .bacg file.
 
-BALGOL-Main-List.lst
-    Assembly listing of BALGOL-Main.card produced by the
-    tools/BAC-Assembler.
+BALGOL-Main/
+    Main program for the BAC-220 compiler. This performs the basic one-
+    pass compilation of the source program, but does not link library
+    and external routines or generate run-time overlays.
 
-BALGOL-Main-Object.card
-    Object code deck in BALGOL Machine Language format produced by BAC-
-    Assembler from BALGOL-Main.card. See BALGOL-Build-Notes.txt for how
-    this is used.
+    .baca
+        Assembly listing of the BALGOL compiler main module, transcribed
+        by Paul Kimpel from:
+        http://archive.computerhistory.org/resources/text/
+        Knuth_Don_X4100/ PDF_index/k-1-pdf/k-1-u2196-
+        balgol220compiler.pdf.
+        This transcription reflects the few corrections hand-coded on
+        the listing.
 
-BALGOL-Main-PoolSet.js
-    JSON text file containing literal-pool pre-load values for use by
-    the BAC-Assembler script in assembling the BALGOL-Main.baca program.
+    .card
+        Card-image assembler source deck extracted from the .baca file
+        for input to the assembler.
+        Assemble with software/tools/BAC-Assembler.
 
-BALGOL-Overlay.baca
-    Assembly listing of the BALGOL compiler overlay module, transcribed
-    by Paul Kimpel from:
-    http://archive.computerhistory.org/resources/text/Knuth_Don_X4100/
-    PDF_index/k-1-pdf/k-1-u2196-balgol220compiler.pdf.
-    This transcription reflects the corrections hand-coded on the
-    listing.
+    .lst
+        Assembly listing of .card produced by the BAC-Assembler. This
+        output was compared back to the .baca file to partially verify
+        the transcription of the compiler.
 
-BALGOL-Overlay.card
-    Card-image input deck of BALGOL-Overlay.baca prepared for input to
-    the tools/BAC-Assembler script.
+    .card
+        Object code deck in BALGOL Machine Language format produced by
+        BAC-Assembler from .card. See BALGOL-Build-Notes.txt for how
+        this is used.
 
-BALGOL-Main-Overlay.lst
-    Assembly listing of BALGOL-Overlay.card produced by the
-    tools/BAC-Assembler.
+    -PoolSet.js
+        JSON text file containing literal-pool pre-load values for use
+        by the BAC-Assembler script in assembling the program.
 
-BALGOL-Overlay-Object.card
-    Object code deck in BALGOL Machine Language format produced by BAC-
-    Assembler from BALGOL-Object.card. See BALGOL-Build-Notes.txt for
-    how this is used.
+BALGOL-Overlay/
+    Overlay program for the BAC-220 compiler. This program is loaded by
+    the Main program at the end of compiling the source deck. It merges
+    and links any code for library routines and external machine-
+    language programs into the object code, builds code segments and
+    constructs the program's overlay mechanism if called for, and
+    generates additional code for symbolic DUMP statements.
 
-BALGOL-Overlay-PoolSet.js
-    JSON text file containing literal-pool pre-load values for use by
-    the BAC-Assembler script in assembling the BALGOL-Overlay.baca
-    program.
+    .baca
+        Assembly listing of the BALGOL compiler overlay module,
+        transcribed by Paul Kimpel from:
+        http://archive.computerhistory.org/resources/text/
+        Knuth_Don_X4100/PDF_index/k-1-pdf/k-1-u2196-
+        balgol220compiler.pdf.
+        This transcription reflects any corrections hand-coded on the
+        listing.
+
+    .card
+        Card-image assembler source deck extracted from the .baca file
+        for input to the assembler.
+        Assemble with software/tools/BAC-Assembler.
+
+    .lst
+        Assembly listing of .card produced by the BAC-Assembler. This
+        output was compared back to the .baca file to partially verify
+        the transcription of the compiler.
+
+    .card
+        Object code deck in BALGOL Machine Language format produced by
+        BAC-Assembler from .card. See BALGOL-Build-Notes.txt for how
+        this is used.
+
+    -PoolSet.js
+        JSON text file containing literal-pool pre-load values for use
+        by the BAC-Assembler script in assembling the program.
 
 BALGOL-Library/
     Source files and object decks for the BALGOL standard function
@@ -126,12 +153,18 @@ BALGOL-Library/
     These transcriptions reflect some notations and corrections hand-
     coded on the listings.
 
-    Files for each library routine XXXXX are named as follows:
+    Files for library routine XXXXX are named as follows:
 
-        XXXXX.baca -- transcribed assembly listing.
-        XXXXX.card -- card image deck extracted from the .baca file.
-        XXXXX-List.lst -- listing generated by BAC-Assembler.
-        XXXXX-Object.card -- object deck generated by BAC-Assembler.
+    XXXXX.baca
+        Transcribed assembly listing.
+    XXXXX.card
+        Card image deck extracted from the .baca file. Assemble with
+        software/tools/BAC-Assembler.
+    XXXXX-List.lst
+        Listing generated by BAC-Assembler.
+    XXXXX-Object.card
+        Object deck generated by BAC-Assembler in BALGOL Machine
+        Language format.
 
     This folder also contains PUNCH-LIBRARY.card, the complete set of
     object decks for the compiler's standard library routines as
@@ -139,8 +172,10 @@ BALGOL-Library/
 
 BALGOL-Examples/
     Source code and listings for sample BALGOL programs. See the README
-    file in this directory for details.
+    file in the directory for details.
 
 Paul Kimpel
-January 2018
+February 2018
+
+
 

@@ -1,0 +1,93 @@
+1         REM   PRINT FIRST 800 DIGITS OF PI
+1         REM   ADAPTED FROM C PROGRAM B DIK WINTER OF CWI, AMSTERDAM
+1         LOCN  0300
+1         CAD   FLIM
+1         STA   C               C=FLIM
+1         CAD   A
+1         SRT   10
+1         DIV   FIVE            A DIV 5
+1         LDB   C               FOR (B=C; B>=0; --B)
+1         STA - F               F[B]=A DIV 5
+1         DBB   *-1,1
+1         REM
+1   L1    CAD   C               START OF OUTER LOOP
+1         MUL   TWO
+1         STR   G               G=C*2
+1         BFR   ENDL1,00,00     IF G EQL 0, BRANCH OUT OF LOOP
+1         CLL   D               D=0
+1         CAD   C
+1         STA   B               B=C
+1         LDB   B
+1         REM
+1   DO    CAD - F               START OF INNER LOOP
+1         MUL   A               F[B]*A
+1         SLT   10              SHIFT PRODUCT TO RA
+1         ADD   D
+1         STA   D               D+=F[B]*A
+1         SRT   10              SAVE NEW D IN RR
+1         DFL   G,00,1          G-=1
+1         DIV   G               D DIV G
+1         STR - F               F[B]=D MOD G
+1         STA   D               D=D DIV G
+1         DFL   G,00,1          G-=1
+1         CAD   B
+1         SUB   ONE
+1         STA   B               B-=1
+1         BFA   ENDDO,00,00     IF B EQL 0, BRANCH OUT OF INNER LOOP
+1         MUL   D
+1         STR   D               D*=B
+1         DBB   DO,1            DECREMENT RB, REPEAT INNER LOOP IF >= 0
+1         REM
+1   ENDDO DFL   C,00,14         C-=14
+1         CAD   D
+1         SRT   10
+1         DIV   A               D DIV A
+1         ADD   E               RA=E+D DIV A
+1         STR   E               E=D MOD A
+1         REM
+1         REM                   FORMAT 4 DIGITS FOR SPO OUTPUT
+1         SRT   3               ISOLATE HIGH-ORDER DIGIT IN A
+1         ADD   N80             CONVERT 1ST DIGIT TO ALPHA
+1         SLA   1
+1         SLT   1
+1         ADD   N80             CONVERT 2ND DIGIT TO ALPHA
+1         SLA   1
+1         SLT   1
+1         ADD   N80             CONVERT 3RD DIGIT TO ALPHA
+1         SLA   1
+1         SLT   1
+1         ADD   N80             CONVERT 4TH DIGIT TO ALPHA
+1         SLA   2               INSERT TRAILING SPACE
+1         LSA   2               SET SIGN TO TWO FOR ALPHA WORD
+1         STA   B               STORE IN WORD BUFFER
+1         SPO   B,1
+1         IFL   COL,04,5        CHECK FOR FULL LINE ON SPO
+1         CAD   COL
+1         CFA   ECOL
+1         BCL   L1              IF COL < ECOL, BRANCH
+1         SPO   CR,1            OUTPUT NEWLINES
+1         CLL   COL             CLEAR COLUMN COUNTER
+1         BUN   L1
+1   ENDL1 HLT   7557
+1         REM
+1         REM                   SCALARS
+1   A     CNST  10000
+1   B     CNST  0
+1   C     CNST  0
+1   D     CNST  0
+1   E     CNST  0
+1   G     CNST  0
+1   COL   CNST  0
+1   ECOL  CNST  50
+1   FLIM  CNST  2800
+1   ZERO  CNST  0
+1   ONE   CNST  1
+1   TWO   CNST  2
+1   FIVE  CNST  5
+1   N80   CNST  80
+1   CR    CNST  20202021616     NEWLINES
+1         REM
+1         LOCN  1000
+1   F     DEFN  *
+1         LOCN  *+2800
+1         FINI  300

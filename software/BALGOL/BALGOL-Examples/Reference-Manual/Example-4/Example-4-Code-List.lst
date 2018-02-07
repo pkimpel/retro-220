@@ -1,0 +1,2843 @@
+0200                   BAC-220 STANDARD VERSION   2/1/62
+
+0200      COMMENT FOURTH EXAMPLE PROGRAM FROM BALGOL MANUAL, MARCH 1963.
+
+0200      THE PROGRAM BELOW HAS BEEN WRITTEN BY G. FORSYTHE, OF STANFORD
+
+0200      UNIVERSITY. IT SOLVES A SET OF LINEAR EQUATIONS OF THE FORM AY = B,
+
+0200      USING CROUT@S METHOD WITH INTERCHANGES$
+
+0200
+
+0200      COMMENT FORSYTHE PROGRAM$
+
+0202      PROCEDURE PRODUCT ($ N, A(), P, E)$
+
+0202        BEGIN COMMENT THIS FORMS THE PRODUCT OF ARBITRARY FLOATING NUMBERS
+
+0202            A(I), FOR I=(1,1,N). EXPONENT OVERFLOW OR UNDERFLOW IS
+
+0202            PREVENTED. THE ANSWER IS P TIMES 10*E WHERE E IS 0 IF POSSIBLE.
+
+0202            IF E NEQ 0, THEN WE NORMALIZE P SO THAT 0.1 LEQ ABS(P) LSS 1.0$
+
+0202        INTEGER E, F, I, K, N$
+
+0202
+
+0204        Q = 1.0**-10$ F = 10$
+
+0208        FOR I = (1,1,N)$
+
+0219          BEGIN
+
+0223          IF A(I) EQL 0.0$
+
+0223            BEGIN
+
+0223            P = 0.0$
+
+0228            E = 0$
+
+0229            RETURN
+
+0231            END$
+
+0231
+
+0231          IF ABS(A(I)) LEQ 1.0$
+
+0231            BEGIN
+
+0231            F = F-20$
+
+0243            Q = Q.(10.0*20)
+
+0247            END$
+
+0247
+
+0249          Q = Q.A(I)$
+
+0256          X = ABS(Q)$
+
+0258          FOR K = (-10,1,10), (-11,-1,-41), (11,1,41)$
+
+0291            IF ((10.0*K LEQ X) AND (X LSS 10.0*(K+1)))$
+
+0291              BEGIN
+
+0321              Q = Q.(10.0*(-10-K))$
+
+0327              F = F + 10$
+
+0330              GO TO 1
+
+0331              END$
+
+0332      1.. END$
+
+0332
+
+0333        IF (((-40) LEQ F) AND (F LEQ 58))$
+
+0333          BEGIN
+
+0356          P = (Q.(10.0*9)).(10.0*(F-9))$
+
+0366          E = 0$
+
+0367          RETURN
+
+0369          END$
+
+0369
+
+0369        P = Q.(10.0*9)$
+
+0375        E = F - 9$
+
+0378        RETURN
+
+0380        END PRODUCT()$
+
+0380
+
+0394      PROCEDURE INNERPRODUCT (S, F, U(), V())$
+
+0394        BEGIN COMMENT THIS FORMS THE INNER PRODUCT OF THE VECTORS
+
+0394            U(I) AND V(I) FOR I = (S,1,F)$
+
+0394        INTEGER I, S, F$
+
+0394
+
+0398        SUM = 0.0$
+
+0399        FOR I = (S,1,F)$
+
+0410          SUM = SUM + U(I).V(I)$
+
+0424        INNERPRODUCT() = SUM$
+
+0425        RETURN
+
+0427        END INNERPRODUCT()$
+
+0427
+
+0432      PROCEDURE CROUT4 ($ N, A(,), B(), Y(), PIVOT(), DET, EX7$
+
+0436                        SINGULAR, IP())$
+
+0436        BEGIN COMMENT THIS IS CROUTS METHOD WITH INTERCHANGES, TO SOLVE
+
+0436            AY = B AND OBTAIN THE TRIANGULAR DECOMPOSITION. IP() STANDS FOR
+
+0436            AN INNERPRODUCT ROUTINE THAT MUST BE AVAILABLE WHEN CROUT4() IS
+
+0436            CALLED. ALSO, PRODUCT() MUST BE AVAILABLE. THE DETERMINANT OF A
+
+0436            IS COMPUTED IN THE FORM DET TIMES 10*EX7, WHERE EX7 IS 0 IF
+
+0436            POSSIBLE. IF EX7 NEQ 0, THEN WE NORMALIZE DET WITH 0.1 LEQ
+
+0436            ABS(DET) LSS 1$
+
+0436        INTEGER K, I, J, IMAX, N, PIVOT$
+
+0436        INTEGER EX7$
+
+0436
+
+0436        INT = 1.0$
+
+0438        FOR K = (1,1,N)$
+
+0449          BEGIN
+
+0449          TEMP = 0$
+
+0451          FOR I = (K,1,N)$
+
+0462            BEGIN
+
+0463            A(I,K) = A(I,K) - IP(1, K-1, A(I,), A(,K))$
+
+0508            IF ABS(A(I,K)) GTR TEMP$
+
+0508              BEGIN
+
+0520              TEMP = ABS(A(I,K))$
+
+0529              IMAX = I
+
+0529              END
+
+0531            END$
+
+0531
+
+0532          PIVOT(K) = IMAX$
+
+0538          COMMENT WE HAVE FOUND THAT A(IMAX,K) IS THE LARGEST PIVOT IN COL
+
+0538              K. NOW WE INTERCHANGE ROWS K AND IMAX$
+
+0538          IF IMAX NEQ K$
+
+0538            BEGIN
+
+0538            INT = -INT$
+
+0544            FOR J = (1,1,N)$
+
+0555              BEGIN
+
+0556              TEMP = A(K,J)$
+
+0565              A(K,J) = A(IMAX,J)$
+
+0581              A(IMAX,J) = TEMP
+
+0590              END$
+
+0590
+
+0591            TEMP = B(K)$
+
+0597            B(K) = B(IMAX)$
+
+0607            B(IMAX) = TEMP
+
+0613            END$
+
+0613
+
+0613          COMMENT NOW FOR THE ELIMINATION$
+
+0613          IF A(K,K) EQL 0$
+
+0613            BEGIN
+
+0613            DET = 0.0$
+
+0624            EX7 = 0$
+
+0625            GO TO SINGULAR$
+
+0626            END$
+
+0626
+
+0626          FOR I = (K+1,1,N)$
+
+0638            BEGIN
+
+0639            XX = A(I,K)$
+
+0648            XY = A(K,K)$
+
+0657            X = 1.0$
+
+0659            X = X.X$
+
+0662            A(I,K) = XX/XY
+
+0673            END$
+
+0673
+
+0674          FOR J = (K+1,1,N)$
+
+0686            A(K,J) = A(K,J) - IP(1, K-1, A(K,), A(,J))$
+
+0686
+
+0733          B(K) = B(K) - IP(1, K-1, A(K,), B())
+
+0758          END$
+
+0758
+
+0768        FOR I = (1,1,N)$
+
+0779          Y(I) = A(I,I)$
+
+0794        PRODUCT ($ N, Y(), DET, EX7)$
+
+0810        DET = INT.DET$
+
+0810
+
+0813        COMMENT NOW FOR THE BACK SUBSTITUTION$
+
+0813        FOR K = (N,-1,1)$
+
+0824          BEGIN
+
+0828          XX = B(K) - IP(K+1, N, A(K,), Y())$
+
+0855          XY = A(K,K)$
+
+0864          X = 1.0$
+
+0866          X = X.X$
+
+0869          Y(K) = XX/XY
+
+0877          END$
+
+0877
+
+0878        RETURN$
+
+0880        END CROUT4()$
+
+0880
+
+0952      PROCEDURE SOLV2 ($ N, B(,), C(), PIVOT(), Z()$ IP())$
+
+0952        BEGIN COMMENT IT IS ASSUMED THAT A MATRIX A HAS ALREADY BEEN
+
+0952            TRANSFORMED INTO B BY CROUT, BUT THAT A NEW COLUMN C HAS
+
+0952            NOT BEEN PROCESSED. SOLV2() SOLVES THE SYSTEM BZ = C.
+
+0952            AN INNERPRODUCT PROCEDURE MUST BE USED WITH SOLV2()$
+
+0952        INTEGER K, N, PIVOT$
+
+0952
+
+0956        FOR K = (1,1,N)$
+
+0967          BEGIN
+
+0971          TEMP = C(PIVOT(K))$
+
+0978          C(PIVOT(K)) = C(K)$
+
+0992          C(K) = TEMP$
+
+0998          C(K) = C(K) - IP(1, K-1, B(K,), C())
+
+1023          END$
+
+1023
+
+1033        FOR K = (N,-1,1)$
+
+1044          Z(K) = (C(K) - IP(K+1, N, B(K,), Z()))/B(K,K)$
+
+1089        RETURN
+
+1091        END SOLV2()$
+
+1091
+
+1121      COMMENT FORSYTHE TEST CROUT US169 EXT 2274$
+
+1121      FORMAT FRMTFL (W0, (6F19.8, W0))$
+
+1127      FORMAT FRMTFX (W0, (6I19, W0))$
+
+1133      INTEGER PIVOT()$
+
+1133      INTEGER EX$
+
+1133      INTEGER I, J, N$
+
+1133      ARRAY A(70,70), B(70), Y(70), C(70), PIVOT(70)$
+
+1133      INPUT DATA (N, FOR I=(1,1,N)$ (FOR J=(1,1,N)$ A(I,J), B(I)))$
+
+1179      INPUT VECTOR (N, FOR I=(1,1,N)$ C(I))$
+
+1179
+
+1203      START..
+
+1203        READ ($$ DATA)$
+
+1207        READ ($$ VECTOR)$
+
+1211        OUTPUT ORDER (N)$
+
+1218        OUTPUT DATAO (FOR I=(1,1,N)$ (FOR J=(1,1,N)$ A(I,J), B(I)))$
+
+1261        OUTPUT VECTORO (FOR I=(1,1,N)$ C(I))$
+
+1282        WRITE ($$ ORDER, FRMTFX)$
+
+1290        WRITE ($$ DATAO, FRMTFL)$
+
+1298        WRITE ($$ ORDER, FRMTFX)$
+
+1306        WRITE ($$ VECTORO, FRMTFL)$
+
+1314        CROUT4 ($ N, A(,), B(), Y(), PIVOT(), DET, EX$
+
+1346                SINGULAR, INNERPRODUCT())$
+
+1353        WRITE ($$ DATAO, FRMTFL)$
+
+1361        OUTPUT ANSWER (FOR I=(1,1,N)$ Y(I))$
+
+1382        OUTPUT PIVOTO (N, FOR I=(1,1,N)$ PIVOT(I))$
+
+1406        OUTPUT DETO (DET)$
+
+1413        OUTPUT EXPO (EX)$
+
+1420        WRITE ($$ PIVOTO, FRMTFX)$
+
+1428        WRITE ($$ ANSWER, FRMTFL)$
+
+1436        WRITE ($$ DETO, FRMTFL)$
+
+1444        WRITE ($$ EXPO, FRMTFX)$
+
+1452        SOLV2 ($ N, A(,), C(), PIVOT(), Y()$ INNERPRODUCT())$
+
+1482        WRITE ($$ VECTORO, FRMTFL)$
+
+1490        WRITE ($$ ANSWER, FRMTFL)$
+
+1498        GO TO START$
+
+1498
+
+1499      SINGULAR..
+
+1499        WRITE ($$ FRMTSI)$
+
+1503        FORMAT FRMTSI (W0, *SINGULAR*, W0)$
+
+1509        GO TO START$
+
+1510      FINISH$
+MEMORY EXCEEDED FOR OBJECT PROGRAM
+COMPILED PROGRAM ENDS AT 1511
+PROGRAM VARIABLES BEGIN AT 0000
+-----ERROR(S) WERE FOUND-----
+
+0200                   BAC-220 STANDARD VERSION   2/1/62
+
+0200      COMMENT FOURTH EXAMPLE PROGRAM FROM BALGOL MANUAL, MARCH 1963.
+
+0200      THE PROGRAM BELOW HAS BEEN WRITTEN BY G. FORSYTHE, OF STANFORD
+
+0200      UNIVERSITY. IT SOLVES A SET OF LINEAR EQUATIONS OF THE FORM AY = B,
+
+0200      USING CROUT@S METHOD WITH INTERCHANGES$
+
+0200
+
+0200      COMMENT FORSYTHE PROGRAM$
+                                                 0200     0000 30
+                                                 0201     4999 01 0201
+                                                 0202     0000 40 4995 TEMP
+                                                 0203     0000 30
+
+0202      PROCEDURE PRODUCT ($ N, A(), P, E)$
+
+0202        BEGIN COMMENT THIS FORMS THE PRODUCT OF ARBITRARY FLOATING NUMBERS
+
+0202            A(I), FOR I=(1,1,N). EXPONENT OVERFLOW OR UNDERFLOW IS
+
+0202            PREVENTED. THE ANSWER IS P TIMES 10*E WHERE E IS 0 IF POSSIBLE.
+
+0202            IF E NEQ 0, THEN WE NORMALIZE P SO THAT 0.1 LEQ ABS(P) LSS 1.0$
+
+0202        INTEGER E, F, I, K, N$
+
+0202
+                                                 0204     0000 10 4994 CONST
+                                                 0205     0000 40 4993 Q
+
+0204        Q = 1.0**-10$ F = 10$
+                                                 0206     0000 10 4992 CONST
+                                                 0207     0000 40 4991 F
+                                                 0208     0000 10 4990 CONST
+                                                 0209     0000 40 4989 I
+                                                 0210     0000 44
+                                                 0211     0000 30
+                                                 0212     0000 10 4990 CONST
+                                                 0213     0000 12 4989 I
+                                                 0214     0000 40 4989 I
+                                                 0211             0215
+                                                 0215     0000 13 4999 N
+                                                 0216     1111 31 0218
+                                                 0217     0000 36
+                                                 0218     0001 33
+
+0208        FOR I = (1,1,N)$
+                                                 0219     0000 30
+                                                 0218             0220
+                                                 0217             0220
+
+0219          BEGIN
+                                                 0220     0000 10 4989 I
+                                                 0221     0000 14 4997
+                                                 0222     0001 49 0010
+                                                 0222     0001 40 4988 TEMP
+
+0223          IF A(I) EQL 0.0$
+                                                 0223     0000 42 4988 TEMP
+                                                 0224   - 0000 10 4998 A
+                                                 0225     0000 36 0227
+                                                 0226     0000 30
+
+0223            BEGIN
+
+0223            P = 0.0$
+                                                 0227     0000 46 4996 P
+
+0228            E = 0$
+                                                 0228     0000 46 4995 E
+
+0229            RETURN
+                                                 0229     0000 42 0201
+                                                 0230   - 0000 30 0000
+
+0231            END$
+
+0231
+                                                 0226             0231
+                                                 0231     0000 10 4989 I
+                                                 0232     0000 14 4997
+                                                 0233     0001 49 0010
+                                                 0233     0001 40 4988 TEMP
+                                                 0234     0000 42 4988 TEMP
+                                                 0235   - 0001 10 4998 A
+
+0231          IF ABS(A(I)) LEQ 1.0$
+                                                 0236     0000 13 4987 CONST
+                                                 0237     1111 31 0239
+                                                 0238     0000 36 0240
+                                                 0239     0000 33
+
+0231            BEGIN
+
+0231            F = F-20$
+                                                 0240     0000 10 4991 F
+                                                 0241     0000 13 4986 CONST
+                                                 0242     0000 40 4991 F
+
+0243            Q = Q.(10.0*20)
+                                                 0243     0000 41 4986 CONST
+                                                 0244     0000 10 4985 CONST
+                                                 0245     0000 44 4947 FL*FX
+                                                 0246     0000 30 4947
+                                                 0247     0000 24 4993 Q
+                                                 0248     0000 40 4993 Q
+
+0247            END$
+
+0247
+                                                 0239             0249
+                                                 0249     0000 10 4989 I
+                                                 0250     0000 14 4997
+                                                 0251     0001 49 0010
+
+0249          Q = Q.A(I)$
+                                                 0251     0001 40 4988 TEMP
+                                                 0252     0000 10 4993 Q
+                                                 0253     0000 42 4988 TEMP
+                                                 0254   - 0000 24 4998 A
+                                                 0255     0000 40 4993 Q
+
+0256          X = ABS(Q)$
+                                                 0256     0001 10 4993 Q
+                                                 0257     0000 40 4946 X
+                                                 0258     0000 11 4992 CONST
+                                                 0259     0000 40 4945 K
+                                                 0260     0000 44
+                                                 0261     0000 30
+                                                 0262     0000 10 4990 CONST
+                                                 0263     0000 12 4945 K
+                                                 0264     0000 40 4945 K
+                                                 0261             0265
+                                                 0265     0000 13 4992 CONST
+                                                 0266     1111 31 0268
+                                                 0267     0000 36
+                                                 0268     0001 33
+                                                 0269     0000 11 4944 CONST
+                                                 0270     0000 40 4945 K
+                                                 0271     0000 44
+                                                 0272     0000 30
+                                                 0273     0000 10 4945 K
+                                                 0274     0000 13 4990 CONST
+                                                 0275     0000 40 4945 K
+                                                 0272             0276
+                                                 0276     0000 12 4943 CONST
+                                                 0277     1111 31 0279
+                                                 0278     0000 36
+                                                 0279     0000 33
+                                                 0280     0000 10 4944 CONST
+                                                 0281     0000 40 4945 K
+                                                 0282     0000 44
+                                                 0283     0000 30
+                                                 0284     0000 10 4990 CONST
+                                                 0285     0000 12 4945 K
+                                                 0286     0000 40 4945 K
+                                                 0283             0287
+                                                 0287     0000 13 4943 CONST
+                                                 0288     1111 31 0290
+                                                 0289     0000 36
+                                                 0290     0001 33
+
+0258          FOR K = (-10,1,10), (-11,-1,-41), (11,1,41)$
+                                                 0291     0000 30
+                                                 0290             0292
+                                                 0289             0292
+                                                 0279             0292
+                                                 0278             0292
+                                                 0268             0292
+                                                 0267             0292
+                                                 0292     0000 41 4945 K
+                                                 0293     0000 10 4985 CONST
+                                                 0294     0000 44 4947 FL*FX
+                                                 0295     0000 30 4947
+                                                 0296     0000 13 4946 X
+                                                 0297     1111 31 0299
+                                                 0298     0000 36 0302
+                                                 0299     0001 33 0302
+                                                 0300     0001 45 0002
+                                                 0301     0000 30 0303
+                                                 0302     0000 10 4990 CONST
+                                                 0303     0000 40 4988 TEMP
+                                                 0304     0000 10 4990 CONST
+                                                 0305     0000 12 4945 K
+                                                 0306     0001 48 0010
+                                                 0307     0000 10 4985 CONST
+                                                 0308     0000 44 4947 FL*FX
+                                                 0309     0000 30 4947
+                                                 0310     0000 13 4946 X
+                                                 0311     1111 31 0313
+                                                 0312     0000 36 0316
+                                                 0313     0001 33 0316
+                                                 0314     0000 10 4990 CONST
+                                                 0315     0000 30 0317
+                                                 0316     0001 45 0002
+                                                 0317     0000 17 4988 TEMP
+
+0291            IF ((10.0*K LEQ X) AND (X LSS 10.0*(K+1)))$
+                                                 0318     0000 36
+
+0291              BEGIN
+                                                 0319     0000 11 4992 CONST
+                                                 0320     0000 13 4945 K
+                                                 0321     0001 48 0010
+                                                 0322     0000 10 4985 CONST
+                                                 0323     0000 44 4947 FL*FX
+                                                 0324     0000 30 4947
+
+0321              Q = Q.(10.0*(-10-K))$
+                                                 0325     0000 24 4993 Q
+                                                 0326     0000 40 4993 Q
+
+0327              F = F + 10$
+                                                 0327     0000 10 4992 CONST
+                                                 0328     0000 12 4991 F
+                                                 0329     0000 40 4991 F
+
+0330              GO TO 1
+                                                 0330     0000 30 0000
+
+0331              END$
+                                                 0318             0331
+                                                 0291             0332
+                                                 0282             0331
+                                                 0271             0331
+                                                 0260             0331
+                                                 0331     0000 30
+                                                 0330             0332
+
+0332      1.. END$
+
+0332
+                                                 0219             0333
+                                                 0210             0332
+                                                 0332     0000 30
+                                                 0333     0000 11 4942 CONST
+                                                 0334     0000 13 4991 F
+                                                 0335     1111 31 0337
+                                                 0336     0000 36 0340
+                                                 0337     0001 33 0340
+                                                 0338     0001 45 0002
+                                                 0339     0000 30 0341
+                                                 0340     0000 10 4990 CONST
+                                                 0341     0000 40 4988 TEMP
+                                                 0342     0000 10 4991 F
+                                                 0343     0000 13 4941 CONST
+                                                 0344     1111 31 0346
+                                                 0345     0000 36 0349
+                                                 0346     0001 33 0349
+                                                 0347     0001 45 0002
+                                                 0348     0000 30 0350
+                                                 0349     0000 10 4990 CONST
+                                                 0350     0000 17 4988 TEMP
+
+0333        IF (((-40) LEQ F) AND (F LEQ 58))$
+                                                 0351     0000 36
+
+0333          BEGIN
+                                                 0352     0000 41 4940 CONST
+                                                 0353     0000 10 4985 CONST
+                                                 0354     0000 44 4947 FL*FX
+                                                 0355     0000 30 4947
+                                                 0356     0000 24 4993 Q
+                                                 0357     0000 40 4988 TEMP
+                                                 0358     0000 10 4991 F
+                                                 0359     0000 13 4940 CONST
+                                                 0360     0001 48 0010
+                                                 0361     0000 10 4985 CONST
+                                                 0362     0000 44 4947 FL*FX
+                                                 0363     0000 30 4947
+
+0356          P = (Q.(10.0*9)).(10.0*(F-9))$
+                                                 0364     0000 24 4988 TEMP
+                                                 0365     0000 40 4996 P
+
+0366          E = 0$
+                                                 0366     0000 46 4995 E
+
+0367          RETURN
+                                                 0367     0000 42 0201
+                                                 0368   - 0000 30 0000
+
+0369          END$
+
+0369
+                                                 0351             0369
+                                                 0369     0000 41 4940 CONST
+                                                 0370     0000 10 4985 CONST
+                                                 0371     0000 44 4947 FL*FX
+                                                 0372     0000 30 4947
+
+0369        P = Q.(10.0*9)$
+                                                 0373     0000 24 4993 Q
+                                                 0374     0000 40 4996 P
+
+0375        E = F - 9$
+                                                 0375     0000 10 4991 F
+                                                 0376     0000 13 4940 CONST
+                                                 0377     0000 40 4995 E
+
+0378        RETURN
+                                                 0378     0000 42 0201
+                                                 0379   - 0000 30 0000
+
+0380        END PRODUCT()$
+
+0380
+                                                 0203             0380
+                                                 0380     0410 40 0377
+                                                 0381     0410 40 0366
+                                                 0382     0410 40 0228
+                                                 0383     0000 10 4996
+                                                 0384     0410 40 0374
+                                                 0385     0410 40 0365
+                                                 0386     0410 40 0227
+                                                 0387     0000 10 4998
+                                                 0388     0410 40 0254
+                                                 0389     0410 40 0235
+                                                 0390     0410 40 0224
+                                                 0391     0000 10 4999
+                                                 0392     0410 40 0215
+                                                 0393     0000 30 0204
+                                                 0200             0394
+                                                 0394     0000 30
+                                                 0395     4939 01 0395
+                                                 0396     0000 40 4934 TEMP
+                                                 0397     0000 30
+
+0394      PROCEDURE INNERPRODUCT (S, F, U(), V())$
+
+0394        BEGIN COMMENT THIS FORMS THE INNER PRODUCT OF THE VECTORS
+
+0394            U(I) AND V(I) FOR I = (S,1,F)$
+
+0394        INTEGER I, S, F$
+
+0394
+
+0398        SUM = 0.0$
+                                                 0398     0000 46 4933 SUM
+                                                 0399     0000 10 4939 S
+                                                 0400     0000 40 4932 I
+                                                 0401     0000 44
+                                                 0402     0000 30
+                                                 0403     0000 10 4990 CONST
+                                                 0404     0000 12 4932 I
+                                                 0405     0000 40 4932 I
+                                                 0402             0406
+                                                 0406     0000 13 4938 F
+                                                 0407     1111 31 0409
+                                                 0408     0000 36
+                                                 0409     0001 33
+
+0399        FOR I = (S,1,F)$
+                                                 0410     0000 30
+                                                 0409             0411
+                                                 0408             0411
+                                                 0411     0000 10 4932 I
+                                                 0412     0000 14 4936
+                                                 0413     0001 49 0010
+                                                 0413     0001 40 4931 TEMP
+                                                 0414     0000 10 4932 I
+                                                 0415     0000 14 4934
+                                                 0416     0001 49 0010
+
+0410          SUM = SUM + U(I).V(I)$
+                                                 0416     0001 40 4930 TEMP
+                                                 0417     0000 42 4931 TEMP
+                                                 0418   - 0000 10 4937 U
+                                                 0419     0000 42 4930 TEMP
+                                                 0420   - 0000 24 4935 V
+                                                 0421     0000 22 4933 SUM
+                                                 0422     0000 40 4933 SUM
+                                                 0410             0424
+                                                 0401             0423
+                                                 0423     0000 30
+
+0424        INNERPRODUCT() = SUM$
+                                                 0424     0000 10 4933 SUM
+
+0425        RETURN
+                                                 0425     0000 42 0395
+                                                 0426   - 0000 30 0000
+
+0427        END INNERPRODUCT()$
+
+0427
+                                                 0397             0427
+                                                 0427     0000 10 4935
+                                                 0428     0410 40 0420
+                                                 0429     0000 10 4937
+                                                 0430     0410 40 0418
+                                                 0431     0000 30 0398
+                                                 0394             0432
+                                                 0432     0000 30
+                                                 0433     4929 01 0433
+
+0432      PROCEDURE CROUT4 ($ N, A(,), B(), Y(), PIVOT(), DET, EX7$
+                                                 0434     0000 40 4916 TEMP
+                                                 0435     0000 30
+
+0436                        SINGULAR, IP())$
+
+0436        BEGIN COMMENT THIS IS CROUTS METHOD WITH INTERCHANGES, TO SOLVE
+
+0436            AY = B AND OBTAIN THE TRIANGULAR DECOMPOSITION. IP() STANDS FOR
+
+0436            AN INNERPRODUCT ROUTINE THAT MUST BE AVAILABLE WHEN CROUT4() IS
+
+0436            CALLED. ALSO, PRODUCT() MUST BE AVAILABLE. THE DETERMINANT OF A
+
+0436            IS COMPUTED IN THE FORM DET TIMES 10*EX7, WHERE EX7 IS 0 IF
+
+0436            POSSIBLE. IF EX7 NEQ 0, THEN WE NORMALIZE DET WITH 0.1 LEQ
+
+0436            ABS(DET) LSS 1$
+
+0436        INTEGER K, I, J, IMAX, N, PIVOT$
+
+0436        INTEGER EX7$
+
+0436
+
+0436        INT = 1.0$
+                                                 0436     0000 10 4987 CONST
+                                                 0437     0000 40 4915 INT
+                                                 0438     0000 10 4990 CONST
+                                                 0439     0000 40 4914 K
+                                                 0440     0000 44
+                                                 0441     0000 30
+                                                 0442     0000 10 4990 CONST
+                                                 0443     0000 12 4914 K
+                                                 0444     0000 40 4914 K
+                                                 0441             0445
+                                                 0445     0000 13 4929 N
+                                                 0446     1111 31 0448
+                                                 0447     0000 36
+                                                 0448     0001 33
+
+0438        FOR K = (1,1,N)$
+                                                 0449     0000 30
+                                                 0448             0450
+                                                 0447             0450
+
+0449          BEGIN
+
+0449          TEMP = 0$
+                                                 0450     0000 46 4913 TEMP
+                                                 0451     0000 10 4914 K
+                                                 0452     0000 40 4912 I
+                                                 0453     0000 44
+                                                 0454     0000 30
+                                                 0455     0000 10 4990 CONST
+                                                 0456     0000 12 4912 I
+                                                 0457     0000 40 4912 I
+                                                 0454             0458
+                                                 0458     0000 13 4929 N
+                                                 0459     1111 31 0461
+                                                 0460     0000 36
+                                                 0461     0001 33
+
+0451          FOR I = (K,1,N)$
+                                                 0462     0000 30
+                                                 0461             0463
+                                                 0460             0463
+
+0462            BEGIN
+                                                 0463     0000 10 4912 I
+                                                 0464     0000 14 4927
+                                                 0465     0001 49 0010
+                                                 0466     0000 12 4914 K
+                                                 0467     0000 14 4926
+                                                 0468     0001 49 0010
+                                                 0468     0001 40 4911 TEMP
+                                                 0469     0000 10 4912 I
+                                                 0470     0000 14 4927
+                                                 0471     0001 49 0010
+                                                 0472     0000 12 4914 K
+                                                 0473     0000 14 4926
+                                                 0474     0001 49 0010
+                                                 0474     0001 40 4910 TEMP
+                                                 0475     0000 10 4990 CONST
+                                                 0476     4400 28 4916
+                                                 0477   - 0000 40 0000
+                                                 0478     0000 10 4914 K
+                                                 0479     0000 13 4990 CONST
+                                                 0480   - 0000 40 9999
+                                                 0481     0000 10 4912 I
+                                                 0482     0000 14 4927
+                                                 0483     0001 49 0010
+                                                 0484     0000 14 4926
+                                                 0485     0001 49 0010
+                                                 0486     0000 12 0487
+                                                 0487     0000 01 4928 A
+                                                 0488   - 0000 40 9998
+                                                 0489     0000 10 4926
+                                                 0490   - 0000 40 9997
+                                                 0491     0000 10 4914 K
+                                                 0492     0000 14 4926
+                                                 0493     0001 49 0010
+                                                 0494     0000 12 0495
+                                                 0495     0000 01 4928 A
+                                                 0496   - 0000 40 9996
+                                                 0497     0000 10 4927
+                                                 0498     0000 14 4926
+                                                 0499     0001 49 0010
+
+0463            A(I,K) = A(I,K) - IP(1, K-1, A(I,), A(,K))$
+                                                 0500     0000 44 4916 IP
+                                                 0501     0500 30 4916
+                                                 0502     0000 42 4910 TEMP
+                                                 0503   - 0000 23 4928 A
+                                                 0504     0000 40 4910 TEMP
+                                                 0505     0000 11 4910 TEMP
+                                                 0506     0000 42 4911 TEMP
+                                                 0507   - 0000 40 4928 A
+                                                 0508     0000 10 4912 I
+                                                 0509     0000 14 4927
+                                                 0510     0001 49 0010
+                                                 0511     0000 12 4914 K
+                                                 0512     0000 14 4926
+                                                 0513     0001 49 0010
+                                                 0513     0001 40 4911 TEMP
+                                                 0514     0000 42 4911 TEMP
+                                                 0515   - 0001 10 4928 A
+
+0508            IF ABS(A(I,K)) GTR TEMP$
+                                                 0516     0000 13 4913 TEMP
+                                                 0517     1111 31 0519
+                                                 0518     0000 36
+                                                 0519     0001 33
+
+0508              BEGIN
+                                                 0520     0000 10 4912 I
+                                                 0521     0000 14 4927
+                                                 0522     0001 49 0010
+                                                 0523     0000 12 4914 K
+                                                 0524     0000 14 4926
+                                                 0525     0001 49 0010
+                                                 0525     0001 40 4911 TEMP
+
+0520              TEMP = ABS(A(I,K))$
+                                                 0526     0000 42 4911 TEMP
+                                                 0527   - 0001 10 4928 A
+                                                 0528     0000 40 4913 TEMP
+
+0529              IMAX = I
+
+0529              END
+                                                 0529     0000 10 4912 I
+                                                 0530     0000 40 4909 IMAX
+                                                 0519             0531
+                                                 0518             0531
+
+0531            END$
+
+0531
+                                                 0462             0532
+                                                 0453             0531
+                                                 0531     0000 30
+                                                 0532     0000 10 4914 K
+                                                 0533     0000 14 4920
+                                                 0534     0001 49 0010
+                                                 0534     0001 40 4911 TEMP
+
+0532          PIVOT(K) = IMAX$
+                                                 0535     0000 10 4909 IMAX
+                                                 0536     0000 42 4911 TEMP
+                                                 0537   - 0000 40 4921 PIVOT
+
+0538          COMMENT WE HAVE FOUND THAT A(IMAX,K) IS THE LARGEST PIVOT IN COL
+
+0538              K. NOW WE INTERCHANGE ROWS K AND IMAX$
+
+0538          IF IMAX NEQ K$
+                                                 0538     0000 10 4909 IMAX
+                                                 0539     0000 13 4914 K
+                                                 0540     1111 31 0542
+                                                 0541     0000 36
+
+0538            BEGIN
+
+0538            INT = -INT$
+                                                 0542     0000 11 4915 INT
+                                                 0543     0000 40 4915 INT
+                                                 0544     0000 10 4990 CONST
+                                                 0545     0000 40 4908 J
+                                                 0546     0000 44
+                                                 0547     0000 30
+                                                 0548     0000 10 4990 CONST
+                                                 0549     0000 12 4908 J
+                                                 0550     0000 40 4908 J
+                                                 0547             0551
+                                                 0551     0000 13 4929 N
+                                                 0552     1111 31 0554
+                                                 0553     0000 36
+                                                 0554     0001 33
+
+0544            FOR J = (1,1,N)$
+                                                 0555     0000 30
+                                                 0554             0556
+                                                 0553             0556
+
+0555              BEGIN
+                                                 0556     0000 10 4914 K
+                                                 0557     0000 14 4927
+                                                 0558     0001 49 0010
+                                                 0559     0000 12 4908 J
+                                                 0560     0000 14 4926
+                                                 0561     0001 49 0010
+
+0556              TEMP = A(K,J)$
+                                                 0561     0001 40 4911 TEMP
+                                                 0562     0000 42 4911 TEMP
+                                                 0563   - 0000 10 4928 A
+                                                 0564     0000 40 4913 TEMP
+                                                 0565     0000 10 4914 K
+                                                 0566     0000 14 4927
+                                                 0567     0001 49 0010
+                                                 0568     0000 12 4908 J
+                                                 0569     0000 14 4926
+                                                 0570     0001 49 0010
+                                                 0570     0001 40 4911 TEMP
+                                                 0571     0000 10 4909 IMAX
+                                                 0572     0000 14 4927
+                                                 0573     0001 49 0010
+                                                 0574     0000 12 4908 J
+                                                 0575     0000 14 4926
+                                                 0576     0001 49 0010
+
+0565              A(K,J) = A(IMAX,J)$
+                                                 0576     0001 40 4910 TEMP
+                                                 0577     0000 42 4910 TEMP
+                                                 0578   - 0000 10 4928 A
+                                                 0579     0000 42 4911 TEMP
+                                                 0580   - 0000 40 4928 A
+                                                 0581     0000 10 4909 IMAX
+                                                 0582     0000 14 4927
+                                                 0583     0001 49 0010
+                                                 0584     0000 12 4908 J
+                                                 0585     0000 14 4926
+                                                 0586     0001 49 0010
+                                                 0586     0001 40 4911 TEMP
+
+0581              A(IMAX,J) = TEMP
+                                                 0587     0000 10 4913 TEMP
+                                                 0588     0000 42 4911 TEMP
+                                                 0589   - 0000 40 4928 A
+
+0590              END$
+
+0590
+                                                 0555             0591
+                                                 0546             0590
+                                                 0590     0000 30
+                                                 0591     0000 10 4914 K
+                                                 0592     0000 14 4924
+                                                 0593     0001 49 0010
+
+0591            TEMP = B(K)$
+                                                 0593     0001 40 4911 TEMP
+                                                 0594     0000 42 4911 TEMP
+                                                 0595   - 0000 10 4925 B
+                                                 0596     0000 40 4913 TEMP
+                                                 0597     0000 10 4914 K
+                                                 0598     0000 14 4924
+                                                 0599     0001 49 0010
+                                                 0599     0001 40 4911 TEMP
+                                                 0600     0000 10 4909 IMAX
+                                                 0601     0000 14 4924
+                                                 0602     0001 49 0010
+
+0597            B(K) = B(IMAX)$
+                                                 0602     0001 40 4910 TEMP
+                                                 0603     0000 42 4910 TEMP
+                                                 0604   - 0000 10 4925 B
+                                                 0605     0000 42 4911 TEMP
+                                                 0606   - 0000 40 4925 B
+                                                 0607     0000 10 4909 IMAX
+                                                 0608     0000 14 4924
+                                                 0609     0001 49 0010
+                                                 0609     0001 40 4911 TEMP
+
+0607            B(IMAX) = TEMP
+                                                 0610     0000 10 4913 TEMP
+                                                 0611     0000 42 4911 TEMP
+                                                 0612   - 0000 40 4925 B
+
+0613            END$
+
+0613
+                                                 0541             0613
+
+0613          COMMENT NOW FOR THE ELIMINATION$
+                                                 0613     0000 10 4914 K
+                                                 0614     0000 14 4927
+                                                 0615     0001 49 0010
+                                                 0616     0000 12 4914 K
+                                                 0617     0000 14 4926
+                                                 0618     0001 49 0010
+                                                 0618     0001 40 4911 TEMP
+
+0613          IF A(K,K) EQL 0$
+                                                 0619     0000 42 4911 TEMP
+                                                 0620   - 0000 10 4928 A
+                                                 0621     0000 36 0623
+                                                 0622     0000 30
+
+0613            BEGIN
+
+0613            DET = 0.0$
+                                                 0623     0000 46 4919 DET
+
+0624            EX7 = 0$
+                                                 0624     0000 46 4918 EX7
+
+0625            GO TO SINGULAR$
+                                                 0625     0000 30 4917 SINGU
+
+0626            END$
+
+0626
+                                                 0622             0626
+                                                 0626     0000 10 4990 CONST
+                                                 0627     0000 12 4914 K
+                                                 0628     0000 40 4912 I
+                                                 0629     0000 44
+                                                 0630     0000 30
+                                                 0631     0000 10 4990 CONST
+                                                 0632     0000 12 4912 I
+                                                 0633     0000 40 4912 I
+                                                 0630             0634
+                                                 0634     0000 13 4929 N
+                                                 0635     1111 31 0637
+                                                 0636     0000 36
+                                                 0637     0001 33
+
+0626          FOR I = (K+1,1,N)$
+                                                 0638     0000 30
+                                                 0637             0639
+                                                 0636             0639
+
+0638            BEGIN
+                                                 0639     0000 10 4912 I
+                                                 0640     0000 14 4927
+                                                 0641     0001 49 0010
+                                                 0642     0000 12 4914 K
+                                                 0643     0000 14 4926
+                                                 0644     0001 49 0010
+
+0639            XX = A(I,K)$
+                                                 0644     0001 40 4911 TEMP
+                                                 0645     0000 42 4911 TEMP
+                                                 0646   - 0000 10 4928 A
+                                                 0647     0000 40 4907 XX
+                                                 0648     0000 10 4914 K
+                                                 0649     0000 14 4927
+                                                 0650     0001 49 0010
+                                                 0651     0000 12 4914 K
+                                                 0652     0000 14 4926
+                                                 0653     0001 49 0010
+
+0648            XY = A(K,K)$
+                                                 0653     0001 40 4911 TEMP
+                                                 0654     0000 42 4911 TEMP
+                                                 0655   - 0000 10 4928 A
+                                                 0656     0000 40 4906 XY
+
+0657            X = 1.0$
+                                                 0657     0000 10 4987 CONST
+                                                 0658     0000 40 4905 X
+
+0659            X = X.X$
+                                                 0659     0000 10 4905 X
+                                                 0660     0000 24 4905 X
+                                                 0661     0000 40 4905 X
+                                                 0662     0000 10 4912 I
+                                                 0663     0000 14 4927
+                                                 0664     0001 49 0010
+                                                 0665     0000 12 4914 K
+                                                 0666     0000 14 4926
+                                                 0667     0001 49 0010
+                                                 0667     0001 40 4911 TEMP
+
+0662            A(I,K) = XX/XY
+                                                 0668     0000 10 4907 XX
+                                                 0669     0002 45 0000
+                                                 0670     0000 25 4906 XY
+                                                 0671     0000 42 4911 TEMP
+                                                 0672   - 0000 40 4928 A
+
+0673            END$
+
+0673
+                                                 0638             0674
+                                                 0629             0673
+                                                 0673     0000 30
+                                                 0674     0000 10 4990 CONST
+                                                 0675     0000 12 4914 K
+                                                 0676     0000 40 4908 J
+                                                 0677     0000 44
+                                                 0678     0000 30
+                                                 0679     0000 10 4990 CONST
+                                                 0680     0000 12 4908 J
+                                                 0681     0000 40 4908 J
+                                                 0678             0682
+                                                 0682     0000 13 4929 N
+                                                 0683     1111 31 0685
+                                                 0684     0000 36
+                                                 0685     0001 33
+
+0674          FOR J = (K+1,1,N)$
+                                                 0686     0000 30
+                                                 0685             0687
+                                                 0684             0687
+                                                 0687     0000 10 4914 K
+                                                 0688     0000 14 4927
+                                                 0689     0001 49 0010
+                                                 0690     0000 12 4908 J
+                                                 0691     0000 14 4926
+                                                 0692     0001 49 0010
+                                                 0692     0001 40 4911 TEMP
+                                                 0693     0000 10 4914 K
+                                                 0694     0000 14 4927
+                                                 0695     0001 49 0010
+                                                 0696     0000 12 4908 J
+                                                 0697     0000 14 4926
+                                                 0698     0001 49 0010
+                                                 0698     0001 40 4910 TEMP
+                                                 0699     0000 10 4990 CONST
+                                                 0700     4400 28 4916
+                                                 0701   - 0000 40 0000
+                                                 0702     0000 10 4914 K
+                                                 0703     0000 13 4990 CONST
+                                                 0704   - 0000 40 9999
+                                                 0705     0000 10 4914 K
+                                                 0706     0000 14 4927
+                                                 0707     0001 49 0010
+                                                 0708     0000 14 4926
+                                                 0709     0001 49 0010
+                                                 0710     0000 12 0711
+                                                 0711     0000 01 4928 A
+                                                 0712   - 0000 40 9998
+                                                 0713     0000 10 4926
+                                                 0714   - 0000 40 9997
+                                                 0715     0000 10 4908 J
+                                                 0716     0000 14 4926
+                                                 0717     0001 49 0010
+                                                 0718     0000 12 0719
+                                                 0719     0000 01 4928 A
+                                                 0720   - 0000 40 9996
+                                                 0721     0000 10 4927
+                                                 0722     0000 14 4926
+                                                 0723     0001 49 0010
+
+0686            A(K,J) = A(K,J) - IP(1, K-1, A(K,), A(,J))$
+
+0686
+                                                 0724     0000 44 4916 IP
+                                                 0725     0500 30 4916
+                                                 0726     0000 42 4910 TEMP
+                                                 0727   - 0000 23 4928 A
+                                                 0728     0000 40 4910 TEMP
+                                                 0729     0000 11 4910 TEMP
+                                                 0730     0000 42 4911 TEMP
+                                                 0731   - 0000 40 4928 A
+                                                 0686             0733
+                                                 0677             0732
+                                                 0732     0000 30
+                                                 0733     0000 10 4914 K
+                                                 0734     0000 14 4924
+                                                 0735     0001 49 0010
+                                                 0735     0001 40 4911 TEMP
+                                                 0736     0000 10 4914 K
+                                                 0737     0000 14 4924
+                                                 0738     0001 49 0010
+                                                 0738     0001 40 4910 TEMP
+                                                 0739     0000 10 4990 CONST
+                                                 0740     4400 28 4916
+                                                 0741   - 0000 40 0000
+                                                 0742     0000 10 4914 K
+                                                 0743     0000 13 4990 CONST
+                                                 0744   - 0000 40 9999
+                                                 0745     0000 10 4914 K
+                                                 0746     0000 14 4927
+                                                 0747     0001 49 0010
+                                                 0748     0000 14 4926
+                                                 0749     0001 49 0010
+                                                 0750     0000 12 0751
+                                                 0751     0000 01 4928 A
+                                                 0752   - 0000 40 9998
+                                                 0753     0000 10 4926
+                                                 0754   - 0000 40 9997
+                                                 0755     0000 10 0756
+                                                 0756     0000 01 4925 B
+                                                 0757   - 0000 40 9996
+
+0733          B(K) = B(K) - IP(1, K-1, A(K,), B())
+                                                 0758     0000 10 4924
+                                                 0759     0000 44 4916 IP
+                                                 0760     0500 30 4916
+                                                 0761     0000 42 4910 TEMP
+                                                 0762   - 0000 23 4925 B
+                                                 0763     0000 40 4910 TEMP
+                                                 0764     0000 11 4910 TEMP
+                                                 0765     0000 42 4911 TEMP
+                                                 0766   - 0000 40 4925 B
+
+0758          END$
+
+0758
+                                                 0449             0768
+                                                 0440             0767
+                                                 0767     0000 30
+                                                 0768     0000 10 4990 CONST
+                                                 0769     0000 40 4912 I
+                                                 0770     0000 44
+                                                 0771     0000 30
+                                                 0772     0000 10 4990 CONST
+                                                 0773     0000 12 4912 I
+                                                 0774     0000 40 4912 I
+                                                 0771             0775
+                                                 0775     0000 13 4929 N
+                                                 0776     1111 31 0778
+                                                 0777     0000 36
+                                                 0778     0001 33
+
+0768        FOR I = (1,1,N)$
+                                                 0779     0000 30
+                                                 0778             0780
+                                                 0777             0780
+                                                 0780     0000 10 4912 I
+                                                 0781     0000 14 4922
+                                                 0782     0001 49 0010
+                                                 0782     0001 40 4911 TEMP
+                                                 0783     0000 10 4912 I
+                                                 0784     0000 14 4927
+                                                 0785     0001 49 0010
+                                                 0786     0000 12 4912 I
+                                                 0787     0000 14 4926
+                                                 0788     0001 49 0010
+
+0779          Y(I) = A(I,I)$
+                                                 0788     0001 40 4910 TEMP
+                                                 0789     0000 42 4910 TEMP
+                                                 0790   - 0000 10 4928 A
+                                                 0791     0000 42 4911 TEMP
+                                                 0792   - 0000 40 4923 Y
+                                                 0779             0794
+                                                 0770             0793
+                                                 0793     0000 30
+                                                 0794     0000 10 0795
+                                                 0795     0000 01 4929 N
+                                                 0796     4400 28 0201
+                                                 0797   - 0000 40 0000
+                                                 0798     0000 10 0799
+                                                 0799     0000 01 4923 Y
+                                                 0800   - 0000 40 9999
+                                                 0801     0000 10 4922
+                                                 0802   - 0000 40 9998
+                                                 0803     0000 10 0804
+                                                 0804     0000 01 4919 DET
+                                                 0805   - 0000 40 9997
+
+0794        PRODUCT ($ N, Y(), DET, EX7)$
+                                                 0806     0000 10 0807
+                                                 0807     0000 01 4918 EX7
+                                                 0808     0000 44 0201 PRODU
+                                                 0809     0400 30 0201
+
+0810        DET = INT.DET$
+
+0810
+                                                 0810     0000 10 4915 INT
+                                                 0811     0000 24 4919 DET
+                                                 0812     0000 40 4919 DET
+
+0813        COMMENT NOW FOR THE BACK SUBSTITUTION$
+                                                 0813     0000 10 4929 N
+                                                 0814     0000 40 4914 K
+                                                 0815     0000 44
+                                                 0816     0000 30
+                                                 0817     0000 10 4914 K
+                                                 0818     0000 13 4990 CONST
+                                                 0819     0000 40 4914 K
+                                                 0816             0820
+                                                 0820     0000 13 4990 CONST
+                                                 0821     1111 31 0823
+                                                 0822     0000 36
+                                                 0823     0000 33
+
+0813        FOR K = (N,-1,1)$
+                                                 0824     0000 30
+                                                 0823             0825
+                                                 0822             0825
+
+0824          BEGIN
+                                                 0825     0000 10 4914 K
+                                                 0826     0000 14 4924
+                                                 0827     0001 49 0010
+                                                 0827     0001 40 4911 TEMP
+                                                 0828     0000 10 4990 CONST
+                                                 0829     0000 12 4914 K
+                                                 0830     4400 28 4916
+                                                 0831   - 0000 40 0000
+                                                 0832     0000 10 4929 N
+                                                 0833   - 0000 40 9999
+                                                 0834     0000 10 4914 K
+                                                 0835     0000 14 4927
+                                                 0836     0001 49 0010
+                                                 0837     0000 14 4926
+                                                 0838     0001 49 0010
+                                                 0839     0000 12 0840
+                                                 0840     0000 01 4928 A
+                                                 0841   - 0000 40 9998
+                                                 0842     0000 10 4926
+                                                 0843   - 0000 40 9997
+                                                 0844     0000 10 0845
+                                                 0845     0000 01 4923 Y
+                                                 0846   - 0000 40 9996
+
+0828          XX = B(K) - IP(K+1, N, A(K,), Y())$
+                                                 0847     0000 10 4922
+                                                 0848     0000 44 4916 IP
+                                                 0849     0500 30 4916
+                                                 0850     0000 42 4911 TEMP
+                                                 0851   - 0000 23 4925 B
+                                                 0852     0000 40 4911 TEMP
+                                                 0853     0000 11 4911 TEMP
+                                                 0854     0000 40 4907 XX
+                                                 0855     0000 10 4914 K
+                                                 0856     0000 14 4927
+                                                 0857     0001 49 0010
+                                                 0858     0000 12 4914 K
+                                                 0859     0000 14 4926
+                                                 0860     0001 49 0010
+
+0855          XY = A(K,K)$
+                                                 0860     0001 40 4911 TEMP
+                                                 0861     0000 42 4911 TEMP
+                                                 0862   - 0000 10 4928 A
+                                                 0863     0000 40 4906 XY
+
+0864          X = 1.0$
+                                                 0864     0000 10 4987 CONST
+                                                 0865     0000 40 4905 X
+
+0866          X = X.X$
+                                                 0866     0000 10 4905 X
+                                                 0867     0000 24 4905 X
+                                                 0868     0000 40 4905 X
+                                                 0869     0000 10 4914 K
+                                                 0870     0000 14 4922
+                                                 0871     0001 49 0010
+                                                 0871     0001 40 4911 TEMP
+
+0869          Y(K) = XX/XY
+                                                 0872     0000 10 4907 XX
+                                                 0873     0002 45 0000
+                                                 0874     0000 25 4906 XY
+                                                 0875     0000 42 4911 TEMP
+                                                 0876   - 0000 40 4923 Y
+
+0877          END$
+
+0877
+                                                 0824             0878
+                                                 0815             0877
+                                                 0877     0000 30
+                                                 0878     0000 42 0433
+                                                 0879   - 0000 30 0000
+
+0878        RETURN$
+
+0880        END CROUT4()$
+
+0880
+                                                 0435             0880
+                                                 0880     0410 40 0849
+                                                 0881     0410 40 0848
+                                                 0882     0410 40 0830
+                                                 0883     0410 40 0760
+                                                 0884     0410 40 0759
+                                                 0885     0410 40 0740
+                                                 0886     0410 40 0725
+                                                 0887     0410 40 0724
+                                                 0888     0410 40 0700
+                                                 0889     0410 40 0501
+                                                 0890     0410 40 0500
+                                                 0891     0410 40 0476
+                                                 0892     0000 10 4917
+                                                 0893     0410 40 0625
+                                                 0894     0000 10 4918
+                                                 0895     0410 40 0807
+                                                 0896     0410 40 0624
+                                                 0897     0000 10 4919
+                                                 0898     0410 40 0812
+                                                 0899     0410 40 0811
+                                                 0900     0410 40 0804
+                                                 0901     0410 40 0623
+                                                 0902     0000 10 4921
+                                                 0903     0410 40 0537
+                                                 0904     0000 10 4923
+                                                 0905     0410 40 0876
+                                                 0906     0410 40 0845
+                                                 0907     0410 40 0799
+                                                 0908     0410 40 0792
+                                                 0909     0000 10 4925
+                                                 0910     0410 40 0851
+                                                 0911     0410 40 0766
+                                                 0912     0410 40 0762
+                                                 0913     0410 40 0756
+                                                 0914     0410 40 0612
+                                                 0915     0410 40 0606
+                                                 0916     0410 40 0604
+                                                 0917     0410 40 0595
+                                                 0918     0000 10 4928
+                                                 0919     0410 40 0862
+                                                 0920     0410 40 0840
+                                                 0921     0410 40 0790
+                                                 0922     0410 40 0751
+                                                 0923     0410 40 0731
+                                                 0924     0410 40 0727
+                                                 0925     0410 40 0719
+                                                 0926     0410 40 0711
+                                                 0927     0410 40 0672
+                                                 0928     0410 40 0655
+                                                 0929     0410 40 0646
+                                                 0930     0410 40 0620
+                                                 0931     0410 40 0589
+                                                 0932     0410 40 0580
+                                                 0933     0410 40 0578
+                                                 0934     0410 40 0563
+                                                 0935     0410 40 0527
+                                                 0936     0410 40 0515
+                                                 0937     0410 40 0507
+                                                 0938     0410 40 0503
+                                                 0939     0410 40 0495
+                                                 0940     0410 40 0487
+                                                 0941     0000 10 4929
+                                                 0942     0410 40 0832
+                                                 0943     0410 40 0813
+                                                 0944     0410 40 0795
+                                                 0945     0410 40 0775
+                                                 0946     0410 40 0682
+                                                 0947     0410 40 0634
+                                                 0948     0410 40 0551
+                                                 0949     0410 40 0458
+                                                 0950     0410 40 0445
+                                                 0951     0000 30 0436
+                                                 0432             0952
+                                                 0952     0000 30
+                                                 0953     4904 01 0953
+                                                 0954     0000 40 4894 TEMP
+                                                 0955     0000 30
+
+0952      PROCEDURE SOLV2 ($ N, B(,), C(), PIVOT(), Z()$ IP())$
+
+0952        BEGIN COMMENT IT IS ASSUMED THAT A MATRIX A HAS ALREADY BEEN
+
+0952            TRANSFORMED INTO B BY CROUT, BUT THAT A NEW COLUMN C HAS
+
+0952            NOT BEEN PROCESSED. SOLV2() SOLVES THE SYSTEM BZ = C.
+
+0952            AN INNERPRODUCT PROCEDURE MUST BE USED WITH SOLV2()$
+
+0952        INTEGER K, N, PIVOT$
+
+0952
+                                                 0956     0000 10 4990 CONST
+                                                 0957     0000 40 4893 K
+                                                 0958     0000 44
+                                                 0959     0000 30
+                                                 0960     0000 10 4990 CONST
+                                                 0961     0000 12 4893 K
+                                                 0962     0000 40 4893 K
+                                                 0959             0963
+                                                 0963     0000 13 4904 N
+                                                 0964     1111 31 0966
+                                                 0965     0000 36
+                                                 0966     0001 33
+
+0956        FOR K = (1,1,N)$
+                                                 0967     0000 30
+                                                 0966             0968
+                                                 0965             0968
+
+0967          BEGIN
+                                                 0968     0000 10 4893 K
+                                                 0969     0000 14 4897
+                                                 0970     0001 49 0010
+                                                 0970     0001 40 4892 TEMP
+                                                 0971     0000 42 4892 TEMP
+                                                 0972   - 0000 10 4898 PIVOT
+                                                 0973     0000 14 4899
+                                                 0974     0001 49 0010
+
+0971          TEMP = C(PIVOT(K))$
+                                                 0974     0001 40 4892 TEMP
+                                                 0975     0000 42 4892 TEMP
+                                                 0976   - 0000 10 4900 C
+                                                 0977     0000 40 4891 TEMP
+                                                 0978     0000 10 4893 K
+                                                 0979     0000 14 4897
+                                                 0980     0001 49 0010
+                                                 0980     0001 40 4892 TEMP
+                                                 0981     0000 42 4892 TEMP
+                                                 0982   - 0000 10 4898 PIVOT
+                                                 0983     0000 14 4899
+                                                 0984     0001 49 0010
+                                                 0984     0001 40 4892 TEMP
+                                                 0985     0000 10 4893 K
+                                                 0986     0000 14 4899
+                                                 0987     0001 49 0010
+
+0978          C(PIVOT(K)) = C(K)$
+                                                 0987     0001 40 4890 TEMP
+                                                 0988     0000 42 4890 TEMP
+                                                 0989   - 0000 10 4900 C
+                                                 0990     0000 42 4892 TEMP
+                                                 0991   - 0000 40 4900 C
+                                                 0992     0000 10 4893 K
+                                                 0993     0000 14 4899
+                                                 0994     0001 49 0010
+                                                 0994     0001 40 4892 TEMP
+
+0992          C(K) = TEMP$
+                                                 0995     0000 10 4891 TEMP
+                                                 0996     0000 42 4892 TEMP
+                                                 0997   - 0000 40 4900 C
+                                                 0998     0000 10 4893 K
+                                                 0999     0000 14 4899
+                                                 1000     0001 49 0010
+                                                 1000     0001 40 4892 TEMP
+                                                 1001     0000 10 4893 K
+                                                 1002     0000 14 4899
+                                                 1003     0001 49 0010
+                                                 1003     0001 40 4890 TEMP
+                                                 1004     0000 10 4990 CONST
+                                                 1005     4400 28 4894
+                                                 1006   - 0000 40 0000
+                                                 1007     0000 10 4893 K
+                                                 1008     0000 13 4990 CONST
+                                                 1009   - 0000 40 9999
+                                                 1010     0000 10 4893 K
+                                                 1011     0000 14 4902
+                                                 1012     0001 49 0010
+                                                 1013     0000 14 4901
+                                                 1014     0001 49 0010
+                                                 1015     0000 12 1016
+                                                 1016     0000 01 4903 B
+                                                 1017   - 0000 40 9998
+                                                 1018     0000 10 4901
+                                                 1019   - 0000 40 9997
+                                                 1020     0000 10 1021
+                                                 1021     0000 01 4900 C
+                                                 1022   - 0000 40 9996
+
+0998          C(K) = C(K) - IP(1, K-1, B(K,), C())
+                                                 1023     0000 10 4899
+                                                 1024     0000 44 4894 IP
+                                                 1025     0500 30 4894
+                                                 1026     0000 42 4890 TEMP
+                                                 1027   - 0000 23 4900 C
+                                                 1028     0000 40 4890 TEMP
+                                                 1029     0000 11 4890 TEMP
+                                                 1030     0000 42 4892 TEMP
+                                                 1031   - 0000 40 4900 C
+
+1023          END$
+
+1023
+                                                 0967             1033
+                                                 0958             1032
+                                                 1032     0000 30
+                                                 1033     0000 10 4904 N
+                                                 1034     0000 40 4893 K
+                                                 1035     0000 44
+                                                 1036     0000 30
+                                                 1037     0000 10 4893 K
+                                                 1038     0000 13 4990 CONST
+                                                 1039     0000 40 4893 K
+                                                 1036             1040
+                                                 1040     0000 13 4990 CONST
+                                                 1041     1111 31 1043
+                                                 1042     0000 36
+                                                 1043     0000 33
+
+1033        FOR K = (N,-1,1)$
+                                                 1044     0000 30
+                                                 1043             1045
+                                                 1042             1045
+                                                 1045     0000 10 4893 K
+                                                 1046     0000 14 4895
+                                                 1047     0001 49 0010
+                                                 1047     0001 40 4892 TEMP
+                                                 1048     0000 10 4893 K
+                                                 1049     0000 14 4899
+                                                 1050     0001 49 0010
+                                                 1050     0001 40 4890 TEMP
+                                                 1051     0000 10 4990 CONST
+                                                 1052     0000 12 4893 K
+                                                 1053     4400 28 4894
+                                                 1054   - 0000 40 0000
+                                                 1055     0000 10 4904 N
+                                                 1056   - 0000 40 9999
+                                                 1057     0000 10 4893 K
+                                                 1058     0000 14 4902
+                                                 1059     0001 49 0010
+                                                 1060     0000 14 4901
+                                                 1061     0001 49 0010
+                                                 1062     0000 12 1063
+                                                 1063     0000 01 4903 B
+                                                 1064   - 0000 40 9998
+                                                 1065     0000 10 4901
+                                                 1066   - 0000 40 9997
+                                                 1067     0000 10 1068
+                                                 1068     0000 01 4896 Z
+                                                 1069   - 0000 40 9996
+                                                 1070     0000 10 4895
+                                                 1071     0000 44 4894 IP
+                                                 1072     0500 30 4894
+                                                 1073     0000 42 4890 TEMP
+                                                 1074   - 0000 23 4900 C
+                                                 1075     0000 40 4890 TEMP
+                                                 1076     0000 10 4893 K
+                                                 1077     0000 14 4902
+                                                 1078     0001 49 0010
+                                                 1079     0000 12 4893 K
+                                                 1080     0000 14 4901
+                                                 1081     0001 49 0010
+
+1044          Z(K) = (C(K) - IP(K+1, N, B(K,), Z()))/B(K,K)$
+                                                 1081     0001 40 4889 TEMP
+                                                 1082     0000 11 4890 TEMP
+                                                 1083     0002 45 0000
+                                                 1084     0000 42 4889 TEMP
+                                                 1085   - 0000 25 4903 B
+                                                 1086     0000 42 4892 TEMP
+                                                 1087   - 0000 40 4896 Z
+                                                 1044             1089
+                                                 1035             1088
+                                                 1088     0000 30
+
+1089        RETURN
+                                                 1089     0000 42 0953
+                                                 1090   - 0000 30 0000
+
+1091        END SOLV2()$
+
+1091
+                                                 0955             1091
+                                                 1091     0410 40 1072
+                                                 1092     0410 40 1071
+                                                 1093     0410 40 1053
+                                                 1094     0410 40 1025
+                                                 1095     0410 40 1024
+                                                 1096     0410 40 1005
+                                                 1097     0000 10 4896
+                                                 1098     0410 40 1087
+                                                 1099     0410 40 1068
+                                                 1100     0000 10 4898
+                                                 1101     0410 40 0982
+                                                 1102     0410 40 0972
+                                                 1103     0000 10 4900
+                                                 1104     0410 40 1074
+                                                 1105     0410 40 1031
+                                                 1106     0410 40 1027
+                                                 1107     0410 40 1021
+                                                 1108     0410 40 0997
+                                                 1109     0410 40 0991
+                                                 1110     0410 40 0989
+                                                 1111     0410 40 0976
+                                                 1112     0000 10 4903
+                                                 1113     0410 40 1085
+                                                 1114     0410 40 1063
+                                                 1115     0410 40 1016
+                                                 1116     0000 10 4904
+                                                 1117     0410 40 1055
+                                                 1118     0410 40 1033
+                                                 1119     0410 40 0963
+                                                 1120     0000 30 0956
+                                                 0952             1121
+
+1121      COMMENT FORSYTHE TEST CROUT US169 EXT 2274$
+                                                 1121     0000 30
+                                                 1122     0006 60 0000
+                                                 1123     0064 60 1908
+                                                 1124     0006 60 0000
+                                                 1125   - 0000 00 1123
+                                                 1126   - 0000 00 1122
+
+1121      FORMAT FRMTFL (W0, (6F19.8, W0))$
+                                                 1121             1127
+                                                 1127     0000 30
+                                                 1128     0006 60 0000
+                                                 1129     0064 90 1900
+                                                 1130     0006 60 0000
+                                                 1131   - 0000 00 1129
+                                                 1132   - 0000 00 1128
+
+1127      FORMAT FRMTFX (W0, (6I19, W0))$
+                                                 1127             1133
+
+1133      INTEGER PIVOT()$
+
+1133      INTEGER EX$
+
+1133      INTEGER I, J, N$
+
+1133      ARRAY A(70,70), B(70), Y(70), C(70), PIVOT(70)$
+                                                 1133     0000 30
+                                                 1134     0000 30
+                                                 1135     0100 42 1135
+                                                 1136     0002 20 1134
+                                                 1137     0000 40 0292 N
+                                                 1138     0000 10 4990 CONST
+                                                 1139     0000 40 0291 I
+                                                 1140     0000 44
+                                                 1141     0000 30
+                                                 1142     0000 10 4990 CONST
+                                                 1143     0000 12 0291 I
+                                                 1144     0000 40 0291 I
+                                                 1141             1145
+                                                 1145     0000 13 0292 N
+                                                 1146     1111 31 1148
+                                                 1147     0000 36
+                                                 1148     0001 33
+                                                 1149     0000 30
+                                                 1148             1150
+                                                 1147             1150
+                                                 1150     0000 10 4990 CONST
+                                                 1151     0000 40 0290 J
+                                                 1152     0000 44
+                                                 1153     0000 30
+                                                 1154     0000 10 4990 CONST
+                                                 1155     0000 12 0290 J
+                                                 1156     0000 40 0290 J
+                                                 1153             1157
+                                                 1157     0000 13 0292 N
+                                                 1158     1111 31 1160
+                                                 1159     0000 36
+                                                 1160     0001 33
+                                                 1161     0000 30
+                                                 1160             1162
+                                                 1159             1162
+                                                 1162     0000 10 0291 I
+                                                 1163     0000 14 0289 CONST
+                                                 1164     0001 49 0010
+                                                 1165     0000 12 0290 J
+                                                 1166     0000 40 0288 TEMP
+                                                 1167     0000 42 1167
+                                                 1168     0002 20 1134
+                                                 1169     0000 42 0288 TEMP
+                                                 1170   - 0000 40 9918 A
+                                                 1161             1172
+                                                 1152             1171
+                                                 1171     0000 30
+                                                 1172     0000 42 1172
+                                                 1173     0002 20 1134
+                                                 1174     0000 42 0291 I
+                                                 1175   - 0000 40 9918 B
+                                                 1149             1177
+                                                 1140             1176
+                                                 1176     0000 30
+
+1133      INPUT DATA (N, FOR I=(1,1,N)$ (FOR J=(1,1,N)$ A(I,J), B(I)))$
+                                                 1177     0009 43 0000
+                                                 1178     0000 30 1134
+                                                 1133             1179
+                                                 1179     0000 30
+                                                 1180     0000 30
+                                                 1181     0100 42 1181
+                                                 1182     0002 20 1180
+                                                 1183     0000 40 0292 N
+                                                 1184     0000 10 4990 CONST
+                                                 1185     0000 40 0291 I
+                                                 1186     0000 44
+                                                 1187     0000 30
+                                                 1188     0000 10 4990 CONST
+                                                 1189     0000 12 0291 I
+                                                 1190     0000 40 0291 I
+                                                 1187             1191
+                                                 1191     0000 13 0292 N
+                                                 1192     1111 31 1194
+                                                 1193     0000 36
+                                                 1194     0001 33
+                                                 1195     0000 30
+                                                 1194             1196
+                                                 1193             1196
+                                                 1196     0000 42 1196
+                                                 1197     0002 20 1180
+                                                 1198     0000 42 0291 I
+                                                 1199   - 0000 40 9778 C
+                                                 1195             1201
+                                                 1186             1200
+                                                 1200     0000 30
+
+1179      INPUT VECTOR (N, FOR I=(1,1,N)$ C(I))$
+
+1179
+                                                 1201     0009 43 0000
+                                                 1202     0000 30 1180
+                                                 1179             1203
+
+1203      START..
+
+1203        READ ($$ DATA)$
+                                                 1203     0000 10 1204
+                                                 1204     0000 01 1134 DATA
+                                                 1205     0000 44 0427 READ
+                                                 1206     0000 30 0427
+
+1207        READ ($$ VECTOR)$
+                                                 1207     0000 10 1208
+                                                 1208     0000 01 1180 VECTO
+                                                 1209     0000 44 0427 READ
+                                                 1210     0000 30 0427
+                                                 1211     0000 30
+                                                 1212     0000 30
+
+1211        OUTPUT ORDER (N)$
+                                                 1213     0000 10 0292 N
+                                                 1214     0100 42 1214
+                                                 1215     0002 20 1212
+                                                 1216     0009 43 0000
+                                                 1217     0000 30 1212
+                                                 1211             1218
+                                                 1218     0000 30
+                                                 1219     0000 30
+                                                 1220     0000 10 4990 CONST
+                                                 1221     0000 40 0291 I
+                                                 1222     0000 44
+                                                 1223     0000 30
+                                                 1224     0000 10 4990 CONST
+                                                 1225     0000 12 0291 I
+                                                 1226     0000 40 0291 I
+                                                 1223             1227
+                                                 1227     0000 13 0292 N
+                                                 1228     1111 31 1230
+                                                 1229     0000 36
+                                                 1230     0001 33
+                                                 1231     0000 30
+                                                 1230             1232
+                                                 1229             1232
+                                                 1232     0000 10 4990 CONST
+                                                 1233     0000 40 0290 J
+                                                 1234     0000 44
+                                                 1235     0000 30
+                                                 1236     0000 10 4990 CONST
+                                                 1237     0000 12 0290 J
+                                                 1238     0000 40 0290 J
+                                                 1235             1239
+                                                 1239     0000 13 0292 N
+                                                 1240     1111 31 1242
+                                                 1241     0000 36
+                                                 1242     0001 33
+                                                 1243     0000 30
+                                                 1242             1244
+                                                 1241             1244
+                                                 1244     0000 10 0291 I
+                                                 1245     0000 14 0289 CONST
+                                                 1246     0001 49 0010
+                                                 1247     0000 12 0290 J
+                                                 1248     0000 40 0288 TEMP
+                                                 1249     0000 42 0288 TEMP
+                                                 1250   - 0000 10 9918 A
+                                                 1251     0000 42 1251
+                                                 1252     0002 20 1219
+                                                 1243             1254
+                                                 1234             1253
+                                                 1253     0000 30
+                                                 1254     0000 42 0291 I
+                                                 1255   - 0000 10 9918 B
+                                                 1256     0000 42 1256
+                                                 1257     0002 20 1219
+                                                 1231             1259
+                                                 1222             1258
+                                                 1258     0000 30
+
+1218        OUTPUT DATAO (FOR I=(1,1,N)$ (FOR J=(1,1,N)$ A(I,J), B(I)))$
+                                                 1259     0009 43 0000
+                                                 1260     0000 30 1219
+                                                 1218             1261
+                                                 1261     0000 30
+                                                 1262     0000 30
+                                                 1263     0000 10 4990 CONST
+                                                 1264     0000 40 0291 I
+                                                 1265     0000 44
+                                                 1266     0000 30
+                                                 1267     0000 10 4990 CONST
+                                                 1268     0000 12 0291 I
+                                                 1269     0000 40 0291 I
+                                                 1266             1270
+                                                 1270     0000 13 0292 N
+                                                 1271     1111 31 1273
+                                                 1272     0000 36
+                                                 1273     0001 33
+                                                 1274     0000 30
+                                                 1273             1275
+                                                 1272             1275
+                                                 1275     0000 42 0291 I
+                                                 1276   - 0000 10 9778 C
+                                                 1277     0000 42 1277
+                                                 1278     0002 20 1262
+                                                 1274             1280
+                                                 1265             1279
+                                                 1279     0000 30
+
+1261        OUTPUT VECTORO (FOR I=(1,1,N)$ C(I))$
+                                                 1280     0009 43 0000
+                                                 1281     0000 30 1262
+                                                 1261             1282
+                                                 1282     0000 10 1283
+                                                 1283     0000 01 1212 ORDER
+                                                 1284     4400 28 0667
+                                                 1285   - 0000 40 0000
+
+1282        WRITE ($$ ORDER, FRMTFX)$
+                                                 1286     0000 10 1287
+                                                 1287     0000 01 1128 FRMTF
+                                                 1288     0000 44 0667 WRITE
+                                                 1289     0100 30 0667
+                                                 1290     0000 10 1291
+                                                 1291     0000 01 1219 DATAO
+                                                 1292     4400 28 0667
+                                                 1293   - 0000 40 0000
+
+1290        WRITE ($$ DATAO, FRMTFL)$
+                                                 1294     0000 10 1295
+                                                 1295     0000 01 1122 FRMTF
+                                                 1296     0000 44 0667 WRITE
+                                                 1297     0100 30 0667
+                                                 1298     0000 10 1299
+                                                 1299     0000 01 1212 ORDER
+                                                 1300     4400 28 0667
+                                                 1301   - 0000 40 0000
+
+1298        WRITE ($$ ORDER, FRMTFX)$
+                                                 1302     0000 10 1303
+                                                 1303     0000 01 1128 FRMTF
+                                                 1304     0000 44 0667 WRITE
+                                                 1305     0100 30 0667
+                                                 1306     0000 10 1307
+                                                 1307     0000 01 1262 VECTO
+                                                 1308     4400 28 0667
+                                                 1309   - 0000 40 0000
+
+1306        WRITE ($$ VECTORO, FRMTFL)$
+                                                 1310     0000 10 1311
+                                                 1311     0000 01 1122 FRMTF
+                                                 1312     0000 44 0667 WRITE
+                                                 1313     0100 30 0667
+                                                 1314     0000 10 1315
+                                                 1315     0000 01 0292 N
+                                                 1316     4400 28 0433
+                                                 1317   - 0000 40 0000
+                                                 1318     0000 10 1319
+                                                 1319     0000 01 9918 A
+                                                 1320   - 0000 40 9999
+                                                 1321     0000 10 0289 CONST
+                                                 1322   - 0000 40 9998
+                                                 1323     0000 10 4990 CONST
+                                                 1324   - 0000 40 9997
+                                                 1325     0000 10 1326
+                                                 1326     0000 01 9918 B
+                                                 1327   - 0000 40 9996
+                                                 1328     0000 10 4990 CONST
+                                                 1329   - 0000 40 9995
+                                                 1330     0000 10 1331
+                                                 1331     0000 01 9848 Y
+                                                 1332   - 0000 40 9994
+                                                 1333     0000 10 4990 CONST
+                                                 1334   - 0000 40 9993
+                                                 1335     0000 10 1336
+                                                 1336     0000 01 9708 PIVOT
+                                                 1337   - 0000 40 9992
+                                                 1338     0000 10 4990 CONST
+                                                 1339   - 0000 40 9991
+                                                 1340     0000 10 1341
+                                                 1341     0000 01 0666 DET
+                                                 1342   - 0000 40 9990
+
+1314        CROUT4 ($ N, A(,), B(), Y(), PIVOT(), DET, EX$
+                                                 1343     0000 10 1344
+                                                 1344     0000 01 0665 EX
+                                                 1345   - 0000 40 9989
+                                                 1346     0000 10 1347
+                                                 1347     0000 01 0000 SINGU
+                                                 1348   - 0000 40 9988
+
+1346                SINGULAR, INNERPRODUCT())$
+                                                 1349     0000 10 1350
+                                                 1350     0000 01 0395
+                                                 1351     0000 44 0433 CROUT
+                                                 1352     1300 30 0433
+                                                 1353     0000 10 1354
+                                                 1354     0000 01 1219 DATAO
+                                                 1355     4400 28 0667
+                                                 1356   - 0000 40 0000
+
+1353        WRITE ($$ DATAO, FRMTFL)$
+                                                 1357     0000 10 1358
+                                                 1358     0000 01 1122 FRMTF
+                                                 1359     0000 44 0667 WRITE
+                                                 1360     0100 30 0667
+                                                 1361     0000 30
+                                                 1362     0000 30
+                                                 1363     0000 10 4990 CONST
+                                                 1364     0000 40 0291 I
+                                                 1365     0000 44
+                                                 1366     0000 30
+                                                 1367     0000 10 4990 CONST
+                                                 1368     0000 12 0291 I
+                                                 1369     0000 40 0291 I
+                                                 1366             1370
+                                                 1370     0000 13 0292 N
+                                                 1371     1111 31 1373
+                                                 1372     0000 36
+                                                 1373     0001 33
+                                                 1374     0000 30
+                                                 1373             1375
+                                                 1372             1375
+                                                 1375     0000 42 0291 I
+                                                 1376   - 0000 10 9848 Y
+                                                 1377     0000 42 1377
+                                                 1378     0002 20 1362
+                                                 1374             1380
+                                                 1365             1379
+                                                 1379     0000 30
+
+1361        OUTPUT ANSWER (FOR I=(1,1,N)$ Y(I))$
+                                                 1380     0009 43 0000
+                                                 1381     0000 30 1362
+                                                 1361             1382
+                                                 1382     0000 30
+                                                 1383     0000 30
+                                                 1384     0000 10 0292 N
+                                                 1385     0100 42 1385
+                                                 1386     0002 20 1383
+                                                 1387     0000 10 4990 CONST
+                                                 1388     0000 40 0291 I
+                                                 1389     0000 44
+                                                 1390     0000 30
+                                                 1391     0000 10 4990 CONST
+                                                 1392     0000 12 0291 I
+                                                 1393     0000 40 0291 I
+                                                 1390             1394
+                                                 1394     0000 13 0292 N
+                                                 1395     1111 31 1397
+                                                 1396     0000 36
+                                                 1397     0001 33
+                                                 1398     0000 30
+                                                 1397             1399
+                                                 1396             1399
+                                                 1399     0000 42 0291 I
+                                                 1400   - 0000 10 9708 PIVOT
+                                                 1401     0100 42 1401
+                                                 1402     0002 20 1383
+                                                 1398             1404
+                                                 1389             1403
+                                                 1403     0000 30
+
+1382        OUTPUT PIVOTO (N, FOR I=(1,1,N)$ PIVOT(I))$
+                                                 1404     0009 43 0000
+                                                 1405     0000 30 1383
+                                                 1382             1406
+                                                 1406     0000 30
+                                                 1407     0000 30
+
+1406        OUTPUT DETO (DET)$
+                                                 1408     0000 10 0666 DET
+                                                 1409     0000 42 1409
+                                                 1410     0002 20 1407
+                                                 1411     0009 43 0000
+                                                 1412     0000 30 1407
+                                                 1406             1413
+                                                 1413     0000 30
+                                                 1414     0000 30
+
+1413        OUTPUT EXPO (EX)$
+                                                 1415     0000 10 0665 EX
+                                                 1416     0100 42 1416
+                                                 1417     0002 20 1414
+                                                 1418     0009 43 0000
+                                                 1419     0000 30 1414
+                                                 1413             1420
+                                                 1420     0000 10 1421
+                                                 1421     0000 01 1383 PIVOT
+                                                 1422     4400 28 0667
+                                                 1423   - 0000 40 0000
+
+1420        WRITE ($$ PIVOTO, FRMTFX)$
+                                                 1424     0000 10 1425
+                                                 1425     0000 01 1128 FRMTF
+                                                 1426     0000 44 0667 WRITE
+                                                 1427     0100 30 0667
+                                                 1428     0000 10 1429
+                                                 1429     0000 01 1362 ANSWE
+                                                 1430     4400 28 0667
+                                                 1431   - 0000 40 0000
+
+1428        WRITE ($$ ANSWER, FRMTFL)$
+                                                 1432     0000 10 1433
+                                                 1433     0000 01 1122 FRMTF
+                                                 1434     0000 44 0667 WRITE
+                                                 1435     0100 30 0667
+                                                 1436     0000 10 1437
+                                                 1437     0000 01 1407 DETO
+                                                 1438     4400 28 0667
+                                                 1439   - 0000 40 0000
+
+1436        WRITE ($$ DETO, FRMTFL)$
+                                                 1440     0000 10 1441
+                                                 1441     0000 01 1122 FRMTF
+                                                 1442     0000 44 0667 WRITE
+                                                 1443     0100 30 0667
+                                                 1444     0000 10 1445
+                                                 1445     0000 01 1414 EXPO
+                                                 1446     4400 28 0667
+                                                 1447   - 0000 40 0000
+
+1444        WRITE ($$ EXPO, FRMTFX)$
+                                                 1448     0000 10 1449
+                                                 1449     0000 01 1128 FRMTF
+                                                 1450     0000 44 0667 WRITE
+                                                 1451     0100 30 0667
+                                                 1452     0000 10 1453
+                                                 1453     0000 01 0292 N
+                                                 1454     4400 28 0953
+                                                 1455   - 0000 40 0000
+                                                 1456     0000 10 1457
+                                                 1457     0000 01 9918 A
+                                                 1458   - 0000 40 9999
+                                                 1459     0000 10 0289 CONST
+                                                 1460   - 0000 40 9998
+                                                 1461     0000 10 4990 CONST
+                                                 1462   - 0000 40 9997
+                                                 1463     0000 10 1464
+                                                 1464     0000 01 9778 C
+                                                 1465   - 0000 40 9996
+                                                 1466     0000 10 4990 CONST
+                                                 1467   - 0000 40 9995
+                                                 1468     0000 10 1469
+                                                 1469     0000 01 9708 PIVOT
+                                                 1470   - 0000 40 9994
+                                                 1471     0000 10 4990 CONST
+                                                 1472   - 0000 40 9993
+                                                 1473     0000 10 1474
+                                                 1474     0000 01 9848 Y
+                                                 1475   - 0000 40 9992
+                                                 1476     0000 10 4990 CONST
+                                                 1477   - 0000 40 9991
+
+1452        SOLV2 ($ N, A(,), C(), PIVOT(), Y()$ INNERPRODUCT())$
+                                                 1478     0000 10 1479
+                                                 1479     0000 01 0395
+                                                 1480     0000 44 0953 SOLV2
+                                                 1481     1000 30 0953
+                                                 1482     0000 10 1483
+                                                 1483     0000 01 1262 VECTO
+                                                 1484     4400 28 0667
+                                                 1485   - 0000 40 0000
+
+1482        WRITE ($$ VECTORO, FRMTFL)$
+                                                 1486     0000 10 1487
+                                                 1487     0000 01 1122 FRMTF
+                                                 1488     0000 44 0667 WRITE
+                                                 1489     0100 30 0667
+                                                 1490     0000 10 1491
+                                                 1491     0000 01 1362 ANSWE
+                                                 1492     4400 28 0667
+                                                 1493   - 0000 40 0000
+
+1490        WRITE ($$ ANSWER, FRMTFL)$
+                                                 1494     0000 10 1495
+                                                 1495     0000 01 1122 FRMTF
+                                                 1496     0000 44 0667 WRITE
+                                                 1497     0100 30 0667
+
+1498        GO TO START$
+
+1498
+                                                 1498     0000 30 1203 START
+
+1499      SINGULAR..
+                                                 1347             1499
+
+1499        WRITE ($$ FRMTSI)$
+                                                 1499     0000 10 1500
+                                                 1500     0000 01 0000 FRMTS
+                                                 1501     0000 44 0667 WRITE
+                                                 1502     0000 30 0667
+                                                 1503     0000 30
+                                                 1500             1504
+                                                 1504     0006 60 0000
+                                                 1505   @ 6249 55 4764
+                                                 1506   - 5341 59 1400
+                                                 1507     0006 60 0000
+                                                 1508   - 0000 00 1504
+
+1503        FORMAT FRMTSI (W0, *SINGULAR*, W0)$
+                                                 1503             1509
+
+1509        GO TO START$
+                                                 1509     0000 30 1203 START
+
+1510      FINISH$
+                                                 1510     9669 00 9669
+                                                 1511     1000 60 0000
+                                                 4990     0000 00 0001 POOL
+                                                 4992     0000 00 0010
+                                                 4986     0000 00 0020
+                                                 4944     0000 00 0011
+                                                 4943     0000 00 0041
+                                                 4942     0000 00 0040
+                                                 4941     0000 00 0058
+                                                 4940     0000 00 0009
+                                                 0289     0000 00 0070
+                                                 4987     5110 00 0000
+                                                 4994     4110 00 0000
+                                                 4985     5210 00 0000
+                                                 0719     0000 44 0752
+                                                 0720     0000 30 0748
+                                                 0721   @ 5945 62 6453
+                                                 0722   @ 6300 56 6463
+                                                 0723   @ 0056 46 0059
+                                                 0724   @ 4155 47 4500
+                                                 0725   @ 4955 00 0000
+                                                 0726     0000 44 0752
+                                                 0727     0000 30 0748
+                                                 0728   @ 5945 62 6453
+                                                 0729   @ 6300 64 5544
+                                                 0730   @ 4546 49 5545
+                                                 0731   @ 4400 46 5659
+                                                 0732   @ 0000 00 0000
+                                                 0733     0000 44 0752
+                                                 0734     0000 30 0748
+                                                 0735   @ 5945 62 6453
+                                                 0736   @ 6300 49 5353
+                                                 0737   @ 2044 45 4649
+                                                 0738   @ 5545 44 0046
+                                                 0739   @ 5659 00 0000
+                                                 0740     0000 46 0761
+                                                 0741     0000 44 0752
+                                                 0742     0000 30 0750
+                                                 0743     0000 00 0000
+                                                 0744   @ 0041 59 4963
+                                                 0745   @ 4854 45 6349
+                                                 0746   @ 4300 56 6545
+                                                 0747   @ 5946 53 5666
+                                                 0748     0001 40 0761
+                                                 0749     0003 45 0000
+                                                 0750     0412 40 0755
+                                                 0751     0000 42 0772
+                                                 0752     0050 29 0033
+                                                 0753     1106 44 0735 REED
+                                                 0754     0037 30 0735 REED
+                                                 0755     0000 30 0036
+                                                 0756     0000 00 0000
+                                                 0757     0000 00 0000
+                                                 0758     0000 00 0000
+                                                 0759     0000 00 0000
+                                                 0760     0000 00 0000
+                                                 0761     0000 00 0000
+                                                 0762     0000 00 0000
+                                                 0763     0000 00 0000
+                                                 0764     0000 00 0000
+                                                 0765     0000 00 0000
+                                                 0766     0000 00 0000
+                                                 0767     5000 00 0000
+                                                 0768     0000 00 0000
+                                                 0769     0000 00 0000
+                                                 0770     5110 00 0000
+                                                 0771     0000 00 0000
+                                                 0772     0000 00 0756
+                                                 4947   - 0003 01 0000
+                                                 4948     4400 28 4947
+                                                 4949     0000 31 0740 ERROR
+                                                 4950     0001 40 0768 ERROR
+                                                 4951     0000 40 0771 ERROR
+                                                 4952     0000 42 4947
+                                                 4953     0000 36 4976
+                                                 4954     0000 10 0770 ERROR
+                                                 4955   - 0000 37 0000
+                                                 4956     0000 40 0769 ERROR
+                                                 4957     0000 10 0767 ERROR
+                                                 4958     0000 14 0768 ERROR
+                                                 4959     0000 40 0768 ERROR
+                                                 4960     0000 37 4964
+                                                 4961     0000 10 0769 ERROR
+                                                 4962     0000 24 0771 ERROR
+                                                 4963     0000 40 0769 ERROR
+                                                 4964     0000 41 0768 ERROR
+                                                 4965     0000 37 4970
+                                                 4966     0000 10 0771 ERROR
+                                                 4967     0000 24 0771 ERROR
+                                                 4968     0000 40 0771 ERROR
+                                                 4969     0000 30 4957
+                                                 4970     0000 31 4980
+                                                 4971     1210 37 4973
+                                                 4972   - 0000 30 0000
+                                                 4973     0000 10 0770 ERROR
+                                                 4974     0000 25 0769 ERROR
+                                                 4975   - 0000 30 0000
+                                                 4976     0001 18 0743 ERROR
+                                                 4977   - 0000 34 0000
+                                                 4978     0000 41 4984
+                                                 4979     0000 30 0726 ERROR
+                                                 4980     0001 45 0000
+                                                 4981   - 1210 37 0000
+                                                 4982     0000 41 4984
+                                                 4983     0000 30 0719 ERROR
+                                                 4984   @ 4653 46 6700
+                                                 0427   - 0128 01 0000
+                                                 0428     0410 40 0517
+                                                 0429     0410 40 0518
+                                                 0430     0401 26 0518
+                                                 0431     0000 44 0524
+                                                 0432     0000 30 0517
+                                                 0433     0000 42 0555
+                                                 0434   - 0000 46 0000
+                                                 0435     0000 46 0563
+                                                 0436     0000 44 0722 RITE
+                                                 0437     0117 30 0722 RITE
+                                                 0438     0000 46 0565
+                                                 0439     0502 26 0565
+                                                 0440     0000 42 0555
+                                                 0441     9999 20 0445
+                                                 0442     6400 28 0563
+                                                 0443     0000 10 0101
+                                                 0444     9999 20 0539
+                                                 0445     9400 28 0565
+                                                 0446   - 0000 10 0101
+                                                 0447     0000 42 0565
+                                                 0448   - 0000 49 0000
+                                                 0449     0502 26 0565
+                                                 0450     0000 41 0563
+                                                 0451     0000 37 0465
+                                                 0452     0160 21 0436
+                                                 0453     4400 28 0563
+                                                 0454     2213 36 0480
+                                                 0455     0000 48 0008
+                                                 0456   - 0000 49 0000
+                                                 0457     0000 19 0562
+                                                 0458     4102 27 0563
+                                                 0459     0000 32 0445
+                                                 0460     0000 10 0562
+                                                 0461     0000 44 0524
+                                                 0462     0000 30 0517
+                                                 0463     5212 27 0563
+                                                 0464     0000 30 0445
+                                                 0465     0162 21 0436
+                                                 0466     1108 36 0496
+                                                 0467     2203 36 0492
+                                                 0468     2220 36 0490
+                                                 0469     2234 36 0490
+                                                 0470     2223 36 0485
+                                                 0471     2213 36 0547
+                                                 0472     2214 36 0478
+                                                 0473     0000 42 0559
+                                                 0474     9999 20 0445
+                                                 0475     0000 44 0524
+                                                 0476     0000 30 0503
+                                                 0477     0000 30 0445
+                                                 0478     9416 26 0565
+                                                 0479     0000 30 0473
+                                                 0480     0000 46 0563
+                                                 0481     0000 10 0562
+                                                 0482     0000 44 0524
+                                                 0483     9992 20 0517
+                                                 0484     0000 30 0445
+                                                 0485     0001 26 0561
+                                                 0486     0000 44 0524
+                                                 0487     0000 30 0503
+                                                 0488     0001 26 0558
+                                                 0489     0000 30 0445
+                                                 0490     0001 26 0557
+                                                 0491     0000 30 0445
+                                                 0492     0000 41 0551
+                                                 0493     2211 40 0556
+                                                 0494     0001 26 0560
+                                                 0495     0000 30 0445
+                                                 0496     0000 49 0001
+                                                 0497     0000 41 0562
+                                                 0498     0001 49 0001
+                                                 0499     0001 40 0562
+                                                 0500     2201 27 0556
+                                                 0501     0001 26 0559
+                                                 0502     0000 30 0445
+                                                 0503     0000 41 0558
+                                                 0504     0000 37 0530
+                                                 0505     0000 42 0557
+                                                 0506     0000 11 0562
+                                                 0507     0000 49 0008
+                                                 0508     9999 20 0510
+                                                 0509     0000 43 0000
+                                                 0510     0001 13 0564
+                                                 0511     1210 27 0564
+                                                 0512     0000 32 0517
+                                                 0513     0000 43 0000
+                                                 0514     0000 30 0517
+                                                 0515     0000 42 0561
+                                                 0516     0001 21 0525
+                                                 0517     0000 44 0090
+                                                 0518     0000 30 0091
+                                                 0519     0009 33 0527
+                                                 0520     0412 40 0518
+                                                 0521     0000 42 0535
+                                                 0522     0000 46 0556
+                                                 0523     0070 29 0556
+                                                 0524     0000 30 0097
+                                                 0525     0000 40 0564
+                                                 0526     0000 30 0521
+                                                 0527     0000 42 0427
+                                                 0528     0000 46 0555
+                                                 0529   - 0000 30 0000
+                                                 0530     0000 10 0562
+                                                 0531     0000 42 0560
+                                                 0532     9999 20 0535
+                                                 0533     0000 12 0556
+                                                 0534     0000 22 0556
+                                                 0535     0000 42 0557
+                                                 0536     9999 20 0515
+                                                 0537     0001 43 0000
+                                                 0538     0000 30 0515
+                                                 0539     0810 18 0552
+                                                 0540     0001 35 0445
+                                                 0541     0000 41 0102
+                                                 0542     0011 18 0553
+                                                 0543     0001 35 0445
+                                                 0544     0000 42 0555
+                                                 0545   - 0001 26 0000
+                                                 0546     0000 30 0527
+                                                 0547     0000 42 0559
+                                                 0548     9999 20 0463
+                                                 0549     0502 27 0565
+                                                 0550     0000 30 0475
+                                                 0551     5800 00 0000
+                                                 0552   @ 8562 45 5563
+                                                 0553   @ 4955 45 5300
+                                                 0554     5110 00 0000
+                                                 0555     0000 00 0000
+                                                 0556     0000 00 0000
+                                                 0557     0000 00 0000
+                                                 0558     0000 00 0000
+                                                 0559     0000 00 0000
+                                                 0560     0000 00 0000
+                                                 0561     0000 00 0000
+                                                 0562     0000 00 0000
+                                                 0563     0000 00 0000
+                                                 0564     0000 00 0000
+                                                 0565     0000 00 0000
+                                                 0722     0000 01 0000
+                                                 0723     1000 60 0117
+                                                 0724     0000 30 0438 READ
+                                                 0735     0000 01 0000
+                                                 0736     0000 42 0735
+                                                 0737   - 0000 10 9999
+                                                 0738     0000 48 0006
+                                                 0739     0410 40 0745
+                                                 0740   - 0000 10 9998
+                                                 0741     4210 40 0745
+                                                 0742     0000 48 0008
+                                                 0743     0000 13 0747
+                                                 0744     0000 19 0745
+                                                 0745     2000 61 0000
+                                                 0746   - 0000 30 0000
+                                                 0747     0000 00 0001
+                                                 0667     0100 01 0000
+                                                 0668     0410 40 0703
+                                                 0669     0000 42 0671
+                                                 0670     0010 29 0903
+                                                 0671     0300 29 0101
+                                                 0672     0000 42 0667
+                                                 0673     0412 40 0752
+                                                 0674   - 0000 41 9999
+                                                 0675     0009 43 7557
+                                                 0676     2200 37 0680
+                                                 0677     0000 42 0100
+                                                 0678   - 0000 44 0000
+                                                 0679   - 2201 37 0001
+                                                 0680     0000 40 0132
+                                                 0681     0412 40 0734
+                                                 0682     0000 41 0130
+                                                 0683     0000 37 0701
+                                                 0684     0000 10 0134
+                                                 0685     0000 46 0133
+                                                 0686     5246 37 0863
+                                                 0687     5267 37 0839
+                                                 0688     5249 37 0777
+                                                 0689     5262 37 0890
+                                                 0690     5241 37 0692
+                                                 0691     0000 30 0878
+                                                 0692     0000 41 0710
+                                                 0693     0001 27 0129
+                                                 0694     0000 44 0835
+                                                 0695     0000 30 0826
+                                                 0696     0000 10 0129
+                                                 0697     0000 36 0717
+                                                 0698     2299 37 0731
+                                                 0699     0001 49 0010
+                                                 0700     0000 30 0693
+                                                 0701     0000 42 0668
+                                                 0702     0000 31 0740 ERROR
+                                                 0703     0000 10 9999
+                                                 0704     0401 26 0703
+                                                 0705     0000 33 0719
+                                                 0706     0000 41 0710
+                                                 0707     0001 33 0735
+                                                 0708     2214 36 0703
+                                                 0709     0000 44 0835
+                                                 0710     9900 30 0826
+                                                 0711     2299 37 0703
+                                                 0712     0001 49 0010
+                                                 0713     0000 30 0708
+                                                 0714     0000 10 0129
+                                                 0715     0000 19 0125
+                                                 0716     0000 19 0125
+                                                 0717     0000 10 0130
+                                                 0718     3300 36 0701
+                                                 0719     3300 36 0721
+                                                 0720     0000 13 0904
+                                                 0721     0000 40 0130
+                                                 0722     0210 40 0131
+                                                 0723     0001 48 0002
+                                                 0724     0310 40 0129
+                                                 0725     7242 36 0714
+                                                 0726     7266 36 0755
+                                                 0727     7257 36 0763
+                                                 0728     7263 36 0765
+                                                 0729     7243 36 0754
+                                                 0730     0300 36 0703
+                                                 0731     0000 10 0132
+                                                 0732     0000 40 0134
+                                                 0733     0009 33 0714
+                                                 0734     0000 30 9999
+                                                 0735     0000 42 0703
+                                                 0736     6600 36 0751
+                                                 0737     0001 49 0003
+                                                 0738     0300 37 0745
+                                                 0739     0000 13 0904
+                                                 0740     3300 36 0747
+                                                 0741   - 6301 27 9999
+                                                 0742   - 0000 41 9999
+                                                 0743     0411 40 0703
+                                                 0744     0000 30 0703
+                                                 0745   - 3310 40 9999
+                                                 0746     0000 30 0739
+                                                 0747   - 0000 10 9999
+                                                 0748     0001 48 0003
+                                                 0749   - 6610 40 9999
+                                                 0750     0000 30 0703
+                                                 0751     0000 10 0132
+                                                 0752     0009 33 9999
+                                                 0753     0000 30 0742
+                                                 0754     1008 61 0124
+                                                 0755     0001 48 0003
+                                                 0756     3111 40 0757
+                                                 0757     2408 44 0735 REED
+                                                 0758     0101 30 0735 REED
+                                                 0759     0000 42 0761
+                                                 0760     0010 29 0903
+                                                 0761     0240 29 0101
+                                                 0762     0000 30 0717
+                                                 0763     1008 61 0124
+                                                 0764     0000 30 0759
+                                                 0765     0300 36 0770
+                                                 0766     0010 09 0769
+                                                 0767     0001 12 0747
+                                                 0768     0000 30 0765
+                                                 0769   @ 1602 02 0202
+                                                 0770     0000 10 0125
+                                                 0771     0000 36 0717
+                                                 0772     0000 12 0840
+                                                 0773     0001 48 0004
+                                                 0774     3211 40 0775
+                                                 0775     0990 09 0101
+                                                 0776     0000 30 0759
+                                                 0777     0000 42 0787
+                                                 0778     0000 36 0836
+                                                 0779     1100 36 0837
+                                                 0780     0000 40 0134
+                                                 0781     0003 45 0080
+                                                 0782     0002 40 0128
+                                                 0783     0000 46 0126
+                                                 0784     0410 40 0126
+                                                 0785     0001 40 0127
+                                                 0786     0000 10 0134
+                                                 0787     0002 48 0010
+                                                 0788     0001 43 0023
+                                                 0789     0000 12 0129
+                                                 0790     0000 13 0128
+                                                 0791     0001 33 0878
+                                                 0792     0000 19 0125
+                                                 0793     5000 19 0125
+                                                 0794     0000 10 0134
+                                                 0795     0000 41 0831
+                                                 0796     0000 44 0835
+                                                 0797     0001 33 0825
+                                                 0798     0001 27 0128
+                                                 0799     0000 32 0811
+                                                 0800     0000 41 0127
+                                                 0801     0000 37 0717
+                                                 0802     0000 41 0788
+                                                 0803     0000 44 0835
+                                                 0804     0000 30 0825
+                                                 0805     0000 10 0127
+                                                 0806     0000 13 0793
+                                                 0807     0000 42 0723
+                                                 0808     0000 46 0129
+                                                 0809     0003 26 0129
+                                                 0810     0000 30 0780
+                                                 0811     0001 27 0126
+                                                 0812     0000 41 0126
+                                                 0813     0000 37 0819
+                                                 0814     0000 41 0133
+                                                 0815     0000 37 0821
+                                                 0816     0001 27 0133
+                                                 0817     0000 41 0781
+                                                 0818     0000 30 0825
+                                                 0819     0000 41 0748
+                                                 0820     0000 30 0825
+                                                 0821     0000 10 0134
+                                                 0822     0000 41 0840
+                                                 0823     0001 49 0001
+                                                 0824     0000 40 0134
+                                                 0825     0001 49 0018
+                                                 0826     0001 48 0008
+                                                 0827     0001 42 0125
+                                                 0828   - 0000 49 0008
+                                                 0829     9400 28 0125
+                                                 0830     0024 21 0835
+                                                 0831     0000 43 0020
+                                                 0832   - 0000 12 0125
+                                                 0833   - 0010 40 0125
+                                                 0834     0002 26 0125
+                                                 0835     0000 30 9999
+                                                 0836     0009 21 0781
+                                                 0837     0000 49 0051
+                                                 0838     0001 21 0779
+                                                 0839     0002 45 7557
+                                                 0840     0001 48 0008
+                                                 0841     0410 18 0905
+                                                 0842     0001 40 0134
+                                                 0843     0001 34 0853
+                                                 0844     0410 40 0851
+                                                 0845     0449 27 0851
+                                                 0846     0000 42 0851
+                                                 0847     0000 10 0130
+                                                 0848     0001 48 0004
+                                                 0849     4211 40 0852
+                                                 0850     0000 10 0851
+                                                 0851     0002 45 9999
+                                                 0852     0000 20 0782
+                                                 0853     0000 43 7557
+                                                 0854     0000 13 0905
+                                                 0855     0210 40 0133
+                                                 0856     0211 18 0130
+                                                 0857     0000 35 0860
+                                                 0858     0000 10 0905
+                                                 0859     0000 30 0844
+                                                 0860     0000 10 0837
+                                                 0861     1110 40 0134
+                                                 0862     0000 30 0844
+                                                 0863     0304 27 0129
+                                                 0864     0000 32 0867
+                                                 0865     0000 30 0877
+                                                 0866     0000 10 0906
+                                                 0867     0000 36 0866
+                                                 0868     0002 45 7557
+                                                 0869     2210 40 0792
+                                                 0870     0001 48 0008
+                                                 0871     0001 40 0134
+                                                 0872     0002 48 0010
+                                                 0873     0000 12 0130
+                                                 0874     0000 17 0837
+                                                 0875     0310 18 0129
+                                                 0876     0001 34 0886
+                                                 0877     0004 26 0129
+                                                 0878     0000 10 0129
+                                                 0879     0000 19 0125
+                                                 0880     0000 19 0125
+                                                 0881     0002 27 0125
+                                                 0882     0000 41 0893
+                                                 0883     0000 44 0835
+                                                 0884     0000 30 0825
+                                                 0885     0000 30 0717
+                                                 0886     0000 41 0792
+                                                 0887     0000 10 0823
+                                                 0888     0000 42 0131
+                                                 0889     0001 20 0782
+                                                 0890     0002 45 7557
+                                                 0891     0001 48 0008
+                                                 0892     0001 40 0134
+                                                 0893     0000 43 0014
+                                                 0894     0000 13 0905
+                                                 0895     0002 45 7557
+                                                 0896     0001 33 0901
+                                                 0897     0210 18 0130
+                                                 0898     0000 34 0878
+                                                 0899     0000 12 0823
+                                                 0900     0000 30 0888
+                                                 0901     0010 40 0133
+                                                 0902     0000 30 0887
+                                                 0903   @ 0000 00 0000
+                                                 0904     0010 00 0000
+                                                 0905     0000 00 0050
+                                                 0906     5000 00 0000
+MEMORY EXCEEDED FOR OBJECT PROGRAM
+COMPILED PROGRAM ENDS AT 1511
+PROGRAM VARIABLES BEGIN AT 0000
+-----ERROR(S) WERE FOUND-----

@@ -1,0 +1,47 @@
+                          UNIVERSITY OF DAYTON
+                             DAYTON 9, OHIO
+
+
+RESEARCH INSTITUTE                                         June 17, 1963
+
+
+
+Warren I. Taylor
+Burroughs Corp.
+460 Sierra Madre Villa
+Pasadena, California
+
+Dear Warren:
+
+     We have experienced some difficulty with procedures using the same
+identifier both as an input and an output parameter.  Our research into
+the problem has shed some light on the matter, however we have not complete-
+ly solved the riddle.
+
+     I am enclosing two ALGOL programs recently compiled by one of our
+students.  In the one program the identifier DCM was used and ECM was
+used in the other one.  This is the only difference in the two programs.
+Our research has yielded the following:
+
+             DCM = 444354 = 42 (mod 99)
+             ECM = 454354 /=42 (mod 99)
+             A = 41( & 1 for procedure) = 42
+
+     If location 42 in the stack is occupied, then A must be stored else-
+where and the procedure works, but if location 42 is open and A is stored
+there, then the program does not work.
+
+     We would appreciate someone looking into the matter.
+
+     Thank you.
+
+                                                Sincerely,
+
+
+
+                                                Ronald L. McAdams
+
+C.C. Mr. A. Pete Jensen
+     Rich Electronic Computing Labs
+     Georgia Institute of Technology
+     Atlanta, Georgia

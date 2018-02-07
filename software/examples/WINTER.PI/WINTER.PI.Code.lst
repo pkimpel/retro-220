@@ -1,0 +1,80 @@
+61000040500     61000040500
+00000100571          100571              CAD   FLIM
+00000400565          400565              STA   C               C=FLIM
+00000100563          100563              CAD   A
+00001480010         1480010              SRT   10
+00000150575          150575              DIV   FIVE            A DIV 5
+00000420565          420565              LDB   C               FOR (B=C; B>=0; --B)
+10000401000     10000401000              STA - F               F[B]=A DIV 5
+00001210506         1210506              DBB   *-1,1
+00000100565          100565        L1    CAD   C               START OF OUTER LOOP
+00000140574          140574              MUL   TWO
+00001400568         1400568              STR   G               G=C*2
+00000370562          370562              BFR   ENDL1,00,00     IF G EQL 0, BRANCH OUT OF LOOP
+00000460566          460566              CLL   D               D=0
+00000100565          100565              CAD   C
+00000400564          400564              STA   B               B=C
+00000420564          420564              LDB   B
+10000101000     10000101000        DO    CAD - F               START OF INNER LOOP
+00000140563          140563              MUL   A               F[B]*A
+00001490010         1490010              SLT   10              SHIFT PRODUCT TO RA
+00000120566          120566              ADD   D
+00000400566          400566              STA   D               D+=F[B]*A
+00001480010         1480010              SRT   10              SAVE NEW D IN RR
+00001270568         1270568              DFL   G,00,1          G-=1
+00000150568          150568              DIV   G               D DIV G
+10001401000     10001401000              STR - F               F[B]=D MOD G
+00000400566          400566              STA   D               D=D DIV G
+00001270568         1270568              DFL   G,00,1          G-=1
+00000100564          100564              CAD   B
+00000130573          130573              SUB   ONE
+00000400564          400564              STA   B               B-=1
+00000360534          360534              BFA   ENDDO,00,00     IF B EQL 0, BRANCH OUT OF INNER LOOP
+00000140566          140566              MUL   D
+00001400566         1400566              STR   D               D*=B
+00001210516         1210516              DBB   DO,1            DECREMENT RB, REPEAT INNER LOOP IF >= 0
+00014270565        14270565        ENDDO DFL   C,00,14         C-=14
+00000100566          100566              CAD   D
+00001480010         1480010              SRT   10
+00000150563          150563              DIV   A               D DIV A
+00000120567          120567              ADD   E               RA=E+D DIV A
+00001400567         1400567              STR   E               E=D MOD A
+00001480003         1480003              SRT   3               ISOLATE HIGH-ORDER DIGIT IN A
+00000120576          120576              ADD   N80             CONVERT 1ST DIGIT TO ALPHA
+00000490001          490001              SLA   1
+00001490001         1490001              SLT   1
+00000120576          120576              ADD   N80             CONVERT 2ND DIGIT TO ALPHA
+00000490001          490001              SLA   1
+00001490001         1490001              SLT   1
+00000120576          120576              ADD   N80             CONVERT 3RD DIGIT TO ALPHA
+00000490001          490001              SLA   1
+00001490001         1490001              SLT   1
+00000120576          120576              ADD   N80             CONVERT 4TH DIGIT TO ALPHA
+00000490002          490002              SLA   2               INSERT TRAILING SPACE
+00002430000         2430000              LSA   2               SET SIGN TO TWO FOR ALPHA WORD
+00000400564          400564              STA   B               STORE IN WORD BUFFER
+00010090564        10090564              SPO   B,1
+00405260569       405260569              IFL   COL,04,5        CHECK FOR FULL LINE ON SPO
+00000100569          100569              CAD   COL
+00000180570          180570              CFA   ECOL
+00001340508         1340508              BCL   L1              IF COL < ECOL, BRANCH
+00010090577        10090577              SPO   CR,1            OUTPUT NEWLINES
+00000460569          460569              CLL   COL             CLEAR COLUMN COUNTER
+00000300508          300508              BUN   L1
+00000007557            7557        ENDL1 HLT   7557
+00000010000           10000        A     CNST  10000
+00000000000               0        B     CNST  0
+00000000000               0        C     CNST  0
+00000000000               0        D     CNST  0
+00000000000               0        E     CNST  0
+00000000000               0        G     CNST  0
+00000000000               0        COL   CNST  0
+00000000050              50        ECOL  CNST  50
+00000002800            2800        FLIM  CNST  2800
+00000000000               0        ZERO  CNST  0
+00000000001               1        ONE   CNST  1
+00000000002               2        TWO   CNST  2
+00000000005               5        FIVE  CNST  5
+00000000080              80        N80   CNST  80
+2___||          2___||             CR    CNST  20202021616     NEWLINES
+60000300500     60000300500

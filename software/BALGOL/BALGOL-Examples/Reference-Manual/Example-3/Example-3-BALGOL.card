@@ -1,0 +1,61 @@
+2 COMMENT THIRD EXAMPLE PROGRAM FROM BALGOL MANUAL, MARCH 1963.
+2 THE SHORT PROGRAM WHICH FOLLOWS IS FOR A REDUCTION OF A SQUARE MATRIX
+2 TO TRIDIAGONAL FORM, USING THE METHOD OF HOUSEHOLDER;
+2
+2 COMMENT HOUSEHOLDER REDUCTION TO TRIDIAGONAL FORM;
+2 INTEGER I, J, K, L, R, N;
+2 ARRAY A(50,50), X(50), P(50);
+2 INPUT
+2   ELEMENT (I, J, Q);
+2 OUTPUT
+2   AOUT (A(R,R)),
+2   BOUT (-0.5/S);
+2 FORMAT
+2   AF (B10, X10.5, W),
+2   BF (B40, X10.5, W);
+2
+2   N = 5;
+2 IN..
+2   READ (;; ELEMENT);
+2   IF I NEQ 0;
+2     BEGIN
+2     A(I,J) = Q;
+2     GO TO IN
+2     END;
+2
+2   FOR R = (1,1,N-1);
+2     BEGIN
+2     WRITE (;; AOUT, AF);
+2     L = R+1;
+2     S = 0;
+2     FOR J = (L,1,N);
+2       S = S + A(R,J)*2;
+2
+2     S = SIGN(A(R,L))/2SQRT(S);
+2     WRITE (;; BOUT, BF);
+2     X(L) = SQRT(0.5 + A(R,L).S);
+2     S = S/X(L);
+2     FOR J = (R+2,1,N);
+2       X(J) = S.A(R,J);
+2     FOR J = (R,1,N);
+2       BEGIN
+2       S = 0;
+2       FOR K = (L,1,N);
+2         S = S + A(MIN(J,K), MAX(J,K)).X(K);
+2       P(J) = S
+2       END;
+2
+2     S = 0;
+2     FOR J = (L,1,N);
+2       S = S + K(J).P(J);
+2     FOR J = (L,1,N);
+2       P(J) = P(J) - S.X(J);
+2     FOR J = (L,1,N);
+2       FOR K = (J,1,N);
+2         A(J,K) = A(J,K) - 2(X(J).P(K) + X(K).P(J))
+2     END;
+2
+2   WRITE (;; AOUT, AF);
+2   STOP;
+2   GO TO IN;
+2 FINISH;
