@@ -1,386 +1,389 @@
- COMMENT
- % DIRICHLET PROBLEM FOR A BEAN-SHAPED REGION.  FROM P J DAVIS,
- % "ORTHONORMALIZING CODES IN NUMERICAL ANALYSIS" IN J TODD, --SURVEY OF
- % NUMERICAL ANLAYSIS--, MCGRAW-HILL, 1962,  P.347. P H KIMPEL 8/15/70
- % MODIFICATION LOG..
- % 92/03/17  P.KIMPEL, PARADIGM CORP, SAN DIEGO, CA  92117.
- %   CONVERT FOR UNISYS A-SERIES MCP 3.8.4.
- % 2014-11-15  P.KIMPEL
- %   RETRO-CONVERT FROM UNISYS MCP ALGOL BACK TO BURROUGHS B5500 XALGOL.
- % 2018-02-20  P.KIMPEL
- %   RETRO-CONVERT FROM B5500 TO BURROUGHS 220 BALGOL OF 1962.
- ;
-
- FORMAT F1 (B30,I3,2X10.3,4X10.5,W),
-        F2 (B40,*X*,B9,*Y*,B9,*W*,B8,*BV*,B7,*CBV,*,B7,*DEV*,W3,W);
- INTEGER I, J, N, M, P;
- REAL SUM, GMDT;
-
- COMMENT ARRAY DIMENSIONS WERE ORIGINALLY DEFINED AS N=43, M=11, P=11..
-   X,                      % ABSCISSA VALUES.
-   Y,                      % ORDINATE VALUES.
-   W,                      % WEIGHTS.
-   CBV(0..N-1),            % BOUNDARY VALUES CALCULATED FROM ORTHO COEFS
-   BV(0..0, 0..N-1+P),     % GIVEN BOUNDARY VALUES.
-   Z(0..M-1, 0..N-1+P),    % APPROXIMATING VECTORS.
-   ORTHV(0..M, 0..N-1+P),  % ORTHONORMAL VECTORS RETURNED BY "ORTHO"
-   DEV(0..0, 0..N-1),      % DEVIATIONS.
-   COF(0..0, 0..P-1),      % COEFFICIENTS.
-   STD(0..0),              % STANDARD DEVIATION.
-   CV(0..P, 0..P-1),       % COVARIANCE MATRIX.
-   VCV(0..0, 0..P, 0..P-1),% VARIANCE/COVARIANCE MATRIX.
-   Q(0..0, 0..M),          % FOURIER COEFFICIENTS.
-   Q2,                     % SQUARED FOURIER COEFFICIENTS.
-   E,                      % SUM OF SQUARED RESIDUALS.
-   EP(0..0, 0..M-1),       % RESIDUALS.
-   A(0..M-1, 0..P-1),      % LOWER TRIANGULAR MATRIX USED TO CALC CV.
-   GF(0..M),               % GRAM FACTORS.
-   ENF(0..M-1);            % NORMS OF THE APPROXIMATING VECTORS.
-
- ARRAY
-   X(43),
-   Y(43),
-   W(43),
-   CBV(43),
-   BV(43+11),
-   Z(11, 43+11),
-   ORTHV(11, 43+11),
-   DEV(1, 43),
-   COF(1, 11),
-   STD(1),
-   CV(11+1, 11),
-   VCV(1, 11+1, 11),
-   Q(1, 11+1),
-   Q2(1,11),
-   E(1,11),
-   EP(1, 11),
-   A(11, 11),
-   GF(11+1),
-   ENF(11);
-
-
- PROCEDURE ORTHO (W(), Y(,), Z(,), N, FN, M, P, R, AI, AUI, MUI, ZEI;
-                  X(,), DEV(,), COF(,), STD, CV(,), VCV(,,), GMDT,
-                  Q(,), Q2(,), E(,), EP(,), A(,), GF(), ENF());
- BEGIN
- REAL  FN, GMDT;
- INTEGER  N, M, P, R, AI, AUI, ZEI, MUI;
- COMMENT
-           ORTHO    IS TAKEN FROM ACM ALGORITHM 127 (COMM. ACM, VOL.5,
-                  OCTOBER 1962, P. 511, AUTHOR PHILIP J. WALSH);
- INTEGER  NPP, NPM, M1, N2, M2, R1, RBAR, P2, BEI, RHI, I18, GAI, SII, I,
-                  J, DEI, NUI, E1Z2, E1Z1, K, THI, ALI, OMI, NII;
- ARRAY  PK, XP (N+P), QK(M+1);
- REAL DENOM, SUM, DK2, DK, FI, SS, SSQ;
-
-       NPP = N+P; NPM = N+M; M1 = M-1; N2 = N+1; M2 = M+1;
-           R1 = 0; RBAR = R; P2 = P+1;
-       EITHER IF N EQL M; DENOM = 1.0;  OTHERWISE;  DENOM = SQRT(N-M);
-       BEI = RHI = I18 = 1;
-       EITHER IF (P NEQ 0); GAI = SII = 2;  OTHERWISE;  GAI = SII = 1;
- BOX1..           SWITCH AI, (AT1, AT2);
-       AT1..      FOR J = (1, 1, N); BEGIN
-                  X(2,J) = Z(1,J);  X(1,J) = 1.0 END;
-                  FOR I = (2, 1, M1); BEGIN
-                  FOR J = (1, 1, N);
-                  X(I+1,J) = X(I,J) . X(2,J)  END;   GO TO BOX2;
-       AT2..      FOR I = (1, 1, M); BEGIN
-                  FOR J = (1, 1, N);
-                  X(I,J) = Z(I,J)  END;
- BOX2..           EITHER IF P EQL 0; GO TO BOX3;
-                  OTHERWISE;  SWITCH AUI, (AU1, AU2);
-       AU1..      FOR I = (1, 1, M); BEGIN
-                  FOR J = (N2, 1, NPP);
-                  X(I,J) = 0.0;  X(I,N+I) = 1.0  END;  GO TO BOX3;
-       AU2..      FOR I = (1, 1, M); BEGIN
-                  FOR J = (N2, 1, NPP);
-                  X(I,J) = Z(I,J)  END;
- BOX3..           DEI = NUI = E1Z1 = E1Z2 = K = 1;
- BOX4..           THI = 1;
- BOX5..           ALI = OMI = 1;  EITHER IF P EQL 0; GO TO BOX6;
-                  OTHERWISE;  FOR J = (1, 1, P); PK(N+J) = 0.0;
- BOX6..           GO TO SWITCH MUI, (MU1, MU2);
-       MU1..      FOR I = (1, 1, N); PK(I) = X(K,I);
-                  GO TO BOX7;
-       MU2..      FOR I = (1, 1, N);
-                  PK(I) = X(K,I) . W(I);   GO TO BOX7;
- BOX7..           SWITCH OMI, (OM1, OM2);
-       OM1..      FOR I = (1, 1, K); BEGIN SUM = 0.0;
-                  FOR J = (1, 1, NPP);
-                  SUM = SUM + PK(J) . X(I,J);  QK(I) = SUM END;
-                  GO TO BOX8;
-       OM2..      DK2 = 0.0;  FOR I = (1, 1, NPP);
-                  DK2 = DK2 + PK(I) . X(K,I);
-                  DK = SQRT(DK2);
-                  GF(I18) = DK;   I18 = I18 + 1;
-                  FOR I = (1, 1, NPP);
-                  X(K,I) = X(K,I)/DK;;
-                  OMI = 1;    GO TO BOX6;
- BOX8..           SWITCH DEI, (DE1, DE2);
-       DE1..      E1Z1 = -E1Z1;   EITHER IF E1Z1 < 0; GO TO BOX8B;
-                  OTHERWISE;  GO TO BOX8A;
- BOX8A..          FOR I = (1, 1, K-1);
-                  QK(I) = -QK(I);   QK(K) = 1.0;
-                  FOR I = (1, 1, NPP); BEGIN
-                  SUM = 0.0;  FOR J = (1, 1, K);
-                  SUM = SUM + X(J,I) . QK(J);
-                  XP(I) = SUM END;  GO TO BOX9;
- BOX8B..          ENF(I18) = SQRT(QK(K));   GO TO BOX8A;
-       DE2..      E1Z2 = -E1Z2;  EITHER IF E1Z2 < 0; GO TO BOX8C;
-                  OTHERWISE;  GO TO BOX8A;
- BOX8C..          FOR I = (1, 1, M); BEGIN
-                  Q(R1,I) = QK(I);  Q2(R1,I) = QK(I) . QK(I)  END;
-                  Q(R1,M2) = QK(M2);  E(R1,1) = Q(R1,M2) - Q2(R1,1);
-                  FOR J = (2, 1, M);
-                  E(R1,J) = E(R1,J-1) - Q2(R1,J);
-                  FI = 1.0;
-                  FOR I = (1, 1, M); BEGIN
-                  EITHER IF (FN - FI) > 0.0; BEGIN
-                  EITHER IF E(R1,I) < 0.0;
-                  BEGIN EP(R1,I) = -SQRT(ABS(E(R1,I))/(FN - FI));
-                  GO TO BOX8D;    END
-                  OTHERWISE;  EP(R1,I) = SQRT(E(R1,I)/(FN - FI));
-                  GO TO BOX8D;  END;  OTHERWISE;  E(R1,I) = -1.0;
- BOX8D..          FI = FI + 1.0;   END;   GO TO BOX8A;
- BOX9..           SWITCH THI, (TH1, TH2, TH3);
-       TH1..      FOR I = (1, 1, NPP);
-                  X(K,I) = XP(I);  GO TO BOX10;
-       TH2..      FOR I = (1, 1, N);
-                  DEV(R1,I) = XP(I);
-                  FOR I = (1, 1, P);
-                  COF(R1,I) = -XP(N+I);  THI = 3;  GO TO TH1;
-       TH3..      GO TO BOX11;
- BOX10..          SWITCH ALI, (AL1, AL2);
-       AL1..      OMI = ALI = 2;  GO TO BOX6;
-       AL2..      EITHER IF K < M; BEGIN K = K + 1;  GO TO BOX4;  END;
-                  OTHERWISE;  GO TO BOX12;
- BOX11..          SWITCH NUI, (NU1, NU2);
-       NU1..      NUI = 2;  GO TO BOX14;
-       NU2..      SS = DK/DENOM;  SSQ = SS . SS;
-                  STD(R1) = SS;  GO TO BOX14;
- BOX12..          SWITCH BEI, (BE1, BE2);
-       BE1..      FOR I = (1, 1, M); BEGIN
-                  FOR J = (1, 1, P);
-                  A(I,J) = X(I,N+J)  END;
-                  GMDT = 1.0;  FOR I = (1, 1, M);
-                  GMDT = GMDT . (GF(I)/ENF(I));
-                  GMDT = GMDT . GMDT;  DEI = BEI = THI = 2;
-                  K = K + 1;       GO TO BOX13;
-       BE2..      GO TO BOX11;
- BOX13..          SWITCH GAI, (GA1, GA2);
-       GA1..      GO TO BOX11;
-       GA2..      FOR I = (1, 1, P); BEGIN
-                  FOR J = (I, 1, P); BEGIN
-                  SUM = 0.0;
-                  FOR NII = (1, 1, M);
-                  SUM = SUM + A(NII,I) . A(NII,J);
-                  CV(I,J) = SUM  END  END;
-                  FOR I = (1, 1, P);
-                  CV(P2,I) = SQRT(CV(I,I));  GAI = 1;  GO TO BOX11;
- BOX14..          SWITCH RHI, (RH1, RH2);
-       RH1..      EITHER IF RBAR EQL 0; GO TO FINAL;
-                  OTHERWISE;  RBAR = RBAR - 1;
-                  R1 = R1 + 1;  THI = RHI = 2;  SWITCH ZEI, (ZE1, ZE2);
-       ZE1..      FOR I = (1, 1, N);
-                  X(M2,I) = Y(R1,I);
-                  FOR I = (1, 1, P);
-                  X(M2,N+I) = 0.0;  GO TO BOX5;
-       ZE2..      FOR I = (1, 1, NPP);
-                  X(M2,I) = Y(R1,I);   GO TO BOX5;
-       RH2..      SWITCH SII, (SI1, SI2);
-       SI1..      GO TO RH1;
-       SI2..      FOR I = (1, 1, P); BEGIN
-                  FOR J = (I, 1, P);
-                  VCV(R1,I,J) = SSQ . CV(I,J)  END;
-                  FOR I = (1, 1, P);
-                  VCV(R1, P2, I) = SS . CV(P2,I);  GO TO RH1;
- FINAL.. RETURN END  ORTHO();
-
-
- PROCEDURE G (I, X, Y); REAL G;
-   REAL X, Y;   INTEGER I;
-   SWITCH I, (G1, G2, G3, G4, G5, G6, G7, G8, G9, G10,
-              G11, G12, G13, G14, G15, G16, G17);
-       G = 0;
-       RETURN;
-   G1..
-       G = 1;
-       RETURN;
-   G2..
-       G = X;
-       RETURN;
-   G3..
-       G = Y;
-       RETURN;
-   G4..
-       G = X*2 - Y*2;
-       RETURN;
-   G5..
-       G = 2.0 . X . Y;
-       RETURN;
-   G6..
-       G = X*3 - 3.0 . X . Y*2;
-       RETURN;
-   G7..
-       G = 3.0 . X*2 . Y - Y*3;
-       RETURN;
-   G8..
-       G = X*4 + Y*4 - 6.0 . X*2 . Y*2;
-       RETURN;
-   G9..
-       G = 4.0 . X*3 . Y - 4.0 . X . Y*3;
-       RETURN;
-   G10..
-       G = X*5 - 10.0 . X*3 . Y*2 + 5.0 . X . Y*4;
-       RETURN;
-   G11..
-       G = Y*5 - 10.0 . Y*3 . X*2 + 5.0 . Y . X*4;
-       RETURN;
-   G12..
-       G = X*6 - 15.0 . X*4 . Y*2 + 15.0 . X*2 . Y*4 - Y*6;
-       RETURN;
-   G13..
-       G = 6.0 . X*5 . Y + 6.0 . X . Y*5 - 20.0 . X*3 . Y*3;
-       RETURN;
-   G14..
-       G = X*7 - 21.0 .X*5 . Y*2 + 35.0 . X*3 . Y*4  - 7.0 . X .
-       Y*6;
-       RETURN;
-   G15..
-       G = 7.0 . X*6 . Y - 35.0 . X*4 . Y*3 + 21.0 . X*2 . Y*5 -
-       Y*7;
-       RETURN;
-   G16..
-       G = X*8 + Y*8 - 28.0 . X*6 . Y*2 + 70.0 . X*4 . Y*4 - 28.0
-               . X*2 . Y*6;
-       RETURN;
-   G17..
-       G = 8.0 . X*7 . Y - 56.0 . X*5 . Y*3 + 56.0 . X*3 . Y*5
-               - 8.0 . X . Y*7;
-       RETURN;
-   END G();
-
-
- COMMENT INITIALIZATION;
- N = 43;
- M = 11;
- P = 11;
- FOR I = (1, 1, N);
-   BEGIN
-     READ (;; XYWIN);
-     INPUT XYWIN (X(I), Y(I), W(I));
-     BV(1,I) = EXP(X(I)) . COS(Y(I)) + LOG((1 - Y(I))*2 + X(I)*2);
-     FOR J = (1, 1, M1);
-         Z(J,I) = G(J+1, X(I), Y(I));
-   END;
-
- ORTHO (W, BV, Z, N , N , M , P,  1, 2, 1, 2, 1; ORTHV, DEV, COF, STD,
-           CV, VCV, GMDT, Q, Q2, E, EP, A, GF, ENF);
-
- FOR I = (1, 1, N);
-   BEGIN  SUM = 0;
-     FOR J = (1, 1, M);  SUM = SUM + COF(1,J).G(J+1, X(I), Y(I));
-     CBV(I) = SUM;
-   END;
- WRITE (;; F2);
- WRITE (;; RESULTS, F1);
- OUTPUT RESULTS (FOR I = (1, 1, N); (I,X(I),Y(I),W(I), BV(1,I),
-                 CBV(I), (CBV(I)-BV(1,I))));
-
- PROCEDURE DMMP (NAME, ROW(), RN, SZ);
-     BEGIN
-     INTEGER
-       NAME, SZ;
-     INTEGER
-       I;
-     FORMAT
-       F1 (W4,A5,* = *,W),
-       F2 (W4,A5,*(*,I2,*) = *,W),
-       F3 (6F20.11,W);
-     OUTPUT
-       D1OUT (NAME),
-       S2OUT (NAME, RN),
-       ROWOUT (FOR I = (1, 1, SZ); ROW(I));
-
-     EITHER IF SZ GTR 0;
-       WRITE (;; D2OUT, F2);
-     OTHERWISE;
-       WRITE (;; D1OUT, F1);
-
-     WRITE (;; ROWOUT, F3);
-     END DMMP();
-
- DMMP ("X    ", X, 0, N);
- DMMP ("Y    ", Y, 0, N);
- DMMP ("W    ", W, 0, N);
- DMMP ("CBV  ", CBV, 0, N);
- DMMP ("BV   ", BV(1,), 0, N+P);
- FOR I = (1, 1, M);
-     DMMP ("Z    ", Z(I,), I, N+P);
-
- FOR I = (1, 1, M);
-     DMMP ("ORTHV", ORTHV(I,), I, N+P);
-
- DMMP ("DEV  ", DEV(1,), 0, N);
- DMMP ("COF  ", COF(1,), 0, P);
- DMMP ("STD  ", STD, 0, 1);
- FOR I = (1, 1, P);
-     DMMP ("CV   ", CV(I,), I, P);
-
- FOR I = (1, 1, P);
-     DMMP ("VCV  ", VCV(1,I,), I, P);
-
- DMMP ("EP   ", EP(1,), M);
- FOR I = (1, 1, M);
-     DMMP ("A    ", A(I,), I, P);
-
- DMMP ("GF   ", GF, 0, M+1);
- DMMP ("Q    ", Q(1,), 0, M+1);
- DMMP ("Q2   ", Q2(1,), 0, M);
- DMMP ("E    ", E(1,), 0, M);
- DMMP ("ENF  ", ENF, 0, M);
- FINISH;
-5  0.000, 0.110, 0.01414,
-5 -0.050, 0.108, 0.01427,
-5 -0.100, 0.115, 0.01963,
-5 -0.160, 0.150, 0.02300,
-5 -0.220, 0.205, 0.03897,
-5 -0.320, 0.300, 0.02792,
-5 -0.400, 0.358, 0.03324,
-5 -0.500, 0.420, 0.01483,
-5 -0.550, 0.436, 0.01423,
-5 -0.600, 0.430, 0.01505,
-5 -0.644, 0.400, 0.01483,
-5 -0.660, 0.350, 0.01420,
-5 -0.655, 0.300, 0.02881,
-5 -0.635, 0.200, 0.03043,
-5 -0.595, 0.100, 0.03076,
-5 -0.552, 0.000, 0.03311,
-5 -0.500, -0.105, 0.03175,
-5 -0.440, -0.200, 0.01809,
-5 -0.400, -0.250, 0.01998,
-5 -0.350,-0.300, 0.01882,
-5 -0.300, -0.344, 0.03140,
-5 -0.204, -0.400, 0.03450,
-5 -0.100, -0.436, 0.02846,
-5  0.000, -0.448, 0.02831,
-5  0.100, -0.442, 0.03860,
-5  0.230, -0.400, 0.02431,
-5  0.300, -0.350, 0.02059,
-5  0.353, -0.300, 0.03566,
-5  0.430, -0.200, 0.03122,
-5  0.477, -0.100, 0.02975,
-5  0.510, 0.000, 0.02846,
-5  0.522, 0.100, 0.01696,
-5  0.520, 0.160, 0.02330,
-5  0.500, 0.240, 0.02102,
-5  0.456, 0.300, 0.01795,
-5  0.400, 0.330, 0.01147,
-5  0.360, 0.337, 0.01762,
-5  0.300, 0.320, 0.01648,
-5  0.250, 0.290, 0.01901,
-5  0.300, 0.245, 0.01901,
-5  0.150, 0.200, 0.01809,
-5  0.100, 0.160, 0.01677,
-5  0.050, 0.128, 0.01501,
+2COMMENT
+2% DIRICHLET PROBLEM FOR A BEAN-SHAPED REGION.  FROM P J DAVIS,
+2% "ORTHONORMALIZING CODES IN NUMERICAL ANALYSIS" IN J TODD, --SURVEY OF
+2% NUMERICAL ANLAYSIS--, MCGRAW-HILL, 1962,  P.347. P H KIMPEL 8/15/70
+2% MODIFICATION LOG..
+2% 92/03/17  P.KIMPEL, PARADIGM CORP, SAN DIEGO, CA  92117.
+2%   CONVERT FOR UNISYS A-SERIES MCP 3.8.4.
+2% 2014-11-15  P.KIMPEL
+2%   RETRO-CONVERT FROM UNISYS MCP ALGOL BACK TO BURROUGHS B5500 XALGOL.
+2% 2018-02-20  P.KIMPEL
+2%   RETRO-CONVERT FROM B5500 TO BURROUGHS 220 BALGOL OF 1962.
+2;
+2
+2FORMAT F1 (B30,I3,2X10.3,4X10.5,W),
+2       F2 (B40,*X*,B9,*Y*,B9,*W*,B8,*BV*,B7,*CBV,*,B7,*DEV*,W3,W);
+2INTEGER I, J, N, M, P;
+2REAL SUM, GMDT;
+2
+2COMMENT ARRAY DIMENSIONS WERE ORIGINALLY DEFINED AS N=43, M=11, P=11..
+2  X,                      % ABSCISSA VALUES.
+2  Y,                      % ORDINATE VALUES.
+2  W,                      % WEIGHTS.
+2  CBV(0..N-1),            % BOUNDARY VALUES CALCULATED FROM ORTHO COEFS
+2  BV(0..0, 0..N-1+P),     % GIVEN BOUNDARY VALUES.
+2  Z(0..M-1, 0..N-1+P),    % APPROXIMATING VECTORS.
+2  ORTHV(0..M, 0..N-1+P),  % ORTHONORMAL VECTORS RETURNED BY "ORTHO"
+2  DEV(0..0, 0..N-1),      % DEVIATIONS.
+2  COF(0..0, 0..P-1),      % COEFFICIENTS.
+2  STD(0..0),              % STANDARD DEVIATION.
+2  CV(0..P, 0..P-1),       % COVARIANCE MATRIX.
+2  VCV(0..0, 0..P, 0..P-1),% VARIANCE/COVARIANCE MATRIX.
+2  Q(0..0, 0..M),          % FOURIER COEFFICIENTS.
+2  Q2,                     % SQUARED FOURIER COEFFICIENTS.
+2  E,                      % SUM OF SQUARED RESIDUALS.
+2  EP(0..0, 0..M-1),       % RESIDUALS.
+2  A(0..M-1, 0..P-1),      % LOWER TRIANGULAR MATRIX USED TO CALC CV.
+2  GF(0..M),               % GRAM FACTORS.
+2  ENF(0..M-1);            % NORMS OF THE APPROXIMATING VECTORS.
+2
+2ARRAY
+2  X(43),
+2  Y(43),
+2  W(43),
+2  CBV(43),
+2  BV(54),
+2  Z(11, 54),
+2  ORTHV(11, 54),
+2  DEV(1, 43),
+2  COF(1, 11),
+2  STD(1),
+2  CV(12, 11),
+2  VCV(1, 12, 11),
+2  Q(1, 12),
+2  Q2(1, 11),
+2  E(1, 11),
+2  EP(1, 11),
+2  A(11, 11),
+2  GF(12),
+2  ENF(11);
+2
+2
+2PROCEDURE ORTHO (W(), Y(,), Z(,), N, FN, M, P, R, AI, AUI, MUI, ZEI;
+2                 X(,), DEV(,), COF(,), STD, CV(,), VCV(,,), GMDT,
+2                 Q(,), Q2(,), E(,), EP(,), A(,), GF(), ENF());
+2BEGIN
+2REAL  FN, GMDT;
+2INTEGER  N, M, P, R, AI, AUI, ZEI, MUI;
+2COMMENT
+2          ORTHO    IS TAKEN FROM ACM ALGORITHM 127 (COMM. ACM, VOL.5,
+2                 OCTOBER 1962, P. 511, AUTHOR PHILIP J. WALSH);
+2INTEGER  NPP, NPM, M1, N2, M2, R1, RBAR, P2, BEI, RHI, I18, GAI, SII, I,
+2                 J, DEI, NUI, E1Z2, E1Z1, K, THI, ALI, OMI, NII;
+2ARRAY  PK(N+P), XP (N+P), QK(M+1);
+2REAL DENOM, SUM, DK2, DK, FI, SS, SSQ;
+2
+2      NPP = N+P; NPM = N+M; M1 = M-1; N2 = N+1; M2 = M+1;
+2          R1 = 0; RBAR = R; P2 = P+1;
+2      EITHER IF N EQL M; DENOM = 1.0;  OTHERWISE;  DENOM = SQRT(N-M);
+2      BEI = RHI = I18 = 1;
+2      EITHER IF (P NEQ 0); GAI = SII = 2;  OTHERWISE;  GAI = SII = 1;
+2BOX1..           SWITCH AI, (AT1, AT2);
+2      AT1..      FOR J = (1, 1, N); BEGIN
+2                 X(2,J) = Z(1,J);  X(1,J) = 1.0 END;
+2                 FOR I = (2, 1, M1); BEGIN
+2                 FOR J = (1, 1, N);
+2                 X(I+1,J) = X(I,J) . X(2,J)  END;   GO TO BOX2;
+2      AT2..      FOR I = (1, 1, M); BEGIN
+2                 FOR J = (1, 1, N);
+2                 X(I,J) = Z(I,J)  END;
+2BOX2..           EITHER IF P EQL 0; GO TO BOX3;
+2                 OTHERWISE;  SWITCH AUI, (AU1, AU2);
+2      AU1..      FOR I = (1, 1, M); BEGIN
+2                 FOR J = (N2, 1, NPP);
+2                 X(I,J) = 0.0;  X(I,N+I) = 1.0  END;  GO TO BOX3;
+2      AU2..      FOR I = (1, 1, M); BEGIN
+2                 FOR J = (N2, 1, NPP);
+2                 X(I,J) = Z(I,J)  END;
+2BOX3..           DEI = NUI = E1Z1 = E1Z2 = K = 1;
+2BOX4..           THI = 1;
+2BOX5..           ALI = OMI = 1;  EITHER IF P EQL 0; GO TO BOX6;
+2                 OTHERWISE;  FOR J = (1, 1, P); PK(N+J) = 0.0;
+2BOX6..           SWITCH MUI, (MU1, MU2);
+2      MU1..      FOR I = (1, 1, N); PK(I) = X(K,I);
+2                 GO TO BOX7;
+2      MU2..      FOR I = (1, 1, N);
+2                 PK(I) = X(K,I) . W(I);   GO TO BOX7;
+2BOX7..           SWITCH OMI, (OM1, OM2);
+2      OM1..      FOR I = (1, 1, K); BEGIN SUM = 0.0;
+2                 FOR J = (1, 1, NPP);
+2                 SUM = SUM + PK(J) . X(I,J);  QK(I) = SUM END;
+2                 GO TO BOX8;
+2      OM2..      DK2 = 0.0;  FOR I = (1, 1, NPP);
+2                 DK2 = DK2 + PK(I) . X(K,I);
+2                 DK = SQRT(DK2);
+2                 GF(I18) = DK;   I18 = I18 + 1;
+2                 FOR I = (1, 1, NPP);
+2                 X(K,I) = X(K,I)/DK;;
+2                 OMI = 1;    GO TO BOX6;
+2BOX8..           SWITCH DEI, (DE1, DE2);
+2      DE1..      E1Z1 = -E1Z1;   EITHER IF E1Z1 LSS 0; GO TO BOX8B;
+2                 OTHERWISE;  GO TO BOX8A;
+2BOX8A..          FOR I = (1, 1, K-1);
+2                 QK(I) = -QK(I);   QK(K) = 1.0;
+2                 FOR I = (1, 1, NPP); BEGIN
+2                 SUM = 0.0;  FOR J = (1, 1, K);
+2                 SUM = SUM + X(J,I) . QK(J);
+2                 XP(I) = SUM END;  GO TO BOX9;
+2BOX8B..          ENF(I18) = SQRT(QK(K));   GO TO BOX8A;
+2      DE2..      E1Z2 = -E1Z2;  EITHER IF E1Z2 LSS 0; GO TO BOX8C;
+2                 OTHERWISE;  GO TO BOX8A;
+2BOX8C..          FOR I = (1, 1, M); BEGIN
+2                 Q(R1,I) = QK(I);  Q2(R1,I) = QK(I) . QK(I)  END;
+2                 Q(R1,M2) = QK(M2);  E(R1,1) = Q(R1,M2) - Q2(R1,1);
+2                 FOR J = (2, 1, M);
+2                 E(R1,J) = E(R1,J-1) - Q2(R1,J);
+2                 FI = 1.0;
+2                 FOR I = (1, 1, M); BEGIN
+2                 EITHER IF (FN - FI) GTR 0.0; BEGIN
+2                 EITHER IF E(R1,I) LSS 0.0;
+2                 BEGIN EP(R1,I) = -SQRT(ABS(E(R1,I))/(FN - FI));
+2                 GO TO BOX8D;    END
+2                 OTHERWISE;  EP(R1,I) = SQRT(E(R1,I)/(FN - FI));
+2                 GO TO BOX8D;  END;  OTHERWISE;  E(R1,I) = -1.0;
+2BOX8D..          FI = FI + 1.0;   END;   GO TO BOX8A;
+2BOX9..           SWITCH THI, (TH1, TH2, TH3);
+2      TH1..      FOR I = (1, 1, NPP);
+2                 X(K,I) = XP(I);  GO TO BOX10;
+2      TH2..      FOR I = (1, 1, N);
+2                 DEV(R1,I) = XP(I);
+2                 FOR I = (1, 1, P);
+2                 COF(R1,I) = -XP(N+I);  THI = 3;  GO TO TH1;
+2      TH3..      GO TO BOX11;
+2BOX10..          SWITCH ALI, (AL1, AL2);
+2      AL1..      OMI = ALI = 2;  GO TO BOX6;
+2      AL2..      EITHER IF K LSS M; BEGIN K = K + 1;  GO TO BOX4;  END;
+2                 OTHERWISE;  GO TO BOX12;
+2BOX11..          SWITCH NUI, (NU1, NU2);
+2      NU1..      NUI = 2;  GO TO BOX14;
+2      NU2..      SS = DK/DENOM;  SSQ = SS . SS;
+2                 STD(R1) = SS;  GO TO BOX14;
+2BOX12..          SWITCH BEI, (BE1, BE2);
+2      BE1..      FOR I = (1, 1, M); BEGIN
+2                 FOR J = (1, 1, P);
+2                 A(I,J) = X(I,N+J)  END;
+2                 GMDT = 1.0;  FOR I = (1, 1, M);
+2                 GMDT = GMDT . (GF(I)/ENF(I));
+2                 GMDT = GMDT . GMDT;  DEI = BEI = THI = 2;
+2                 K = K + 1;       GO TO BOX13;
+2      BE2..      GO TO BOX11;
+2BOX13..          SWITCH GAI, (GA1, GA2);
+2      GA1..      GO TO BOX11;
+2      GA2..      FOR I = (1, 1, P); BEGIN
+2                 FOR J = (I, 1, P); BEGIN
+2                 SUM = 0.0;
+2                 FOR NII = (1, 1, M);
+2                 SUM = SUM + A(NII,I) . A(NII,J);
+2                 CV(I,J) = SUM  END  END;
+2                 FOR I = (1, 1, P);
+2                 CV(P2,I) = SQRT(CV(I,I));  GAI = 1;  GO TO BOX11;
+2BOX14..          SWITCH RHI, (RH1, RH2);
+2      RH1..      EITHER IF RBAR EQL 0; GO TO FINAL;
+2                 OTHERWISE;  RBAR = RBAR - 1;
+2                 R1 = R1 + 1;  THI = RHI = 2;  SWITCH ZEI, (ZE1, ZE2);
+2      ZE1..      FOR I = (1, 1, N);
+2                 X(M2,I) = Y(R1,I);
+2                 FOR I = (1, 1, P);
+2                 X(M2,N+I) = 0.0;  GO TO BOX5;
+2      ZE2..      FOR I = (1, 1, NPP);
+2                 X(M2,I) = Y(R1,I);   GO TO BOX5;
+2      RH2..      SWITCH SII, (SI1, SI2);
+2      SI1..      GO TO RH1;
+2      SI2..      FOR I = (1, 1, P); BEGIN
+2                 FOR J = (I, 1, P);
+2                 VCV(R1,I,J) = SSQ . CV(I,J)  END;
+2                 FOR I = (1, 1, P);
+2                 VCV(R1, P2, I) = SS . CV(P2,I);  GO TO RH1;
+2FINAL.. RETURN END  ORTHO();
+2
+2
+2PROCEDURE G (I, X, Y; V);
+2  REAL X, Y, V;   INTEGER I;
+2  SWITCH I, (G1, G2, G3, G4, G5, G6, G7, G8, G9, G10,
+2             G11, G12, G13, G14, G15, G16, G17);
+2      V = 0;
+2      RETURN;
+2  G1..
+2      V = 1;
+2      RETURN;
+2  G2..
+2      V = X;
+2      RETURN;
+2  G3..
+2      V = Y;
+2      RETURN;
+2  G4..
+2      V = X*2 - Y*2;
+2      RETURN;
+2  G5..
+2      V = 2.0 . X . Y;
+2      RETURN;
+2  G6..
+2      V = X*3 - 3.0 . X . Y*2;
+2      RETURN;
+2  G7..
+2      V = 3.0 . X*2 . Y - Y*3;
+2      RETURN;
+2  G8..
+2      V = X*4 + Y*4 - 6.0 . X*2 . Y*2;
+2      RETURN;
+2  G9..
+2      V = 4.0 . X*3 . Y - 4.0 . X . Y*3;
+2      RETURN;
+2  G10..
+2      V = X*5 - 10.0 . X*3 . Y*2 + 5.0 . X . Y*4;
+2      RETURN;
+2  G11..
+2      V = Y*5 - 10.0 . Y*3 . X*2 + 5.0 . Y . X*4;
+2      RETURN;
+2  G12..
+2      V = X*6 - 15.0 . X*4 . Y*2 + 15.0 . X*2 . Y*4 - Y*6;
+2      RETURN;
+2  G13..
+2      V = 6.0 . X*5 . Y + 6.0 . X . Y*5 - 20.0 . X*3 . Y*3;
+2      RETURN;
+2  G14..
+2      V = X*7 - 21.0 .X*5 . Y*2 + 35.0 . X*3 . Y*4  - 7.0 . X .
+2      Y*6;
+2      RETURN;
+2  G15..
+2      V = 7.0 . X*6 . Y - 35.0 . X*4 . Y*3 + 21.0 . X*2 . Y*5 -
+2      Y*7;
+2      RETURN;
+2  G16..
+2      V = X*8 + Y*8 - 28.0 . X*6 . Y*2 + 70.0 . X*4 . Y*4 - 28.0
+2              . X*2 . Y*6;
+2      RETURN;
+2  G17..
+2      V = 8.0 . X*7 . Y - 56.0 . X*5 . Y*3 + 56.0 . X*3 . Y*5
+2              - 8.0 . X . Y*7;
+2      RETURN;
+2  END G();
+2
+2
+2COMMENT INITIALIZATION;
+2N = 43;
+2M = 11;
+2P = 11;
+2FOR I = (1, 1, N);
+2  BEGIN
+2    READ (;; XYWIN);
+2    INPUT XYWIN (X(I), Y(I), W(I));
+2    BV(1,I) = EXP(X(I)) . COS(Y(I)) + LOG((1 - Y(I))*2 + X(I)*2);
+2    FOR J = (1, 1, M1);
+2        BEGIN
+2        G (J+1, X(I), Y(I), SUM);
+2        Z(J,I) = SUM;
+2        END;
+2  END;
+2
+2ORTHO (W, BV, Z, N , N , M , P,  1, 2, 1, 2, 1; ORTHV, DEV, COF, STD,
+2          CV, VCV, GMDT, Q, Q2, E, EP, A, GF, ENF);
+2
+2FOR I = (1, 1, N);
+2  BEGIN  SUM = 0;
+2    FOR J = (1, 1, M);  SUM = SUM + COF(1,J).G(J+1, X(I), Y(I));
+2    CBV(I) = SUM;
+2  END;
+2WRITE (;; F2);
+2WRITE (;; RESULTS, F1);
+2OUTPUT RESULTS (FOR I = (1, 1, N); (I,X(I),Y(I),W(I), BV(1,I),
+2                CBV(I), (CBV(I)-BV(1,I))));
+2
+2PROCEDURE DMMP (NAME, ROW(), RN, SZ);
+2    BEGIN
+2    INTEGER
+2      NAME, SZ;
+2    INTEGER
+2      I;
+2    FORMAT
+2      F1 (W4,A5,* = *,W),
+2      F2 (W4,A5,*(*,I2,*) = *,W),
+2      F3 (6F20.11,W);
+2    OUTPUT
+2      D1OUT (NAME),
+2      S2OUT (NAME, RN),
+2      ROWOUT (FOR I = (1, 1, SZ); ROW(I));
+2
+2    EITHER IF SZ GTR 0;
+2      WRITE (;; D2OUT, F2);
+2    OTHERWISE;
+2      WRITE (;; D1OUT, F1);
+2
+2    WRITE (;; ROWOUT, F3);
+2    END DMMP();
+2
+2DMMP ("X    ", X, 0, N);
+2DMMP ("Y    ", Y, 0, N);
+2DMMP ("W    ", W, 0, N);
+2DMMP ("CBV  ", CBV, 0, N);
+2DMMP ("BV   ", BV(1,), 0, N+P);
+2FOR I = (1, 1, M);
+2    DMMP ("Z    ", Z(I,), I, N+P);
+2
+2FOR I = (1, 1, M);
+2    DMMP ("ORTHV", ORTHV(I,), I, N+P);
+2
+2DMMP ("DEV  ", DEV(1,), 0, N);
+2DMMP ("COF  ", COF(1,), 0, P);
+2DMMP ("STD  ", STD, 0, 1);
+2FOR I = (1, 1, P);
+2    DMMP ("CV   ", CV(I,), I, P);
+2
+2FOR I = (1, 1, P);
+2    DMMP ("VCV  ", VCV(1,I,), I, P);
+2
+2DMMP ("EP   ", EP(1,), M);
+2FOR I = (1, 1, M);
+2    DMMP ("A    ", A(I,), I, P);
+2
+2DMMP ("GF   ", GF, 0, M+1);
+2DMMP ("Q    ", Q(1,), 0, M+1);
+2DMMP ("Q2   ", Q2(1,), 0, M);
+2DMMP ("E    ", E(1,), 0, M);
+2DMMP ("ENF  ", ENF, 0, M);
+2FINISH;
+5  0.000,  0.110,  0.01414,
+5 -0.050,  0.108,  0.01427,
+5 -0.100,  0.115,  0.01963,
+5 -0.160,  0.150,  0.02300,
+5 -0.220,  0.205,  0.03897,
+5 -0.320,  0.300,  0.02792,
+5 -0.400,  0.358,  0.03324,
+5 -0.500,  0.420,  0.01483,
+5 -0.550,  0.436,  0.01423,
+5 -0.600,  0.430,  0.01505,
+5 -0.644,  0.400,  0.01483,
+5 -0.660,  0.350,  0.01420,
+5 -0.655,  0.300,  0.02881,
+5 -0.635,  0.200,  0.03043,
+5 -0.595,  0.100,  0.03076,
+5 -0.552,  0.000,  0.03311,
+5 -0.500, -0.105,  0.03175,
+5 -0.440, -0.200,  0.01809,
+5 -0.400, -0.250,  0.01998,
+5 -0.350, -0.300,  0.01882,
+5 -0.300, -0.344,  0.03140,
+5 -0.204, -0.400,  0.03450,
+5 -0.100, -0.436,  0.02846,
+5  0.000, -0.448,  0.02831,
+5  0.100, -0.442,  0.03860,
+5  0.230, -0.400,  0.02431,
+5  0.300, -0.350,  0.02059,
+5  0.353, -0.300,  0.03566,
+5  0.430, -0.200,  0.03122,
+5  0.477, -0.100,  0.02975,
+5  0.510,  0.000,  0.02846,
+5  0.522,  0.100,  0.01696,
+5  0.520,  0.160,  0.02330,
+5  0.500,  0.240,  0.02102,
+5  0.456,  0.300,  0.01795,
+5  0.400,  0.330,  0.01147,
+5  0.360,  0.337,  0.01762,
+5  0.300,  0.320,  0.01648,
+5  0.250,  0.290,  0.01901,
+5  0.300,  0.245,  0.01901,
+5  0.150,  0.200,  0.01809,
+5  0.100,  0.160,  0.01677,
+5  0.050,  0.128,  0.01501,
 5  SENTINEL
