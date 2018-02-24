@@ -1,6 +1,6 @@
 2COMMENT
 2% DIRICHLET PROBLEM FOR A BEAN-SHAPED REGION.  FROM P J DAVIS,
-2% "ORTHONORMALIZING CODES IN NUMERICAL ANALYSIS" IN J TODD, --SURVEY OF
+2% *ORTHONORMALIZING CODES IN NUMERICAL ANALYSIS* IN J TODD, --SURVEY OF
 2% NUMERICAL ANLAYSIS--, MCGRAW-HILL, 1962,  P.347. P H KIMPEL 8/15/70
 2% MODIFICATION LOG..
 2% 92/03/17  P.KIMPEL, PARADIGM CORP, SAN DIEGO, CA  92117.
@@ -8,7 +8,7 @@
 2% 2014-11-15  P.KIMPEL
 2%   RETRO-CONVERT FROM UNISYS MCP ALGOL BACK TO BURROUGHS B5500 XALGOL.
 2% 2018-02-20  P.KIMPEL
-2%   RETRO-CONVERT FROM B5500 TO BURROUGHS 220 BALGOL OF 1962.
+2%   RETRO-CONVERT FROM B5500 TO BURROUGHS 220 BALGOL OF FEB 1962.
 2;
 2
 2FORMAT F1 (B30,I3,2X10.3,4X10.5,W),
@@ -16,26 +16,6 @@
 2INTEGER I, J, N, M, P;
 2REAL SUM, GMDT, VG;
 2
-2COMMENT ARRAY DIMENSIONS WERE ORIGINALLY DEFINED AS N=43, M=11, P=11..
-2  X,                      % ABSCISSA VALUES.
-2  Y,                      % ORDINATE VALUES.
-2  W,                      % WEIGHTS.
-2  CBV(0..N-1),            % BOUNDARY VALUES CALCULATED FROM ORTHO COEFS
-2  BV(0..0, 0..N-1+P),     % GIVEN BOUNDARY VALUES.
-2  Z(0..M-1, 0..N-1+P),    % APPROXIMATING VECTORS.
-2  ORTHV(0..M, 0..N-1+P),  % ORTHONORMAL VECTORS RETURNED BY "ORTHO"
-2  DEV(0..0, 0..N-1),      % DEVIATIONS.
-2  COF(0..0, 0..P-1),      % COEFFICIENTS.
-2  STD(0..0),              % STANDARD DEVIATION.
-2  CV(0..P, 0..P-1),       % COVARIANCE MATRIX.
-2  VCV(0..0, 0..P, 0..P-1),% VARIANCE/COVARIANCE MATRIX.
-2  Q(0..0, 0..M),          % FOURIER COEFFICIENTS.
-2  Q2,                     % SQUARED FOURIER COEFFICIENTS.
-2  E,                      % SUM OF SQUARED RESIDUALS.
-2  EP(0..0, 0..M-1),       % RESIDUALS.
-2  A(0..M-1, 0..P-1),      % LOWER TRIANGULAR MATRIX USED TO CALC CV.
-2  GF(0..M),               % GRAM FACTORS.
-2  ENF(0..M-1);            % NORMS OF THE APPROXIMATING VECTORS.
 2
 2REAL    X, Y, W, CBV, BV, Z, ORTHV, DEV, COF, STD, CV, VCV,
 2        Q, Q2, E, EP, A, GF, ENF;
@@ -247,8 +227,7 @@
 2      V = 6.0 . X*5 . Y + 6.0 . X . Y*5 - 20.0 . X*3 . Y*3;
 2      RETURN;
 2  G14..
-2      V = X*7 - 21.0 .X*5 . Y*2 + 35.0 . X*3 . Y*4  - 7.0 . X .
-2      Y*6;
+2      V = X*7 - 21.0 .X*5 . Y*2 + 35.0 . X*3 . Y*4  - 7.0 . X . Y*6;           Y*6 WAS ON SEPARATE LINE
 2      RETURN;
 2  G15..
 2      V = 7.0 . X*6 . Y - 35.0 . X*4 . Y*3 + 21.0 . X*2 . Y*5 -
@@ -321,35 +300,35 @@
 2    WRITE (;; ROWOUT, F3);
 2    END DMMP();
 2
-2DMMP ("X    ", X, 0, N);
-2DMMP ("Y    ", Y, 0, N);
-2DMMP ("W    ", W, 0, N);
-2DMMP ("CBV  ", CBV, 0, N);
-2DMMP ("BV   ", BV(1,), 0, N+P);
+2DMMP (@X    @, X, 0, N);
+2DMMP (@Y    @, Y, 0, N);
+2DMMP (@W    @, W, 0, N);
+2DMMP (@CBV  @, CBV, 0, N);
+2DMMP (@BV   @, BV(1,), 0, N+P);
 2FOR I = (1, 1, M);
-2    DMMP ("Z    ", Z(I,), I, N+P);
+2    DMMP (@Z    @, Z(I,), I, N+P);
 2
 2FOR I = (1, 1, M);
-2    DMMP ("ORTHV", ORTHV(I,), I, N+P);
+2    DMMP (@ORTHV@, ORTHV(I,), I, N+P);
 2
-2DMMP ("DEV  ", DEV(1,), 0, N);
-2DMMP ("COF  ", COF(1,), 0, P);
-2DMMP ("STD  ", STD, 0, 1);
+2DMMP (@DEV  @, DEV(1,), 0, N);
+2DMMP (@COF  @, COF(1,), 0, P);
+2DMMP (@STD  @, STD, 0, 1);
 2FOR I = (1, 1, P);
-2    DMMP ("CV   ", CV(I,), I, P);
+2    DMMP (@CV   @, CV(I,), I, P);
 2
 2FOR I = (1, 1, P);
-2    DMMP ("VCV  ", VCV(1,I,), I, P);
+2    DMMP (@VCV  @, VCV(1,I,), I, P);
 2
-2DMMP ("EP   ", EP(1,), M);
+2DMMP (@EP   @, EP(1,), M);
 2FOR I = (1, 1, M);
-2    DMMP ("A    ", A(I,), I, P);
+2    DMMP (@A    @, A(I,), I, P);
 2
-2DMMP ("GF   ", GF, 0, M+1);
-2DMMP ("Q    ", Q(1,), 0, M+1);
-2DMMP ("Q2   ", Q2(1,), 0, M);
-2DMMP ("E    ", E(1,), 0, M);
-2DMMP ("ENF  ", ENF, 0, M);
+2DMMP (@GF   @, GF, 0, M+1);
+2DMMP (@Q    @, Q(1,), 0, M+1);
+2DMMP (@Q2   @, Q2(1,), 0, M);
+2DMMP (@E    @, E(1,), 0, M);
+2DMMP (@ENF  @, ENF, 0, M);
 2FINISH;
 5  0.000  0.110  0.01414
 5 -0.050  0.108  0.01427
@@ -394,4 +373,4 @@
 5  0.150  0.200  0.01809
 5  0.100  0.160  0.01677
 5  0.050  0.128  0.01501
-5  SENTINEL
+5SENTINEL
