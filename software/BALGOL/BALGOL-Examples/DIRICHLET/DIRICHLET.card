@@ -14,7 +14,7 @@
 2FORMAT F1 (B30,I3,2X10.3,4X10.5,W),
 2       F2 (B40,*X*,B9,*Y*,B9,*W*,B8,*BV*,B7,*CBV,*,B7,*DEV*,W3,W);
 2INTEGER I, J, N, M, P;
-2REAL SUM, GMDT;
+2REAL SUM, GMDT, VG;
 2
 2COMMENT ARRAY DIMENSIONS WERE ORIGINALLY DEFINED AS N=43, M=11, P=11..
 2  X,                      % ABSCISSA VALUES.
@@ -37,6 +37,8 @@
 2  GF(0..M),               % GRAM FACTORS.
 2  ENF(0..M-1);            % NORMS OF THE APPROXIMATING VECTORS.
 2
+2REAL    X, Y, W, CBV, BV, Z, ORTHV, DEV, COF, STD, CV, VCV,
+2        Q, Q2, E, EP, A, GF, ENF;
 2ARRAY
 2  X(43),
 2  Y(43),
@@ -60,10 +62,10 @@
 2
 2
 2PROCEDURE ORTHO (W(), Y(,), Z(,), N, FN, M, P, R, AI, AUI, MUI, ZEI;
-2                 X(,), DEV(,), COF(,), STD, CV(,), VCV(,,), GMDT,
+2                 X(,), DEV(,), COF(,), STD(), CV(,), VCV(,,), GMDT,
 2                 Q(,), Q2(,), E(,), EP(,), A(,), GF(), ENF());
 2BEGIN
-2REAL  FN, GMDT;
+2REAL    FN, GMDT;
 2REAL    W, Y, Z, X, DEV, COF, STD, CV, VCV, Q, Q2, E, EP, A, GF, ENF;
 2INTEGER N, M, P, R, AI, AUI, ZEI, MUI;
 2COMMENT
@@ -274,8 +276,8 @@
 2    BV(1,I) = EXP(X(I)) . COS(Y(I)) + LOG((1 - Y(I))*2 + X(I)*2);
 2    FOR J = (1, 1, M1);
 2        BEGIN
-2        G (J+1, X(I), Y(I), SUM);
-2        Z(J,I) = SUM;
+2        G (J+1, X(I), Y(I); VG);
+2        Z(J,I) = VG;
 2        END;
 2  END;
 2
@@ -284,7 +286,11 @@
 2
 2FOR I = (1, 1, N);
 2  BEGIN  SUM = 0;
-2    FOR J = (1, 1, M);  SUM = SUM + COF(1,J).G(J+1, X(I), Y(I));
+2    FOR J = (1, 1, M);
+2      BEGIN
+2      G(J+1, X(I), Y(I); VG);
+2      SUM = SUM + COF(1,J).VG;
+2      END;
 2    CBV(I) = SUM;
 2  END;
 2WRITE (;; F2);
