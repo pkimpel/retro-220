@@ -59,18 +59,19 @@ function B220CardatronOutput(mnemonic, unitIndex, config) {
 
     // Device window
     this.doc = null;
+    this.window = null;
     this.barGroup = null;               // current greenbar line group
     this.supplyDoc = null;              // the content document for the supply frame
     this.supply = null;                 // the "paper" or "cards" we print/punch on
     this.endOfSupply = null;            // dummy element used to control scrolling
     this.supplyMeter = null;            // <meter> element showing amount of paper/card supply remaining
     w = (this.isPrinter ? 790 : 608);
-    this.window = window.open("../webUI/B220CardatronOutput.html", mnemonic,
+
+    B220Util.openPopup(window, "../webUI/B220CardatronOutput.html", mnemonic,
             "location=no,scrollbars,resizable,width=" + w + ",height=" + h +
-            ",left=" + (screen.availWidth - w) +
-            ",top=" + (screen.availHeight - h - (unitIndex-3)*32));
-    this.window.addEventListener("load",
-            B220CardatronOutput.prototype.deviceOnLoad.bind(this), false);
+                ",left=" + (screen.availWidth - w) +
+                ",top=" + (screen.availHeight - h - (unitIndex-3)*32),
+            this, B220CardatronOutput.prototype.deviceOnLoad);
 }
 
 /**************************************/
@@ -93,8 +94,8 @@ B220CardatronOutput.prototype.outputXlate = [
         [0x2D,0x4A,0x4B,0x4C,0x4D,0x4E,0x4F,0x50,0x51,0x52,0x20,0x24,0x2A],     // zone digit  2
         [0x20,0x20,0x20,0x20,0x20,0x20,0x20,0x20,0x20,0x20,0x20,0x20,0x20],     // zone digit  3
         [0x30,0x2F,0x53,0x54,0x55,0x56,0x57,0x58,0x59,0x5A,0x20,0x2C,0x25],     // zone digit  4
-        [0x40,0x20,0x20,0x20,0x20,0x20,0x20,0x20,0x20,0x20,0x20,0x20,0x20],     // zone digit  5
-        [0x2D,0x20,0x20,0x20,0x20,0x20,0x20,0x20,0x20,0x20,0x20,0x20,0x20],     // zone digit  6
+        [0x26,0x41,0x42,0x43,0x44,0x45,0x46,0x47,0x48,0x49,0x20,0x2E,0xA4],     // zone digit  5
+        [0x2D,0x4A,0x4B,0x4C,0x4D,0x4E,0x4F,0x50,0x51,0x52,0x20,0x24,0x2A],     // zone digit  6
         [0x20,0x20,0x39,0x2E,0xA4,0xA4,0x2E,0xA4,0x20,0x20,0x20,0x2E,0xA4],     // zone digit  7
         [0x20,0x4A,0x49,0x24,0x2A,0x2A,0x24,0x2A,0x20,0x20,0x20,0x24,0x2A],     // zone digit  8
         [0x20,0x20,0x52,0x27,0x25,0x25,0x2C,0x25,0x20,0x20,0x20,0x27,0x25],     // zone digit  9
@@ -102,9 +103,9 @@ B220CardatronOutput.prototype.outputXlate = [
         [0x20,0x26,0x20,0x20,0x20,0x20,0x20,0x20,0x20,0x20,0x20,0x20,0x20],     // zone digit 11
         [0x20,0x20,0x20,0x20,0x20,0x20,0x20,0x20,0x20,0x20,0x20,0x20,0x20]];    // zone digit 12
 
-// Translate buffer zone digits to internal zone decades.
-// Each row is indexed by the zone digit from the buffer drum info band;
-// each column is indexed by the PREVIOUS numeric digit from the info band.
+// Translate internal zone decades to buffer zone digits.
+// Each row is indexed by the zone digit from the internal character code;
+// each column is indexed by the PREVIOUS numeric digit from the character code.
 // See U.S. Patent 3,072,328, January 8, 1963, L.L. Bewley et al, Figure 12;
 // and ElectroData Technical Newsletter #5 of February 14, 1958.
 B220CardatronOutput.prototype.zoneXlate = [         // numeric digit:0 1 2 3 4 5 6 7 8 9
@@ -157,7 +158,7 @@ B220CardatronOutput.prototype.clear = function clear() {
     this.supplyLeft = this.maxSupplyLines; // lines/cards remaining in output supply
     this.runoutSupplyCount = 0;         // counter for triple-formfeed => rip paper/empty hopper
     this.groupLinesLeft = 0;            // lines remaining in current greenbar group
-    this.topOfForm = false;             // start new page flag
+    this.atTopOfForm = false;           // start new page flag
     this.pendingSpaceBefore = -1;       // pending carriage control (eat the initial space-before)
 
     this.pendingCall = null;            // stashed pending function reference
@@ -244,22 +245,22 @@ B220CardatronOutput.prototype.copySupply = function copySupply(ev) {
     var barGroup = this.supply.firstChild;
     var text = "";
     var title = "B220 " + this.mnemonic + " Text Snapshot";
-    var win = window.open("./B220FramePaper.html", this.mnemonic + "-Snapshot",
-            "scrollbars,resizable,width=500,height=500");
 
     while (barGroup) {
         text += barGroup.textContent + "\n";
         barGroup = barGroup.nextSibling;
     }
 
-    win.moveTo((screen.availWidth-win.outerWidth)/2, (screen.availHeight-win.outerHeight)/2);
-    win.addEventListener("load", function() {
-        var doc;
+    B220Util.openPopup(this.window, "./B220FramePaper.html", this.mnemonic + "-Snapshot",
+            "scrollbars,resizable,width=500,height=500",
+            this, function(ev) {
+        var doc = ev.target;
+        var win = doc.defaultView;
 
-        doc = win.document;
         doc.title = title;
+        win.moveTo((screen.availWidth-win.outerWidth)/2, (screen.availHeight-win.outerHeight)/2);
         doc.getElementById("Paper").textContent = text;
-    }, false);
+    });
 
     this.runoutSupply();
     ev.preventDefault();
@@ -304,29 +305,35 @@ B220CardatronOutput.prototype.appendLine = function appendLine(text) {
 };
 
 /**************************************/
+B220CardatronOutput.prototype.skipToChannel = function skipToChannel() {
+    /* Finishes the current page and sets up for top-of-form formatting on the
+    next line printed. Adjusts the supply of forms left */
+    var lines = 0;
+
+    while(this.groupLinesLeft > 0) {
+        ++lines;
+        this.appendLine("\xA0");
+    }
+
+    this.atTopOfForm = true;
+    this.supplyMeter.value = this.supplyLeft -= lines;
+};
+
+/**************************************/
 B220CardatronOutput.prototype.printLine = function printLine(text, spaceBefore) {
     /* Prints one line to the output, handling carriage control and greenbar
     group completion. For now, SPACE 0 (overprinting) is treated as single-spacing */
-    var lines = 0;
+    var lines = spaceBefore;
 
-    if (spaceBefore < 0) {              // skip to channel 1
-        while(this.groupLinesLeft > 0) {
-            ++lines;
-            this.appendLine("\xA0");
-        }
-        this.atTopOfForm = true;
-    } else {                            // space before print
-        lines = spaceBefore;
-        while (lines > 1) {
-            --lines;
-            --this.supplyLeft;
-            this.appendLine("\xA0");
-        }
+    while (lines > 1) {                 // space before print
+        --lines;
+        --this.supplyLeft;
+        this.appendLine("\xA0");
     }
 
     this.appendLine(text || "\xA0");
     if (this.supplyLeft > 0) {
-        this.supplyMeter.value = this.supplyLeft -= lines;
+        this.supplyMeter.value = this.supplyLeft -= 1;
     } else {
         this.setDeviceReady(false);
         B220Util.addClass(this.$$("COEndOfSupplyBtn"), "redLit");
@@ -433,7 +440,8 @@ B220CardatronOutput.prototype.initiateWrite = function initiateWrite() {
         case 1:                         // Relay 1 (eject page after printing)
         case 9:                         // same as 1
             this.printLine(line, this.pendingSpaceBefore);
-            this.pendingSpaceBefore = -99;
+            this.skipToChannel();
+            this.pendingSpaceBefore = 0;
             break;
         case 2:                         // Relay 2 (single space before and after printing)
             this.printLine(line, this.pendingSpaceBefore+1);
@@ -442,7 +450,8 @@ B220CardatronOutput.prototype.initiateWrite = function initiateWrite() {
         case 3:                         // Relay 3 (eject page before printing)
         case 5:                         // Relay 5 (skip to channel 2 before printing)
         case 7:                         // Relay 3+5 (skip to channel 3 before printing)
-            this.printLine(line, -1);
+            this.skipToChannel();
+            this.printLine(line, 0);
             this.pendingSpaceBefore = 0;
             break;
         case 4:                         // Relay 4 (double space before printing)
@@ -627,11 +636,9 @@ B220CardatronOutput.prototype.parseZeroSuppressList = function parseZeroSuppress
 B220CardatronOutput.prototype.COSetZSBtn_onClick = function COSetZSBtn_onClick(ev) {
     /* Displays the Zero Suppress Panel window to capture a list of column numbers */
     var $$$ = null;                     // getElementById shortcut for loader window
-    var doc = null;                     // loader window.document
+    var doc = null;                     // zero-suppress window.document
     var tron = this;                    // this B220CardatronOutput device instance
-    var win = this.window.open("B220CardatronZeroSuppressPanel.html", this.mnemonic + "ZS",
-            "location=no,scrollbars=no,resizable,width=508,height=120,left=" +
-            (this.window.screenX+16) +",top=" + (this.window.screenY+16));
+    var win = null;                     // zero-suppress window defaultView
 
     function zsOK(ev) {
         /* Handler for the OK button. Parses the list of column numbers; if successful,
@@ -660,7 +667,9 @@ B220CardatronOutput.prototype.COSetZSBtn_onClick = function COSetZSBtn_onClick(e
         /* Driver for the tape loader window */
         var de;
 
-        doc = win.document;
+        doc = ev.target;
+        win = doc.defaultView;
+        this.zsWindow = win;
         doc.title = "retro-220 " + tron.mnemonic + " Zero-Suppress Panel";
         de = doc.documentElement;
         $$$ = function $$$(id) {
@@ -676,17 +685,20 @@ B220CardatronOutput.prototype.COSetZSBtn_onClick = function COSetZSBtn_onClick(e
         win.resizeBy(de.scrollWidth - win.innerWidth,
                      de.scrollHeight - win.innerHeight);
         $$$("COZSColumnList").focus();
+        win.addEventListener("unload", function zsUnload(ev) {
+            this.zsWindow = null;
+        }, false);
     }
 
     // Outer block of COSetZSBtn_onClick
     if (this.zsWindow && !this.zsWindow.closed) {
         this.zsWindow.close();
     }
-    this.zsWindow = win;
-    win.addEventListener("load", zsOnload, false);
-    win.addEventListener("unload", function zsUnload(ev) {
-        this.zsWindow = null;
-    }, false);
+
+    B220Util.openPopup(this.window, "B220CardatronZeroSuppressPanel.html", this.mnemonic + "ZS",
+            "location=no,scrollbars=no,resizable,width=508,height=120,left=" +
+                (this.window.screenX+16) +",top=" + (this.window.screenY+16),
+            this, zsOnload);
 };
 
 /**************************************/
@@ -700,7 +712,7 @@ B220CardatronOutput.prototype.beforeUnload = function beforeUnload(ev) {
 };
 
 /**************************************/
-B220CardatronOutput.prototype.deviceOnLoad = function deviceOnLoad() {
+B220CardatronOutput.prototype.deviceOnLoad = function deviceOnLoad(ev) {
     /* Initializes the printer/punch window and user interface */
     var body;
     var de;
@@ -708,7 +720,8 @@ B220CardatronOutput.prototype.deviceOnLoad = function deviceOnLoad() {
     var prefs = this.config.getNode("Cardatron.units", this.unitIndex);
     var zsCol;
 
-    this.doc = this.window.document;
+    this.doc = ev.target;
+    this.window = this.doc.defaultView;
     de = this.doc.documentElement;
     this.doc.title = "retro-220 Cardatron " +
             (this.isPrinter ? "Printer " : "Punch ") + this.mnemonic;
@@ -841,11 +854,13 @@ B220CardatronOutput.prototype.outputWord = function outputWord(requestNextWord) 
                         nu = true;              // next is a numeric digit
                         if (x > 9) {
                             // For a zone digit in the sign position, store a 5 (+) or 6 (-)
-                            // so that the sign will be printed/punched as a zone 11/12.
-                            if (d == 0 && this.suppress12Mode) {
+                            // so that the sign will be printed/punched as a zone 11/12, UNLESS
+                            // the sign is positive and Suppress-12 mode is in effect. In that
+                            // case, store a zero to the zone so the sign will not print/punch.
+                            if (d%2 == 0 && this.suppress12Mode) {
                                 info[ix] = 0;   // suppress the 12-zone output
                             } else {
-                                info[ix] = (d & 0x01) + 5;
+                                info[ix] = d%2 + 5;
                             }
                         } else if (d > 3) {
                             info[ix] = this.zoneXlate[d][lastNumeric];

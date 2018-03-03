@@ -141,10 +141,10 @@ function B220MagTapeDrive(mnemonic, unitIndex, tcu, config) {
     this.boundStartUpForward = B220MagTapeDrive.prototype.startUpForward.bind(this);
 
     this.doc = null;
-    this.window = window.open("../webUI/B220MagTapeDrive.html", mnemonic,
-            "location=no,scrollbars=no,resizable,width=384,height=184,left=0,top=" + y);
-    this.window.addEventListener("load",
-            B220MagTapeDrive.prototype.tapeDriveOnload.bind(this), false);
+    this.window = null;
+    B220Util.openPopup(window, "../webUI/B220MagTapeDrive.html", mnemonic,
+            "location=no,scrollbars=no,resizable,width=384,height=184,left=0,top=" + y,
+            this, B220MagTapeDrive.prototype.tapeDriveOnload);
 }
 
 // this.tapeState enumerations
@@ -554,9 +554,7 @@ B220MagTapeDrive.prototype.loadTape = function loadTape() {
     var file = null;                    // FileReader instance
     var fileSelect = null;              // file picker element
     var mt = this;                      // this B220MagTapeDrive instance
-    var win = this.window.open("B220MagTapeLoadPanel.html", this.mnemonic + "Load",
-            "location=no,scrollbars=no,resizable,width=508,height=112,left=" +
-            (this.window.screenX+16) +",top=" + (this.window.screenY+16));
+    var win = null;                     // loader window
 
     function fileSelector_onChange(ev) {
         /* Handle the <input type=file> onchange event when a file is selected */
@@ -891,14 +889,16 @@ B220MagTapeDrive.prototype.loadTape = function loadTape() {
         /* Driver for the tape loader window */
         var de;
 
-        doc = win.document;
+        doc = ev.target;
+        win = doc.defaultView;
         doc.title = "retro-220 " + mt.mnemonic + " Tape Loader";
+        this.loadWindow = win;
         de = doc.documentElement;
         $$$ = function $$$(id) {
             return doc.getElementById(id);
         };
 
-        win.removeEventListener("load", tapeLoadOnload, false);
+        win.addEventListener("unload", tapeLoadUnload, false);
 
         fileSelect = $$$("MTLoadFileSelector");
         fileSelect.addEventListener("change", fileSelector_onChange, false);
@@ -921,20 +921,21 @@ B220MagTapeDrive.prototype.loadTape = function loadTape() {
     if (this.loadWindow && !this.loadWindow.closed) {
         this.loadWindow.close();
     }
-    this.loadWindow = win;
-    win.addEventListener("load", tapeLoadOnload, false);
-    win.addEventListener("unload", tapeLoadUnload, false);
+
+    B220Util.openPopup(this.window, "B220MagTapeLoadPanel.html", this.mnemonic + "Load",
+            "location=no,scrollbars=no,resizable,width=508,height=112,left=" +
+                (this.window.screenX+16) +",top=" + (this.window.screenY+16),
+            this, tapeLoadOnload);
 };
 
 /**************************************/
 B220MagTapeDrive.prototype.unloadTape = function unloadTape() {
     /* Reformats the tape image data as ASCII text and displays it in a new
     window so the user can save or copy/paste it elsewhere */
-    var doc = null;                     // loader window.document
+    var doc = null;                     // unloader window.document
     var image;                          // <pre> element to receive tape image data
     var mt = this;                      // tape drive object
-    var win = this.window.open("./B220FramePaper.html", this.mnemonic + "-Unload",
-            "location=no,scrollbars=yes,resizable,width=800,height=600");
+    var win = null;                     // unloader window
 
     function findBlockStart() {
         /* Searches forward in the tape image on the currently-selected lane for the
@@ -1071,23 +1072,25 @@ B220MagTapeDrive.prototype.unloadTape = function unloadTape() {
         mt.setTapeUnloaded();
     }
 
-    function unloadSetup() {
+    function unloadSetup(ev) {
         /* Loads a status message into the "paper" rendering area, then calls
         unloadDriver after a short wait to allow the message to appear */
 
-        win.removeEventListener("load", unloadSetup, false);
-        doc = win.document;
+        doc = ev.target;
+        win = doc.defaultView;
         doc.title = "retro-220 " + mt.mnemonic + " Unload Tape";
+        win.moveTo((screen.availWidth-win.outerWidth)/2, (screen.availHeight-win.outerHeight)/2);
         image = doc.getElementById("Paper");
         image.appendChild(win.document.createTextNode(
                 "Rendering tape image... please wait..."));
         setTimeout(unloadDriver, 50);
+        win.focus();
     }
 
     // Outer block of unloadTape
-    win.moveTo((screen.availWidth-win.outerWidth)/2, (screen.availHeight-win.outerHeight)/2);
-    win.focus();
-    win.addEventListener("load", unloadSetup, false);
+    B220Util.openPopup(this.window, "./B220FramePaper.html", this.mnemonic + "-Unload",
+            "location=no,scrollbars=yes,resizable,width=800,height=600",
+            this, unloadSetup);
 };
 
 /**************************************/
@@ -1174,12 +1177,13 @@ B220MagTapeDrive.prototype.beforeUnload = function beforeUnload(ev) {
 };
 
 /**************************************/
-B220MagTapeDrive.prototype.tapeDriveOnload = function tapeDriveOnload() {
+B220MagTapeDrive.prototype.tapeDriveOnload = function tapeDriveOnload(ev) {
     /* Initializes the reader window and user interface */
     var body;
     var prefs = this.config.getNode("MagTape.units", this.unitIndex);
 
-    this.doc = this.window.document;
+    this.doc = ev.target;
+    this.window = this.doc.defaultView;
     this.doc.title = "retro-220 Tape Drive " + this.mnemonic;
 
     body = this.$$("MTDiv");

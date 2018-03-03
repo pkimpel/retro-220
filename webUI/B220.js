@@ -96,11 +96,15 @@ window.addEventListener("load", function() {
     /**************************************/
     function openDiagPanel(ev) {
         /* Opens the emulator's diagnostic monitor panel in a new sub-window */
+        var global = window;
 
-        diagWindow = window.open("B220DiagMonitor.html", "DiagPanel",
-                "resizable,width=300,height=500,left=0,top=" + screen.availHeight-500);
-        diagWindow.global = window;     // give it access to our globals.
-        diagWindow.focus();
+        B220Util.openPopup(window, "B220DiagMonitor.html", "DiagPanel",
+                "resizable,width=300,height=500,left=0,top=" + screen.availHeight-500,
+                this, function(ev) {
+            diagWindow = ev.target.defaultView;
+            diagWindow.global = global; // give it access to our globals.
+            diagWindow.focus();
+        });
     }
 
     /**************************************/

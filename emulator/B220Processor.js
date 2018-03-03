@@ -61,6 +61,7 @@
 /**************************************/
 function B220Processor(config, devices) {
     /* Constructor for the 220 Processor module object */
+    var staticLampGlow = false;         // compute fractional lamp glow (experimental)
 
     this.mnemonic = "CPU";
     B220Processor.instance = this;      // externally-available object reference (for DiagMonitor)
@@ -101,14 +102,14 @@ function B220Processor(config, devices) {
     this.delayRequested = 0;            // last requested setCallback() delay, ms
 
     // Primary Registers
-    this.A = new B220Processor.Register(11*4, this, false);
-    this.B = new B220Processor.Register( 4*4, this, false);
-    this.C = new B220Processor.Register(10*4, this, false);
-    this.D = new B220Processor.Register(11*4, this, false);
-    this.E = new B220Processor.Register( 4*4, this, false);
-    this.P = new B220Processor.Register( 4*4, this, false);
-    this.R = new B220Processor.Register(11*4, this, false);
-    this.S = new B220Processor.Register( 4*4, this, false);
+    this.A = new B220Processor.Register(11*4, this, staticLampGlow);
+    this.B = new B220Processor.Register( 4*4, this, staticLampGlow);
+    this.C = new B220Processor.Register(10*4, this, staticLampGlow);
+    this.D = new B220Processor.Register(11*4, this, staticLampGlow);
+    this.E = new B220Processor.Register( 4*4, this, staticLampGlow);
+    this.P = new B220Processor.Register( 4*4, this, staticLampGlow);
+    this.R = new B220Processor.Register(11*4, this, staticLampGlow);
+    this.S = new B220Processor.Register( 4*4, this, staticLampGlow);
 
     // Register E decrements modulo the system memory size, so override dec().
     this.E.dec = function decE() {
@@ -119,14 +120,14 @@ function B220Processor(config, devices) {
     };
 
     // Control Console Lamps
-    this.digitCheckAlarm =      new B220Processor.FlipFlop(this, false);
+    this.digitCheckAlarm =      new B220Processor.FlipFlop(this, staticLampGlow);
 
-    this.systemNotReady =       new B220Processor.FlipFlop(this, false);
-    this.computerNotReady =     new B220Processor.FlipFlop(this, false);
+    this.systemNotReady =       new B220Processor.FlipFlop(this, staticLampGlow);
+    this.computerNotReady =     new B220Processor.FlipFlop(this, staticLampGlow);
 
-    this.compareLowLamp =       new B220Processor.FlipFlop(this, false);
-    this.compareEqualLamp =     new B220Processor.FlipFlop(this, false);
-    this.compareHighLamp =      new B220Processor.FlipFlop(this, false);
+    this.compareLowLamp =       new B220Processor.FlipFlop(this, staticLampGlow);
+    this.compareEqualLamp =     new B220Processor.FlipFlop(this, staticLampGlow);
+    this.compareHighLamp =      new B220Processor.FlipFlop(this, staticLampGlow);
 
     // Control Console Switches
     this.PC1SW = 0;                     // program control switches 1-10
@@ -159,29 +160,29 @@ function B220Processor(config, devices) {
     this.HOLDSEQUENCE8SW = 0;
 
     // Left-Hand Maintenance Panel Registers & Flip-Flops
-    this.CI = new B220Processor.Register(5, this, false);       // carry inverters
-    this.DC = new B220Processor.Register(6, this, false);       // digit counter (modulo 20)
-    this.SC = new B220Processor.Register(4, this, false);       // sequence counter
-    this.SI = new B220Processor.Register(4, this, false);       // sum inverters
-    this.X =  new B220Processor.Register(4, this, false);       // adder X (augend) input
-    this.Y =  new B220Processor.Register(4, this, false);       // adder Y (addend) input
-    this.Z =  new B220Processor.Register(4, this, false);       // decimal sum inverters, adder output
+    this.CI = new B220Processor.Register(5, this, staticLampGlow);       // carry inverters
+    this.DC = new B220Processor.Register(6, this, staticLampGlow);       // digit counter (modulo 20)
+    this.SC = new B220Processor.Register(4, this, staticLampGlow);       // sequence counter
+    this.SI = new B220Processor.Register(4, this, staticLampGlow);       // sum inverters
+    this.X =  new B220Processor.Register(4, this, staticLampGlow);       // adder X (augend) input
+    this.Y =  new B220Processor.Register(4, this, staticLampGlow);       // adder Y (addend) input
+    this.Z =  new B220Processor.Register(4, this, staticLampGlow);       // decimal sum inverters, adder output
 
     this.CI.checkFC = B220Processor.emptyFunction;              // these registers generate A-F undigits
     this.SI.checkFC = B220Processor.emptyFunction;
 
-    this.C10 = new B220Processor.FlipFlop(this, false);         // decimal carry toggle
-    this.DST = new B220Processor.FlipFlop(this, false);         // D-sign toggle
-    this.LT1 = new B220Processor.FlipFlop(this, false);         // logical toggle 1
-    this.LT2 = new B220Processor.FlipFlop(this, false);         // logical toggle 2
-    this.LT3 = new B220Processor.FlipFlop(this, false);         // logical toggle 3
-    this.SCI = new B220Processor.FlipFlop(this, false);         // sequence counter inverter
-    this.SGT = new B220Processor.FlipFlop(this, false);         // sign toggle
-    this.SUT = new B220Processor.FlipFlop(this, false);         // subtract toggle
-    this.TBT = new B220Processor.FlipFlop(this, false);         // tape busy toggle
-    this.TCT = new B220Processor.FlipFlop(this, false);         // tape clock toggle
-    this.TPT = new B220Processor.FlipFlop(this, false);         // tape pulse toggle
-    this.TWT = new B220Processor.FlipFlop(this, false);         // tape write toggle
+    this.C10 = new B220Processor.FlipFlop(this, staticLampGlow);         // decimal carry toggle
+    this.DST = new B220Processor.FlipFlop(this, staticLampGlow);         // D-sign toggle
+    this.LT1 = new B220Processor.FlipFlop(this, staticLampGlow);         // logical toggle 1
+    this.LT2 = new B220Processor.FlipFlop(this, staticLampGlow);         // logical toggle 2
+    this.LT3 = new B220Processor.FlipFlop(this, staticLampGlow);         // logical toggle 3
+    this.SCI = new B220Processor.FlipFlop(this, staticLampGlow);         // sequence counter inverter
+    this.SGT = new B220Processor.FlipFlop(this, staticLampGlow);         // sign toggle
+    this.SUT = new B220Processor.FlipFlop(this, staticLampGlow);         // subtract toggle
+    this.TBT = new B220Processor.FlipFlop(this, staticLampGlow);         // tape busy toggle
+    this.TCT = new B220Processor.FlipFlop(this, staticLampGlow);         // tape clock toggle
+    this.TPT = new B220Processor.FlipFlop(this, staticLampGlow);         // tape pulse toggle
+    this.TWT = new B220Processor.FlipFlop(this, staticLampGlow);         // tape write toggle
 
     // Right-Hand Maintenance Panel Switches
     this.MULTIPLEACCESSSW = 0;
@@ -197,33 +198,33 @@ function B220Processor(config, devices) {
     this.FETCHEXECUTELOCKSW = 0;
 
     // Right-Hand Maintenance Panel Registers & Flip-Flops
-    this.AX = new B220Processor.Register(10, this, false);      // A exponent register
-    this.BI = new B220Processor.Register( 8, this, false);      // paper tape buffer inverters
-    this.DX = new B220Processor.Register( 8, this, false);      // D exponent register
-    this.PA = new B220Processor.Register( 8, this, false);      // PA register
+    this.AX = new B220Processor.Register(10, this, staticLampGlow);      // A exponent register
+    this.BI = new B220Processor.Register( 8, this, staticLampGlow);      // paper tape buffer inverters
+    this.DX = new B220Processor.Register( 8, this, staticLampGlow);      // D exponent register
+    this.PA = new B220Processor.Register( 8, this, staticLampGlow);      // PA register
 
-    this.ALT = new B220Processor.FlipFlop(this, false);         // program check alarm toggle
-    this.AST = new B220Processor.FlipFlop(this, false);         // asynchronous toggle
-    this.CCT = new B220Processor.FlipFlop(this, false);         // ?? toggle
-    this.CRT = new B220Processor.FlipFlop(this, false);         // Cardatron alarm toggle
-    this.DPT = new B220Processor.FlipFlop(this, false);         // decimal point toggle (SPO)
-    this.EWT = new B220Processor.FlipFlop(this, false);         // end of word toggle
-    this.EXT = new B220Processor.FlipFlop(this, false);         // fetch(0)/execute(1) toggle
-    this.HAT = new B220Processor.FlipFlop(this, false);         // high-speed printer alarm toggle
-    this.HCT = new B220Processor.FlipFlop(this, false);         // halt control toggle, for SOR, SOH, IOM
-    this.HIT = new B220Processor.FlipFlop(this, false);         // high comparison toggle
-    this.MAT = new B220Processor.FlipFlop(this, false);         // multiple access toggle
-    this.MET = new B220Processor.FlipFlop(this, false);         // memory (storage) alarm toggle
-    this.MNT = new B220Processor.FlipFlop(this, false);         // manual toggle
-    this.OFT = new B220Processor.FlipFlop(this, false);         // overflow toggle
-    this.PAT = new B220Processor.FlipFlop(this, false);         // paper tape alarm toggle
-    this.PRT = new B220Processor.FlipFlop(this, false);         // paper tape read toggle
-    this.PZT = new B220Processor.FlipFlop(this, false);         // paper tape zone toggle
-    this.RPT = new B220Processor.FlipFlop(this, false);         // repeat toggle
-    this.RUT = new B220Processor.FlipFlop(this, false);         // run toggle
-    this.SST = new B220Processor.FlipFlop(this, false);         // single-step toggle
-    this.TAT = new B220Processor.FlipFlop(this, false);         // magnetic tape alarm toggle
-    this.UET = new B220Processor.FlipFlop(this, false);         // unequal comparison toggle (HIT=UET=0 => off)
+    this.ALT = new B220Processor.FlipFlop(this, staticLampGlow);         // program check alarm toggle
+    this.AST = new B220Processor.FlipFlop(this, staticLampGlow);         // asynchronous toggle
+    this.CCT = new B220Processor.FlipFlop(this, staticLampGlow);         // ?? toggle
+    this.CRT = new B220Processor.FlipFlop(this, staticLampGlow);         // Cardatron alarm toggle
+    this.DPT = new B220Processor.FlipFlop(this, staticLampGlow);         // decimal point toggle (SPO)
+    this.EWT = new B220Processor.FlipFlop(this, staticLampGlow);         // end of word toggle
+    this.EXT = new B220Processor.FlipFlop(this, staticLampGlow);         // fetch(0)/execute(1) toggle
+    this.HAT = new B220Processor.FlipFlop(this, staticLampGlow);         // high-speed printer alarm toggle
+    this.HCT = new B220Processor.FlipFlop(this, staticLampGlow);         // halt control toggle, for SOR, SOH, IOM
+    this.HIT = new B220Processor.FlipFlop(this, staticLampGlow);         // high comparison toggle
+    this.MAT = new B220Processor.FlipFlop(this, staticLampGlow);         // multiple access toggle
+    this.MET = new B220Processor.FlipFlop(this, staticLampGlow);         // memory (storage) alarm toggle
+    this.MNT = new B220Processor.FlipFlop(this, staticLampGlow);         // manual toggle
+    this.OFT = new B220Processor.FlipFlop(this, staticLampGlow);         // overflow toggle
+    this.PAT = new B220Processor.FlipFlop(this, staticLampGlow);         // paper tape alarm toggle
+    this.PRT = new B220Processor.FlipFlop(this, staticLampGlow);         // paper tape read toggle
+    this.PZT = new B220Processor.FlipFlop(this, staticLampGlow);         // paper tape zone toggle
+    this.RPT = new B220Processor.FlipFlop(this, staticLampGlow);         // repeat toggle
+    this.RUT = new B220Processor.FlipFlop(this, staticLampGlow);         // run toggle
+    this.SST = new B220Processor.FlipFlop(this, staticLampGlow);         // single-step toggle
+    this.TAT = new B220Processor.FlipFlop(this, staticLampGlow);         // magnetic tape alarm toggle
+    this.UET = new B220Processor.FlipFlop(this, staticLampGlow);         // unequal comparison toggle (HIT=UET=0 => off)
 
     // Left/Right Maintenance Panel
     this.leftPanelOpen = false;
@@ -257,7 +258,7 @@ function B220Processor(config, devices) {
 *   Global Constants                                                   *
 ***********************************************************************/
 
-B220Processor.version = "0.06";
+B220Processor.version = "0.07";
 
 B220Processor.tick = 1000/200000;       // milliseconds per clock cycle (200KHz)
 B220Processor.cyclesPerMilli = 1/B220Processor.tick;

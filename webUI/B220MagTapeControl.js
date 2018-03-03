@@ -16,7 +16,7 @@
 function B220MagTapeControl(p) {
     /* Constructor for the MagTapeControl object */
     var left = 0;                       // control window left position
-    var top = 412;                      // control window top-from-bottom position
+    var top = 432;                      // control window top-from-bottom position
     var u;                              // unit configuration object
     var x;                              // unit index
 
@@ -28,11 +28,11 @@ function B220MagTapeControl(p) {
     // Do not call this.clear() here -- call this.clearUnit() from onLoad instead
 
     this.doc = null;
-    this.window = window.open("../webUI/B220MagTapeControl.html", this.mnemonic,
+    this.window = null;
+    B220Util.openPopup(window, "../webUI/B220MagTapeControl.html", this.mnemonic,
             "location=no,scrollbars=no,resizable,width=712,height=144,top=" +
-            (screen.availHeight - top) + ",left=" + left);
-    this.window.addEventListener("load",
-        B220MagTapeControl.prototype.magTapeOnLoad.bind(this), false);
+                (screen.availHeight - top) + ",left=" + left,
+            this, B220MagTapeControl.prototype.magTapeOnLoad);
 
     this.boundReleaseControl = B220MagTapeControl.prototype.releaseControl.bind(this);
     this.boundCancelIO = B220MagTapeControl.prototype.cancelIO.bind(this);
@@ -212,7 +212,7 @@ B220MagTapeControl.prototype.findDesignate = function findDesignate(u) {
     var unit;
     var x;
 
-    for (x=this.tapeUnit.length-1; x>=0; --x) {
+    for (x=this.tapeUnit.length-1; x>0; --x) {
         unit = this.tapeUnit[x];
         if (unit && unit.ready) {
             if (unit.unitDesignate == u) {
@@ -523,14 +523,15 @@ B220MagTapeControl.prototype.beforeUnload = function beforeUnload(ev) {
 };
 
 /**************************************/
-B220MagTapeControl.prototype.magTapeOnLoad = function magTapeOnLoad() {
+B220MagTapeControl.prototype.magTapeOnLoad = function magTapeOnLoad(ev) {
     /* Initializes the MagTape Control window and user interface */
     var body;
     var box;
     var e;
     var x;
 
-    this.doc = this.window.document;
+    this.doc = ev.target;
+    this.window = this.doc.defaultView;
     body = this.$$("PanelSurface");
 
     // Misc Register
@@ -656,7 +657,7 @@ B220MagTapeControl.prototype.scan = function scan(dReg, bReg) {
                 this.releaseControl();
             } else {
                 // Start the scan after changing lane, as appropriate
-                this.T = searchWord;
+                this.T = searchWord%0x10000000000;
                 this.regT.update(this.T);
                 this.releaseProcessor(false, 0);
                 this.TFLamp.set(1);
@@ -773,7 +774,7 @@ B220MagTapeControl.prototype.search = function search(dReg, bReg) {
                 this.releaseControl();
             } else {
                 // Start the search after changing lane, as appropriate
-                this.T = searchWord;
+                this.T = searchWord%0x10000000000;
                 this.regT.update(this.T);
                 this.releaseProcessor(false, 0);
                 this.TFLamp.set(1);

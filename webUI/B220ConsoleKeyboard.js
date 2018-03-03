@@ -25,7 +25,6 @@ function B220ConsoleKeyboard(p) {
 
     this.boundKeypress = B220ConsoleKeyboard.prototype.keypress.bind(this);
     this.boundButton_Click = B220ConsoleKeyboard.prototype.button_Click.bind(this);
-    this.boundKeyboard_OnLoad = B220ConsoleKeyboard.prototype.keyboardOnLoad.bind(this);
     this.boundKeyboard_Unload = B220ConsoleKeyboard.prototype.keyboardUnload.bind(this);
 
     this.clear();
@@ -188,10 +187,10 @@ B220ConsoleKeyboard.prototype.keyboardOpen = function keyboardOpen() {
     var w = 240;
 
     if (!this.window) {
-        this.window = window.open("../webUI/B220ConsoleKeyboard.html", this.mnemonic,
+        B220Util.openPopup(window, "../webUI/B220ConsoleKeyboard.html", this.mnemonic,
                 "resizable,width=" + w + ",height=" + h +
-                ",left=" + (screen.availWidth - w) + ",top=" + (screen.availHeight - h));
-        this.window.addEventListener("load", this.boundKeyboard_OnLoad, false);
+                    ",left=" + (screen.availWidth - w) + ",top=" + (screen.availHeight - h),
+                this, B220ConsoleKeyboard.prototype.keyboardOnLoad);
     }
 };
 
@@ -207,13 +206,13 @@ B220ConsoleKeyboard.prototype.keyboardUnload = function keyboardUnload(ev) {
 };
 
 /**************************************/
-B220ConsoleKeyboard.prototype.keyboardOnLoad = function keyboardOnLoad() {
+B220ConsoleKeyboard.prototype.keyboardOnLoad = function keyboardOnLoad(ev) {
     /* Initializes the Control Console window and user interface */
     var body;
     var de;
 
-    this.window.removeEventListener("load", this.boundKeyboard_OnLoad, false);
-    this.doc = this.window.document;
+    this.doc = ev.target;
+    this.window = this.doc.defaultView;
     body = this.$$("KeyboardCase");
     de = this.doc.documentElement;
 
@@ -237,7 +236,7 @@ B220ConsoleKeyboard.prototype.keyboardOnLoad = function keyboardOnLoad() {
 
     // Kludge for Chrome window.outerWidth/Height timing bug
     setCallback(null, this, 100, function chromeBug() {
-        this.window.moveTo(screen.availWidth-this.window.outerWidth,
+        this.window.moveTo(screen.availWidth - this.window.outerWidth,
                            screen.availHeight - this.window.outerHeight);
     });
 };

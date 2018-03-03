@@ -95,11 +95,11 @@ function B220ControlConsole(p, systemShutdown) {
 
     // Create the Console window
     this.doc = null;
-    this.window = window.open("../webUI/B220ControlConsole.html", mnemonic,
+    this.window = null;
+    B220Util.openPopup(window, "../webUI/B220ControlConsole.html", mnemonic,
             "location=no,scrollbars,resizable,width=" + w + ",height=" + h +
-            ",top=0,left=" + (screen.availWidth - w));
-    this.window.addEventListener("load",
-        B220ControlConsole.prototype.consoleOnLoad.bind(this), false);
+                ",top=0,left=" + (screen.availWidth - w),
+            this, B220ControlConsole.prototype.consoleOnLoad);
 }
 
 /**************************************/
@@ -172,12 +172,11 @@ B220ControlConsole.prototype.beforeUnload = function beforeUnload(ev) {
 B220ControlConsole.prototype.meatballMemdump = function meatballMemdump() {
     /* Opens a temporary window and formats the current processor and memory
     state to it */
-    var doc = null;                     // loader window.document
+    var doc = null;                     // dump window.document
     var p = this.p;                     // local copy of Processor object
     var paper = null;                   // <pre> element to receive dump lines
     var trimRightRex = /[\s\uFEFF\xA0]+$/;
-    var win = this.window.open("./B220FramePaper.html", this.mnemonic + "-MEMDUMP",
-            "location=no,scrollbars=yes,resizable,width=800,height=600");
+    var win = null;                     // dump window
     var xlate = B220ControlConsole.codeXlate; // local copy
 
     function formatWord(w) {
@@ -378,22 +377,24 @@ B220ControlConsole.prototype.meatballMemdump = function meatballMemdump() {
         writer("End dump, memory size: " + (top+1).toString() + " words");
     }
 
-    function memdumpSetup() {
+    function memdumpSetup(ev) {
         /* Loads a status message into the "paper" rendering area, then calls
         dumpDriver after a short wait to allow the message to appear */
 
-        win.removeEventListener("load", memdumpSetup, false);
-        doc = win.document;
+        doc = ev.target;
+        win = doc.defaultView
         doc.title = "retro-220 Console: Meatball Memdump";
+        win.moveTo((screen.availWidth-win.outerWidth)/2, (screen.availHeight-win.outerHeight)/2);
         paper = doc.getElementById("Paper");
         writer("Rendering the dump... please wait...");
         setTimeout(memdumpDriver, 50);
+        win.focus();
     }
 
     // Outer block of meatBallMemdump
-    win.moveTo((screen.availWidth-win.outerWidth)/2, (screen.availHeight-win.outerHeight)/2);
-    win.focus();
-    win.addEventListener("load", memdumpSetup, false);
+    B220Util.openPopup(this.window, "./B220FramePaper.html", this.mnemonic + "-MEMDUMP",
+            "location=no,scrollbars=yes,resizable,width=800,height=600",
+            this, memdumpSetup);
 };
 
 /**************************************/
@@ -789,7 +790,7 @@ B220ControlConsole.prototype.switch_Click = function switch_Click(ev) {
 };
 
 /**************************************/
-B220ControlConsole.prototype.consoleOnLoad = function consoleOnLoad() {
+B220ControlConsole.prototype.consoleOnLoad = function consoleOnLoad(ev) {
     /* Initializes the Supervisory Panel window and user interface */
     var body;
     var p = this.p;                     // local copy of processor object
@@ -797,7 +798,8 @@ B220ControlConsole.prototype.consoleOnLoad = function consoleOnLoad() {
     var prefs = this.config.getNode("ControlConsole");
     var x;
 
-    this.doc = this.window.document;
+    this.doc = ev.target;
+    this.window = this.doc.defaultView;
     body = this.$$("PanelSurface");
 
     this.intervalTimer = this.$$("IntervalTimer");

@@ -34,13 +34,13 @@ function B220PaperTapePunch(mnemonic, unitIndex, config) {
 
     // Create the punch window and onload event
     this.doc = null;
+    this.window = null;
     this.punchTape = null;
     this.punchEOP = null;
-    this.window = window.open("../webUI/B220PaperTapePunch.html", mnemonic,
+    B220Util.openPopup(window, "../webUI/B220PaperTapePunch.html", mnemonic,
             "location=no,scrollbars=no,resizable,width=240,height=160," +
-            "left=" + left + ",top=" + top);
-    this.window.addEventListener("load",
-            B220PaperTapePunch.prototype.punchOnLoad.bind(this), false);
+                "left=" + left + ",top=" + top,
+            this, B220PaperTapePunch.prototype.punchOnLoad);
 }
 
 /**************************************/
@@ -156,15 +156,15 @@ B220PaperTapePunch.prototype.punchCopyTape = function punchCopyTape(ev) {
     or saved by the user */
     var text = this.punchTape.textContent;
     var title = "B220 " + this.mnemonic + " Text Snapshot";
-    var win = window.open("./B220FramePaper.html", "PaperTape-Snapshot",
-            "scrollbars,resizable,width=500,height=500");
 
-    win.moveTo((screen.availWidth-win.outerWidth)/2, (screen.availHeight-win.outerHeight)/2);
-    win.addEventListener("load", function() {
-        var doc;
+    B220Util.openPopup(this.window, "./B220FramePaper.html", this.mnemonic + "-Snapshot",
+            "scrollbars,resizable,width=500,height=500",
+            this, function(ev) {
+        var doc = ev.target;
+        var win = doc.defaultView;
 
-        doc = win.document;
         doc.title = title;
+        win.moveTo((screen.availWidth-win.outerWidth)/2, (screen.availHeight-win.outerHeight)/2);
         doc.getElementById("Paper").textContent = text;
     });
 
@@ -205,14 +205,15 @@ B220PaperTapePunch.prototype.flipSwitch = function flipSwitch(ev) {
 };
 
 /**************************************/
-B220PaperTapePunch.prototype.punchOnLoad = function punchOnLoad() {
+B220PaperTapePunch.prototype.punchOnLoad = function punchOnLoad(ev) {
     /* Initializes the Paper Tape Punch window and user interface */
     var body;
     var mask;
     var prefs = this.config.getNode("ConsoleOutput.units", this.unitIndex);
     var x;
 
-    this.doc = this.window.document;
+    this.doc = ev.target;
+    this.window = this.doc.defaultView;
     this.doc.title = "retro-220 Punch - " + this.mnemonic;
 
     this.punchTape = this.$$("Paper");

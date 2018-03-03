@@ -49,11 +49,10 @@ function B220ConsolePrinter(mnemonic, unitIndex, config) {
     this.printerEOP = null;
     this.printerLine = 0;
     this.printerCol = 0;
-    this.window = window.open("../webUI/B220ConsolePrinter.html", mnemonic,
+    B220Util.openPopup(window, "../webUI/B220ConsolePrinter.html", mnemonic,
             "location=no,scrollbars=no,resizable,width=640,height=240," +
-            "left=" + left + ",top=" + top);
-    this.window.addEventListener("load",
-            B220ConsolePrinter.prototype.printerOnLoad.bind(this), false);
+                "left=" + left + ",top=" + top,
+            this, B220ConsolePrinter.prototype.printerOnLoad);
 }
 
 /**************************************/
@@ -210,17 +209,17 @@ B220ConsolePrinter.prototype.copyPaper = function copyPaper(ev) {
     or saved by the user */
     var text = this.paper.textContent;
     var title = "B220 " + this.mnemonic + " Text Snapshot";
-    var win = window.open("./B220FramePaper.html", "TTY-Snapshot",
-            "scrollbars,resizable,width=500,height=500");
 
-    win.moveTo((screen.availWidth-win.outerWidth)/2, (screen.availHeight-win.outerHeight)/2);
-    win.addEventListener("load", function() {
-        var doc;
+    B220Util.openPopup(this.window, "./B220FramePaper.html", this.mnemonic + "-Snapshot",
+            "scrollbars,resizable,width=500,height=500",
+            this, function(ev) {
+        var doc = ev.target;
+        var win = doc.defaultView;
 
-        doc = win.document;
         doc.title = title;
+        win.moveTo((screen.availWidth-win.outerWidth)/2, (screen.availHeight-win.outerHeight)/2);
         doc.getElementById("Paper").textContent = text;
-    }, false);
+    });
 
     this.emptyPaper();
     this.emptyLine();
@@ -381,7 +380,7 @@ B220ConsolePrinter.prototype.parseTabStops = function parsetabStops(text, alertW
 };
 
 /**************************************/
-B220ConsolePrinter.prototype.printerOnLoad = function printerOnLoad() {
+B220ConsolePrinter.prototype.printerOnLoad = function printerOnLoad(ev) {
     /* Initializes the Teletype printer window and user interface */
     var body;
     var id;
@@ -390,7 +389,8 @@ B220ConsolePrinter.prototype.printerOnLoad = function printerOnLoad() {
     var tabStop;
     var x;
 
-    this.doc = this.window.document;
+    this.doc = ev.target;
+    this.window = this.doc.defaultView;
     this.doc.title = "retro-220 Printer - " + this.mnemonic;
     this.paper = this.$$("Paper");
     this.printerEOP = this.$$("EndOfPaper");

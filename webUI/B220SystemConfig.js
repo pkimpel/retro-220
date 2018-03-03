@@ -41,7 +41,7 @@ B220SystemConfig.prototype.flushDelay = 60000;  // flush timer setting, ms
 
 B220SystemConfig.defaultConfig = {
     version: this.configVersion,
-    memorySize: 5000,               // 11-digit words
+    memorySize: 5000,                   // 11-digit words
 
     ControlConsole: {
         PCS1SW: 0,                      // Program Control Switches 1-0
@@ -123,7 +123,7 @@ B220SystemConfig.defaultConfig = {
 
 /**************************************/
 B220SystemConfig.prototype.$$ = function $$(id) {
-    return this.window.document.getElementById(id);
+    return this.doc.getElementById(id);
 }
 
 /**************************************/
@@ -412,7 +412,7 @@ B220SystemConfig.prototype.saveConfigDialog = function saveConfigDialog() {
     // System Properties
 
     e = this.$$("SystemMemorySize");
-    x = parseInt(e.options[e.selectedIndex], 10);
+    x = parseInt(e.options[e.selectedIndex].value, 10);
     cd.memorySize = (isNaN(x) ? 5000 : x);
 
     // Console Input units
@@ -543,6 +543,12 @@ B220SystemConfig.prototype.openConfigUI = function openConfigUI() {
     system configuration */
 
     function configUI_Load(ev) {
+        this.doc = ev.target;
+        this.window = this.doc.defaultView;
+        this.window.moveTo(screen.availWidth-this.window.outerWidth-40,
+                (screen.availHeight-this.window.outerHeight)/2);
+        this.window.focus();
+        this.alertWin = this.window;
         this.$$("SaveBtn").addEventListener("click",
                 this.saveConfigDialog.bind(this), false);
         this.$$("CancelBtn").addEventListener("click",
@@ -558,12 +564,8 @@ B220SystemConfig.prototype.openConfigUI = function openConfigUI() {
     }
 
     this.doc = null;
-    this.window = window.open("../webUI/B220SystemConfig.html", this.configStorageName,
-            "location=no,scrollbars,resizable,width=800,height=800");
-    this.window.moveTo(screen.availWidth-this.window.outerWidth-40,
-            (screen.availHeight-this.window.outerHeight)/2);
-    this.window.focus();
-    this.alertWin = this.window;
-    this.window.addEventListener("load",
-            configUI_Load.bind(this), false);
+    this.window = null;
+    B220Util.openPopup(window, "../webUI/B220SystemConfig.html", this.configStorageName,
+            "location=no,scrollbars,resizable,width=800,height=800",
+            this, configUI_Load);
 };

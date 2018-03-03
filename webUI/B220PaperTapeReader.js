@@ -43,12 +43,12 @@ function B220PaperTapeReader(mnemonic, unitIndex, config) {
 
     // Create the reader window and onload event
     this.doc = null;
+    this.window = null;
     this.tapeSupplyBar = null;
     this.tapeView = null;
-    this.window = window.open("../webUI/B220PaperTapeReader.html", mnemonic,
-            "location=no,scrollbars=no,resizable,width=420,height=160,left=" + left + ",top=" + top);
-    this.window.addEventListener("load",
-            B220PaperTapeReader.prototype.readerOnload.bind(this), false);
+    B220Util.openPopup(window, "../webUI/B220PaperTapeReader.html", mnemonic,
+            "location=no,scrollbars=no,resizable,width=420,height=160,left=" + left + ",top=" + top,
+            this, B220PaperTapeReader.prototype.readerOnload);
 }
 
 /**************************************/
@@ -229,14 +229,15 @@ B220PaperTapeReader.prototype.flipSwitch = function flipSwitch(ev) {
 };
 
 /**************************************/
-B220PaperTapeReader.prototype.readerOnload = function readerOnload() {
+B220PaperTapeReader.prototype.readerOnload = function readerOnload(ev) {
     /* Initializes the reader window and user interface */
     var body;
     var mask;
     var prefs = this.config.getNode("ConsoleInput.units", this.unitIndex);
     var x;
 
-    this.doc = this.window.document;
+    this.doc = ev.target;
+    this.window = this.doc.defaultView;
     //de = this.doc.documentElement;
     this.doc.title = "retro-220 - Reader - " + this.mnemonic;
 

@@ -45,17 +45,22 @@ function B220CardatronInput(mnemonic, unitIndex, config) {
             new Uint8Array(this.bufferDrum, tks*6, tks),        // format band 6 (fixed)
             new Uint8Array(this.bufferDrum, tks*7, tks)];       // format band 7 (dummy)
 
-    // Initialize format band 6 for all-numeric transfer
-    // (note that ArrayBuffer storage is initialized to zero, so band[160..233] == 0)
-    for (x=0; x<160; x+=2) {
+    // Initialize format band 6 for all-numeric transfer.
+    for (x=0; x<160; x+=2) {                    // transfer 80 numeric digits
         this.formatBand[6][x] = 1;
         this.formatBand[6][x+1] = 3;
     }
-    for (x=234; x<this.info.length; ++x) {
+
+    // Fill 77 digits of zeroes (8 to complete the word from cols 1-3, 66 to supply six
+    // computer words of zeroes, and three "pusher" digits to release the last word from D
+    // (note that ArrayBuffer storage is initialized to zero, so band[160..236] == 0).
+
+    for (x=237; x<this.info.length; ++x) {      // fill inactive segment with delete codes
         this.formatBand[6][x] = 3;
     }
 
     this.doc = null;
+    this.window = null;
     this.hopperBar = null;
     this.outHopperFrame = null;
     this.outHopper = null;
@@ -63,12 +68,12 @@ function B220CardatronInput(mnemonic, unitIndex, config) {
     this.formatColumnList = null;
     this.formatSelect = 0;              // current format selection
     this.formatSelectList = null;
-    this.window = window.open("../webUI/B220CardatronInput.html", mnemonic,
+
+    B220Util.openPopup(window, "../webUI/B220CardatronInput.html", mnemonic,
             "location=no,scrollbars,resizable,width=" + w + ",height=" + h +
-            ",left=" + ((unitIndex-1)*32) +
-            ",top=" + (screen.availHeight - h - (unitIndex-1)*32));
-    this.window.addEventListener("load",
-            B220CardatronInput.prototype.readerOnLoad.bind(this), false);
+                ",left=" + ((unitIndex-1)*32) +
+                ",top=" + (screen.availHeight - h - (unitIndex-1)*32),
+            this, B220CardatronInput.prototype.readerOnLoad);
 }
 
 /**************************************/
@@ -119,6 +124,7 @@ B220CardatronInput.prototype.clear = function clear() {
     this.ready = false;                 // ready status
     this.bufferReady = false;           // buffer drum info band is ready to send data to Processor
     this.noFormatAlarm = false;         // No Formal Alarm toggle
+    this.noReload = false;              // Reload/Format Lockout was set on last op or card
     this.reloadLockout = false;         // Reload Lockout toggle
     this.formatLockout = false;         // Format Lockout toggle
     this.readRequested = false;         // Processor has initiated a read, waiting for buffer
@@ -282,6 +288,7 @@ B220CardatronInput.prototype.CIHopperBar_onClick = function CIHopperBar_onClick(
             this.bufLength = 0;
             this.bufIndex = 0;
             this.hopperBar.value = 0;
+            this.clearUnit();
             this.$$("CIFileSelector").value = null;     // reset the control
             while (this.outHopper.childNodes.length > 0) {
                 this.outHopper.removeChild(this.outHopper.firstChild);
@@ -439,33 +446,40 @@ B220CardatronInput.prototype.determineFormatBand = function determineFormatBand(
             break;
         case "`":                       // 1-8 punch
             format = 1;
+            this.noReload = true;
             this.setFormatLockout(true);
             break;
         case ":":                       // 2-8 punch
             format = 2;
+            this.noReload = true;
             this.setFormatLockout(true);
             break;
         case "#":                       // 3-8 punch
             format = 3;
+            this.noReload = true;
             this.setFormatLockout(true);
             break;
         case "@":                       // 4-8 punch
             format = 4;
+            this.noReload = true;
             this.setFormatLockout(true);
             break;
         case "'":                       // 5-8 punch
         case "|":                           // translates to a 5-numeric digit
             format = 5;
+            this.noReload = true;
             this.setFormatLockout(true);
             break;
         case "=":                       // 6-8 punch
         case "}":                           // translates to a 6-numeric digit
             format = 6;
+            this.noReload = true;
             this.setFormatLockout(true);
             break;
         case "\"":                      // 7-8 punch -- reject plus lockout
         case "~":                           // translates to a 7-numeric digit
             format = 7+8;
+            this.noReload = true;
             this.setFormatLockout(true);
             break;
         default:
@@ -573,13 +587,14 @@ B220CardatronInput.prototype.beforeUnload = function beforeUnload(ev) {
 };
 
 /**************************************/
-B220CardatronInput.prototype.readerOnLoad = function readerOnLoad() {
+B220CardatronInput.prototype.readerOnLoad = function readerOnLoad(ev) {
     /* Initializes the reader window and user interface */
     var body;
     var de;
     var prefs = this.config.getNode("Cardatron.units", this.unitIndex);
 
-    this.doc = this.window.document;
+    this.doc = ev.target;
+    this.window = this.doc.defaultView;
     de = this.doc.documentElement;
     this.doc.title = "retro-220 Cardatron Reader " + this.mnemonic;
 
@@ -742,7 +757,8 @@ B220CardatronInput.prototype.inputStop = function inputStop() {
     /* Terminates data transfer from the input unit and releases the card */
 
     this.setFormatSelectLamps(0);
-    if (this.rDigit % 2) {              // set reload-lockout
+    if (this.noReload) {                // set reload-lockout
+        this.noReload = false;
         if (!this.reloadLockout) {
             this.setReloadLockout(true);
         }
@@ -785,6 +801,7 @@ B220CardatronInput.prototype.inputInitiate = function inputInitiate(rDigit, word
         }
     } else {
         this.rDigit = rDigit;
+        this.noReload |= (rDigit%2 == 1);
         this.infoIndex = 0;             // start at the beginning of the info band
         this.digitCount = 0;
         this.pendingInputWord = 0;
@@ -831,7 +848,16 @@ B220CardatronInput.prototype.inputFormatTransfer = function inputFormatTransfer(
 
     this.pendingFinish();               // call signalFinished();
     this.pendingFinish = null;
-    this.inputStop();
+    this.setFormatSelectLamps(0);
+    if (this.noReload) {                // set reload-lockout
+        this.noReload = false;
+        if (!this.reloadLockout) {
+            this.setReloadLockout(true);
+        }
+    } else if (this.reloadLockout) {    // reset reload-lockout
+        this.setReloadLockout(false);
+        this.initiateCardRead();
+    }
 };
 
 /**************************************/
@@ -849,6 +875,7 @@ B220CardatronInput.prototype.inputFormatInitiate = function inputFormatInitiate(
         signalFinished();
     } else {
         this.rDigit = rDigit;
+        this.noReload |= (rDigit%2 == 1);
         this.selectedFormat = ((rDigit >>> 1) & 0x07) + 1;
         this.pendingFinish = signalFinished;      // stash the call-back function
         this.setFormatSelectLamps(this.selectedFormat);
@@ -872,7 +899,7 @@ B220CardatronInput.prototype.clearUnit = function clearUnit() {
 
     // If there is a pending read, confirm that this.pendingParams[1] is a
     // function and call it with the end-of-data signal. We assume it's the
-    // Processor's  wordReceiver function. This will prevent the Processor
+    // Processor's wordReceiver function. This will prevent the Processor
     // from hanging on an I/O to a cleared input unit.
     if (this.readRequested) {
         if (Object.prototype.toString.call(this.pendingParams) === "[object Array]") {

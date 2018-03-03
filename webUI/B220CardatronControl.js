@@ -26,11 +26,11 @@ function B220CardatronControl(p) {
     // Do not call this.clear() here -- call from onLoad instead
 
     this.doc = null;
-    this.window = window.open("../webUI/B220CardatronControl.html", this.mnemonic,
+    this.window = null;
+    B220Util.openPopup(window, "../webUI/B220CardatronControl.html", this.mnemonic,
             "location=no,scrollbars=no,resizable,width=140,height=140,left=" + left +
-            ",top=" + (screen.availHeight-140));
-    this.window.addEventListener("load",
-        B220CardatronControl.prototype.cardatronOnLoad.bind(this), false);
+                ",top=" + (screen.availHeight-140),
+            this, B220CardatronControl.prototype.cardatronOnLoad);
 
     // Set up the I/O devices from the system configuration
     this.inputUnit = [
@@ -127,14 +127,15 @@ B220CardatronControl.prototype.beforeUnload = function beforeUnload(ev) {
 };
 
 /**************************************/
-B220CardatronControl.prototype.cardatronOnLoad = function cardatronOnLoad() {
+B220CardatronControl.prototype.cardatronOnLoad = function cardatronOnLoad(ev) {
     /* Initializes the Cardatron Control window and user interface */
     var body;
     var box;
     var e;
     var x;
 
-    this.doc = this.window.document;
+    this.doc = ev.target;
+    this.window = this.doc.defaultView;
     body = this.$$("PanelSurface");
 
     this.bufferReadLamp = new NeonLampBox(body, null, null, "BufferReadLamp");
