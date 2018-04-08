@@ -117,7 +117,7 @@ Set fso = WScript.CreateObject("Scripting.FileSystemObject")
 '   of tabs (26), they are translated to "~". The 02 "blank" code is "_".
 '   Form-feed (15) translates to "^".
 xlate220 = Array( _
-        " ", "?", "_", ".", "Â¤", ")",  "?",  "?", "?", "?", _
+        " ", "?", "_", ".", "¤", ")",  "?",  "?", "?", "?", _
         "&", "?", "?", "$", "*", "^",  "|",  "?", "?", "?", _
         "-", "/", "?", ",", "%", "?",  "~",  "?", "?", "?", _
         "?", "?", "?", "#", "@", "\",  "?",  "?", "?", "?", _
@@ -148,7 +148,7 @@ If Not fso.FileExists(asmName) Then
   MsgBox "Assembler-encoded file does not exist: " & vbCrLf & asmName
 Else
   Set asmFile = fso.OpenTextFile(asmName, ForReading, False)
-  Set ptFile = fso.CreateTextFile(ptName, True, True)
+  Set ptFile = fso.CreateTextFile(ptName, True, False)
 
   ReformatPaperTape
 

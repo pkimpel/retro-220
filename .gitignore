@@ -17,3 +17,7 @@ $RECYCLE.BIN/
 
 # Mac crap
 .DS_Store
+
+#Project-specific ignores
+/software/tools/tests
+/software/BALGOL/BALGOL-Examples/Example-Notes.txt
