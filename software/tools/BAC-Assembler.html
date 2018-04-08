@@ -1534,6 +1534,7 @@ window.addEventListener("load", function() {
                         break;
                     case "A":
                     case "P":
+                    case "S":
                     case "T":
                     case "Z":
                         do {
@@ -1546,7 +1547,7 @@ window.addEventListener("load", function() {
                         do {
                             --count;
                             if (overpunch) {
-                                codes += "S";   // half column: standalone sign
+                                codes += "Y";   // half column: standalone sign
                                 overpunch = false;
                             } else {
                                 codes += c;
@@ -1566,13 +1567,12 @@ window.addEventListener("load", function() {
                         } while (count > 0);
                         count = 0;
                         break;
-                    case "S":
-                        codes += "XS";          // acts like XB
-                        count = 0;
-                        break;
                     case "X":
                         overpunch = true;
-                        codes += c;             // half-column: zone digit
+                        do {
+                            --count;
+                            codes += c;         // half-column zone digit
+                        } while (count > 0);
                         count = 0;
                         break;
                     case "(":
@@ -1650,12 +1650,13 @@ window.addEventListener("load", function() {
                     emitBandDigits(0, 1);
                     dx += 1;
                     break;
-                case "S":               // delete numeric half-column for standalone sign
+                case "S":               // delete numeric half-column, copy zone for standalone sign
                     if (dx < 10) {
-                        printError("P CODE NOT FOR SIGN DIGIT: " + cx);
+                        printError("S CODE NOT FOR SIGN DIGIT: " + cx);
                     }
-                    emitBandDigits(3, 1);
+                    emitBandDigits(13, 2);
                     colCount += 1;
+                    dx += 1;
                     break;
                 case "T":               // insert 2 in memory word sign
                     if (dx < 10) {
@@ -1667,6 +1668,10 @@ window.addEventListener("load", function() {
                 case "X":               // copy zone half-column for sign
                     emitBandDigits(1, 1);
                     dx += 1;
+                    break;
+                case "Y":               // delete half-column (usually for overpunched sign)
+                    emitBandDigits(3, 1);
+                    colCount += 1;
                     break;
                 case "Z":               // insert zero in memory word
                     emitBandDigits(0, 1);
@@ -1742,21 +1747,26 @@ window.addEventListener("load", function() {
                 case "P":               // ignore sign digit in word
                 case "T":
                     if (dx < 10) {
-                        printError("P,T CODE NOT FOR SIGN DIGIT: " + cx);
+                        printError(c + " CODE NOT FOR SIGN DIGIT: " + cx);
                     }
                     emitBandDigits(3, 1);
                     dx += 1;
                     break;
-                case "S":               // supply numeric half-column for standalone sign
+                case "S":               // copy numeric column for standalone sign
                     if (dx < 10) {
-                        printError("P,T CODE NOT FOR SIGN DIGIT: " + cx);
+                        printError("S CODE NOT FOR SIGN DIGIT: " + cx);
                     }
-                    emitBandDigits(0, 1);
+                    emitBandDigits(2, 1);
                     colCount += 1;
+                    dx += 1;
                     break;
                 case "X":               // copy zone digit for sign
                     emitBandDigits(1, 1);
                     dx += 1;
+                    break;
+                case "Y":               // supply numeric half-column for standalone sign
+                    emitBandDigits(0, 1);
+                    colCount += 1;
                     break;
                 case "Z":               // ignore digit in memory word
                     emitBandDigits(3, 1);
@@ -2664,7 +2674,6 @@ window.addEventListener("load", function() {
             var cksum = 0;              // algebraic value of the checksum word
             var length = asmCode.length;// number of words to output
             var word = 0;               // object code word
-            var x = 0;                  // scratch index
 
             win.removeEventListener("load", generateTape, false);
             doc = win.document;
@@ -2704,13 +2713,12 @@ window.addEventListener("load", function() {
             }
 
             tape.appendChild(doc.createTextNode(block + "\n"));
-            while (addr < 10000) {
-                addr += 100;
-                tape.appendChild(doc.createTextNode("0,100,0\n"));
-            }
+            count = Math.floor((addr+99)/100);                  // number of blocks in program
+            count = Math.floor(3480*208.333/106) - count;       // blocks left on tape
+            tape.appendChild(doc.createTextNode(count.toString() + "*0,100\n"));
 
             tape.appendChild(doc.createTextNode("0,1,1\n"));    // EOT control word for lane 0
-            tape.appendChild(doc.createTextNode("1,1,1\n"));    // EOT control word for lane 1
+            tape.appendChild(doc.createTextNode("6839*0,100\n1,1,1\n"));    // zero blocks & EOT for lane 1
         }
 
         win.addEventListener("load", generateTape, false);

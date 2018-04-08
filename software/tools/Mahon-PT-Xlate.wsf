@@ -117,7 +117,7 @@ Set fso = WScript.CreateObject("Scripting.FileSystemObject")
 '   of tabs (26), they are translated to "~". The 02 "blank" code is "_".
 '   Form-feed (15) translates to "^".
 xlate220 = Array( _
-        " ", "?", "_", ".", "¤", ")",  "?",  "?", "?", "?", _
+        " ", "?", "_", ".", "Â¤", ")",  "?",  "?", "?", "?", _
         "&", "?", "?", "$", "*", "^",  "|",  "?", "?", "?", _
         "-", "/", "?", ",", "%", "?",  "~",  "?", "?", "?", _
         "?", "?", "?", "#", "@", "\",  "?",  "?", "?", "?", _

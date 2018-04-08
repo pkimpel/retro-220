@@ -129,7 +129,7 @@ Sub ExtractCode(byVal xScriptName, byVal deckName)
   Const operandCol = 60
   Const lastCol = 107
 
-  Set cardFile = fso.OpenTextFile(deckName, ForWriting, True, True)
+  Set cardFile = fso.OpenTextFile(deckName, ForWriting, True, False)
   Set xFile = fso.OpenTextfile(xScriptName, ForReading, False, False)
   lineNr = 1
   line = xFile.ReadLine

@@ -90,7 +90,9 @@ Reference-Manual/
     Example-4/
         Program to solve a set of linear equations of the form Ay = B
         using Crout's method with interchanges; written by G. Forsythe
-        of Stanford University.
+        of Stanford University. Note that to compile and run this
+        program, you will need to use a compiler and emulator configured
+        for at least 8000 words of memory.
 
 U.Dayton-Program/
     Source for two short BALGOL programs submitted to Burroughs by the

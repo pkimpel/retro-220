@@ -60,8 +60,8 @@ SNAP1E.Listing-retro.txt
         CalTech         retro-220
            =                #
            +                $
-           (                ¤   (U0164, the "lozenge")
-           )                ¤   (a quirk of Cardatron code translation)
+           (                Â¤   (U0164, the "lozenge")
+           )                Â¤   (a quirk of Cardatron code translation)
 
 SNAP1E.Manual.pdf
     Manual for the assembler, OCR-ed by Michael from his original IBM

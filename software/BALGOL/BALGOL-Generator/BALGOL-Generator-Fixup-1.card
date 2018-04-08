@@ -1,0 +1,43 @@
+﻿1               LOAD    0000
+1               ON      CARD
+1               REM
+1               REM     BALGOL GENERATOR BUILD FIXUP NR 1
+1               REM     GENERATOR TAPE ON UNIT 2.
+1               REM
+1               REM     1. COPIES BLOCKS 41-43 OF COMPILER SYMBOL
+1               REM        TABLE TO BLOCKS 53-55 ON TAPE.
+1               REM     2. OVERWRITES BLOCK 88 WITH AN EOF SENTINEL
+1               REM     3. REWINDS TAPE.
+1               REM
+1               REM     ASSEMBLE WITH GEN-ASSEMBLER, OUTPUT TO
+1               REM     LOADABLE DECK.
+1               REM
+1               REM     2018-02-11 P.KIMPEL
+1               REM
+1   GT          IS      002             GENERATOR TAPE UNIT NR, LANE 0
+1   BUF         IS      100             TAPE BUFFER ADDRESS
+1               ORIGIN  0002
+1   FIXUP1      MRW     GT              REWIND GENERATOR TAPE
+1               MPF     GT,10           POSITION TO BLOCK 11
+1               MPF     GT,10           TO BLOCK 21
+1               MPF     GT,10           TO BLOCK 31
+1               MPF     GT,10           TO BLOCK 41
+1               MNC     BUF,GT,3        READ BLOCKS 41-43
+1               MPF     GT,9            TO BLOCK 53
+1               MOW     BUF,GT,3        OVERWRITE BLOCKS 53-55
+1               MPF     GT,10           TO BLOCK 66
+1               MPF     GT,10           TO BLOCK 76
+1               MPF     GT,10           TO BLOCK 86
+1               MPF     GT,2            TO BLOCK 88
+1               REM
+1               LDB     =BUF=           SET RTF DESTINATION ADDRESS
+1               RTF     NINES,1         MOVE SENTINEL TO BUFFER
+1              -CLL     0               CLEAR NEXT WORD TO ZERO
+1               IBB     $+1,1           INCREMENT DEST ADDRESS
+1               RTF     BUF+1,98        CLEAR REST OF SENTINEL BLOCK
+1               MOW     BUF,GT,1        WRITE SENTINEL
+1               MRW     GT              REWIND GENERATOR TAPE
+1               HLT     9999,9999(44)   STOP
+1               REM
+1   NINES      99999999999              EOF SENTINEL WORD
+1               END     FIXUP1

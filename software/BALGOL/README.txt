@@ -7,6 +7,17 @@ Unless otherwise specified, all files are in standard Windows text
 format, with carriage-return/line-feed delimiters.
 
 
+BAC-220-Compiled-Object-Dump-Callout.card
+    Loadable object deck for a utility that will dump a compiled program
+    to cards from an object tape (unit 1) produced by the BAC-220
+    Compiler. Requires the Compiler tape on unit 2. See Appendix B of
+    the Compiler reference manual.
+
+BAC-220-Compiled-Object-Program-Callout.card
+    Loadable object deck for a utility that will load and run a compiled
+    program from an object tape (unit 1) produced by the BAC-220
+    compiler. See Appendix B of the Compiler reference manual.
+
 BAC-220-Compiler.tape
     Loadable BAC-220 Compiler tape produced by the Generator. This
     contains the compiler and library, configured according to the
@@ -14,11 +25,13 @@ BAC-220-Compiler.tape
 
 BAC-220-Compiler-Callout.card
     Bootstrap card deck to load the compiler from its tape and initiate
-    compilation. Source cards should follow this deck.
+    compilation. Source and data cards should follow this deck. See
+    Appendix B of the Compiler reference manual.
 
 BAC-220-Generator-tape.
     Loadable BAC-220 Generator tape. Use this to generate new versions
-    of the Compiler tape.
+    of the Compiler tape. See Appendix A of the Compiler reference
+    manual.
 
 BAC-220-Generator-Bootstrap.card
     Bootstrap card deck and configuration statements to generate an
@@ -28,10 +41,6 @@ BAC-220-Generator-Bootstrap.card
 BAC-220-Generator-Callout.card
     Bootstrap card deck and typical configuration statements for
     generating a standard compiler tape from BAC-220-Generator.tape.
-
-BAC-220-Object-Tape-Callout.card
-    Loadable object deck for a utility that will load a program from an
-    object tape (unit #1) produced by the BALGOL compiler.
 
 BALGOL-Build-Notes.txt
     Notes for bootstrapping the BALGOL Generator and Compiler programs
@@ -43,7 +52,7 @@ BALGOL-Generator/
     Note that this program is written using a different assembly
     language than the other BALGOL components below.
 
-    See Appendix A, F, and G in
+    See Appendix A, F, and G in the Compiler reference manual at:
     http://bitsavers.org/pdf/burroughs/electrodata/220/
     220-21017_B220_BALGOL_Mar63.pdf.
 
@@ -59,6 +68,23 @@ BALGOL-Generator/
         for input to the assembler.
         Assemble with software/tools/GEN-Assembler.
 
+    -Fixup-1.card
+        Source of a program to adjust blocks in the initial Generator
+        tape created from the assembled object tapes. Assemble with GEN-
+        Assembler. See BALGOL-Build-Notes.txt for details.
+
+    -Fixup-1-Load.card
+        Loadable band-6 object deck to execute the -Fixup-1 program.
+
+    -Fixup-2.card
+         Source of a program to copy the completed library tables and
+         routines from the initially-generated Compiler tape to the
+         Generator tape . Assemble with GEN-Assembler.
+         See BALGOL-Build-Notes.txt for details.
+
+    -Fixup-2-Load.card
+        Loadable band-6 object deck to execute the -Fixup-2 program.
+
     -List.lst
         Assembly listing of .card produced by the GEN-Assembler. This
         output was compared back to the .bacg file to verify the
@@ -69,12 +95,22 @@ BALGOL-Generator/
         Assembler from the .card file. See BALGOL-Build-Notes.txt for
         how this is used.
 
+    -Object-Store.card
+        Loadable band-6 object deck run under the emulator to load the
+        BALGOL-Generator-Object.tape image from to memory and then
+        branch to the Generator's object store routine at address 0001.
+        See BALGOL-Build-Notes.txt for details.
+
     -PoolSet.js
         JSON text file containing literal-pool pre-load values for use
         by the GEN-Assembler in assembling the Generator. Pre-loading
         the literal pool assures that the same addresses will be
         assigned by the assembler to literal values and strings as were
         originally present in the transcribed .bacg file.
+
+    -SPO-Output.txt
+        Sample SPO output from the Generator run that builds the
+        standard library and initial Compiler tape.
 
 BALGOL-Main/
     Main program for the BAC-220 compiler. This performs the basic one-
@@ -85,7 +121,7 @@ BALGOL-Main/
         Assembly listing of the BALGOL compiler main module, transcribed
         by Paul Kimpel from:
         http://archive.computerhistory.org/resources/text/
-        Knuth_Don_X4100/ PDF_index/k-1-pdf/k-1-u2196-
+        Knuth_Don_X4100/PDF_index/k-1-pdf/k-1-u2196-
         balgol220compiler.pdf.
         This transcription reflects the few corrections hand-coded on
         the listing.
@@ -95,15 +131,21 @@ BALGOL-Main/
         for input to the assembler.
         Assemble with software/tools/BAC-Assembler.
 
-    .lst
+    -List.lst
         Assembly listing of .card produced by the BAC-Assembler. This
         output was compared back to the .baca file to partially verify
         the transcription of the compiler.
 
-    .card
-        Object code deck in BALGOL Machine Language format produced by
-        BAC-Assembler from .card. See BALGOL-Build-Notes.txt for how
-        this is used.
+    -Object.tape
+        Object code tape image for the Main program produced by BAC-
+        Assembler from the .card file. See BALGOL-Build-Notes.txt for
+        how this is used.
+
+    -Object-Store.card
+        Loadable band-6 object deck for a program to load the -
+        Object.tape to memory and then branch to the Main program's
+        store routine at address 0001. See BALGOL-Build-Notes.txt for
+        how this is used.
 
     -PoolSet.js
         JSON text file containing literal-pool pre-load values for use
@@ -131,15 +173,21 @@ BALGOL-Overlay/
         for input to the assembler.
         Assemble with software/tools/BAC-Assembler.
 
-    .lst
+    -List.lst
         Assembly listing of .card produced by the BAC-Assembler. This
         output was compared back to the .baca file to partially verify
         the transcription of the compiler.
 
-    .card
-        Object code deck in BALGOL Machine Language format produced by
-        BAC-Assembler from .card. See BALGOL-Build-Notes.txt for how
-        this is used.
+    -Object.tape
+        Object code tape image for the Overlay produced by BAC-Assembler
+        from the .card file. See BALGOL-Build-Notes.txt for how this is
+        used.
+
+    -Object-Store.card
+        Loadable band-6 object deck run under the emulator to load the
+        BALGOL-Overlay-Object.tape image from to memory and then branch
+        to the Overlay program's object store routine at address 4000.
+        See BALGOL-Build-Notes.txt for details.
 
     -PoolSet.js
         JSON text file containing literal-pool pre-load values for use
@@ -176,6 +224,3 @@ BALGOL-Examples/
 
 Paul Kimpel
 February 2018
-
-
-

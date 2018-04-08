@@ -1,0 +1,66 @@
+﻿1               LOAD    0000
+1               ON      CARD
+1               REM
+1               REM     BALGOL GENERATOR BUILD FIXUP NR 2
+1               REM     COMPILER TAPE ON UNIT 2, GENERATOR TAPE ON 10.
+1               REM
+1               REM     1. COPIES BLOCKS 42-45 OF COMPILER TAPE TO SAME
+1               REM        BLOCKS ON GENERATOR TAPE.
+1               REM     2. COPIES LIBRARY TABLE AND LIBRARY ROUTINES
+1               REM        STARTING AT BLOCK 85 OF COMPILER TAPE TO
+1               REM        GENERATOR TAPE STARTING AT BLOCK 88.
+1               REM     3. REWIND AND DEACTIVES BOTH TAPE UNITS.
+1               REM
+1               REM     ASSEMBLE WITH GEN-ASSEMBLER, OUTPUT TO
+1               REM     LOADABLE DECK.
+1               REM
+1               REM     2018-02-11 P.KIMPEL
+1               REM
+1   GT          IS      000             GENERATOR TAPE UNIT NR, LANE 00
+1   CT          IS      002             COMPILER TAPE UNIT NR, LANE 00
+1   BUF         IS      100             TAPE BUFFER
+1               ORIGIN  0002
+1   FIXUP2      MRW     GT              REWIND GENERATOR TAPE
+1               MRW     CT              REWIND COMPILER TAPE
+1               REM
+1               REM                     POSITION TAPES TO SYMBOL TABLE
+1               REM
+1               MPF     GT,10           POSITION BOTH TO BLOCK 11
+1               MPF     CT,10
+1               MPF     GT,10           TO BLOCK 21
+1               MPF     CT,10
+1               MPF     GT,10           TO BLOCK 31
+1               MPF     CT,10
+1               MPF     GT,10           TO BLOCK 41
+1               MPF     CT,10
+1               MPF     GT,1            TO BLOCK 42
+1               MPF     CT,1
+1               MNC     BUF,CT,4        READ BLOCKS 42-45 OF COMPILER
+1               MOW     BUF,GT,4        OVERWRITE 42-45 OF GENERATOR
+1               REM
+1               REM                     POSITION TAPES TO LIBRARY
+1               REM
+1               MPF     GT,10           POSITION BOTH TO BLOCK 56
+1               MPF     CT,10
+1               MPF     GT,10           TO BLOCK 66
+1               MPF     CT,10
+1               MPF     GT,10           TO BLOCK 76
+1               MPF     CT,10
+1               MPF     GT,9            TO BLOCK 85
+1               MPF     CT,9
+1               MPF     GT,3            GENERATOR ONLY TO BLOCK 88
+1               REM
+1               REM                     COPY THE LIBRARY BLOCKS
+1               REM
+1   COPYLIB     MNC     BUF,CT,1        READ A COMPILER LIBRARY BLOCK
+1               MOW     BUF,GT,1        WRITE A GENERATOR LIBRARY BLOCK
+1               CAD     BUF             LOAD KEYWORD OF BLOCK
+1               CFA     NINES           COMPARE TO EOF SENTINEL
+1               BCU     COPYLIB         IF NOT EOF, LOOP AGAIN
+1               REM
+1               MDA     GT              REWIND/DEACTIVATE GENERATOR TAPE
+1               MDA     CT              REWIND/DEACTIVATE COMPILER TAPE
+1               HLT     9999,9999(44)   STOP
+1               REM
+1   NINES      99999999999              EOF SENTINEL WORD
+1               END     FIXUP2

@@ -1,4 +1,4 @@
-Assembler for the Burroughs 220 BALGOL Compiler & Library -- 2018-01-09 21:21
+Assembler for the Burroughs 220 BALGOL Compiler & Library -- 2018-02-15 15:46
 
 Source File: BALGOL-Overlay.card
                           ASMBL 2
@@ -5259,4 +5259,3 @@ SYMBOL TABLE
  2164 ZERSS
 
 END PASS 2, ERRORS = 0
-

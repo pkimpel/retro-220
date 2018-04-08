@@ -1,17 +1,30 @@
 Notes on Preparation of BALGOL Generator and Compiler Tapes
 -----------------------------------------------------------
 
+These notes describe the steps to build the "BAC-220 Generator Tape"
+mentioned in Appendix A of the Burroughs Algebraic Compiler manual,
+Revised Edition, March 1963 (Bulletin 220-21017), and from that tape, to
+generate a BAC-220 Compiler Tape that contains the BALGOL Compiler and
+library routines in a runnable form.
+
 In the following, all references to card columns, card numbers within
 decks, and block numbers within tape images are 1-relative. All
-references to word offsets are 0-relative.
+references to word offsets within a block are 0-relative.
 
 Note that there are multiple ways the individual source programs could
 be assembled and prepared to create the initial BAC-220 Generator Tape.
-The process described below assembles the Generator program to tape, but
-assembles the compiler and overlay to cards, which are then loaded by a
-small utility program to memory and copied to tape. The library routines
-are also assembled to cards, as that is what the Generator program
-requires to build the library on tape.
+The process described below assembles the Generator, Main, and Overlay
+programs to tape, but assembles the library routines to cards, as that
+is what the Generator program requires to build the library on tape.
+
+The following procedures assume a retro-220 emulator configuration with
+the following:
+
+    * At least 5000 words of memory.
+    * At least two tape drives. Unit designations are specified below.
+    * A Cardatron Reader designated as unit 1.
+    * A Cardatron Punch designated as unit 1.
+    * A Cardatron Printer designated as unit 2.
 
 
 Layout of the BAC-220 Generator Tape:
@@ -21,44 +34,44 @@ The layout of the final Generator Tape is:
 
     Lane 0 (pre-formatted as 100-word blocks):
 
-        50 blocks (1-50) of the compiler Main program. These are written
-        in groups of 10 blocks containing 999 words of object code
-        followed by a one-word checksum. It is literally a sum, stored
-        as the negative of the sum (as the 220 would do it) of the 999
-        other words, discarding overflow. Therefore, summing all 1000
-        words in the group should yield a zero result.
+        50 blocks (1..50) of the Compiler Main program. These are
+        written in groups of 10 blocks containing 999 words of object
+        code followed by a one-word checksum. It is literally a sum,
+        stored as the negative of the sum (as the 220 would do it) of
+        the 999 other words, discarding overflow. Therefore, summing all
+        1000 words in the group should yield a zero result.
 
-        2 blocks (51-52) reserved for compiler patches. These are also
+        2 blocks (51..52) reserved for compiler patches. These are also
         checksummed in the same fashion, but the checksum word is stored
         at the beginning of the first block, not the end of the second.
 
-        3 blocks (53-55) containing a copy of words 3996-4295 from the
-        compiler, not checksummed. This range of addresses contains in
-        part the compiler's initial symbol table, before entries for the
-        standard library routines have been inserted. It is used by the
-        Generator when the library is being replaced to form a new
-        symbol table for the compiler, updated with entries for the new
-        library, and is then overwritten back to blocks 41-43 on the
-        generated compiler tape. This was the most obtuse part of the
-        tape to figure out.
+        3 blocks (53..55) containing a copy of words 3996-4295 from the
+        Compiler, not checksummed. This range of addresses is originally
+        from blocks 41-43 of the assembled Compiler tape, and contains
+        in part the Compiler's initial symbol table, before entries for
+        the standard library routines have been inserted. It is used by
+        the Generator when the library is being replaced to form a new
+        symbol table for the Compiler, updated with entries for the new
+        library, and is then overwritten back to the generated Compiler
+        tape. This was the most obtuse part of the tape to figure out.
 
-        3 blocks (56-58) containing addresses 0000-0299 of the Overlay
+        3 blocks (56..58) containing addresses 0000-0299 of the Overlay
         program, not checksummed.
 
-        29 blocks (59-87) containing addresses 0700-3599 of the Overlay
+        29 blocks (59..87) containing addresses 0700-3599 of the Overlay
         program, not checksummed. The 32 blocks of the Overlay program
-        are checksummed as one 3200-word unit by the Generator before
-        being written to the generated compiler tape, with the checksum
-        stored in word 99 of block 84 of the compiler tape.
+        will be checksummed as one 3200-word unit by the Generator
+        before being written to the generated Compiler tape, with the
+        checksum stored in word 99 of block 84 of the Compiler tape.
 
-        3 (88-90) blocks for the Library Table, a directory to the
+        3 blocks (88..90) for the Library Table, a directory to the
         library routines. Not checksummed.
 
-        1 (91) block having zero as the first word and the rest of the
-        block unused (this appears to be a low-end stopper block for the
-        MTS search instruction).
+        1 block (91) having zero as the first word and the rest of the
+        block apparently unused. This appears to be a low-keyword
+        stopper block for the MTS search instruction.
 
-        n (92-(n+91)) blocks for library routines. Each routine starts
+        n blocks (92..(n+91)) for library routines. Each routine starts
         at a new block and may span multiple blocks. The first word of
         each block is the search keyword, with format 0 FFFF 00 SSSS,
         where FFFF is the library routine number (starting at 0001) and
@@ -70,21 +83,21 @@ The layout of the final Generator Tape is:
 
         1 block (n+92) having 9 9999 99 9999 as the first word and the
         rest of the block unused. This serves as an EOF sentinel to the
-        Generator and also as a high-end stopper block for the MTS
+        Generator and also as a high-keyword stopper block for the MTS
         search instruction.
 
     Lane 1 (also pre-formatted with 100-word blocks):
 
         50 blocks of the Generator program, checksummed as described
-        for the compiler Main program above.
+        for the Compiler Main program above.
 
-The compiler and Generator programs have a nice utility feature. If you
-load their object code to memory, manually from cards or tape if
-necessary, and branch to a certain location, they will write themselves
-to tape in the form and position required by the Generator program,
-including the required checksumming. For the Generator and compiler
-Main, you branch to location 0001. For the compiler Overlay, you branch
-to location 4000.
+The Compiler and Generator programs have a nice utility feature. If you
+load their object code as assembled to memory -- manually from cards or
+tape if necessary -- and branch to a certain location, they will write
+themselves to tape in the form and position required by the Generator
+program, including the required checksumming. For the Generator and
+Compiler Main, you branch to location 0001. For the Compiler Overlay,
+you branch to location 4000.
 
 
 Layout of the BAC-220 Compiler Tape:
@@ -93,7 +106,8 @@ Layout of the BAC-220 Compiler Tape:
 The layout of a Compiler Tape produced by the Generator is similar to
 that of the Generator tape described above, with three exceptions:
 
-    1. Lane 1 is not used. Lane 0 contains the compiler and library.
+    1. Lane 0 contains the Compiler and library. Lane 1 is not used by
+    the Compiler.
 
     2. The tape omits the skeleton symbol table at blocks 53-55.
     Therefore, the library table and library start at block 85 instead
@@ -102,113 +116,46 @@ that of the Generator tape described above, with three exceptions:
     3. Following the all-9s EOF sentinel block at the end of the library
     routines, the Generator will write four blocks containing the code
     for the Object Dump and Program Card Loader routines that are
-    described in Appendix B of the Burroughs Algebraic Compiler manual,
-    Revised Edition of March 1963 (Bulletin 220-21017).
+    described in Appendix B of the Compiler manual.
 
-Note that the Generator has the ability to modify the compiler for
+Note that the Generator has the ability to modify the Compiler for
 loading from a different lane and to start at a higher block number on
 the tape. The lane and block numbers cited above are for the default
 configuration, and should be adjusted based on the COPY COMPILER... and
 POSITION GENERATED TAPE... statements in the Generator card deck used to
-configure the compiler.
+configure the Compiler.
 
 
 Steps:
 -----
 
 1. Assemble the BALGOL-Generator program using GEN-Assembler in the
-tools/directory and save the resulting tape image file as BALGOL-
-Generator-Object.tape.
+tools/directory with an Output Mode of "Object Tape". Pre-load the
+BALGOL-Generator/BALGOL-Generator-PoolSet.js pool file before loading
+the BALGOL-Generator/BALGOL-Generator.card file into the assembler. Save
+the resulting tape image file as BALGOL-Generator/BALGOL-Generator-
+Object.tape. Copy and save the assembly listing if you wish.
 
 2. Assemble the BALGOL-Main program using BAC-Assembler in the tools/
-directory with an Output Mode of "BALGOL ML Deck". Save the resulting
-Machine-Language card image file as BALGOL-Main-Object.card.
+directory with an Output Mode of "Object Tape". Pre-load the BALGOL-
+Main/BALGOL-Main-PoolSet.js pool file before loading the BALGOL-Main/
+BALGOL-Main.card file into the assembler. Save the resulting tape image
+file as BALGOL-Main/BALGOL-Main-Object.tape. Copy and save the assembly
+listing if you wish.
 
-3. Insert the Machine-Language-Loader-Load.card object deck in front of
-the BALGOL-Main-Object.card file. This object deck is located in the
-examples/directory. Its purpose is to clear 220 memory and load the
-Machine-Language deck. Add a 666 card at the end of the file with this
-branch instruction in columns 70-80: 6 0000 30 0001. After the deck is
-loaded, that instruction will branch to the Main program's "store"
-routine to copy and checksum the code from memory to tape unit 2.
+3. Assemble the BALGOL-Overlay program using BAC-Assembler in the tools/
+directory with an Output Mode of "Object Tape". Pre-load the BALGOL-
+Overlay/BALGOL-Overlay-PoolSet.js pool file before loading the BALGOL-
+Overlay.card file into the assembler.  Save the resulting tape image
+file as BALGOL-Overlay/BALGOL-Overlay-Object.tape. Copy and save the
+assembly listing if you wish.
 
-4. Assemble the BALGOL-Overlay program using BAC-Assembler in the tools/
-directory with an Output Mode of "BALGOL ML Deck" and save the resulting
-card image file as BALGOL-Overlay-Object.card.
+4. Assemble each of the standard library routines in the BALGOL-
+Library/ directory using BAC-Assembler in the tools/ directory with an
+Output Mode of "BALGOL ML Deck". Save the punched card output for each
+routine as XXXXX-Object.card, where XXXXX is the routine name.
 
-5. Insert the Machine-Language-Loader-Load.card object deck in front of
-the BALGOL-Overlay-Object.card file, as in step #3 above. Add a 666 card
-at the end of the file with this branch instruction in columns 70-80:
-6 0000 30 4000. After the deck is loaded, that instruction will branch
-to the Overlay program's "store" routine to copy the code from memory to
-tape unit 2.
-
-6. Start the retro-220 emulator.
-
-7. Designate a tape drive as unit 10 and load the BALGOL-Generator-
-Object.tape image into that drive. Make the drive NOT-WRITE. Manually
-load 44 blocks from this tape to memory starting at address 0000, e.g.,
-
-        0 0001 52 0000  MNC 0,10,10     LOAD FIRST 10 BLOCKS
-        0 0001 52 1000  MNC 0,10,10     LOAD SECOND 10 BLOCKS
-        0 0001 52 2000  MNC 0,10,10     LOAD THIRD 10 BLOCKS
-        0 0001 52 3000  MNC 0,10,10     LOAD FOURTH 10 BLOCKS
-        0 0401 52 4000  MNC 0,10,4      LOAD LAST 4 BLOCKS
-
-Then rewind and unload the tape from unit 10.
-
-8. Load a tape to unit 10 formatted with 100-word blocks in both lanes.
-Make the tape write-enabled. Clear the Processor, insert address 0001 in
-the P register, set the Fetch toggle, and press START. The system should
-write the Generator program from memory in 5 checksummed groups of 10
-blocks each to lane 1 of the tape, rewind it, and halt with
-0 1248 00 8421 in the C register. Leave the tape mounted and write-
-enabled.
-
-9. Change the unit designation on that drive from 10 to 2.
-
-10. Load BALGOL-Main-Object.card as prepared above to Cardatron Reader
-1. Clear the Processor, enter a CRD instruction (0 1000 60 0000) into
-the C register, set the Execute Toggle, and press START. The system will
-read the object deck, clear memory, and load the main program from cards
-to memory.
-
-11. At the end the Loader will branch to that program's tape-store
-routine at address 0001. That routine will copy 50 blocks of a
-checksummed version of the program to tape unit 2, lane 0, rewind the
-tape, and halt with 0 0000 00 2222 in the C register. Leave the tape
-mounted.
-
-12. Load BALGOL-Overlay-Object.card as prepared above to Cardatron
-Reader 1. Clear the Processor, enter a CRD instruction (0 1000 60 0000)
-into the C register, set the Execute Toggle, and press START. The system
-will read the object deck, clear memory, and load the overlay program to
-memory.
-
-13. At the end the Loader will branch to that program's tape-store
-routine at address 4000. That routine will position tape unit 2 forward
-over the main program and append 32 blocks of the overlay program to
-lane 0, rewind the tape and halt with 0 2222 00 2222 in the C register.
-
-14. Unload the tape and save the image as BALGOL-Compiler-
-Generator.tape.
-
-15. Open the image just saved in a text editor. The following will be
-easier if word-wrap in the editor is disabled. Skip over the first 87
-lines (blocks), and replace block 88, which should be a zero block
-reading "0,100", with "0,100,99999999999". This is an EOF sentinel
-marking the end of the library routines (which aren't there yet).
-
-16. Save the modified tape image as BAC-220-Generator.tape. This is a
-skeleton version of the "BAC-220 Generator Tape" mentioned in Appendix A
-of the Burroughs Algebraic Compiler manual, Revised Edition, March 1963.
-
-17. Assemble each of the standard library routines in the BALGOL-
-Library/ directory using the BAC-Assembler with an Output Mode of
-"BALGOL ML Deck". Save the punched card output for each as XXXXX-
-Object.card, where XXXXX is the routine name.
-
-18. Open BAC-220-Generator-Bootstrap.card in a text editor. For each
+5. Open BAC-220-Generator-Bootstrap.card in a text editor. For each
 library routine just assembled:
 
     a. Insert the format-6 cards for its object deck after the
@@ -218,10 +165,10 @@ library routine just assembled:
     b. Locate the FINISH pseudo-op word (4 0000 99 0000) near the end of
     the code just inserted. Leave that word in place, but delete (blank
     out) any other words that follow it on that card. Adjust downward as
-    necessary the word count in column 3 of the card to account for any
+    necessary the word count in column 3 of that card to account for any
     words deleted.
 
-    c. Delete any following cards of object code in that routine.
+    c. Delete any following cards of object code for that routine.
 
 The code deleted from each routine should have consisted of a series of
 sign-2 words followed by a word having a value of 9 0000 00 0000. This
@@ -232,83 +179,157 @@ Generator's name and equivalence cards. Presumably the extra words would
 have been deleted by the builder program, because the Generator will not
 tolerate them after the FINISH pseudo-op word.
 
+You can arrange the routines in any order, but it is probably best to
+use the same order that the routines appear in the scanned listing of
+the Compiler on the Computer History Museum's web site. This sequence
+appears to be an attempt to put the most frequently-used routines first.
+
 When finished inserting the object code decks, save the updated
-Generator bootstrap deck.
+Generator bootstrap deck. Do not modify the generation control
+statements at the beginning of the deck, as the intent for this deck is
+to generate a standard compiler with the default configuration and
+library. If you wish to generate a compiler with a different
+configuration or library, create a different generation deck and use
+that after the Generator and Compiler tapes described in this procedure
+have been created and saved.
 
-19. Start the emulator and load the BAC-220-Generator-Bootstrap.card
-file into Cardatron reader 1. Mount the BAC-220-Generator.tape on
-magnetic tape unit 10, make it ready, and place it in not-write status.
-Mount a scratch tape on unit 2 and format it as 100-word blocks. Make
-that unit ready and write-enabled.
+6. Start the retro-220 emulator.
 
-20. Clear the Processor, enter a CRD (0 1000 60 0000) instruction into
-C, set the Execute Toggle, and press START. The system will read the
-Generator callout bootstrap cards, load the program from unit 10, and
-generate a version of the compiler according to the generation
-statements in the card deck.
+7. Designate a tape drive as unit 1 and load the BALGOL-Generator/
+BALGOL-Generator-Object.tape image file into that drive. Make the drive
+NOT-WRITE and ready. Designate another tape drive as unit 10 and load a
+blank tape formatted with 100-word blocks in both lanes. Make the tape
+write-enabled and ready.
 
-21. Since the Generator tape does not yet have a library, one will be
+8. Load the BALGOL-Generator/BALGOL-Generator-Object-Store.card deck
+into Cardatron Reader 1 and make the reader ready. Clear the Processor,
+enter a CRD instruction (0 1000 60 0000) into the C register, set the
+Execute Toggle, and press START. The system will read the object deck,
+load 49 blocks from tape unit 1 to memory, then branch to the
+Generator's store routine at address 0001. The store routine will write
+the Generator program from memory in 5 checksummed groups of 10 blocks
+each to lane 1 of tape unit 10, rewind it, and halt with 0 1248 00 8421
+(/\) in the C register.
+
+9. Unload the tape image from unit 1. Leave the tape on unit 10 mounted
+and write-enabled, but change the unit designation on that drive from 10
+to 2.
+
+10. Load the BALGOL-Main/BALGOL-Main-Object.tape image file to tape unit
+1 and make it ready. Load the BALGOL-Main/BALGOL-Main-Object-Store.card
+deck into Cardatron Reader 1 and make it ready. Clear the Processor,
+enter a CRD instruction (0 1000 60 0000) into the C register, set the
+Execute Toggle, and press START. The system will read the object deck,
+load 49 blocks from tape unit 1 to memory, then branch to the Main
+program's store routine at address 0001. The store routine will write
+the Compiler Main program from memory in 5 checksummed groups of 10
+blocks each to lane 0 of tape unit 2, rewind it, and halt with
+0 0000 00 2222 in the C register.
+
+11. Unload the tape image from unit 1. Leave the tape on unit 2 mounted
+and write-enabled.
+
+12. Load the BALGOL-Overlay/BALGOL-Overlay-Object.tape image file to
+tape unit 1 and make it ready. Load the BALGOL-Overlay/BALGOL-Overlay-
+Object-Store.card deck into Cardatron Reader 1 and make it ready. Clear
+the Processor, enter a CRD instruction (0 1000 60 0000) into the C
+register, set the Execute Toggle, and press START. The system will read
+the object deck, load 49 blocks from tape unit 1 to memory, then branch
+to the Overlay program's store routine at address 4000. The store
+routine will position tape unit 2 forward over the Main program and
+append 32 non-checksummed blocks of the Overlay program to lane 0 of
+tape unit 2, rewind it, and halt with 0 2222 00 2222 in the C register.
+
+13. Unload the tape image from unit 1. Leave the tape on unit 2 mounted
+and write-enabled.
+
+14. Load the BALGOL-Generator/BALGOL-Generator-Fixup-1-Load.card deck
+into Cardatron Reader 1 and make it ready. Clear the Processor, enter a
+CRD instruction (0 1000 60 0000) into the C register, set the Execute
+Toggle, and press START. The system will read the object deck and do the
+following:
+
+    a. Position the tape forward 40 blocks and read blocks 41-43 into
+    memory.
+
+    b. Position the tape forward 9 blocks and overwrite blocks 53-55
+    with the data just read from blocks 41-43. This is a copy of the
+    Compiler's initial symbol tape, as assembled, before the library
+    routines have been inserted into it. The table at blocks 41-43 will
+    be updated by the library build step below. The copy of the initial
+    table is stored at blocks 53-55 for use by the Generator if the
+    library is replaced later.
+
+    c. Position the tape forward 32 blocks and overwrite block 88 with
+    an EOF sentinel containing 99999999999 (11 nines) in word 0. This
+    marks the end of the library, which is presently empty.
+
+    d. Rewind tape unit 2 and halt with 0 9999 00 9999 in the C
+    register.
+
+15. Leave the tape on unit 2 and write-enabled, but change the unit
+designation from 2 to 10.
+
+16. Designate another tape unit as number 2 and load a blank tape to it
+formatted as 100-word blocks. Make the unit ready and write-enabled.
+
+17. Load the BAC-220-Generator-Bootstrap.card file prepared above into
+Cardatron Reader 1. Clear the Processor, enter a CRD (0 1000 60 0000)
+instruction into C, set the Execute Toggle, and press START. The system
+will read the Generator callout bootstrap cards, load the program from
+unit 10, and generate a version of the Compiler according to the
+generation statements in the card deck. The generated Compiler and
+library will be written to tape unit 2.
+
+18. Since the Generator tape does not yet have a library, one will be
 built by the Generator from the routines in the bootstrap deck and
-stored on the compiler tape on unit 2. The routine names will be listed
+stored on the Compiler tape on unit 2. The routine names will be listed
 on the SPO as they are processed. At the end, the program will rewind
 both tapes.
 
-22. If a PUNCH LIBRARY statement is present in the bootstrap deck, the
+19. If a PUNCH LIBRARY statement is present in the bootstrap deck, the
 program will punch a new library deck to Cardatron punch 1, leaving tape
-unit 2 up-tape at the end. Save this output deck for possible use in
-modifying the library later.
+unit 2 up-tape at the end. Save the output deck as BALGOL-Library/
+PUNCH-LIBRARY.card for possible use in modifying the library later.
 
-23. The program will finally halt with 7250 00 0757 (KO) in C. Unload
-the tape from unit 2 and save the image as BAC-220-Compiler.tape. This
-is a loadable version of the BALGOL compiler and library, but has been
-generated primarily to harvest the library routines and data structures
-for insertion into the Generator tape.
+20. The program will finally halt with 7250 00 0757 (KO) in C. Leave
+both tapes mounted and write-enabled.
 
-24. Open both the BAC-220-Compiler.tape and BAC-220-Generator.tape files
-in a text editor:
+21. Load the BALGOL-Generator/BALGOL-Generator-Fixup-2-Load.card deck
+into Cardatron Reader 1 and make it ready. Clear the Processor, enter a
+CRD instruction (0 1000 60 0000) into the C register, set the Execute
+Toggle, and press START. The system will read the object deck and do the
+following:
 
-    a. Copy blocks 41-43 from the GENERATOR tape and replace blocks
-    53-55 in the GENERATOR tape with them. This is a copy of the initial
-    compiler symbol table before the library functions have been
-    inserted into it. It will be needed by any later run of the
-    Generator that includes a PROCESS LIBRARY statement.
+    a. Position both tapes forward 41 blocks and copy blocks 42-45 of
+    the Compiler tape on unit 2 to the Generator tape on unit 10. This
+    contains the symbol table updated with information for the library
+    routines.
 
-    b. Copy blocks 42-43 from the COMPILER tape and replace blocks 42-43
-    in the GENERATOR tape with them. This establishes an initial symbol
-    table for the compiler that includes the entries for the library
-    functions.
+    b. Position the Compiler tape forward to block 85 and the Generator
+    tape forward to block 88, then copy blocks from the Compiler tape to
+    the Generator tape until and including a block that has the EOF
+    sentinel of 99999999999 (11 nines) in word 0.
 
-    c. Copy from the COMPILER tape, starting at block 85 through and
-    including the "0,100,99999999999" EOF sentinel block, replacing a
-    like number of blocks in the GENERATOR tape (36 for the standard
-    library), starting with the "0,100,99999999999" EOF sentinel at
-    block 88. These blocks comprise the library table and the object
-    code for the library routines.
+    c. Rewind and deactivate (RWL) both tape units and halt with
+    0 9999 00 9999 in the C register.
 
-    d. Save the Generator tape file, which is now ready for use in
-    preparing other versions of the Compiler.
+22. Unload tape unit 10 and save the image file as BAC-220-Generator-
+tape. This is the final version of the Generator tape that can be used
+to create additional customized Compiler tapes.
 
-25. Now regenerate a Compiler tape using the BAC-220-Generator-
-Callout.card deck to make sure the generator is working properly. This
+23. Unload tape unit 2 and save the image file as BAC-220-Compiler.tape.
+This is a loadable version of the BALGOL Compiler and library, but has
+been generated primarily to harvest the library routines and data
+structures for insertion into the Generator tape. It has the default
+configuration settings described in Appendix A of the compiler manual.
+
+24. Now regenerate a Compiler tape using the BAC-220-Generator-
+Callout.card deck to make sure the Generator is working properly. This
 deck omits the PROCESS LIBRARY statement and the library object decks.
 
 
 Paul Kimpel
-January 2018
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+February 2018
 
 
