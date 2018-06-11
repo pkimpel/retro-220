@@ -1824,7 +1824,7 @@
 1   INS   LDB   INSX          INSERT RA(67) INTO ASSOCIATIVE MEMORY     018 31 0
 1         DLB - 9998,44,0      LOCATION PRECEDING (RB)                  018 32 0
 1   INS1  STB   A+,04                                                   018 33 0
-1         LDR   AVAIL         MORMALLY THIS MEANS ON TOP OF THE         018 34 0
+1         LDR   AVAIL         NORMALLY THIS MEANS ON TOP OF THE         018 34 0
 1         BFR   B+,04,00      STACK NAMED BY THE B REGISTER OR          018 35 0
 1   *C    LDR - 0             BY THE 44-FIELD OF THE STP                018 36 0
 1         LDB   AVAIL                                                   018 37 0

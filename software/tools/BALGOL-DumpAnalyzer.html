@@ -1,0 +1,975 @@
+<!DOCTYPE html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<title>BALGOL-DumpAnalyzer</title>
+<!--
+/***********************************************************************
+* 220/software/tools BALGOL-DumpAnalyzer.html
+************************************************************************
+* Copyright (c) 2018, Paul Kimpel.
+* Licensed under the MIT License, see
+*       http://www.opensource.org/licenses/mit-license.php
+************************************************************************
+* Memory dump analyzer for the 220 BALGOL compiler. Reads the text file of
+* a "Meatball" memory dump and analyzes certain data structures for the
+* BALGOL compiler, writing the result of the analysis to a text panel on
+* the browser window.
+*
+************************************************************************
+* 2018-05-31  P.Kimpel
+*   Original version, cloned from retro-220 GEN-Assembler.html.
+***********************************************************************/
+-->
+<meta name="Author" content="Paul Kimpel">
+<meta http-equiv="Content-Script-Type" content="text/javascript">
+<meta http-equiv="Content-Style-Type" content="text/css">
+
+<style>
+HTML {
+    height:             100%}
+
+BODY {
+    position:           relative;
+    font-family:        Arial, Helvetica, sans-serif;
+    height:             100%;
+    margin:             1ex}
+
+DIV.heading {
+    margin-top:         12px;
+    margin-bottom:      6px;
+    font-weight:        bold}
+
+LABEL {
+    font-size:          smaller}
+
+#DumpReaderPanel {
+    position:           relative;
+    color:              white;
+    background-color:   #666;
+    width:              640px;
+    border:             1px solid black;
+    border-radius:      8px;
+    font-size:          smaller;
+    padding:            8px}
+
+#DumpReaderTable {
+    border-spacing:     0;
+    border-collapse:    collapse;
+    table-layout:       fixed;
+    width:              100%}
+#DumpReaderCol1 {
+    width:              18ex}
+#DumpReaderCol2 {
+    }
+#DumpReaderTable TD {
+    text-align:         left;
+    vertical-align:     top;
+    padding-top:        1px;
+    padding-bottom:     1px;
+    padding-left:       2px;
+    padding-right:      2px}
+
+#DumpFileSelector {
+    width:              100%;
+    border:             1px solid white}
+
+#OptionsTable {
+    position:           relative;
+    margin-top:         4px;
+    margin-bottom:      4px;
+    width:              640px}
+
+#TextDiv {
+    position:           relative;
+    height:             75%;
+    width:              640px}
+
+#TextPanel {
+    position:           absolute;
+    left:               0;
+    top:                0;
+    bottom:             8px;
+    width:              100%;
+    overflow:           scroll;
+    padding:            4px;
+    border:             1px solid black;
+    color:              black;
+    background-color:   white;
+    font-family:        DejaVu Sans Mono, Consolas, Courier, monospace;
+    font-size:          8pt;
+    font-weight:        normal}
+
+#Spinner {
+    position:           absolute;
+    top:                200px;
+    left:               200px;
+    z-index:            10}
+
+.center {
+    text-align:         center}
+.rj {
+    text-align:         right}
+</style>
+</head>
+
+<body>
+<div class=heading>
+    BALGOL Memory Dump Analyzer
+</div>
+
+<div id=DumpReaderPanel>
+    <table id=DumpReaderTable>
+    <colgroup><col id=DumpReaderCol1><col id=DumpReaderCol2></colgroup>
+    <tr><td>Load Dump &amp; Go
+        <td><input id=DumpFileSelector type=file size=90>
+    </table>
+</div>
+
+<table id=OptionsTable>
+<!--
+<thead>
+<tr>
+    <th><label for=Pass1ListCheck>List Pass 1</label>
+    <th><label for=Pass2ListCheck>List Pass 2</label>
+    <th><label for=ChecksumCheck>Write Checksum</label>
+    <th><label for=OutputModeSelect>Output Mode</label>
+    <th>&nbsp;
+-->
+<tbody>
+<tr>
+    <!--
+    <td class=center>
+        <input id=Pass1ListCheck type=checkbox value=1>
+    <td class=center>
+        <input id=Pass2ListCheck type=checkbox value=1 CHECKED>
+    <td class=center>
+        <input id=ChecksumCheck type=checkbox value=1>
+    <td class=center>
+        <select id=OutputModeSelect>
+             <option value=""        >No Object
+             <option value=L SELECTED>Loadable Deck
+             <option value=M         >BALGOL ML Deck
+             <option value=T         >Object Tape
+         </select>
+    -->
+    <td class=rj>
+        <button id=SelectListing type=button>Select Listing</button>
+</table>
+
+<div id=TextDiv><pre id=TextPanel></pre></div>  <!-- Don't add any whitespace! -->
+
+
+<script>
+"use strict";
+
+window.addEventListener("load", function() {
+
+    // Dump reader properties
+    var buffer = "";
+    var bufferLength = 0;
+    var bufferOffset = 0;
+    var sourceName = "?";
+
+    // Regular expressions
+    var eolRex = /([^\n\r\f]*)((:?\r[\n\f]?)|\n|\f)?/g;
+    var isNumericRex = /^[0-9]/;
+    var isAlphaRex = /^[A-Z]/;
+    var isLabelRex = /^[A-Z.0-9]/;
+    var labelRex = /^([0-9]+|[A-Z][0-9.A-Z]*)(\-[0-9]+)? +/;
+    var rTrimRex = /\s*$/;
+
+    var hashMod = 99;                   // compiler's hash modulus
+    var MM = new Float64Array(10000);   // main memory, 11-digit words
+    var SCRTB = 4116;                   // address of compiler's scramble table
+    var topAddr = 0;                    // top address in memory
+
+    var panel = $$("TextPanel");
+
+    var p10 = [     1,                  // powers of 10 table
+                   10,
+                  100,
+                 1000,
+                10000,
+               100000,
+              1000000,
+             10000000,
+            100000000,
+           1000000000,
+          10000000000,
+         100000000000,
+        1000000000000,
+       10000000000000,
+      100000000000000,
+     1000000000000000,
+    10000000000000000];
+
+    var xlateANSI220 = [ // translate ANSI to 220 internal character codes
+       // 00  01  02  03  04  05  06  07  08  09  0A  0B  0C  0D  0E  0F
+           0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  //  0-0F
+           0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  // 10-1F
+           0,  0,  0, 33, 13, 24, 10, 34, 24,  4, 14, 10, 23, 20,  3, 21,  // 20-2F
+          80, 81, 82, 83, 84, 85, 86, 87, 88, 89,  0, 13,  4, 33,  0,  0,  // 30-3F
+          34, 41, 42, 43, 44, 45, 46, 47, 48, 49, 51, 52, 53, 54, 55, 56,  // 40-4F
+          57, 58, 59, 62, 63, 64, 65, 66, 67, 68, 69,  0,  0,  0,  0,  0,  // 50-5F
+           0, 41, 42, 43, 44, 45, 46, 47, 48, 49, 51, 52, 53, 54, 55, 56,  // 60-6F
+          57, 58, 59, 62, 63, 64, 65, 66, 67, 68, 69,  0,  0,  0,  0,  0]; // 70-7F
+
+    var xlate220ANSI = [ // translate internal B220 code to ANSI (Algol glyphs)
+        // 00   01   02   03   04        05    06    07   08   09
+          " ", "?", "9", ".", ")",      "?",  "?",  "?", "?", "?",  // 00-09
+          "+", "?", "?", "$", "*",      "*",  "$",  "?", "?", "?",  // 10-19
+          "-", "/", "?", ",", "(",      "?",  ",",  "?", "?", "?",  // 20-29
+          "?", "?", "?", "=", "@",      "\\", "?",  "?", "?", "?",  // 30-39
+          "?", "A", "B", "C", "D",      "E",  "F",  "G", "H", "I",  // 40-49
+          "?", "J", "K", "L", "M",      "N",  "O",  "P", "Q", "R",  // 50-59
+          "?", "?", "S", "T", "U",      "V",  "W",  "X", "Y", "Z",  // 60-69
+          "?", "?", "?", "?", "?",      "?",  "?",  "?", "?", "?",  // 70-79
+          "0", "1", "2", "3", "4",      "5",  "6",  "7", "8", "9",  // 80-89
+          "?", "?", "?", "?", "?",      "?",  "?",  "?", "?", "?"]; // 90-99
+
+    var signValues = {                  // numeric values of sign column
+        " ": 0,
+        "+": 0,
+        "0": 0,
+        "-": 1,
+        "1": 1,
+        "2": 2,
+        "3": 3,
+        "4": 4,
+        "5": 5,
+        "6": 6,
+        "7": 7,
+        "8": 8,
+        "9": 9};
+
+    var symbolType = [
+        "Undetermined",                 // 0
+        "Variable",                     // 1
+        "Literal?",                     // 2
+        "Intrinsic?",                   // 3
+        "Library Routine",              // 4
+        "Array",                        // 5
+        "Symbol#6",                     // 6
+        "Reserved Word",                // 7
+        "Procedure",                    // 8
+        "Label"];                       // 9
+
+    var variableType = [
+        "Real",                         // 0
+        "Integer",                      // 1
+        "Type#2",                       // 2
+        "Untyped?",                     // 3
+        "Generic?",                     // 4
+        "Type#5",                       // 5
+        "Type#6",                       // 6
+        "Type#7",                       // 7
+        "Type#8",                       // 8
+        "Type#9"];                      // 9
+
+    var stackHeads = {
+        AVAIL:   {addr: 273, title: "FREED-UP LOCATIONS"},
+        FUNS:    {addr: 274, title: "CONTROL OF PROCEDURE,FUNCTION CALLS"},
+        OP:      {addr: 275, title: "OPERATORS WAITING TO BE USED"},
+        ARAS:    {addr: 276, title: "INCREMENT WORDS FOR ARRAY"},
+        DIMS:    {addr: 277, title: "ARRAY DIMENSIONS"},
+        EXEC:    {addr: 278, title: "FORWARD REFERENCES TO FOR LOOP"},
+        FV:      {addr: 279, title: "FOR VARIABLE"},
+        MULS:    {addr: 280, title: "DIMENSIONS"},
+        MODE:    {addr: 281, title: "MODE TRANSLATOR IS IN (INITIALLY NORMAL)"},
+        MULT:    {addr: 282, title: "MULS STACK BACKWARDS"},
+        OPRND:   {addr: 283, title: "OPERANDS WAITING TO BE USED"},
+        PAREF:   {addr: 284, title: "REFERENCE TO PROCEDURE PARAMETERS"},
+        PR1:     {addr: 285, title: "PREFIXES OUTSIDE OF PROCEDURES"},
+        PR3:     {addr: 286, title: "CURRENT PREFIXES"},
+        RV:      {addr: 287, title: "FOR VARIABLE (BACKWARDS)"},
+        SAVET:   {addr: 288, title: "TEMP STORAGE CELLS SAVED"},
+        SETUP:   {addr: 289, title: "REFERENCE TO A PROCEDURE PARAMETER"},
+        TEMPS:   {addr: 290, title: "TEMP STORAGE CELLS AVAILABLE"},
+        XVP:     {addr: 291, title: "ARRAYS IN MULTIPLE INDEXING"},
+        DUMBS:   {addr: 292, title: "LEVELS WHERE DUMP CARD APPEARS"}};
+
+
+
+    /*******************************************************************
+    * Miscellaneous Utilities                                          *
+    *******************************************************************/
+
+    /**************************************/
+    function $$(id) {
+        return document.getElementById(id);
+    }
+
+    /**************************************/
+    function padTo(s, len) {
+        /* Pads the string "s" on the right with spaces or truncates it as
+        necessary to a length of "len" */
+        var result = s;
+
+        if (result.length > len) {
+            result = result.substring(0, len);
+        } else {
+            while (result.length-len > 8) {
+                result += "        ";
+            }
+
+            while (result.length < len) {
+                result += " ";
+            }
+        }
+
+        return result;
+    }
+
+    /**************************************/
+    function padLeft(s, len, fill) {
+        /* Pads the string "s" on the left to length "len" with the filler character
+        "fill". If fill is empty or missing, space is used. If the initial string is
+        longer than "len", it is truncated on the left to that length */
+        var pad = (fill || " ").charAt(0);
+        var result = s.toString();
+        var rLen = result.length;
+
+        if (rLen > len) {
+            result = result.substring(rLen-len);
+        } else {
+            while (rLen < len) {
+                result = pad + result;
+                ++rLen;
+            }
+        }
+
+        return result;
+    }
+
+    /**************************************/
+    function padRight(s, len, fill) {
+        /* Pads the string "s" on the right to length "len" with the filler character
+        "fill". If fill is empty or missing, space is used. If the initial string is
+        longer than "len", it is truncated on the right to that length */
+        var pad = (fill || " ").charAt(0);
+        var result = s.toString();
+        var rLen = s.length;
+
+        if (rLen > len) {
+            result = result.substring(0, len);
+        } else {
+            while (rLen < len) {
+                result = result + pad;
+                ++rLen;
+            }
+        }
+
+        return result;
+    }
+
+    /**************************************/
+    function rTrim(s) {
+        /* Returns the string "s" stripped of any trailing whitespace */
+        var x = s.search(rTrimRex);
+
+        if (x < 0 ) {
+            return s;
+        } else if (x < 1) {
+            return "";
+        } else {
+            return s.substring(0, x);
+        }
+    }
+
+    /**************************************/
+    function tensComp(value) {
+        /* If "value" is algebraically negative, returns its 11-digit tens
+        complement. Otherwise returns the 11-digit value */
+
+        if (value < 0) {
+            return p10[11] + value%p10[11];
+        } else {
+            return value%p10[11];
+        }
+    }
+
+    /**************************************/
+    function getSign(word) {
+        /* Extracts the sign digit from a word value and returns it */
+
+        return ((word - word%p10[10])/p10[10])%10;
+    }
+
+    /**************************************/
+    function applySign(word, sign) {
+        /* Applies an unsigned "sign" digit to a 220 "word" value. If the word
+        value is algebraically negative, it is first converted to a 10-digit
+        number with a 220 sign in the 11-th high-order digit. The low-order bit
+        of "sign" and the low-order bit of the word's sign digit are XOR-ed so
+        that each of those bits designates negation. Returns the new value as an
+        11-digit unsigned 220 word in binary */
+        var s = 0;
+        var value = 0;
+
+        if (word < 0) {
+            value = (-word)%p10[10];
+            s = 1;
+        } else {
+            value = word%p10[10];
+            s = (word%p10[11] - value)/p10[10];
+        }
+
+        return (sign%10 ^ s)*p10[10] + value;
+    }
+
+    /**************************************/
+    function getField(word, sL) {
+        /* Extracts an n-digit value from an 11-digit "word" and returns it.
+        "sL" is the same as for putField(). The word is a Javascript Number
+        object, but is treated as if it represents an 11-digit decimal integer */
+        var L = sL%10;
+        var s = (sL%100 - L)/10;
+        var result = applySign(word, 0);
+
+        s = (s == 0 ? 0 : 10-s);
+        L = (L == 0 ? 10 : L);
+
+        if (sL < 0 || sL > 99 || s+L > 11) {
+            result = -1;
+        } else {
+            result = (result%p10[s+L] - result%p10[s])/p10[s];
+        }
+
+        return result;
+    }
+
+    /**************************************/
+    function putField(word, value, sL) {
+        /* Inserts an n-digit "value" into designated digits of an 11-digit
+        "word". "sL" is the partial-word field in standard 220 start-Length
+        notation. Note that Javascript flags literal integers of the form "0n"
+        as the old C-style octal literal notation is deprecated. This routine
+        uses only the two low-order digits of "sL", however, so you can pass sL
+        literal values like 104 (or even 57321604) for /04 without ill effect.
+        The "value" and "word" are Javascript Number objects, but are treated as
+        if they represent 11-digit decimal integers. If value is negative, it is
+        converted to its 10s-complement value before insertion into word.
+        Returns a new word with the inserted field */
+        var L = sL%10;
+        var s = (sL%100 - L)/10;
+        var upperPart = 0;
+        var lowerPart = 0;
+        var result = applySign(word, 0);
+
+        s = (s == 0 ? 0 : 10-s);
+        L = (L == 0 ? 10 : L);
+
+        if (sL < 0 || s+L > 11) {
+            printError("INVALID /SL VALUE: ", sL);
+        } else {
+            upperPart = result%p10[11] - result%p10[s+L];
+            if (s > 0) {
+                lowerPart = result%p10[s];
+            }
+
+            result = (tensComp(value)%p10[L])*p10[s] + upperPart + lowerPart;
+        }
+
+        return result;
+    }
+
+
+    /*******************************************************************
+    * Memory Dump Input Module                                         *
+    *******************************************************************/
+
+    /**************************************/
+    function readALine() {
+        /* Reads one line image from the buffer. Returns the text of the line,
+        or null if the buffer is exhausted */
+        var bx = bufferOffset;          // current buffer offset
+        var line;                       // line image, padded/truncated to 80 columns
+        var match;                      // regular expression match result
+
+        if (bx >= bufferLength) {
+            return null;
+        } else {
+            eolRex.lastIndex = bx;
+            match = eolRex.exec(buffer);
+            if (!match) {
+                line = "";
+            } else {
+                bx += match[0].length;
+                line = match[1];
+            }
+
+            bufferOffset = bx;
+            return line;
+        }
+    }
+
+
+    /*******************************************************************
+    * Output Listing Interface                                         *
+    *******************************************************************/
+
+    /**************************************/
+    function clearPanel() {
+        /* Clears the text panel */
+        var kid;
+
+        while (kid = panel.firstChild) {
+            panel.removeChild(kid);
+        }
+    }
+
+    /**************************************/
+    function xlate220Word(word) {
+        /* Translate 10 digits in a 220 word to five ANSI characters */
+        var chars = "";                 // translated characters
+        var code = 0;                   // current 220 character code
+        var count = 5;                  // chars/word
+
+        while (count > 0) {
+            code = word%100;
+            chars = xlate220ANSI[code] + chars;
+            word = (word - code)/100;
+            --count;
+        }
+
+        return chars;
+    }
+
+    /**************************************/
+    function printLine(text) {
+        /* Appends "text"+NL as a new text node to the panel DOM element */
+        var e = document.createTextNode(rTrim(text) + "\n");
+
+        panel.appendChild(e);
+        panel.scrollTop += 30
+    }
+
+    /**************************************/
+    function formatWord(word) {
+        /* Formats the digits in a word and returns the resulting string */
+
+        return ((word - word%p10[10])/p10[10]).toString() + " " +
+               padLeft((word%p10[10] - word%p10[ 6])/p10[ 6], 4, "0") + " " +
+               padLeft((word%p10[ 6] - word%p10[ 4])/p10[ 4], 2, "0") + " " +
+               padLeft((word%p10[ 4]), 4, "0");
+    }
+
+    /**************************************/
+    function parseInteger(text, token) {
+        /* Parses a decimal number up to 11 digits in length starting at the
+        current offset in "text". Returns the 11-digit decimal string in
+        token.text and the arithmetic value as the function result */
+        var c = "";                     // current parse character
+        var length = text.length;       // length of operand string
+        var raw = "";                   // raw parsed token text
+        var result = 0;                 // arithmetic result (binary)
+        var x = token.offset;           // current offset into operand string
+
+        token.type = tokInteger;
+        while (x < length) {
+            c = text.charAt(x);
+            if (isNumericRex.test(c)) {
+                ++x;
+                raw += c;
+            } else {
+                break; // out of while loop
+            }
+        }
+
+        token.newOffset = x;
+        if (raw.length > 11) {
+            printError("NUMERIC LITERAL LONGER THAN 11 DIGITS: " + raw);
+            raw = raw.substring(raw.length-11);
+        }
+
+        token.word = result = parseInt(raw, 10);
+        token.text = padLeft(result, 11, "0");
+        token.value = result;
+        return result;
+    }
+
+
+    /*******************************************************************
+    * Analysis Routines                                                *
+    *******************************************************************/
+
+    /**************************************/
+    function memDump(start, count) {
+        /* Formats the words in a specified region of the memory array MM */
+        var addr = start;
+        var left = 0;
+        var line = "";
+        var word = 0;
+        var x = 0;
+
+        while (count > 0) {
+            line = padLeft(addr, 4, "0");
+            left = Math.max(count, 5);
+            for (x=0; x<left; ++x) {
+                word = MM[addr+x];
+                line += "  " + getSign(word) + " " + padLeft(word, 10, "0");
+            }
+
+            printLine(line);
+            addr += 5;
+            count -= left;
+        }
+    }
+
+    /**************************************/
+    function dumpSymbolTable__ORIG() {
+        /* Analyzes and formats the compiler's symbol table */
+        var addr = 0;
+        var count = hashMod;
+        var hash = 0;
+        var len = 0;
+        var line = "";
+        var symLink = 0;
+        var word = 0;
+        var x = 0;
+
+        printLine("\nSymbol Table:\n");
+        while (hash < hashMod) {
+            addr = SCRTB + hash;
+            printLine("\nHash " + padLeft(hash, 2, "0"));
+            word = MM[addr];
+            if (word) {
+                do {
+                    len = getField(word, 22);
+                    line = "     " + padLeft(addr, 4, "0") + ": " + formatWord(word) + " -> ";
+                    symLink = getField(word, 64);
+                    addr = getField(word, 4);
+
+                    word = MM[symLink];
+                    line += padLeft(symLink, 4, "0") + ": " + formatWord(word) + "  \"";
+                    count = len;
+                    x = 1;
+                    while (count > 10) {
+                        line += xlate220Word(MM[symLink+x]);
+                        count -= 10;
+                        ++x;
+                    } // while count
+
+                    line += xlate220Word(MM[symLink+x]).substring(0, count/2) + "\"";
+                    printLine(line);
+
+                    // Classify symbol
+                    x = getField(word, 11);
+                    line = padRight("", 16) + symbolType[x] + " @" + padLeft(getField(word, 64), 4, "0");
+                    switch (x) {
+                    case 1:             // variable
+                        line += ", " + variableType[getField(word, 21)];
+                        break;
+                    case 3:             // intrinsic
+                        line += ", " + variableType[getField(word, 21)];
+                        break;
+                    case 5:             // array
+                        line += ", " + variableType[getField(word, 21)];
+                        break;
+                    case 8:             // procedure/function
+                        line += ", " + variableType[getField(word, 21)] + ", Level=" + getField(word, 1);
+                        if (getSign(word) == 8) {
+                            line += ", External";
+                        }
+                        break;
+                    } // switch
+
+                    printLine(line);
+                    word = MM[addr];
+                } while (addr);
+            }
+
+            ++hash;
+        } // while hash
+    }
+
+    /**************************************/
+    function dumpSymbolTable() {
+        /* Analyzes and formats the compiler's symbol table */
+        var addr = 0;
+        var hash = 0;
+        var len = 0;
+        var line = "";
+        var sym = [];
+        var symLink = 0;
+        var symType = 0;
+        var word = 0;
+        var x = 0;
+
+        function compare(a, b) {
+            return (a.id < b.id ? -1 :
+                    a.id > b.id ? 1 :
+                    a.addr < b.addr ? -1 : 1);
+        }
+
+        printLine("\nSymbol Table:\n");
+        for (hash=0; hash<hashMod; ++hash) {
+            addr = SCRTB + hash;
+            word = MM[addr];
+            if (word) {
+                do {
+                    // Translate the symbol ID to ASCII
+                    symLink = getField(word, 64);
+                    len = getField(word, 22);
+                    line = "";
+                    x = 1;
+                    while (len > 10) {
+                        line += xlate220Word(MM[symLink+x]);
+                        len -= 10;
+                        ++x;
+                    } // while len
+
+                    line += xlate220Word(MM[symLink+x]).substring(0, len/2);
+
+                    // Push the entry into the table for sorting
+                    sym.push({hash: hash, addr: addr, id: line});
+                    addr = getField(word, 4);
+                    word = MM[addr];
+                } while (addr);
+            }
+        } // while hash
+
+        sym.sort(compare);
+
+        for (x=0; x<sym.length; ++x) {
+            printLine(sym[x].id);
+            addr = sym[x].addr;
+            word = MM[addr];
+            line = "    " + padLeft(sym[x].hash, 2, "0") + "  " + padLeft(addr, 4, "0") + ": " + formatWord(word) + " -> ";
+            addr = getField(word, 4);
+            symLink = getField(word, 64);
+            word = MM[symLink];
+            line += padLeft(symLink, 4, "0") + ": " + formatWord(word) + ", ";
+
+            // Classify symbol
+            symType = getField(word, 11);
+            line += symbolType[symType] + " @" + padLeft(getField(word, 64), 4, "0");
+            switch (symType) {
+            case 1:             // variable
+                line += ", " + variableType[getField(word, 21)];
+                break;
+            case 3:             // intrinsic
+                line += ", " + variableType[getField(word, 21)];
+                break;
+            case 5:             // array
+                line += ", " + variableType[getField(word, 21)];
+                break;
+            case 8:             // procedure/function
+                line += ", " + variableType[getField(word, 21)] + ", Level=" + getField(word, 1);
+                if (getSign(word) == 8) {
+                    line += ", External";
+                }
+                break;
+            } // switch
+
+            printLine(line);
+        } // for x
+    }
+
+    /**************************************/
+    function dumpStacks() {
+        /* Dumps all compiler stacks from associative memory */
+        var addr = 0;
+        var entry = null;
+        var key = "";
+        var line = "";
+        var word = 0;
+
+        printLine("\nCompiler Stacks:");
+        for (key in stackHeads) {
+            printLine("");
+            entry = stackHeads[key];
+            addr = entry.addr;
+            word = MM[addr];
+            printLine(padRight(key + ":", 8) + padLeft(addr, 4, "0") + ": " +
+                      formatWord(word) + ", " + entry.title);
+            addr = getField(word, 4);
+            while (addr) {
+                word = MM[addr];
+                printLine(padRight("", 12) + padLeft(addr, 4, "0") + ": " + formatWord(word));
+                addr = getField(word, 4);
+            } // while addr
+        } // for key
+    }
+
+    /**************************************/
+    function analyzeDump() {
+        /* Analyzes and formats the data in the memory array MM */
+        var addr = 0;
+        var line = "";
+        var word = 0;
+        var x = 0;
+
+        dumpSymbolTable();
+        dumpStacks();
+
+        $$("TextDiv").removeChild($$("Spinner"));   // remove the spinner image
+    }
+
+    /**************************************/
+    function loadDumpFile() {
+        /* Loads the memory dump text file, parsing the 11-digit words from the
+        text, converting them to Number objects, and storing them in the MM
+        array. Then calls analyzeDump() to begin the analysis */
+        var addr = 0;
+        var line = "";
+        var nextAddr = 0;
+        var text = "";
+        var word = 0;
+        var x = 0;
+
+        // Skip any initial empty lines
+        do {
+          line = readALine();
+        } while (line !== null && rTrim(line).length == 0);
+
+        if (line) {
+            // Check for a valid dump header
+            if (line.indexOf("retro-220 Processor State and Memory Dump") != 0) {
+                alert("Not a valid 220 Memory Dump file");
+            } else {
+                // Skip the processor-state lines after the header
+                do {
+                    line = readALine();
+                } while (line !== null && line.indexOf("Memory:") != 0);
+
+                // Parse the lines of the memory dump
+                do {
+                    line = readALine();
+                    if (line) {
+                        text = line.substring(0, 4);
+                        if (text == "....") {
+                            // Ignore suppressed duplicate lines
+                        } else {
+                            addr = parseInt(text, 10);
+                            if (isNaN(addr)) {
+                                // Ignore lines that don't begin with a valid address
+                            } else {
+                                // Fill in words from any suppressed duplicate lines
+                                while (nextAddr < addr) {
+                                    MM[nextAddr] = MM[nextAddr-5];
+                                    ++nextAddr;
+                                } // while nextAddr
+
+                                // Parse the words of the dump and store in MM
+                                for (x=4; x<74; x+=14) {
+                                    word = parseInt(line.substring(x+2, x+3) + line.substring(x+4, x+14), 10);
+                                    if (isNaN(word)) {
+                                        alert("Invalid word, addr=" + addr);
+                                        break;
+                                    } else {
+                                        MM[addr] = word;
+                                        ++addr;
+                                    }
+                                } // for x
+
+                                nextAddr = addr;
+                            }
+                        }
+                    }
+                } while (line !== null && line.indexOf("End dump, memory size:") != 0);
+
+                topAddr = nextAddr-1;
+                //alert("Memory dump loaded, topAddr=" + topAddr.toString());
+
+                analyzeDump();
+            }
+        }
+    }
+
+
+    /*******************************************************************
+    * Initialization and Termination                                   *
+    *******************************************************************/
+
+    /**************************************/
+    function loadSourceFile(ev) {
+        /* Handle the <input type=file> onchange event when a source file is
+        selected */
+        var e;                          // spinner image DOM element
+        var f = ev.target.files[0];
+        var reader = new FileReader();
+
+        function fileLoader_onLoad(ev) {
+            /* Handles the onload event for a readAsText FileReader */
+
+            buffer = ev.target.result;
+            bufferOffset = 0;
+            bufferLength = buffer.length;
+            setTimeout(loadDumpFile, 100);
+        }
+
+        sourceName = f.name;
+        /********************
+        alert("Source file selected: " + f.name +
+                "\nModified " + f.lastModifiedDate +
+                "\nType=" + f.type + ", Size=" + f.size + " octets");
+        ********************/
+
+        // initiate the spinner to run while running
+        e = document.createElement("img");
+        e.src = "../../webUI/resources/ajax-spinner.gif";
+        e.id = "Spinner";
+        $$("TextDiv").appendChild(e);
+
+        reader.onload = fileLoader_onLoad;
+        reader.readAsText(f);
+    }
+
+    /**************************************/
+    function checkBrowser() {
+        /* Checks whether this browser can support the necessary stuff */
+        var missing = "";
+
+        if (!window.File        ) {missing += ", File"}
+        if (!window.FileReader  ) {missing += ", FileReader"}
+        if (!window.FileList    ) {missing += ", FileList"}
+        if (!window.DOMTokenList) {missing += ", DOMTokenList"}
+        if (!window.ArrayBuffer ) {missing += ", ArrayBuffer"}
+        if (!window.DataView    ) {missing += ", DataView"}
+        if (!window.Promise     ) {missing += ", Promise"}
+        if (!window.JSON        ) {missing += ", JSON"}
+
+        if (missing.length == 0) {
+            return false;
+        } else {
+            alert("No can do... your browser does not\n" +
+                  "support the following features:\n" + missing.substring(2));
+            return true;
+        }
+    }
+
+    /******************** Start of window.onload() ********************/
+    if (checkBrowser()) {
+        return;
+    }
+
+    $$("DumpFileSelector").value = null;  // clear any prior file selection
+    $$("DumpFileSelector").addEventListener("change", loadSourceFile, false);
+
+    /********************
+    pass1List = $$("Pass1ListCheck").checked;
+    $$("Pass1ListCheck").addEventListener("click", function(ev) {
+        pass1List = ev.target.checked;
+    });
+
+    pass2List = $$("Pass2ListCheck").checked;
+    $$("Pass2ListCheck").addEventListener("click", function(ev) {
+        pass2List = ev.target.checked;
+    });
+
+    outputChecksum = $$("ChecksumCheck").checked;
+    $$("ChecksumCheck").addEventListener("click", function(ev) {
+        outputChecksum = ev.target.checked;
+    });
+    ********************/
+
+    $$("SelectListing").addEventListener("click", function(ev) {
+        window.getSelection().selectAllChildren($$("TextPanel"));
+    });
+
+}, false);
+</script>
+
+</body>
+</html>

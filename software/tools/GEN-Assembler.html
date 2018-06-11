@@ -33,7 +33,7 @@
 * and their starting memory location may be pre-loaded into the assembler
 * before loading the source code.
 *
-* Output is a simulated line printer listing in the <iframe> of the web
+* Output is a simulated line printer listing in a text panel of the web
 * page from which the assembler is run. The output of Pass 2 is a
 * traditional assembler listing, with words of generated object code
 * and data. It is designed to match the listing from which the compiler
@@ -2113,7 +2113,7 @@ window.addEventListener("load", function() {
                 case "X":               // copy zone half-column for sign
                     emitBandDigits(1, 1);
                     dx += 1;
-                    break;  
+                    break;
                 case "Y":               // delete half-column (usually for overpunched sign)
                     emitBandDigits(3, 1);
                     colCount += 1;
@@ -2208,7 +2208,7 @@ window.addEventListener("load", function() {
                 case "X":               // copy zone digit for sign
                     emitBandDigits(1, 1);
                     dx += 1;
-                    break;      
+                    break;
                 case "Y":               // supply numeric half-column for standalone sign
                     emitBandDigits(0, 1);
                     colCount += 1;

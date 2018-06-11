@@ -1,0 +1,1189 @@
+
+Sun, Jun 10, 2018 09:26:42, SYSTEM SERIAL: 4448, LX100 MCP: *SYSTEM/511/051-1A-45/DELTA/MCP. 51.190.8474, HOSTNAME: MCPVMMA
+
+
+
+
+                                         W O R K   F L O W   S T A T E M E N T S
+
+
+        00100100  BEGIN JOB MISC/DIRICHLET;
+        00100200  JOBSUMMARY = UNCONDITIONAL;
+        00102000
+        00102100  PRINTDEFAULTS = (PRINTDISPOSITION=EOJ, DESTINATION="PCTEXT");
+        00110000
+        00110100  TASK
+        00110200    T;
+        00900000
+        00900100  COMPILE OBJECT/MISC/DIRICHLET ALGOL [T] LIBRARY;
+        00900200      ALGOL FILE SOURCE = SRCE/MISC/DIRICHLET ON DISK;
+        00900300      OPTION = (FAULT, DSED, ARRAY);
+        00900400      ALGOL DATA
+        00900600  ?
+        00900700  IF T IS COMPILEDOK THEN
+        00900800    BEGIN
+        00900900    RUN OBJECT/MISC/DIRICHLET;
+        00901000        FILE CDS (DEPENDENTSPECS, TITLE=DATA/MISC/DIRICHLET ON DISK);
+        00901100    END;
+        00999900  ? END JOB
+
+
+                                                 J O B   S U M M A R Y
+
+Sun, Jun 10, 2018
+
+   09:26:39    BOJ   5576 MISC/DIRICHLET.
+                          JOB ENTERED SYSTEM: 06/10/2018 09:26:39 FROM WFL 51.189
+                          QUEUE: 0, ORIGINATING LSN: 211 MCS: 1
+                          STACK NUMBER: 080B, PRIORITY: 50, SOURCENAME: DIGMGX39/CANDE/1.
+                          USERCODE: PAUL.  REALUSERCODE: PAUL.
+                          INITIATING MCS: SYSTEM/CANDE.
+   09:26:39    BOT   5577 *SYSTEM/ALGOL.
+                          CODE COMPILED: 09/07/2005 15:02:44 BY ALGOL 51.190
+                          RELEASE ID: IC ALGOL-051.1A.4 [51.190.004] (51.190.8023)
+                          TASK TYPE: COROUTINE (CALL)
+                          STACK NUMBER: 080D, PRIORITY: 50, SOURCENAME: DIGMGX39/CANDE/1.
+                          CODEFILE: OBJECT/MISC/DIRICHLET.
+                          USERCODE: PAUL.  REALUSERCODE: PAUL.
+                          INITIATING MCS: SYSTEM/CANDE.
+   09:26:41    EOT   5577 *SYSTEM/ALGOL.
+                          RELEASE ID:IC ALGOL-051.1A.4 [51.190.004] (51.190.8023)
+                          USERCODE: PAUL.  REALUSERCODE: PAUL.
+                          STACK NUMBER: 080D             AVERAGE DISK SECTORS IN USE BY PERMANENT FILES: 1432.
+                          PROCESSOR TIME: 00:00:00.8812  CARDS READ: 1.
+                          I/O       TIME: 00:00:00.1573  LINES PRINTED: 321.
+                          READYQ    TIME: 00:00:00.0795  NUMBER OF ARRAY RESIZES: 3.
+                          INITPBIT  TIME: 00:00:00.0937  AVERAGE MEMORY USAGE: CODE=26757, DATA=79299
+                          ELAPSED   TIME: 00:00:01.4760  MEMORY INTEGRAL: CODE=27.789, DATA=82.358
+                                                         INITIAL PBITS: 476.
+                                                         MAXIMUM NUMBER OF ASDS USED: 183.
+                                                         MAXIMUM SAVE MEMORY USED: 12687.
+
+   09:26:41    BOT   5578 (PAUL)OBJECT/MISC/DIRICHLET ON OPS.
+                          CODE COMPILED: 06/10/2018 09:26:39 BY ALGOL 51.190
+                          TASK TYPE: COROUTINE (CALL)
+                          STACK NUMBER: 080F, PRIORITY: 50, SOURCENAME: DIGMGX39/CANDE/1.
+                          USERCODE: PAUL.  REALUSERCODE: PAUL.
+                          INITIATING MCS: SYSTEM/CANDE.
+   09:26:41          5578 MESSAGE: STACK EXTENDED FROM 1632 TO 1882 WORDS.
+   09:26:41          5578 MESSAGE: STACK EXTENDED FROM 1882 TO 2132 WORDS.
+   09:26:41    EOT   5578 (PAUL)OBJECT/MISC/DIRICHLET ON OPS.
+                          USERCODE: PAUL.  REALUSERCODE: PAUL.
+                          STACK NUMBER: 080F             AVERAGE DISK SECTORS IN USE BY PERMANENT FILES: 532.
+                          PROCESSOR TIME: 00:00:00.4494  LINES PRINTED: 559.
+                          I/O       TIME: 00:00:00.1407  NUMBER OF ARRAY RESIZES: 4.
+                          READYQ    TIME: 00:00:00.0066  AVERAGE MEMORY USAGE: CODE=809, DATA=6508
+                          INITPBIT  TIME: 00:00:00.0312  MEMORY INTEGRAL: CODE=0.477, DATA=3.841
+                          ELAPSED   TIME: 00:00:00.7797  INITIAL PBITS: 204.
+                                                         MAXIMUM NUMBER OF ASDS USED: 115.
+                                                         MAXIMUM SAVE MEMORY USED: 8223.
+
+   09:26:41    EOJ   5576 MISC/DIRICHLET.
+                          USERCODE: PAUL.  REALUSERCODE: PAUL.
+                          STACK NUMBER: 080B             NUMBER OF ARRAY RESIZES: 1.
+                          PROCESSOR TIME: 00:00:00.0466  AVERAGE MEMORY USAGE: CODE=88, DATA=1967
+                          I/O       TIME: 00:00:00.0011  MEMORY INTEGRAL: CODE=0.004, DATA=0.094
+                          READYQ    TIME: 00:00:00.0226  INITIAL PBITS: 51.
+                          INITPBIT  TIME: 00:00:00.0747  MAXIMUM NUMBER OF ASDS USED: 10.
+                          ELAPSED   TIME: 00:00:02.4211  MAXIMUM SAVE MEMORY USED: 1808.Unisys ClearPath LX Series SYSTEMS BDMSALGOL COMPILER, VERSION 51.190.8023, SUNDAY, 06/10/2018, 09:26 AM.
+
+
+
+                          ( P A U L ) O B J E C T / M I S C / D I R I C H L E T   O N   O P S
+                          = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+
+
+                                    SOURCE TAPE:   (PAUL)SRCE/MISC/DIRICHLET ON OPS.
+
+
+                 $ SET LINEINFO                                                                 00000100  0000:0000:0  920317PK
+                % DIRICHLET PROBLEM FOR A BEAN-SHAPED REGION.  FROM P J DAVIS,                  00100100  0000:0000:0
+                % "ORTHONORMALIZING CODES IN NUMERICAL ANALYSIS" IN J TODD, --SURVEY OF         00100200  0000:0000:0
+                % NUMERICAL ANLAYSIS--, MCGRAW-HILL, 1962,  P.347. P H KIMPEL 8/15/70           00100300  0000:0000:0
+                % MODIFICATION LOG:                                                             00100320  0000:0000:0  920317PK
+                % 92/03/17  P.KIMPEL, PARADIGM CORP, SAN DIEGO, CA  92117.                      00100321  0000:0000:0  920317PK
+                %   CONVERT FOR UNISYS A-SERIES MCP 3.8.4.                                      00100322  0000:0000:0  920317PK
+                                                                                                00100398  0000:0000:0  920317PK
+                BEGIN                                                                           00100400  0000:0000:0
+                                                                                              BLOCK#1 IS SEGMENT 0003
+                FILE CDS (KIND=READER, DEPENDENTSPECS);                                     1   00100500  0003:0000:1  920317PK
+                                                                                           DATA LENGTH IN WORDS IS 000A
+                FILE PR (KIND=PRINTER, MAXRECSIZE=132, UNITS=CHARACTERS, MYUSE=OUT);            00100600  0003:0000:1  920317PK
+                                                                                           DATA LENGTH IN WORDS IS 000D
+                FORMAT F1 (X30,I3,2F10.3,4F10.5),                                               00100700  0003:0000:1
+                       F2 (X40,"X",X9,"Y",X9,"W",X8,"BV",X7,"CBV,",X7,"DEV"),                   00100800  0003:0000:1  920317PK
+                       FT (///X40,"PROCESSOR TIME: ", F6.2," SEC");                             00100900  0003:0000:1  920317PK
+                DEFINE N = 43#,  M = 11#,  P = 11#,  N1 = 42#,  M1 = 10#,  P1 = 10#;            00101000  0003:0000:1
+                LABEL QUIT;                                                                     00101100  0003:0000:1
+                INTEGER I, J;                                                                   00101200  0003:0000:1
+                REAL SUM, GMDT;                                                                 00101300  0003:0000:1
+                ARRAY                                                                           00101400  0003:0000:1
+                  X,                      % ABSCISSA VALUES.                                    00101500  0003:0000:1
+                  Y,                      % ORDINATE VALUES.                                    00101600  0003:0000:1
+                  W,                      % WEIGHTS.                                            00101700  0003:0000:1
+                  CBV[0:N1],              % BOUNDARY VALUES CALCULATED FROM ORTHO COEFS.        00101800  0003:0000:1
+                  BV[0:0, 0:N1+P],        % GIVEN BOUNDARY VALUES.                              00101900  0003:0004:4
+                  Z[0:M1, 0:N1+P],        % APPROXIMATING VECTORS.                              00102000  0003:000A:3
+                  ORTHV[0:M, 0:N1+P],     % ORTHONORMAL VECTORS RETURNED BY "ORTHO"             00102100  0003:0010:3
+                  DEV[0:0, 0:N1],         % DEVIATIONS.                                         00102200  0003:0016:3
+                  COF[0:0, 0:P1],         % COEFFICIENTS.                                       00102300  0003:001C:3
+                  STD[0:0],               % STANDARD DEVIATION.                                 00102400  0003:0022:3
+                  CV[0:P, 0:P1],          % COVARIANCE MATRIX.                                  00102500  0003:0022:3
+                  VCV[0:0, 0:P, 0:P1],    % VARIANCE/COVARIANCE MATRIX.                         00102600  0003:0028:3
+                  Q[0:0, 0:M],            % FOURIER COEFFICIENTS.                               00102700  0003:0030:3
+                  Q2,                     % SQUARED FOURIER COEFFICIENTS.                       00102800  0003:0036:3
+                  E,                      % SUM OF SQUARED RESIDUALS.                           00102900  0003:0036:3
+                  EP[0:0, 0:M1],          % RESIDUALS.                                          00103000  0003:0036:3
+                  A[0:M1, 0:P1],          % LOWER TRIANGULAR MATRIX USED TO CALC CV.            00103100  0003:003D:3
+                  GF[0:M],                % GRAM FACTORS.                                       00103200  0003:0043:3
+                  ENF[0:M1];              % NORMS OF THE APPROXIMATING VECTORS.                 00103300  0003:0043:3
+                %***********************************************************************        00103400  0003:0043:3
+                PROCEDURE ORTHO (W, Y, Z, N, FN, M, P, R, AI, AUI, MUI, ZEI, X, DEV,            00103500  0003:0043:3
+                                 COF, STD, CV, VCV, GMDT, Q, Q2, E, EP, A, GF, ENF);            00103600  0003:0043:3
+                VALUE  N, M, P, R, AI, AUI, MUI, ZEI;                                           00103700  0003:0043:3
+                REAL  FN, GMDT;                                                                 00103800  0003:0043:3
+                REAL ARRAY STD, GF,  W, ENF [1];                                                00103900  0003:0043:3
+                REAL ARRAY     Y, Z, X, DEV, COF, CV, Q, Q2, E, EP, A [1, 1];                   00104000  0003:0043:3
+                REAL ARRAY VCV [1, 1, 1];                                                       00104100  0003:0043:3
+                INTEGER  N, M, P, R, AI, AUI, ZEI, MUI;                                         00104200  0003:0043:3
+                COMMENT                                                                         00104300  0003:0043:3
+                          ORTHO    IS TAKEN FROM ACM ALGORITHM 127 [COMM. ACM, VOL.5,           00104400  0003:0043:3
+                                 OCTOBER 1962, P. 511, AUTHOR: PHILIP J. WALSH];                00104500  0003:0043:3
+                BEGIN                                                                           00104600  0003:0043:3
+                INTEGER  NPP, NPM, M1, N2, M2, R1, RBAR, P2, BEI, RHI, I18, GAI, SII, I,        00104700  0003:0043:3
+                                                                                                ORTHO IS SEGMENT 0006
+                                 J, DEI, NUI, E1Z2, E1Z1, K, THI, ALI, OMI, NII;            2   00104800  0006:0000:1
+                REAL ARRAY  PK, XP [1:N+P], QK[1:M+1];                                          00104900  0006:0000:1
+                REAL DENOM, SUM, DK2, DK, FI, SS, SSQ;                                          00105000  0006:0007:3
+                LABEL   BOX1, AT1, AT2, BOX2, AU1, AU2, BOX3, BOX4, BOX5, BOX6, MU1,            00105100  0006:0007:3
+                      MU2, BOX7, OM1, OM2, BOX8, DE1, BOX8A, BOX8B, DE2, BOX8C, BOX8D,          00105200  0006:0007:3
+                      BOX9, TH1, TH2, TH3, BOX10, AL1, AL2, BOX11, NU1, NU2, BOX12,             00105300  0006:0007:3
+                      BE1, BE2, BOX13, GA1, GA2, BOX14, RH1, ZE1, ZE2, RH2, SI1, SI2,           00105400  0006:0007:3
+                      FINAL;                                                                    00105500  0006:0007:3
+                SWITCH AT := AT1, AT2;    SWITCH ZE := ZE1, ZE2;                                00105600  0006:0007:3
+                SWITCH AU := AU1, AU2;    SWITCH MU := MU1, MU2;                                00105700  0006:0007:3
+                SWITCH  BE := BE1, BE2;  SWITCH  RH := RH1, RH2;  SWITCH GA := GA1, GA2;        00105800  0006:0007:3
+                SWITCH  SI := SI1, SI2;  SWITCH  DE := DE1, DE2;  SWITCH  NU := NU1, NU2        00105900  0006:0007:3
+                ;                                                                               00106000  0006:0007:3
+                SWITCH  TH := TH1, TH2, TH3;  SWITCH AL := AL1, AL2;                            00106100  0006:0007:3
+                SWITCH  OM := OM1, OM2;                                                         00106200  0006:0007:3
+                      NPP := N+P; NPM := N+M; M1 := M-1; N2 := N+1; M2 := M+1;                  00106300  0006:0007:3
+                          R1 := 0; RBAR := R; P2 := P+1; DENOM := IF N=M THEN 1.0               00106400  0006:000E:3
+                                 ELSE SQRT(N-M);  BEI := RHI := I18 := 1;                       00106500  0006:0012:1
+                      IF (P NEQ 0) THEN GAI := SII := 2  ELSE  GAI := SII := 1;                 00106600  0006:0017:5
+                BOX1:            GO TO AT[AI];                                                  00106700  0006:001C:0
+                      AT1:       FOR J := 1 STEP 1 UNTIL N DO BEGIN                             00106800  0006:0020:3
+                                 X[2,J] := Z[1,J];  X[1,J] := 1.0 END;                      3   00106900  0006:0021:1
+                                 FOR I := 2 STEP 1 UNTIL M1 DO BEGIN                        3   00107000  0006:0029:1
+                                 FOR J := 1 STEP 1 UNTIL N DO                               3   00107100  0006:002A:0
+                                 X[I+1,J] := X[I,J] * X[2,J]  END;   GO TO BOX2;                00107200  0006:002A:4
+                      AT2:       FOR I := 1 STEP 1 UNTIL M DO BEGIN                         3   00107300  0006:0035:4
+                                 FOR J := 1 STEP 1 UNTIL N DO                               3   00107400  0006:0036:2
+                                 X[I,J] := Z[I,J]  END;                                         00107500  0006:0037:0
+                BOX2:            IF P = 0 THEN GO TO BOX3  ELSE  GO TO AU[AUI];             3   00107600  0006:003F:3
+                      AU1:       FOR I := 1 STEP 1 UNTIL M DO BEGIN                             00107700  0006:0045:0
+                                 FOR J := N2 STEP 1 UNTIL NPP DO                            3   00107800  0006:0045:4
+                                 X[I,J] := 0.0;  X[I,N+I] := 1.0  END;  GO TO BOX3;             00107900  0006:0046:3
+                      AU2:       FOR I := 1 STEP 1 UNTIL M DO BEGIN                         3   00108000  0006:0051:2
+                                 FOR J := N2 STEP 1 UNTIL NPP DO                            3   00108100  0006:0052:0
+                                 X[I,J] := Z[I,J]  END;                                         00108200  0006:0052:5
+                BOX3:            DEI := NUI := E1Z1 := E1Z2 := K := 1;                      3   00108300  0006:005B:2
+                BOX4:            THI := 1;                                                      00108400  0006:005E:0
+                BOX5:            ALI := OMI := 1;  IF P = 0 THEN GO TO BOX6  ELSE               00108500  0006:005E:4
+                                 FOR J := 1 STEP 1 UNTIL P DO PK[N+J] := 0.0;                   00108600  0006:0061:0
+                BOX6:            GO TO MU[MUI];                                                 00108700  0006:0065:5
+                      MU1:       FOR I := 1 STEP 1 UNTIL N DO PK[I] := X[K,I];                  00108800  0006:006A:3
+                                 GO TO BOX7;                                                    00108900  0006:0070:4
+                      MU2:       FOR I := 1 STEP 1 UNTIL N DO                                   00109000  0006:0071:1
+                                 PK[I] := X[K,I] * W[I];   GO TO BOX7;                          00109100  0006:0071:5
+                BOX7:            GO TO OM[OMI];                                                 00109200  0006:0079:1
+                      OM1:       FOR I := 1 STEP 1 UNTIL K DO BEGIN SUM := 0.0;                 00109300  0006:007D:3
+                                 FOR J := 1 STEP 1 UNTIL NPP DO                             3   00109400  0006:007E:5
+                                 SUM := SUM + PK[J] * X[I,J];  QK[I] := SUM END;                00109500  0006:007F:3
+                                 GO TO BOX8;                                                3   00109600  0006:0089:5
+                      OM2:       DK2 := 0.0;  FOR I := 1 STEP 1 UNTIL NPP DO                    00109700  0006:008A:2
+                                 DK2 := DK2 + PK[I] * X[K,I];                                   00109800  0006:008B:4
+                                 DK := SQRT(DK2);                                               00109900  0006:0092:1
+                                 GF[I18] := DK;   I18 := I18 + 1;                               00110000  0006:0093:4
+                                 FOR I := 1 STEP 1 UNTIL NPP DO                                 00110100  0006:0096:4
+                                 X[K,I] := X[K,I]/DK;;                                          00110200  0006:0097:2
+                                 OMI := 1;    GO TO BOX6;                                       00110300  0006:009E:1
+                BOX8:            GO TO DE[DEI];                                                 00110400  0006:009F:2
+                      DE1:       E1Z1 := -E1Z1;   IF E1Z1 < 0 THEN GO TO BOX8B   ELSE           00110500  0006:00A4:0
+                                 GO TO BOX8A;                                                   00110600  0006:00A5:5
+                BOX8A:           FOR I := 1 STEP 1 UNTIL K-1 DO                                 00110700  0006:00A6:2
+                                 QK[I] := -QK[I];   QK[K] := 1.0;                               00110800  0006:00A8:2
+                                 FOR I := 1 STEP 1 UNTIL NPP DO BEGIN                           00110900  0006:00AE:3
+                                 SUM := 0.0;  FOR J := 1 STEP 1 UNTIL K DO                  3   00111000  0006:00AF:1
+                                 SUM := SUM + X[J,I] * QK[J];                                   00111100  0006:00B0:3
+                                 XP[I] := SUM END;  GO TO BOX9;                                 00111200  0006:00B7:0
+                BOX8B:           ENF[I18] := SQRT(QK[K]);   GO TO BOX8A;                    3   00111300  0006:00BB:2
+                      DE2:       E1Z2 := -E1Z2;  IF E1Z2 < 0 THEN GO TO BOX8C  ELSE             00111400  0006:00BF:0
+                                 GO TO BOX8A;                                                   00111500  0006:00C0:5
+                BOX8C:           FOR I := 1 STEP 1 UNTIL M DO BEGIN                             00111600  0006:00C1:2
+                                 Q[R1,I] := QK[I];  Q2[R1,I] := QK[I] * QK[I]  END;         3   00111700  0006:00C2:0
+                                 Q[R1,M2] := QK[M2];  E[R1,1] := Q[R1,M2] - Q2[R1,1];       3   00111800  0006:00CC:1
+                                 FOR J := 2 STEP 1 UNTIL M DO                                   00111900  0006:00D4:5
+                                 E[R1,J] := E[R1,J-1] - Q2[R1,J];                               00112000  0006:00D5:4
+                                 FI := 1.0;                                                     00112100  0006:00DE:3
+                                 FOR I := 1 STEP 1 UNTIL M DO BEGIN                             00112200  0006:00E0:0
+                                 IF (FN - FI) > 0.0 THEN BEGIN IF E[R1,I] < 0.0 THEN        3   00112300  0006:00E0:4
+                                 BEGIN EP[R1,I] := -SQRT(ABS(E[R1,I])/(FN - FI));           4   00112400  0006:00E4:4
+                                 GO TO BOX8D;    END                                        5   00112500  0006:00EB:3
+                                 ELSE  EP[R1,I] := SQRT(E[R1,I]/(FN - FI));                 5   00112600  0006:00EC:0
+                                 GO TO BOX8D;  END  ELSE  E[R1,I] := -1.0;                      00112700  0006:00F2:2
+                BOX8D:           FI := FI + 1.0;   END;   GO TO BOX8A;                      4   00112800  0006:00F6:3
+                BOX9:            GO TO TH[THI];                                             3   00112900  0006:00FB:1
+                      TH1:       FOR I := 1 STEP 1 UNTIL NPP DO                                 00113000  0006:0100:0
+                                 X[K,I] := XP[I];  GO TO BOX10;                                 00113100  0006:0100:4
+                      TH2:       FOR I := 1 STEP 1 UNTIL N DO                                   00113200  0006:0106:4
+                                 DEV[R1,I] := XP[I];                                            00113300  0006:0107:2
+                                 FOR I := 1 STEP 1 UNTIL P DO                                   00113400  0006:010C:5
+                                 COF[R1,I] := -XP[N+I];  THI := 3;  GO TO TH1;                  00113500  0006:010D:3
+                      TH3:       GO TO BOX11;                                                   00113600  0006:0115:0
+                BOX10:           GO TO AL[ALI];                                                 00113700  0006:0115:3
+                      AL1:       OMI := ALI := 2;  GO TO BOX6;                                  00113800  0006:011A:0
+                      AL2:       IF K < M THEN BEGIN K := K + 1;  GO TO BOX4;  END              00113900  0006:011B:5
+                                 ELSE  GO TO BOX12;                                         3   00114000  0006:011F:0
+                BOX11:           GO TO NU[NUI];                                                 00114100  0006:011F:0
+                      NU1:       NUI := 2;  GO TO BOX14;                                        00114200  0006:0123:3
+                      NU2:       SS := DK/DENOM;  SSQ := SS * SS;                               00114300  0006:0124:5
+                                 STD[R1] := SS;  GO TO BOX14;                                   00114400  0006:0127:0
+                BOX12:           GO TO BE[BEI];                                                 00114500  0006:0129:1
+                      BE1:       FOR I := 1 STEP 1 UNTIL M DO BEGIN                             00114600  0006:012D:3
+                                 FOR J := 1 STEP 1 UNTIL P DO                               3   00114700  0006:012E:1
+                                 A[I,J] := X[I,N+J]  END;                                       00114800  0006:012E:5
+                                 GMDT := 1.0;  FOR I := 1 STEP 1 UNTIL M DO                 3   00114900  0006:0137:5
+                                 GMDT := GMDT * (GF[I]/ENF[I]);                                 00115000  0006:013A:1
+                                 GMDT := GMDT * GMDT;  DEI := BEI := THI := 2;                  00115100  0006:0140:0
+                                 K := K + 1;       GO TO BOX13;                                 00115200  0006:0143:2
+                      BE2:       GO TO BOX11;                                                   00115300  0006:0145:1
+                BOX13:           GO TO GA[GAI];                                                 00115400  0006:0145:4
+                      GA1:       GO TO BOX11;                                                   00115500  0006:014A:0
+                      GA2:       FOR I := 1 STEP 1 UNTIL P DO BEGIN                             00115600  0006:014A:3
+                                 FOR J := I STEP 1 UNTIL P DO BEGIN                         3   00115700  0006:014B:1
+                                 SUM := 0.0;                                                4   00115800  0006:014C:0
+                                 FOR NII := 1 STEP 1 UNTIL M DO                                 00115900  0006:014C:4
+                                 SUM := SUM + A[NII,I] * A[NII,J];                              00116000  0006:014D:2
+                                 CV[I,J] := SUM  END  END;                                      00116100  0006:0154:4
+                                 FOR I := 1 STEP 1 UNTIL P DO                               3   00116200  0006:015B:3
+                                 CV[P2,I] := SQRT(CV[I,I]);  GAI := 1;  GO TO BOX11;            00116300  0006:015C:1
+                BOX14:           GO TO RH[RHI];                                                 00116400  0006:0164:2
+                      RH1:       IF RBAR = 0 THEN GO TO FINAL  ELSE  RBAR := RBAR - 1;          00116500  0006:0169:0
+                                 R1 := R1 + 1;  THI := RHI := 2;  GO TO ZE[ZEI];                00116600  0006:016B:3
+                      ZE1:       FOR I := 1 STEP 1 UNTIL N DO                                   00116700  0006:0172:3
+                                 X[M2,I] := Y[R1,I];                                            00116800  0006:0173:1
+                                 FOR I := 1 STEP 1 UNTIL P DO                                   00116900  0006:0179:3
+                                 X[M2,N+I] := 0.0;  GO TO BOX5;                                 00117000  0006:017A:1
+                      ZE2:       FOR I := 1 STEP 1 UNTIL NPP DO                                 00117100  0006:017F:4
+                                 X[M2,I] := Y[R1,I];   GO TO BOX5;                              00117200  0006:0180:2
+                      RH2:       GO TO SI[SII];                                                 00117300  0006:0187:1
+                      SI1:       GO TO RH1;                                                     00117400  0006:018B:3
+                      SI2:       FOR I := 1 STEP 1 UNTIL P DO BEGIN                             00117500  0006:018C:0
+                                 FOR J := I STEP 1 UNTIL P DO                               3   00117600  0006:018C:4
+                                 VCV[R1,I,J] := SSQ * CV[I,J]  END;                             00117700  0006:018D:3
+                                 FOR I := 1 STEP 1 UNTIL P DO                               3   00117800  0006:0197:2
+                                 VCV[R1, P2, I] := SS * CV[P2,I];  GO TO RH1;                   00117900  0006:0198:0
+                FINAL:  END  ORTHO ;                                                            00118000  0006:01A0:1
+                                                                                    ORTHO(0006) LENGTH IN WORDS IS 01A9
+                %***********************************************************************    2   00118100  0003:0043:3
+                REAL PROCEDURE G (I, X, Y);                                                     00118200  0003:0043:3
+                  VALUE I, X, Y;   REAL X, Y;   INTEGER I;                                      00118300  0003:0043:3
+                  CASE (I - 1) OF                                                               00118400  0003:0043:3
+                    BEGIN                                                                       00118500  0003:0044:5
+                      G := 1;                                                        % 1    2   00118600  0003:0044:5
+                      G := X;                                                        % 2        00118700  0003:0049:3
+                      G := Y;                                                        % 3        00118800  0003:004A:5
+                      G := X**2 - Y**2;                                              % 4        00118900  0003:004C:1
+                      G := 2.0 * X * Y;                                              % 5        00119000  0003:004E:4
+                      G := X**3 - 3.0 * X * Y**2;                                    % 6        00119100  0003:0051:4
+                      G := 3.0 * X**2 * Y - Y**3;                                    % 7        00119200  0003:0056:1
+                      G := X**4 + Y**4 - 6.0 * X**2 * Y**2;                          % 8        00119300  0003:005A:4
+                      G := 4.0 * X**3 * Y - 4.0 * X * Y**3;                          % 9        00119400  0003:0060:4
+                      G := X**5 - 10.0 * X**3 * Y**2 + 5.0 * X * Y**4;               %10        00119500  0003:0066:5
+                      G := Y**5 - 10.0 * Y**3 * X**2 + 5.0 * Y * X**4;               %11        00119600  0003:006F:1
+                      G := X**6 - 15.0 * X**4 * Y**2 + 15.0 * X**2 * Y**4 - Y**6;    %12        00119700  0003:0077:3
+                      G := 6.0 * X**5 * Y + 6.0 * X * Y**5 - 20.0 * X**3 * Y**3;     %13        00119800  0003:0081:4
+                      G := X**7 - 21.0 *X**5 * Y**2 + 35.0 * X**3 * Y**4  - 7.0 * X *%14        00119900  0003:008C:2
+                      Y**6;                                                                     00120000  0003:0096:0
+                      G := 7.0 *X**6 * Y - 35.0 * X**4 * Y**3 + 21.0 * X**2 * Y**5 - %15        00120100  0003:0099:1
+                      Y**7;                                                                     00120200  0003:00A3:1
+                      G := X**8 + Y**8 - 28.0 *X**6 * Y**2 + 70.0 * X**4 * Y**4 - 28.0          00120300  0003:00A6:0
+                              * X**2 * Y**6;                                         %16        00120400  0003:00AF:5
+                      G := 8.0 * X**7 *Y - 56.0 * X**5 * Y**3 + 56.0 * X**3 * Y**5              00120500  0003:00B4:2
+                              - 8.0 *X * Y**7;                                       %17        00120600  0003:00BE:0
+                  END G;                                                                        00120700  0003:00C3:5
+                FOR I := 0 STEP 1 UNTIL N1 DO                                               2   00120800  0003:00CF:0
+                  BEGIN                                                                         00120900  0003:00CF:4
+                    READ (CDS,  /, X[I], Y[I], W[I]);                                       2   00121000  0003:00CF:4
+                    BV[0,I] := EXP(X[I]) * COS(Y[I]) + LN((1 - Y[I])**2 + X[I]**2);             00121100  0003:00E0:4
+                    FOR J := 0 STEP 1 UNTIL M1 DO                                               00121200  0003:00E8:5
+                        Z[J,I] := G(J+1, X[I], Y[I]);                                           00121300  0003:00E9:3
+                  END;                                                                          00121400  0003:00F0:2
+                CLOSE (CDS);                                                                2   00121500  0003:00F2:3
+                ORTHO (W, BV, Z, N , N , M , P,  1, 2, 1, 2, 1, ORTHV, DEV, COF, STD,           00121600  0003:00F7:5
+                          CV, VCV, GMDT, Q, Q2, E, EP, A, GF, ENF);                             00121700  0003:00FF:3
+                FOR I := 0 STEP 1 UNTIL N1 DO                                                   00121800  0003:0104:4
+                  BEGIN  SUM := 0;                                                              00121900  0003:0105:2
+                    FOR J:=0 STEP 1 UNTIL M1 DO  SUM := SUM + COF[0,J]*G(J+1, X[I], Y[I]    2   00122000  0003:0106:0
+                    );                                                                          00122100  0003:010B:0
+                    CBV[I] := SUM;                                                              00122200  0003:010E:2
+                  END;                                                                          00122300  0003:010F:4
+                WRITE (PR[SPACE 2], F2);                                                    2   00122400  0003:0111:5
+                WRITE (PR, F1, FOR I := 0 STEP 1 UNTIL N1 DO [I,X[I],Y[I],W[I], BV[0,I],        00122500  0003:0117:4
+                                 CBV[I], (CBV[I]-BV[0,I])]);                                    00122600  0003:0125:4
+                WRITE (PR, FT, TIME(2)/60);                                                     00122700  0003:0130:4
+                QUIT:                                                                           00122800  0003:0139:4
+                BEGIN                                                                           00122900  0003:0139:4
+                    COMMENT INNER BLOCK;                                                    2   00123000  0003:0139:4
+                %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%        00123100  0003:0139:4
+                PROCEDURE DUMP (NAME, ROW);                                                     00123200  0003:0139:4
+                                                                                              BLOCK#2 IS SEGMENT 0012
+                    VALUE NAME;                                                                 00123300  0012:0000:1
+                    ALPHA NAME;                                                                 00123400  0012:0000:1
+                    ARRAY ROW[0];                                                               00123500  0012:0000:1
+                    BEGIN                                                                       00123600  0012:0000:1
+                    REAL                                                                        00123700  0012:0000:1
+                    I,                                                                          00123800  0012:0000:1
+                                                                                                 DUMP IS SEGMENT 0013
+                    SZ;                                                                     3   00123900  0013:0000:1
+                FORMAT                                                                          00124000  0013:0000:1
+                    F (A6," = ",/*(6E20.11,/));                                                 00124100  0013:0000:1  920317PK
+                    SZ := SIZE(ROW);                                                            00124200  0013:0000:1
+                    WRITE (PR[SPACE 4]);                                                        00124300  0013:0001:4
+                    WRITE (PR, F, NAME, (SZ+5)DIV 6, ROW[*]);                                   00124400  0013:0008:2
+                    END DUMP;                                                                   00124500  0013:0015:4
+                                                                                     DUMP(0013) LENGTH IN WORDS IS 001A
+                %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%    3   00124600  0012:0000:1
+                ARRAY NR[0:99];                                                                 00124700  0012:0000:1
+                FOR I := 0 STEP 1 UNTIL 99 DO                                                   00124800  0012:0000:1
+                    REPLACE POINTER(NR[I],8)+4 BY I FOR 2 DIGITS;                               00124900  0012:0000:5
+                                                                                                00125000  0012:0006:0
+                DUMP ("X     ", X);                                                             00125100  0012:0006:0
+                DUMP ("Y     ", Y);                                                             00125200  0012:0008:4
+                DUMP ("W     ", W);                                                             00125300  0012:000B:4
+                DUMP ("CBV   ", CBV);                                                           00125400  0012:000E:4
+                DUMP ("BV    ", BV[0,*]);                                                       00125500  0012:0011:4
+                FOR I := 0 STEP 1 UNTIL M1 DO                                                   00125600  0012:0014:5
+                    BEGIN                                                                       00125700  0012:0015:3
+                    SUM := "Z     " & NR[I] [15:16];                                        3   00125800  0012:0015:3
+                    DUMP (SUM, Z[I,*]);                                                         00125900  0012:0018:5
+                    END;                                                                        00126000  0012:001A:4
+                FOR I := 0 STEP 1 UNTIL M DO                                                3   00126100  0012:001C:5
+                    BEGIN                                                                       00126200  0012:001D:3
+                    SUM := "ORTHV " & NR[I] [15:16];                                        3   00126300  0012:001D:3
+                    DUMP (SUM, ORTHV[I,*]);                                                     00126400  0012:0020:5
+                    END;                                                                        00126500  0012:0022:4
+                DUMP ("DEV   ", DEV[0,*]);                                                  3   00126600  0012:0024:5
+                DUMP ("COF   ", COF[0,*]);                                                      00126700  0012:0027:5
+                DUMP ("STD   ", STD);                                                           00126800  0012:002A:5
+                FOR I := 0 STEP 1 UNTIL P DO                                                    00126900  0012:002D:4
+                    BEGIN                                                                       00127000  0012:002E:2
+                    SUM := "CV    " & NR[I] [15:16];                                        3   00127100  0012:002E:2
+                    DUMP (SUM, CV[I,*]);                                                        00127200  0012:0031:5
+                    END;                                                                        00127300  0012:0033:4
+                FOR I := 0 STEP 1 UNTIL P DO                                                3   00127400  0012:0035:5
+                    BEGIN                                                                       00127500  0012:0036:3
+                    SUM := "VCV   " & NR[I] [15:16];                                        3   00127600  0012:0036:3
+                    DUMP (SUM, VCV[0,I,*]);                                                     00127700  0012:0039:5
+                    END;                                                                        00127800  0012:003C:0
+                DUMP ("EP    ", EP[0,*]);                                                   3   00127900  0012:003E:1
+                FOR I := 0 STEP 1 UNTIL M1 DO                                                   00128000  0012:0040:5
+                    BEGIN                                                                       00128100  0012:0041:3
+                    SUM := "A     " & NR[I] [15:16];                                        3   00128200  0012:0041:3
+                    DUMP (SUM, A[I,*]);                                                         00128300  0012:0044:5
+                    END;                                                                        00128400  0012:0046:4
+                DUMP ("GF    ", GF);                                                        3   00128500  0012:0048:5
+                DUMP ("Q     ", Q[0,*]);                                                        00128600  0012:004B:4
+                DUMP ("Q2    ", Q2[0,*]);                                                       00128700  0012:004E:5
+                DUMP ("E     ", E[0,*]);                                                        00128800  0012:0051:5
+                DUMP ("ENF   ", ENF);                                                           00128900  0012:0054:5
+                END INNER BLOCK;                                                                00129000  0012:0057:4
+                                                                                  BLOCK#2(0012) LENGTH IN WORDS IS 005F
+                  END.                                                                      2   00129100  0003:013A:2
+                                                                                  BLOCK#1(0003) LENGTH IN WORDS IS 0159
+                                                                                           DATA LENGTH IN WORDS IS 002F
+====================================================================================================================================
+NUMBER OF ERRORS DETECTED = 0.
+NUMBER OF SEGMENTS = 18.  TOTAL SEGMENT SIZE = 961 WORDS.  CORE ESTIMATE = 3053 WORDS.  STACK ESTIMATE = 96
+PROGRAM SIZE = 296 CARDS, 3419 SYNTACTIC ITEMS, 92 DISK SECTORS.
+PROGRAM FILE NAME:  OBJECT/MISC/DIRICHLET ON DISK.
+SOURCE TAPE:  (PAUL)SRCE/MISC/DIRICHLET ON OPS.
+COMPILATION TIME = 0.894 SECONDS ELAPSED;  0.629 SECONDS PROCESSING;  0.120 SECONDS I/O.
+ACCIDENTAL ENTRIES GENERATED FOR PARAMETER PASSING = 1, LAST AT SEQUENCE   121600
+====================================================================================================================================                                        X         Y         W        BV       CBV,       DEV
+
+                                0     0.000     0.110   0.01414   0.76089   0.76399   0.00310
+                                1    -0.050     0.108   0.01427   0.72025   0.72348   0.00323
+                                2    -0.100     0.115   0.01963   0.66721   0.67049   0.00327
+                                3    -0.160     0.150   0.02300   0.55236   0.55576   0.00340
+                                4    -0.220     0.205   0.03897   0.40068   0.40386   0.00319
+                                5    -0.320     0.300   0.02792   0.17014   0.17015   0.00001
+                                6    -0.400     0.358   0.03324   0.06949   0.06500  -0.00449
+                                7    -0.500     0.420   0.01483   0.02006   0.01360  -0.00647
+                                8    -0.550     0.436   0.01423   0.04590   0.04344  -0.00246
+                                9    -0.600     0.430   0.01505   0.12037   0.12444   0.00408
+                               10    -0.644     0.400   0.01483   0.22850   0.23541   0.00691
+                               11    -0.660     0.350   0.01420   0.33248   0.33513   0.00265
+                               12    -0.655     0.300   0.02881   0.41180   0.41041  -0.00139
+                               13    -0.635     0.200   0.03043   0.56169   0.55792  -0.00377
+                               14    -0.595     0.100   0.03076   0.70069   0.69969  -0.00100
+                               15    -0.552     0.000   0.03311   0.84177   0.84369   0.00192
+                               16    -0.500    -0.105   0.03175   0.98915   0.99146   0.00231
+                               17    -0.440    -0.200   0.01809   1.12198   1.12185  -0.00013
+                               18    -0.400    -0.250   0.01998   1.19326   1.19145  -0.00181
+                               19    -0.350    -0.300   0.01882   1.26792   1.26504  -0.00288
+                               20    -0.300    -0.344   0.03140   1.33734   1.33459  -0.00275
+                               21    -0.204    -0.400   0.03450   1.44505   1.44501  -0.00003
+                               22    -0.100    -0.436   0.02846   1.54875   1.55126   0.00251
+                               23     0.000    -0.448   0.02831   1.64168   1.64342   0.00174
+                               24     0.100    -0.442   0.03860   1.73582   1.73434  -0.00148
+                               25     0.230    -0.400   0.02431   1.85882   1.85513  -0.00370
+                               26     0.300    -0.350   0.02059   1.91643   1.91502  -0.00141
+                               27     0.353    -0.300   0.03566   1.95563   1.95689   0.00126
+                               28     0.430    -0.200   0.03122   1.99206   1.99507   0.00301
+                               29     0.477    -0.100   0.02975   1.96611   1.96579  -0.00032
+                               30     0.510     0.000   0.02846   1.89648   1.89241  -0.00407
+                               31     0.522     0.100   0.01696   1.75623   1.75328  -0.00295
+                               32     0.520     0.160   0.02330   1.63625   1.63683   0.00058
+                               33     0.500     0.240   0.02102   1.41224   1.41798   0.00574
+                               34     0.456     0.300   0.01795   1.14765   1.15160   0.00394
+                               35     0.400     0.330   0.01147   0.91523   0.91269  -0.00254
+                               36     0.360     0.337   0.01762   0.78913   0.78354  -0.00559
+                               37     0.300     0.320   0.01648   0.68785   0.68274  -0.00511
+                               38     0.250     0.290   0.01901   0.66231   0.65991  -0.00239
+                               39     0.300     0.245   0.01901   0.89407   0.89251  -0.00156
+                               40     0.150     0.200   0.01809   0.72694   0.72885   0.00191
+                               41     0.100     0.160   0.01677   0.75642   0.75909   0.00267
+                               42     0.050     0.128   0.01501   0.77202   0.77499   0.00297
+
+
+
+                                        PROCESSOR TIME:   0.25 SEC
+
+
+
+
+X      =
+   0.                 -5.00000000000E-02  -1.00000000000E-01  -1.60000000000E-01  -2.19999999999E-01  -3.20000000000E-01
+  -4.00000000000E-01  -5.00000000000E-01  -5.49999999999E-01  -6.00000000000E-01  -6.44000000000E-01  -6.60000000000E-01
+  -6.55000000001E-01  -6.35000000000E-01  -5.94999999999E-01  -5.52000000000E-01  -5.00000000000E-01  -4.40000000001E-01
+  -4.00000000000E-01  -3.50000000000E-01  -2.99999999999E-01  -2.04000000000E-01  -1.00000000000E-01   0.
+   1.00000000000E-01   2.30000000000E-01   2.99999999999E-01   3.52999999999E-01   4.30000000000E-01   4.77000000001E-01
+   5.10000000000E-01   5.22000000001E-01   5.20000000000E-01   5.00000000000E-01   4.56000000000E-01   4.00000000000E-01
+   3.60000000001E-01   2.99999999999E-01   2.50000000000E-01   2.99999999999E-01   1.50000000000E-01   1.00000000000E-01
+   5.00000000000E-02
+
+
+
+
+Y      =
+   1.10000000000E-01   1.08000000000E-01   1.15000000000E-01   1.50000000000E-01   2.05000000000E-01   2.99999999999E-01
+   3.58000000000E-01   4.20000000000E-01   4.36000000000E-01   4.30000000000E-01   4.00000000000E-01   3.50000000000E-01
+   2.99999999999E-01   2.00000000001E-01   1.00000000000E-01   0.                 -1.05000000000E-01  -2.00000000001E-01
+  -2.50000000000E-01  -2.99999999999E-01  -3.43999999999E-01  -4.00000000000E-01  -4.36000000000E-01  -4.48000000000E-01
+  -4.41999999999E-01  -4.00000000000E-01  -3.50000000000E-01  -2.99999999999E-01  -2.00000000001E-01  -1.00000000000E-01
+   0.                  1.00000000000E-01   1.60000000000E-01   2.40000000000E-01   2.99999999999E-01   3.30000000000E-01
+   3.37000000000E-01   3.20000000000E-01   2.90000000001E-01   2.45000000001E-01   2.00000000001E-01   1.60000000000E-01
+   1.28000000001E-01
+
+
+
+
+W      =
+   1.41400000000E-02   1.42700000000E-02   1.96300000000E-02   2.29999999999E-02   3.89700000001E-02   2.79200000000E-02
+   3.32400000000E-02   1.48300000000E-02   1.42300000000E-02   1.50500000000E-02   1.48300000000E-02   1.42000000000E-02
+   2.88100000000E-02   3.04300000000E-02   3.07600000001E-02   3.31100000001E-02   3.17500000001E-02   1.80900000000E-02
+   1.99800000000E-02   1.88200000000E-02   3.14000000001E-02   3.45000000000E-02   2.84600000000E-02   2.83099999999E-02
+   3.86000000001E-02   2.43100000000E-02   2.05900000001E-02   3.56600000000E-02   3.12200000001E-02   2.97499999999E-02
+   2.84600000000E-02   1.69599999999E-02   2.33000000001E-02   2.10199999999E-02   1.79499999999E-02   1.14700000000E-02
+   1.76200000001E-02   1.64800000000E-02   1.90100000000E-02   1.90100000000E-02   1.80900000000E-02   1.67700000000E-02
+   1.50100000000E-02
+
+
+
+
+CBV    =
+   7.63990857004E-01   7.23476999556E-01   6.70486515621E-01   5.55760515688E-01   4.03864157241E-01   1.70153235251E-01
+   6.50036131635E-02   1.35969111799E-02   4.34406209927E-02   1.24443888182E-01   2.35411546886E-01   3.35127952263E-01
+   4.10409228183E-01   5.57922404119E-01   6.99692526170E-01   8.43691658119E-01   9.91455364503E-01   1.12185181366E+00
+   1.19145281421E+00   1.26504184521E+00   1.33459251738E+00   1.44501061816E+00   1.55125970980E+00   1.64342354801E+00
+   1.73434400867E+00   1.85512612470E+00   1.91501751200E+00   1.95689478869E+00   1.99507156912E+00   1.96578820440E+00
+   1.89241116472E+00   1.75328349824E+00   1.63683157066E+00   1.41798014336E+00   1.15159624467E+00   9.12686299549E-01
+   7.83542953752E-01   6.82743770107E-01   6.59913937641E-01   8.92513136025E-01   7.28852845617E-01   7.59094650353E-01
+   7.74988822253E-01
+
+
+
+
+BV     =
+   7.60888465444E-01   7.20246055773E-01   6.67212406801E-01   5.52356512671E-01   4.00677168387E-01   1.70143475074E-01
+   6.94918044683E-02   2.00633089353E-02   4.59001323634E-02   1.20368543456E-01   2.28496737633E-01   3.32481404050E-01
+   4.11800002865E-01   5.61688937141E-01   7.00690877196E-01   8.41773259011E-01   9.89149666873E-01   1.12198473964E+00
+   1.19325814303E+00   1.26792135331E+00   1.33733963929E+00   1.44504543647E+00   1.54874888482E+00   1.64168181988E+00
+   1.73582146871E+00   1.85882384451E+00   1.91643181675E+00   1.95563019495E+00   1.99206099581E+00   1.96610965548E+00
+   1.89648227785E+00   1.75623351627E+00   1.63625089460E+00   1.41224024707E+00   1.14765460414E+00   9.15228104721E-01
+   7.89128023847E-01   6.87850932118E-01   6.62307799943E-01   8.94070846776E-01   7.26940189159E-01   7.56420955771E-01
+   7.72021544695E-01   0.                  0.                  0.                  0.                  0.
+   0.                  0.                  0.                  0.                  0.                  0.
+
+
+
+
+
+Z   00 =
+   1.00000000000E+00   1.00000000000E+00   1.00000000000E+00   1.00000000000E+00   1.00000000000E+00   1.00000000000E+00
+   1.00000000000E+00   1.00000000000E+00   1.00000000000E+00   1.00000000000E+00   1.00000000000E+00   1.00000000000E+00
+   1.00000000000E+00   1.00000000000E+00   1.00000000000E+00   1.00000000000E+00   1.00000000000E+00   1.00000000000E+00
+   1.00000000000E+00   1.00000000000E+00   1.00000000000E+00   1.00000000000E+00   1.00000000000E+00   1.00000000000E+00
+   1.00000000000E+00   1.00000000000E+00   1.00000000000E+00   1.00000000000E+00   1.00000000000E+00   1.00000000000E+00
+   1.00000000000E+00   1.00000000000E+00   1.00000000000E+00   1.00000000000E+00   1.00000000000E+00   1.00000000000E+00
+   1.00000000000E+00   1.00000000000E+00   1.00000000000E+00   1.00000000000E+00   1.00000000000E+00   1.00000000000E+00
+   1.00000000000E+00   0.                  0.                  0.                  0.                  0.
+   0.                  0.                  0.                  0.                  0.                  0.
+
+
+
+
+
+Z   01 =
+   0.                 -5.00000000000E-02  -1.00000000000E-01  -1.60000000000E-01  -2.19999999999E-01  -3.20000000000E-01
+  -4.00000000000E-01  -5.00000000000E-01  -5.49999999999E-01  -6.00000000000E-01  -6.44000000000E-01  -6.60000000000E-01
+  -6.55000000001E-01  -6.35000000000E-01  -5.94999999999E-01  -5.52000000000E-01  -5.00000000000E-01  -4.40000000001E-01
+  -4.00000000000E-01  -3.50000000000E-01  -2.99999999999E-01  -2.04000000000E-01  -1.00000000000E-01   0.
+   1.00000000000E-01   2.30000000000E-01   2.99999999999E-01   3.52999999999E-01   4.30000000000E-01   4.77000000001E-01
+   5.10000000000E-01   5.22000000001E-01   5.20000000000E-01   5.00000000000E-01   4.56000000000E-01   4.00000000000E-01
+   3.60000000001E-01   2.99999999999E-01   2.50000000000E-01   2.99999999999E-01   1.50000000000E-01   1.00000000000E-01
+   5.00000000000E-02   0.                  0.                  0.                  0.                  0.
+   0.                  0.                  0.                  0.                  0.                  0.
+
+
+
+
+
+Z   02 =
+   1.10000000000E-01   1.08000000000E-01   1.15000000000E-01   1.50000000000E-01   2.05000000000E-01   2.99999999999E-01
+   3.58000000000E-01   4.20000000000E-01   4.36000000000E-01   4.30000000000E-01   4.00000000000E-01   3.50000000000E-01
+   2.99999999999E-01   2.00000000001E-01   1.00000000000E-01   0.                 -1.05000000000E-01  -2.00000000001E-01
+  -2.50000000000E-01  -2.99999999999E-01  -3.43999999999E-01  -4.00000000000E-01  -4.36000000000E-01  -4.48000000000E-01
+  -4.41999999999E-01  -4.00000000000E-01  -3.50000000000E-01  -2.99999999999E-01  -2.00000000001E-01  -1.00000000000E-01
+   0.                  1.00000000000E-01   1.60000000000E-01   2.40000000000E-01   2.99999999999E-01   3.30000000000E-01
+   3.37000000000E-01   3.20000000000E-01   2.90000000001E-01   2.45000000001E-01   2.00000000001E-01   1.60000000000E-01
+   1.28000000001E-01   0.                  0.                  0.                  0.                  0.
+   0.                  0.                  0.                  0.                  0.                  0.
+
+
+
+
+
+Z   03 =
+  -1.21000000000E-02  -9.16400000000E-03  -3.22500000001E-03   3.10000000013E-03   6.37499999971E-03   1.24000000003E-02
+   3.18360000001E-02   7.35999999997E-02   1.12404000000E-01   1.75100000000E-01   2.54736000001E-01   3.13100000001E-01
+   3.39025000001E-01   3.63224999999E-01   3.44024999999E-01   3.04704000000E-01   2.38975000000E-01   1.53600000000E-01
+   9.74999999999E-02   3.25000000007E-02  -2.83359999999E-02  -1.18384000000E-01  -1.80096000000E-01  -2.00704000001E-01
+  -1.85363999999E-01  -1.07100000000E-01  -3.25000000007E-02   3.46090000000E-02   1.44899999999E-01   2.17529000001E-01
+   2.60100000000E-01   2.62484000001E-01   2.44800000002E-01   1.92400000000E-01   1.17936000001E-01   5.10999999999E-02
+   1.60310000006E-02  -1.24000000003E-02  -2.16000000005E-02   2.99749999990E-02  -1.75000000004E-02  -1.55999999999E-02
+  -1.38840000002E-02   0.                  0.                  0.                  0.                  0.
+   0.                  0.                  0.                  0.                  0.                  0.
+
+
+
+
+
+Z   04 =
+   0.                 -1.08000000000E-02  -2.30000000001E-02  -4.79999999998E-02  -9.01999999996E-02  -1.91999999999E-01
+  -2.86399999999E-01  -4.20000000000E-01  -4.79600000002E-01  -5.16000000000E-01  -5.15200000000E-01  -4.62000000003E-01
+  -3.92999999998E-01  -2.54000000003E-01  -1.19000000000E-01   0.                  1.05000000000E-01   1.76000000001E-01
+   2.00000000001E-01   2.09999999999E-01   2.06399999999E-01   1.63199999999E-01   8.72000000002E-02   0.
+  -8.84000000001E-02  -1.83999999999E-01  -2.09999999999E-01  -2.11799999999E-01  -1.72000000000E-01  -9.54000000002E-02
+   0.                  1.04400000001E-01   1.66400000002E-01   2.40000000000E-01   2.73599999999E-01   2.63999999999E-01
+   2.42640000000E-01   1.91999999999E-01   1.45000000000E-01   1.47000000001E-01   6.00000000002E-02   3.20000000002E-02
+   1.28000000001E-02   0.                  0.                  0.                  0.                  0.
+   0.                  0.                  0.                  0.                  0.                  0.
+
+
+
+
+
+Z   05 =
+   0.                  1.62460000000E-03   2.96749999998E-03   6.70399999993E-03   1.70885000000E-02   5.36319999997E-02
+   8.97967999995E-02   1.39600000000E-01   1.47283400000E-01   1.16820000001E-01   4.20300159985E-02  -4.49460000018E-02
+  -1.04161375004E-01  -1.79847875001E-01  -1.92794874998E-01  -1.68196608000E-01  -1.08462500000E-01  -3.23839999996E-02
+   1.10000000000E-02   5.16249999996E-02   7.95023999992E-02   8.94303359996E-02   5.60287999999E-02   0.
+  -5.76091999997E-02  -9.82329999999E-02  -8.32500000001E-02  -5.13230229990E-02   2.79069999997E-02   9.42213330009E-02
+   1.32651000000E-01   1.26576648001E-01   1.00672000002E-01   3.86000000001E-02  -2.83011839992E-02  -6.66800000004E-02
+  -7.59985199995E-02  -6.51599999997E-02  -4.74500000005E-02  -2.70225000004E-02  -1.46250000001E-02  -6.67999999996E-03
+  -2.33260000005E-03   0.                  0.                  0.                  0.                  0.
+   0.                  0.                  0.                  0.                  0.                  0.
+
+
+
+
+
+Z   06 =
+  -1.33100000000E-03  -4.49712000002E-04   1.92912499999E-03   8.14499999996E-03   2.11508749999E-02   6.51599999997E-02
+   1.25957287999E-01   2.40912000001E-01   3.12788144000E-01   3.84893000000E-01   4.33683200001E-01   4.14505000002E-01
+   3.59122499998E-01   2.33935000002E-01   1.05207499999E-01   0.                 -7.75923750002E-02  -1.08160000001E-01
+  -1.04375000000E-01  -8.32499999999E-02  -5.21724159996E-02   1.40607999999E-02   6.98018560001E-02   8.99153920004E-02
+   7.30908879996E-02   5.19999999824E-04  -5.16249999996E-02  -8.51480999997E-02  -1.02940000000E-01  -6.72587000004E-02
+   0.                  8.07452000001E-02   1.25695999999E-01   1.66176000001E-01   1.60142400000E-01   1.22463000000E-01
+   9.27528469999E-02   5.36319999997E-02   2.99860000000E-02   5.14438749997E-02   5.49999999987E-03   7.04000000013E-04
+  -1.13715200003E-03   0.                  0.                  0.                  0.                  0.
+   0.                  0.                  0.                  0.                  0.                  0.
+
+
+
+
+
+Z   07 =
+   1.46409999999E-04  -3.26611039996E-05  -5.18599374999E-04  -2.29438999997E-03  -8.09539937495E-03  -3.67102399996E-02
+  -8.10114291039E-02  -1.70983040000E-01  -2.17381500785E-01  -2.35595990000E-01  -2.00540610304E-01  -1.15412390001E-01
+  -3.95110493755E-02   6.74164006243E-02   1.04192200623E-01   9.28445276161E-02   4.60840506248E-02  -7.38304000015E-03
+  -3.04937500000E-02  -4.30437499997E-02  -4.17980311036E-02  -1.26194685440E-02   2.48307292161E-02   4.02820956162E-02
+   2.65452524959E-02  -2.23855900001E-02  -4.30437499997E-02  -4.36614571186E-02  -8.58799000025E-03   3.82177058416E-02
+   6.76520099998E-02   5.79984902565E-02   3.22380800005E-02  -2.05822399998E-02  -6.09480599037E-02  -6.70847899999E-02
+  -5.86171766390E-02  -3.67102399996E-02  -2.05584400001E-02  -2.07104993751E-02  -3.29374999995E-03  -7.80639999999E-04
+   2.89254560037E-05   0.                  0.                  0.                  0.                  0.
+   0.                  0.                  0.                  0.                  0.                  0.
+
+
+
+
+
+Z   08 =
+   0.                  1.97942400002E-04   1.48350000000E-04  -2.97600000010E-04  -1.15004999995E-03  -4.76160000017E-03
+  -1.82356607997E-02  -6.18240000003E-02  -1.07817916798E-01  -1.80703200000E-01  -2.62479974401E-01  -2.89304400001E-01
+  -2.66473650003E-01  -1.84518300002E-01  -8.18779499994E-02   0.                  5.01847500000E-02   5.40672000004E-02
+   3.89999999998E-02   1.36499999999E-02  -1.16971007997E-02  -3.86405375998E-02  -3.14087424001E-02   0.
+   3.27723551998E-02   3.94127999998E-02   1.36500000001E-02  -1.46603723999E-02  -4.98456000005E-02  -4.15045332004E-02
+   0.                  5.48066592000E-02   8.14694400010E-02   9.23519999999E-02   6.45345792004E-02   2.69807999998E-02
+   7.77952368071E-03  -4.76159999994E-03  -6.26400000010E-03   8.81264999975E-03  -2.10000000001E-03  -9.98399999993E-04
+  -3.55430400010E-04   0.                  0.                  0.                  0.                  0.
+   0.                  0.                  0.                  0.                  0.                  0.
+
+
+
+
+
+Z   09 =
+   0.                 -1.97447239999E-05   3.47996874996E-05   4.11742399997E-04   2.01674811251E-03   1.31757567998E-02
+   3.89329382081E-02   1.11457600001E-01   1.66568437156E-01   2.19059970001E-01   2.34140142797E-01   1.77428717403E-01
+   1.05821832342E-01  -5.90575439620E-03  -5.38065643711E-02  -5.12501792441E-02  -1.77726265626E-02   1.40619776002E-02
+   2.19475000001E-02   1.91603125002E-02   8.51560665592E-03  -1.28818434571E-02  -1.61772846079E-02   0.
+   1.71399062478E-02   1.06164342999E-02  -8.13562499980E-03  -1.98106060830E-02  -1.36619557001E-02   1.40793923665E-02
+   3.45025250999E-02   2.47945459939E-02   3.72869119994E-03  -3.24555999998E-02  -4.71526890760E-02  -3.57375799999E-02
+  -2.37238830705E-02  -9.48935999986E-03  -3.32304999998E-03  -8.37224906249E-03  -7.40624999942E-05   8.16799999974E-05
+   4.69413640016E-05   0.                  0.                  0.                  0.                  0.
+   0.                  0.                  0.                  0.                  0.                  0.
+
+
+
+
+
+Z   10 =
+   1.61050999999E-05  -1.34245192319E-05  -7.44739281249E-05  -2.96542499999E-04  -1.40654587190E-03  -9.48935999986E-03
+  -2.17078272992E-02  -4.09008768002E-02  -3.54784801038E-02   7.11564430094E-03   8.88208593933E-02   1.50546567502E-01
+   1.62686925940E-01   1.30652400625E-01   5.91366003118E-02   0.                 -2.99312003158E-02  -2.23129600001E-02
+  -7.97656249983E-03   8.13562499980E-03   1.78876529394E-02   1.29304570882E-02  -7.68532369804E-03  -1.80463788361E-02
+  -8.45576608307E-03   1.80191800002E-02   1.91603125002E-02   7.92332567835E-03  -1.97160099999E-02  -2.36194329209E-02
+   0.                  3.44089251284E-02   4.75222016005E-02   4.12362623997E-02   1.11433501447E-02  -1.13456607000E-02
+  -1.69533600024E-02  -1.31757567998E-02  -7.52794760001E-03  -2.43027734700E-03  -9.73750000004E-04  -2.24742399998E-04
+  -1.40690616314E-05   0.                  0.                  0.                  0.                  0.
+   0.                  0.                  0.                  0.                  0.                  0.
+
+
+
+
+
+ORTH00 =
+   9.99995000031E-01   9.99995000031E-01   9.99995000031E-01   9.99995000031E-01   9.99995000031E-01   9.99995000031E-01
+   9.99995000031E-01   9.99995000031E-01   9.99995000031E-01   9.99995000031E-01   9.99995000031E-01   9.99995000031E-01
+   9.99995000031E-01   9.99995000031E-01   9.99995000031E-01   9.99995000031E-01   9.99995000031E-01   9.99995000031E-01
+   9.99995000031E-01   9.99995000031E-01   9.99995000031E-01   9.99995000031E-01   9.99995000031E-01   9.99995000031E-01
+   9.99995000031E-01   9.99995000031E-01   9.99995000031E-01   9.99995000031E-01   9.99995000031E-01   9.99995000031E-01
+   9.99995000031E-01   9.99995000031E-01   9.99995000031E-01   9.99995000031E-01   9.99995000031E-01   9.99995000031E-01
+   9.99995000031E-01   9.99995000031E-01   9.99995000031E-01   9.99995000031E-01   9.99995000031E-01   9.99995000031E-01
+   9.99995000031E-01   9.99995000031E-01   0.                  0.                  0.                  0.
+   0.                  0.                  0.                  0.                  0.                  0.
+
+
+
+
+
+ORTH01 =
+   1.80914235387E-01   5.41552019811E-02  -7.26038314251E-02  -2.24714671514E-01  -3.76825511601E-01  -6.30343578414E-01
+  -8.33158031865E-01  -1.08667609867E+00  -1.21343513209E+00  -1.34019416549E+00  -1.45174211489E+00  -1.49230500558E+00
+  -1.47962910224E+00  -1.42892548887E+00  -1.32751826214E+00  -1.21850549342E+00  -1.08667609867E+00  -9.34565258593E-01
+  -8.33158031865E-01  -7.06398998460E-01  -5.79639965052E-01  -3.36262620913E-01  -7.26038314251E-02   1.80914235387E-01
+   4.34432302200E-01   7.64005789053E-01   9.41468435822E-01   1.07583301123E+00   1.27104192268E+00   1.39019541409E+00
+   1.47385637613E+00   1.50427854415E+00   1.49920818281E+00   1.44850456945E+00   1.33695662006E+00   1.19498650264E+00
+   1.09357927591E+00   9.41468435822E-01   8.14709402417E-01   9.41468435822E-01   5.61191335604E-01   4.34432302200E-01
+   3.07673268793E-01   1.80914235387E-01   2.53518066813E+00   0.                  0.                  0.
+   0.                  0.                  0.                  0.                  0.                  0.
+
+
+
+
+
+ORTH02 =
+   3.80771471710E-01   3.49866071394E-01   3.51052032460E-01   4.47322987158E-01   6.14908078258E-01   9.06102252835E-01
+   1.07487486972E+00   1.24840071924E+00   1.28167804168E+00   1.23650981409E+00   1.10861750119E+00   9.22724484444E-01
+   7.46816542096E-01   3.99755454744E-01   6.22039620546E-02  -2.73921091433E-01  -6.23595361420E-01  -9.33808725335E-01
+  -1.09307487700E+00  -1.24758623134E+00  -1.38070334475E+00  -1.53473687227E+00  -1.61365242553E+00  -1.60889293400E+00
+  -1.53995071973E+00  -1.32837866792E+00  -1.11680974557E+00  -9.13323978668E-01  -5.20141357158E-01  -1.41223127650E-01
+   2.31038385584E-01   5.93314824411E-01   8.06306274164E-01   1.08205322511E+00   1.27507452606E+00   1.35541886558E+00
+   1.36135962399E+00   1.27221382404E+00   1.14146863275E+00   1.00478581250E+00   7.73007045569E-01   6.06604786077E-01
+   4.68728181151E-01  -1.14562785200E-02   4.75479733539E-01   3.56570682029E+00   0.                  0.
+   0.                  0.                  0.                  0.                  0.                  0.
+
+
+
+
+
+ORTH03 =
+  -7.98230679007E-01  -8.00670335135E-01  -7.97158058242E-01  -8.45914528023E-01  -9.52342360664E-01  -1.13149559140E+00
+  -1.13635631400E+00  -9.96454733349E-01  -7.69251149493E-01  -3.28863117695E-01   2.80848830605E-01   7.86226627128E-01
+   1.06657893074E+00   1.43115116286E+00   1.49022773434E+00   1.40423507632E+00   1.13947635221E+00   7.18134835606E-01
+   4.19573748319E-01   6.15962883030E-02  -2.76648949872E-01  -7.81435218711E-01  -1.11065867469E+00  -1.18488142181E+00
+  -1.02887760731E+00  -4.61405719094E-01   3.23082105783E-02   4.62088497172E-01   1.13129821487E+00   1.50946023254E+00
+   1.66078431938E+00   1.50757995862E+00   1.27124440605E+00   7.36483532877E-01   6.31272108933E-02  -5.08034843533E-01
+  -7.98055067526E-01  -1.00811182191E+00  -1.04943624920E+00  -5.66262807353E-01  -9.14877561256E-01  -8.57550001916E-01
+  -8.15736972881E-01  -5.15126039883E-01   5.47815637176E-01  -1.77161132384E+00   7.29152012420E+00   0.
+   0.                  0.                  0.                  0.                  0.                  0.
+
+
+
+
+
+ORTH04 =
+   1.89813751040E-01   1.82127389697E-01   1.74755299153E-01   1.28035535668E-01   9.38427469666E-05  -3.82834322212E-01
+  -7.66095545139E-01  -1.32972943195E+00  -1.57423861745E+00  -1.69595052706E+00  -1.62918519635E+00  -1.32905143118E+00
+  -9.79794909548E-01  -2.99574852386E-01   3.16987522010E-01   8.33004137861E-01   1.24656603605E+00   1.46330007198E+00
+   1.49002115033E+00   1.42541050234E+00   1.29267120875E+00   8.72687158293E-01   2.93072413659E-01  -3.06363787900E-01
+  -8.81817741672E-01  -1.47087288338E+00  -1.61283163294E+00  -1.60835662884E+00  -1.34343848955E+00  -8.64370931002E-01
+  -2.82537366655E-01   3.50649641428E-01   7.27218315564E-01   1.18345021208E+00   1.42002917650E+00   1.41428668692E+00
+   1.32645395539E+00   1.08466183656E+00   8.52462105031E-01   8.04445980888E-01   4.26593933304E-01   2.96644440326E-01
+   2.20610358791E-01   1.16011370517E-01  -1.02995232365E+00   7.24525365882E-01   4.87223944212E-01   5.47827928630E+00
+   0.                  0.                  0.                  0.                  0.                  0.
+
+
+
+
+
+ORTH05 =
+  -2.24390098965E-01  -1.66400183374E-01  -1.13110015846E-01  -4.95212136934E-02   6.62319784942E-02   4.78687150042E-01
+   9.30687900034E-01   1.58807650617E+00   1.75676283607E+00   1.53378186611E+00   8.33053076816E-01  -4.05475762072E-02
+  -6.47235174420E-01  -1.39934393538E+00  -1.48659811099E+00  -1.16416362645E+00  -4.74044768720E-01   3.46951720781E-01
+   7.84809608856E-01   1.15675794336E+00   1.36980774369E+00   1.25997951292E+00   6.40039498237E-01  -1.93963909827E-01
+  -9.87932827851E-01  -1.49676338502E+00  -1.26043239531E+00  -8.07722587577E-01   2.79097483486E-01   1.16971971419E+00
+   1.67592346178E+00   1.57342778410E+00   1.20607924739E+00   3.27689972104E-01  -6.42175793886E-01  -1.23639609976E+00
+  -1.40920120204E+00  -1.30306097311E+00  -1.06907127744E+00  -7.14438767765E-01  -5.60312915573E-01  -4.06871372426E-01
+  -2.99667166071E-01  -1.17762788829E-01  -7.15374218027E-01  -7.44720174440E-01   2.04199098746E+00   4.80984991258E-01
+   1.22683224850E+01   0.                  0.                  0.                  0.                  0.
+
+
+
+
+
+ORTH06 =
+  -7.83031145234E-01  -8.26709438641E-01  -8.77828056946E-01  -9.92311996964E-01  -1.12511418184E+00  -1.19016660869E+00
+  -9.42966227056E-01  -2.07261027826E-01   3.88532526415E-01   1.12034403956E+00   1.76793176187E+00   1.84772647024E+00
+   1.55281022728E+00   7.83945834413E-01  -6.03865301882E-02  -6.99681424934E-01  -1.06754405847E+00  -1.02231553767E+00
+  -8.07220914268E-01  -4.26665832660E-01   2.41154834159E-02   8.30166519352E-01   1.41930839993E+00   1.53948511036E+00
+   1.20729587539E+00   1.70100992276E-01  -5.46115067536E-01  -1.01248061082E+00  -1.31372288401E+00  -9.43924261001E-01
+  -1.75763375886E-01   7.63322709576E-01   1.28529437978E+00   1.73412582700E+00   1.58976436041E+00   1.03546895435E+00
+   6.01652362519E-01   2.67400607363E-02  -3.25873691818E-01   6.35479255761E-02  -6.73398898583E-01  -7.35527877110E-01
+  -7.60150931590E-01  -5.00629958678E-01   6.28807337494E-01  -2.40459949737E+00   2.41675999967E-01   2.49542628691E+00
+  -4.42402144898E-01   1.12479055208E+01   0.                  0.                  0.                  0.
+
+
+
+
+
+ORTH07 =
+   5.51019868755E-01   5.86449920052E-01   6.24283106121E-01   7.32035647026E-01   8.84088443101E-01   9.47495489523E-01
+   5.66882664009E-01  -6.07064036385E-01  -1.39435947253E+00  -1.94429415710E+00  -1.80033041717E+00  -8.50067168851E-01
+   4.52894976802E-02   1.14460785783E+00   1.19437281445E+00   5.50207769958E-01  -5.02554397191E-01  -1.34725485135E+00
+  -1.55085379904E+00  -1.43918708572E+00  -1.04847533569E+00   8.71044431419E-02   1.12855577534E+00   1.38649471352E+00
+   8.05734743644E-01  -7.49814519386E-01  -1.40087019587E+00  -1.48167167636E+00  -6.24788834450E-01   6.15015948695E-01
+   1.45746131465E+00   1.34130790365E+00   7.65253146801E-01  -4.88870417088E-01  -1.46796803073E+00  -1.58296839228E+00
+  -1.32242712592E+00  -6.66521622341E-01  -1.64267376660E-01  -2.83287896698E-01   3.96118099927E-01   4.88832744530E-01
+   5.26276688304E-01   3.22346629786E-01  -3.98322961009E-01   1.68602489075E+00  -3.56061481012E+00  -2.02793324397E+00
+   5.75218328538E+00   2.34567128999E+00   2.21921335688E+01   0.                  0.                  0.
+
+
+
+
+
+ORTH08 =
+  -4.59552511471E-01  -3.57550489976E-01  -2.49956886804E-01  -1.10535202179E-01   8.77662307378E-02   6.32960321684E-01
+   1.12882158719E+00   1.55029207034E+00   1.34881637964E+00   5.12435290255E-01  -8.01007729180E-01  -1.58243318798E+00
+  -1.59762632255E+00  -9.04910929787E-01   2.09683139046E-01   1.04361495220E+00   1.31891473012E+00   8.43271563977E-01
+   3.10697753786E-01  -3.57647682531E-01  -9.27659546956E-01  -1.31906637881E+00  -7.88340798297E-01   2.75512116505E-01
+   1.27517603346E+00   1.47674674967E+00   7.22450718737E-01  -1.20510890589E-01  -1.26539228963E+00  -1.25287096374E+00
+  -3.22375177993E-01   1.01872396067E+00   1.67978145208E+00   1.89345027274E+00   1.00216352318E+00  -2.05430790491E-01
+  -8.50249452031E-01  -1.28070007350E+00  -1.29971844597E+00  -6.82412211016E-01  -9.18301665157E-01  -7.37394431682E-01
+  -5.82032104438E-01  -2.71354763208E-01  -9.13273574386E-01  -1.33368544841E+00   2.69915052323E+00  -3.41088821356E+00
+  -1.09262623733E+00   6.40460783317E+00  -2.10432742401E+00   2.35554663757E+01   0.                  0.
+
+
+
+
+
+ORTH09 =
+   5.67693111239E-01   4.74598780665E-01   3.75296678298E-01   2.29025067561E-01  -2.92455539002E-02  -7.58149749414E-01
+  -1.26933550453E+00  -1.10567014312E+00  -2.80419398328E-01   1.04616657297E+00   2.01236982015E+00   1.42377440620E+00
+   3.37695080741E-01  -1.15952200739E+00  -1.18146695504E+00  -2.10132176031E-01   1.03460812513E+00   1.46705086911E+00
+   1.15259282355E+00   3.92532611238E-01  -4.89935964146E-01  -1.48728506993E+00  -1.06514096104E+00   3.02677436455E-01
+   1.41727581010E+00   8.46544045371E-01  -4.24653958027E-01  -1.25741740139E+00  -1.18141072491E+00   2.38769035010E-01
+   1.39238833761E+00   1.06767127615E+00   1.05848814110E-01  -1.53933250974E+00  -1.96709221465E+00  -9.81147646433E-01
+  -1.08714149481E-01   8.32118106262E-01   1.15807409947E+00   5.11250792875E-01   1.00135455032E+00   8.35754218375E-01
+   6.84349746047E-01   3.49810067313E-01   6.23064584781E-01   1.58846218546E+00  -2.74717991463E+00   2.62591176036E+00
+  -8.90654483309E+00  -5.73054769776E+00   1.55998059096E+01   4.39807205086E+00   4.53723510556E+01   0.
+
+
+
+
+
+ORTH10 =
+   5.60986276250E-01   6.05255230033E-01   6.39970402395E-01   7.23809443916E-01   8.28450990168E-01   7.34941553643E-01
+   1.24775818147E-01  -1.33191819910E+00  -1.96702460886E+00  -1.73161410799E+00  -2.91746247300E-01   1.12008519444E+00
+   1.47716389688E+00   7.72840847572E-01  -6.14853992040E-01  -1.41746182699E+00  -1.16288063591E+00  -3.86166401495E-02
+   6.47659473727E-01   1.11186667977E+00   1.12575048881E+00   1.30445705647E-01  -1.14269519123E+00  -1.37747173013E+00
+  -4.13686115910E-01   1.33159783993E+00   1.34576239530E+00   6.33505518854E-01  -1.07525371169E+00  -1.49911126496E+00
+  -4.87447528865E-01   1.07534378140E+00   1.61941090364E+00   1.14423418882E+00  -4.19941899299E-01  -1.41823956641E+00
+  -1.52501726952E+00  -9.81163165703E-01  -4.02355070157E-01  -3.56591928376E-01   3.22621158233E-01   4.55724956908E-01
+   5.19484361013E-01   3.25875290868E-01  -6.67870606463E-01   1.65787392309E+00  -3.44055713764E+00  -2.13559787397E+00
+   3.96432506853E+00  -8.12323218968E+00  -2.84939504587E+00   1.41768956571E+01   2.58171592641E+00   4.46610303462E+01
+
+
+
+
+
+ORTH11 =
+  -1.03121629643E+00  -1.07394628295E+00  -1.08829407803E+00  -1.13147013044E+00  -1.05933592812E+00  -3.24421988103E-03
+   1.49184780246E+00   2.14939173171E+00   8.17526791399E-01  -1.35462007903E+00  -2.29844101371E+00  -8.79696709160E-01
+   4.62285140384E-01   1.25197292774E+00   3.31845877739E-01  -6.37664323343E-01  -7.66400029650E-01   4.41838071151E-02
+   6.00080449338E-01   9.57131177591E-01   9.13126797846E-01   1.15733869837E-02  -8.34583130772E-01  -5.78939963094E-01
+   4.91098848115E-01   1.22909981740E+00   4.70106402150E-01  -4.20343349473E-01  -1.00069646211E+00   1.06848415613E-01
+   1.35321353308E+00   9.80568251935E-01  -1.93013220900E-01  -1.90790701310E+00  -1.31017761612E+00   8.44880756269E-01
+   1.85644372042E+00   1.69758994995E+00   7.95705438268E-01   5.17773688009E-01  -6.35755502964E-01  -8.88719997656E-01
+  -9.86305213524E-01  -3.32990033684E+02  -3.31558677896E+02   6.61777554147E+02  -4.92064262385E+02   3.02242195985E+00
+  -6.25674489390E+01  -2.07193268859E+02   1.18044582261E+02  -7.88576947573E+00   3.93728856033E+01   9.32160344990E+01
+
+
+
+
+
+DEV    =
+  -3.10239155260E-03  -3.23094377745E-03  -3.27410880345E-03  -3.40400300774E-03  -3.18698884621E-03  -9.76016417554E-06
+   4.48819130975E-03   6.46639776230E-03   2.45951137549E-03  -4.07534472129E-03  -6.91480924979E-03  -2.64654820603E-03
+   1.39077467975E-03   3.76653302374E-03   9.98351026283E-04  -1.91839909530E-03  -2.30569763698E-03   1.32926012157E-04
+   1.80532883678E-03   2.87950810161E-03   2.74712189275E-03   3.48182802554E-05  -2.51082499744E-03  -1.74172814877E-03
+   1.47746008588E-03   3.69771977421E-03   1.41430477379E-03  -1.26459372404E-03  -3.01057330216E-03   3.21451108903E-04
+   4.07111315872E-03   2.95001802442E-03  -5.80676030950E-04  -5.73989629629E-03  -3.94164054887E-03   2.54180517732E-03
+   5.58507011192E-03   5.10716203644E-03   2.39386231442E-03   1.55771075515E-03  -1.91265645117E-03  -2.67369457106E-03
+  -2.96727754721E-03
+
+
+
+
+COF    =
+   1.00179319429E+00   9.97486991871E-01  -1.99094321996E+00   1.48036451348E+00  -9.09289000674E-03   1.88232794349E-01
+   6.23336393430E-01  -3.55134530073E-01   2.37241640691E-02  -1.18452460575E-01  -2.80438390080E-01
+
+
+
+
+STD    =
+   5.31828800693E-04
+
+
+
+
+CV  00 =
+   1.98226565763E+00  -5.92977582528E-02   4.24862799858E+00  -8.02335245209E+00  -1.75889496588E-01  -8.96309335512E-01
+  -1.12646040117E+01   1.22530004494E+01  -2.33498124609E-01   1.67130226054E+01   1.45539262545E+01
+
+
+
+
+CV  01 =
+   0.                  1.07482751246E+01  -5.71691317456E-01   1.72315950283E+00   2.56795372987E+00  -1.85449961744E+01
+   2.14403838791E+00   4.70490406294E+00  -2.82406339374E+01   2.65456528895E+01  -2.98277894226E+01
+
+
+
+
+CV  02 =
+   0.                  0.                  3.26076705650E+01  -3.43374837287E+01  -6.29032158831E-01  -4.49248189402E+00
+  -5.42036331898E+01   6.02787644847E+01  -9.25905973651E-01   7.63524234295E+01   7.40423575891E+01
+
+
+
+
+CV  03 =
+   0.                  0.                  0.                  9.69796096487E+01   2.40238340084E+00   1.23428084521E+01
+   5.53446074895E+01  -1.17749502925E+02   2.72103464894E+00  -1.33528552658E+02  -1.53658826732E+02
+
+
+
+
+CV  04 =
+   0.                  0.                  0.                  0.                  6.36729053538E+01  -3.49953257232E+01
+   3.76609775156E+00   9.22233598854E+00  -9.90722617293E+01   1.13630283188E+02  -9.53780014571E+01
+
+
+
+
+CV  05 =
+   0.                  0.                  0.                  0.                  0.                  2.80031315011E+02
+   2.03550380822E+01  -2.02838357943E+01  -8.70712364721E+00  -3.93876117693E+02   1.77050842188E+02
+
+
+
+
+CV  06 =
+   0.                  0.                  0.                  0.                  0.                  0.
+   2.71862632028E+02  -2.76710756104E+01   1.04979476463E+01  -2.80980299802E+02  -3.62791919332E+02
+
+
+
+
+CV  07 =
+   0.                  0.                  0.                  0.                  0.                  0.
+   0.                  7.48391982786E+02  -2.13549197607E+01   7.00443541557E+02  -1.27256918612E+02
+
+
+
+
+CV  08 =
+   0.                  0.                  0.                  0.                  0.                  0.
+   0.                  0.                  7.75187404409E+02   2.36151586365E+02   6.33154767156E+02
+
+
+
+
+CV  09 =
+   0.                  0.                  0.                  0.                  0.                  0.
+   0.                  0.                  0.                  2.06531549744E+03   1.15302093334E+02
+
+
+
+
+CV  10 =
+   0.                  0.                  0.                  0.                  0.                  0.
+   0.                  0.                  0.                  0.                  1.99460763158E+03
+
+
+
+
+CV  11 =
+   1.40792956416E+00   3.27845621057E+00   5.71031265038E+00   9.84782258410E+00   7.97953039683E+00   1.67341362195E+01
+   1.64882573981E+01   2.73567538789E+01   2.78421874932E+01   4.54457423467E+01   4.46610303462E+01
+
+
+
+
+VCV 00 =
+   5.60667731873E-07  -1.67718890235E-08   1.20168990184E-06  -2.26934003726E-06  -4.97489146991E-08  -2.53513811464E-07
+  -3.18610170004E-06   3.46566160000E-06  -6.60430469642E-08   4.72714262135E-06   4.11645976490E-06
+
+
+
+
+VCV 01 =
+   0.                  3.04006227041E-06  -1.61698243148E-07   4.87381661682E-07   7.26324843367E-07  -5.24530145730E-06
+   6.06423833947E-07   1.33074387861E-06  -7.98763380451E-06   7.50822218982E-06  -8.43654783507E-06
+
+
+
+
+VCV 02 =
+   0.                  0.                  9.22281462480E-06  -9.71207822038E-06  -1.77916634136E-07  -1.27066199443E-06
+  -1.53310571482E-05   1.70493586638E-05  -2.61884980038E-07   2.15956624697E-05   2.09422791201E-05
+
+
+
+
+VCV 03 =
+   0.                  0.                  0.                  2.74298944598E-05   6.79494621347E-07   3.49106306371E-06
+   1.56537724564E-05  -3.33044899814E-05   7.69622537276E-07  -3.77674659657E-05  -4.34611503937E-05
+
+
+
+
+VCV 04 =
+   0.                  0.                  0.                  0.                  1.80093638253E-05  -9.89814348241E-06
+   1.06521014289E-06   2.60846278671E-06  -2.80217840943E-05   3.21394021543E-05  -2.69768925986E-05
+
+
+
+
+VCV 05 =
+   0.                  0.                  0.                  0.                  0.                  7.92045817053E-05
+   5.75725710118E-06  -5.73711811270E-06  -2.46273916296E-06  -1.11404658955E-04   5.00773918644E-05
+
+
+
+
+VCV 06 =
+   0.                  0.                  0.                  0.                  0.                  0.
+   7.68941361082E-05  -7.82653886040E-06   2.96925917753E-06  -7.94729943414E-05  -1.02612746062E-04
+
+
+
+
+VCV 07 =
+   0.                  0.                  0.                  0.                  0.                  0.
+   0.                  2.11676590334E-04  -6.04006550815E-06   1.98114763397E-04  -3.59935852439E-05
+
+
+
+
+VCV 08 =
+   0.                  0.                  0.                  0.                  0.                  0.
+   0.                  0.                  2.19255457580E-04   6.67935570577E-05   1.79082680397E-04
+
+
+
+
+VCV 09 =
+   0.                  0.                  0.                  0.                  0.                  0.
+   0.                  0.                  0.                  5.84157704143E-04   3.26122600680E-05
+
+
+
+
+VCV 10 =
+   0.                  0.                  0.                  0.                  0.                  0.
+   0.                  0.                  0.                  0.                  5.64158558909E-04
+
+
+
+
+VCV 11 =
+   7.48777491566E-04   1.74357743459E-03   3.03690872843E-03   5.23735567432E-03   4.24374408104E-03   8.89969559623E-03
+   8.76893015757E-03   1.45491096062E-02   1.48072771832E-02   2.41693546488E-02   2.37520222067E-02
+
+
+
+
+EP     =
+   9.44815104262E-02   7.08147372843E-02   3.08117457105E-02   1.05123861081E-02   9.46203603888E-03   8.67105692427E-03
+   2.87556750442E-03   1.51818972010E-03   1.25508183909E-03   1.21206197074E-03   5.31829264023E-04
+
+
+
+
+A   00 =
+   9.99995000031E-01   0.                  0.                  0.                  0.                  0.
+   0.                  0.                  0.                  0.                  0.
+
+
+
+
+A   01 =
+   1.80914235387E-01   2.53518066813E+00   0.                  0.                  0.                  0.
+   0.                  0.                  0.                  0.                  0.
+
+
+
+
+A   02 =
+  -1.14562785200E-02   4.75479733539E-01   3.56570682029E+00   0.                  0.                  0.
+   0.                  0.                  0.                  0.                  0.
+
+
+
+
+A   03 =
+  -5.15126039883E-01   5.47815637176E-01  -1.77161132384E+00   7.29152012420E+00   0.                  0.
+   0.                  0.                  0.                  0.                  0.
+
+
+
+
+A   04 =
+   1.16011370517E-01  -1.02995232365E+00   7.24525365882E-01   4.87223944212E-01   5.47827928630E+00   0.
+   0.                  0.                  0.                  0.                  0.
+
+
+
+
+A   05 =
+  -1.17762788829E-01  -7.15374218027E-01  -7.44720174440E-01   2.04199098746E+00   4.80984991258E-01   1.22683224850E+01
+   0.                  0.                  0.                  0.                  0.
+
+
+
+
+A   06 =
+  -5.00629958678E-01   6.28807337494E-01  -2.40459949737E+00   2.41675999967E-01   2.49542628691E+00  -4.42402144898E-01
+   1.12479055208E+01   0.                  0.                  0.                  0.
+
+
+
+
+A   07 =
+   3.22346629786E-01  -3.98322961009E-01   1.68602489075E+00  -3.56061481012E+00  -2.02793324397E+00   5.75218328538E+00
+   2.34567128999E+00   2.21921335688E+01   0.                  0.                  0.
+
+
+
+
+A   08 =
+  -2.71354763208E-01  -9.13273574386E-01  -1.33368544841E+00   2.69915052323E+00  -3.41088821356E+00  -1.09262623733E+00
+   6.40460783317E+00  -2.10432742401E+00   2.35554663757E+01   0.                  0.
+
+
+
+
+A   09 =
+   3.49810067313E-01   6.23064584781E-01   1.58846218546E+00  -2.74717991463E+00   2.62591176036E+00  -8.90654483309E+00
+  -5.73054769776E+00   1.55998059096E+01   4.39807205086E+00   4.53723510556E+01   0.
+
+
+
+
+A   10 =
+   3.25875290868E-01  -6.67870606463E-01   1.65787392309E+00  -3.44055713764E+00  -2.13559787397E+00   3.96432506853E+00
+  -8.12323218968E+00  -2.84939504587E+00   1.41768956571E+01   2.58171592641E+00   4.46610303462E+01
+
+
+
+
+GF     =
+   1.00000499999E+00   3.94449205365E-01   2.80449305117E-01   1.37145613393E-01   1.82539068883E-01   8.15107363881E-02
+   8.89054409420E-02   4.50610121329E-02   4.24529909130E-02   2.20398541564E-02   2.23908851240E-02   3.00847801120E-03
+
+
+
+
+
+Q      =
+   1.05755607611E+00   4.11485037930E-01  -4.09425525258E-01   1.83479281510E-01  -3.01289796985E-02   2.49041632112E-02
+   4.98422256505E-02  -1.47312078287E-02   5.20707850347E-03  -2.25338081228E-03  -6.27926377663E-03   1.49334859823E+00
+
+
+
+
+
+Q2     =
+   1.11842485411E+00   1.69319936440E-01   1.67629260734E-01   3.36646467433E-02   9.07755417671E-04   6.20217345251E-04
+   2.48424745780E-03   2.17008484093E-04   2.71136665413E-05   5.07772508513E-06   3.94291535764E-05
+
+
+
+
+E      =
+   3.74923744122E-01   2.05603807683E-01   3.79745469490E-02   4.30990020573E-03   3.40214478805E-03   2.78192744281E-03
+   2.97679985010E-04   8.06715009172E-05   5.35578343759E-05   4.84801092906E-05   9.05095571425E-06
+
+
+
+
+ENF    =
+   1.00000499999E+00   4.00852450221E-01   2.85622988466E-01   1.77505404205E-01   2.10744207130E-01   8.84918706133E-02
+   1.42309699630E-01   6.82848260935E-02   8.46487648828E-02   5.77703003307E-02   4.61220683615E-02
