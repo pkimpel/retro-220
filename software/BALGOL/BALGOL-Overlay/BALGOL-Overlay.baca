@@ -994,7 +994,7 @@
 010 91 0     1445         LDB   SRCHX
 010 92 0     1446         BUN - 1               INCREMENTED EXIT
 
-                                PROCESSING SUBROUTINE FOR INSTRUCTINS
+                                PROCESSING SUBROUTINE FOR INSTRUCTIONS
                                 IN THE LIBRARY AND EXTERNAL PROGRAMS
 
 010 97 0     1447   *A    F4247 0,0,0

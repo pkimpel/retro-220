@@ -19,6 +19,11 @@ BAC-XScript-Reformatter.wsf
     assembly listing transcriptions and reformat them into card decks
     for use by BAC-Assembler.html
 
+BALGOL-Dumpanalyzer.html
+    Script to read the text of a retro-220 memory dump taken while the
+    BALGOL compiler is running and do a partial analysis of the
+    compiler's tables.
+
 GEN-Assembler.html
     HTML/Javascript assembler for the assembly language dialect used
     with the BALGOL Generator utility.
@@ -36,5 +41,6 @@ Mahon-PT-Xlate.wsf
 
 Paul Kimpel
 January 2018
-
-
+    Original submission.
+2018-06-10
+    Add BALGOL-Dumpanalyzer.

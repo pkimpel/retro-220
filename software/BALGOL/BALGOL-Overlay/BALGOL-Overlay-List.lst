@@ -1,4 +1,4 @@
-Assembler for the Burroughs 220 BALGOL Compiler & Library -- 2018-02-15 15:46
+Assembler for the Burroughs 220 BALGOL Compiler & Library -- 2018-07-07 10:46
 
 Source File: BALGOL-Overlay.card
                           ASMBL 2
@@ -999,7 +999,7 @@ START PASS 1
 010 91 0     1445         LDB   SRCHX
 010 92 0     1446         BUN - 1               INCREMENTED EXIT
 
-                                PROCESSING SUBROUTINE FOR INSTRUCTINS
+                                PROCESSING SUBROUTINE FOR INSTRUCTIONS
                                 IN THE LIBRARY AND EXTERNAL PROGRAMS
 
 010 97 0     1447   *A    F4247 0,0,0
@@ -3546,7 +3546,7 @@ START PASS 2
 010 91 0   994      1445  0 0000 42 1811         LDB   SRCHX
 010 92 0   995      1446  1 0000 30 0001         BUN - 1               INCREMENTED EXIT
 
-                                                       PROCESSING SUBROUTINE FOR INSTRUCTINS
+                                                       PROCESSING SUBROUTINE FOR INSTRUCTIONS
                                                        IN THE LIBRARY AND EXTERNAL PROGRAMS
 
 010 97 0  1000      1447  7 0000 00 0000   *A    F4247 0,0,0

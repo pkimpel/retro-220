@@ -1852,7 +1852,7 @@ window.addEventListener("load", function() {
     *******************************************************************/
 
     /**************************************/
-    function assembleFormatBand(token) {
+    function generateFormatBand(token) {
         /* Generates the 29 words of a Cardatron format band from the operand
         text and returns an array of 29 words with band data. Examples:
 
@@ -1880,7 +1880,7 @@ window.addEventListener("load", function() {
                 supplying a zero for the zone
             P:  input:  store a zero for the sign digit
                 output: ignore sign digit in memory
-            S:  input:  same as P
+            S:  input:  copy one numeric digit, must be in sign-digit position
                 output: copy zone digit as a separate column
             T:  input:  like P, but store a 2 for the sign instead of zero
                 output: same as P
@@ -2095,11 +2095,11 @@ window.addEventListener("load", function() {
                     emitBandDigits(0, 1);
                     dx += 1;
                     break;
-                case "S":               // delete numeric half-column, copy zone for standalone sign
+                case "S":               // copy numeric column for sign
                     if (dx < 10) {
                         printError("S CODE NOT FOR SIGN DIGIT: " + cx);
                     }
-                    emitBandDigits(13, 2);
+                    emitBandDigits(31, 2);
                     colCount += 1;
                     dx += 1;
                     break;
@@ -2482,7 +2482,7 @@ window.addEventListener("load", function() {
 
         case pseudoFORMAT:              // generate Cardatron format band
             setLocation(pass2);
-            assembly.words = assembleFormatBand(token);
+            assembly.words = generateFormatBand(token);
             assembly.count = assembly.words.length;
             if (listPass) {
                 printAssembly(cardData, assembly, null);
@@ -3046,7 +3046,6 @@ window.addEventListener("load", function() {
             var cardAddr = 0;           // first address of words on card
             var cksum = 0;              // algebraic value of the checksum word
             var count = 0;              // number of words on card
-            var gapCount = 0;           // number of consecutive undefined words
             var seq = 10;               // card sequence number
             var word = undefined;       // object code word
             var x = 0;                  // scratch index
@@ -3057,24 +3056,19 @@ window.addEventListener("load", function() {
             deck = doc.getElementById("Paper");
 
             while (addr < asmCode.length) {
-                word = asmCode[addr];
-                if (word === undefined) {
-                    ++gapCount;
-                } else {
-                    if (count > 5 || gapCount > 0) {
-                        writeCard(card, count, cardAddr, seq);
-                        card = "";
-                        cardAddr = addr;
-                        gapCount = 0;
-                        count = 0;
-                        seq += 10;
-                    }
+                word = asmCode[addr] || 0;
+                if (count > 5) {
+                    writeCard(card, count, cardAddr, seq);
+                    card = "";
+                    cardAddr = addr;
+                    count = 0;
+                    seq += 10;
+                }
 
-                    card += padLeft(word, 11, "0");
-                    ++count;
-                    if (outputChecksum) {
-                        cksum = checksum(cksum, word);
-                    }
+                card += padLeft(word, 11, "0");
+                ++count;
+                if (outputChecksum) {
+                    cksum = checksum(cksum, word);
                 }
 
                 ++addr;

@@ -130,7 +130,7 @@ Steps:
 -----
 
 1. Assemble the BALGOL-Generator program using GEN-Assembler in the
-tools/directory with an Output Mode of "Object Tape". Pre-load the
+tools/ directory with an Output Mode of "Object Tape". Pre-load the
 BALGOL-Generator/BALGOL-Generator-PoolSet.js pool file before loading
 the BALGOL-Generator/BALGOL-Generator.card file into the assembler. Save
 the resulting tape image file as BALGOL-Generator/BALGOL-Generator-
@@ -181,8 +181,7 @@ tolerate them after the FINISH pseudo-op word.
 
 You can arrange the routines in any order, but it is probably best to
 use the same order that the routines appear in the scanned listing of
-the Compiler on the Computer History Museum's web site. This sequence
-appears to be an attempt to put the most frequently-used routines first.
+the Compiler on the Computer History Museum's web site.
 
 When finished inserting the object code decks, save the updated
 Generator bootstrap deck. Do not modify the generation control
@@ -203,13 +202,13 @@ write-enabled and ready.
 
 8. Load the BALGOL-Generator/BALGOL-Generator-Object-Store.card deck
 into Cardatron Reader 1 and make the reader ready. Clear the Processor,
-enter a CRD instruction (0 1000 60 0000) into the C register, set the
+enter a CRD instruction (1000 60 0000) into the C register, set the
 Execute Toggle, and press START. The system will read the object deck,
 load 49 blocks from tape unit 1 to memory, then branch to the
 Generator's store routine at address 0001. The store routine will write
 the Generator program from memory in 5 checksummed groups of 10 blocks
-each to lane 1 of tape unit 10, rewind it, and halt with 0 1248 00 8421
-(/\) in the C register.
+each to lane 1 of tape unit 10, rewind it, and halt with 1248 00 8421
+("/\") in the C register.
 
 9. Unload the tape image from unit 1. Leave the tape on unit 10 mounted
 and write-enabled, but change the unit designation on that drive from 10
@@ -218,13 +217,13 @@ to 2.
 10. Load the BALGOL-Main/BALGOL-Main-Object.tape image file to tape unit
 1 and make it ready. Load the BALGOL-Main/BALGOL-Main-Object-Store.card
 deck into Cardatron Reader 1 and make it ready. Clear the Processor,
-enter a CRD instruction (0 1000 60 0000) into the C register, set the
+enter a CRD instruction (1000 60 0000) into the C register, set the
 Execute Toggle, and press START. The system will read the object deck,
 load 49 blocks from tape unit 1 to memory, then branch to the Main
 program's store routine at address 0001. The store routine will write
 the Compiler Main program from memory in 5 checksummed groups of 10
 blocks each to lane 0 of tape unit 2, rewind it, and halt with
-0 0000 00 2222 in the C register.
+0000 00 2222 in the C register.
 
 11. Unload the tape image from unit 1. Leave the tape on unit 2 mounted
 and write-enabled.
@@ -232,25 +231,25 @@ and write-enabled.
 12. Load the BALGOL-Overlay/BALGOL-Overlay-Object.tape image file to
 tape unit 1 and make it ready. Load the BALGOL-Overlay/BALGOL-Overlay-
 Object-Store.card deck into Cardatron Reader 1 and make it ready. Clear
-the Processor, enter a CRD instruction (0 1000 60 0000) into the C
+the Processor, enter a CRD instruction (1000 60 0000) into the C
 register, set the Execute Toggle, and press START. The system will read
 the object deck, load 49 blocks from tape unit 1 to memory, then branch
 to the Overlay program's store routine at address 4000. The store
 routine will position tape unit 2 forward over the Main program and
 append 32 non-checksummed blocks of the Overlay program to lane 0 of
-tape unit 2, rewind it, and halt with 0 2222 00 2222 in the C register.
+tape unit 2, rewind it, and halt with 2222 00 2222 in the C register.
 
 13. Unload the tape image from unit 1. Leave the tape on unit 2 mounted
 and write-enabled.
 
 14. Load the BALGOL-Generator/BALGOL-Generator-Fixup-1-Load.card deck
 into Cardatron Reader 1 and make it ready. Clear the Processor, enter a
-CRD instruction (0 1000 60 0000) into the C register, set the Execute
+CRD instruction (1000 60 0000) into the C register, set the Execute
 Toggle, and press START. The system will read the object deck and do the
 following:
 
-    a. Position the tape forward 40 blocks and read blocks 41-43 into
-    memory.
+    a. Position the tape on unit 2 forward 40 blocks and read blocks
+    41-43 into memory.
 
     b. Position the tape forward 9 blocks and overwrite blocks 53-55
     with the data just read from blocks 41-43. This is a copy of the
@@ -262,24 +261,24 @@ following:
 
     c. Position the tape forward 32 blocks and overwrite block 88 with
     an EOF sentinel containing 99999999999 (11 nines) in word 0. This
-    marks the end of the library, which is presently empty.
+    marks the end of the library, which is initially empty.
 
-    d. Rewind tape unit 2 and halt with 0 9999 00 9999 in the C
+    d. Rewind tape unit 2 and halt with 9999 00 9999 in the C
     register.
 
-15. Leave the tape on unit 2 and write-enabled, but change the unit
-designation from 2 to 10.
+15. Leave the tape on unit 2 mounted and write-enabled, but change the
+unit designation from 2 to 10.
 
 16. Designate another tape unit as number 2 and load a blank tape to it
 formatted as 100-word blocks. Make the unit ready and write-enabled.
 
 17. Load the BAC-220-Generator-Bootstrap.card file prepared above into
-Cardatron Reader 1. Clear the Processor, enter a CRD (0 1000 60 0000)
+Cardatron Reader 1. Clear the Processor, enter a CRD (1000 60 0000)
 instruction into C, set the Execute Toggle, and press START. The system
-will read the Generator callout bootstrap cards, load the program from
-unit 10, and generate a version of the Compiler according to the
-generation statements in the card deck. The generated Compiler and
-library will be written to tape unit 2.
+will read the Generator callout bootstrap, load the program from unit
+10, and generate a version of the Compiler according to the generation
+statements in the card deck. The generated Compiler and library will be
+written to tape unit 2.
 
 18. Since the Generator tape does not yet have a library, one will be
 built by the Generator from the routines in the bootstrap deck and
@@ -292,12 +291,13 @@ program will punch a new library deck to Cardatron punch 1, leaving tape
 unit 2 up-tape at the end. Save the output deck as BALGOL-Library/
 PUNCH-LIBRARY.card for possible use in modifying the library later.
 
-20. The program will finally halt with 7250 00 0757 (KO) in C. Leave
-both tapes mounted and write-enabled.
+20. The program will finally halt with 0757 00 7250 ("OK") in C if no
+library deck was punched, or 0725 00 7570 ("KO") if a deck was punched.
+Leave both tapes mounted and write-enabled.
 
 21. Load the BALGOL-Generator/BALGOL-Generator-Fixup-2-Load.card deck
 into Cardatron Reader 1 and make it ready. Clear the Processor, enter a
-CRD instruction (0 1000 60 0000) into the C register, set the Execute
+CRD instruction (1000 60 0000) into the C register, set the Execute
 Toggle, and press START. The system will read the object deck and do the
 following:
 
@@ -311,8 +311,8 @@ following:
     the Generator tape until and including a block that has the EOF
     sentinel of 99999999999 (11 nines) in word 0.
 
-    c. Rewind and deactivate (RWL) both tape units and halt with
-    0 9999 00 9999 in the C register.
+    c. Rewind and deactivate both tape units (RWL lamps will be lit) and
+    halt with 9999 00 9999 in the C register.
 
 22. Unload tape unit 10 and save the image file as BAC-220-Generator-
 tape. This is the final version of the Generator tape that can be used
@@ -324,12 +324,13 @@ been generated primarily to harvest the library routines and data
 structures for insertion into the Generator tape. It has the default
 configuration settings described in Appendix A of the compiler manual.
 
-24. Now regenerate a Compiler tape using the BAC-220-Generator-
-Callout.card deck to make sure the Generator is working properly. This
-deck omits the PROCESS LIBRARY statement and the library object decks.
+24. Finally, to make sure the Generator is working properly, generate a
+new Compiler tape using the BAC-220-Generator-Callout.card deck, as
+described in Appendix A of the compiler manual. This deck omits the
+PROCESS LIBRARY statement and the library object decks.
 
 
 Paul Kimpel
-February 2018
+July 2018
 
 

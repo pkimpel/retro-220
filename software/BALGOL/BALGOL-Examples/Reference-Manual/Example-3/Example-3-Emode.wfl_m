@@ -1,0 +1,98 @@
+BEGIN JOB BALGOL/EX3;                                                             00000100
+JOBSUMMARY = UNCONDITIONAL;                                                       00000200
+PRINTDEFAULTS = (PRINTDISPOSITION=EOJ, DESTINATION="DCMAIL",                      00000210
+    NOTE="DC-EA=PAUL.KIMPEL@DIGM.COM; DC-EX=TXT; DC-ES=CANDE PRINT OUTPUT");      00000220
+                                                                                  00000300
+COMPILE OBJECT/BALGOL/EXAMPLE3 ALGOL GO;                                          00000400
+    OPTION = (DSED, FAULT, ARRAY);                                                00000450
+    ALGOL DATA                                                                    00000500
+$ SET LIST                                                                        00000600
+BEGIN                                                                             00000900
+COMMENT THIRD EXAMPLE PROGRAM FROM BALGOL MANUAL, MARCH 1963.                     00001000
+                                                                                  00002000
+THE SHORT PROGRAM WHICH FOLLOWS IS FOR A REDUCTION OF A SQUARE MATRIX             00003000
+TO TRIDIAGONAL FORM, USING THE METHOD OF HOUSEHOLDER;                             00004000
+                                                                                  00005000
+COMMENT HOUSEHOLDER REDUCTION TO TRIDIAGONAL FORM;                                00006000
+INTEGER I, J, K, L, R, N;                                                         00007000
+ARRAY A[0:50,0:50], X[0:50], P[0:50];                                             00008000
+REAL Q, S;                                                                        00010000
+LABEL IN;                                                                         00010100
+FILE                                                                              00010200
+  DATA (KIND=READER, MAXRECSIZE=80, FRAMESIZE=8, FILEUSE=IN),                     00010300
+  LINE (KIND=PRINTER, MAXRECSIZE=120, FRAMESIZE=8, FILEUSE=OUT);                  00010400
+FORMAT                                                                            00014000
+  AF (X10, F10.5),                                                                00015000
+  BF (X40, F10.5);                                                                00016000
+                                                                                  00017000
+  N:= 5;                                                                          00018000
+IN:                                                                               00019000
+  READ (DATA, /, I, J, Q);                                                        00020000
+  IF I ^= 0 THEN                                                                  00021000
+    BEGIN                                                                         00022000
+    A[I,J]:= Q;                                                                   00023000
+    GO TO IN                                                                      00024000
+    END;                                                                          00025000
+                                                                                  00026000
+  FOR R:= 1 STEP 1 UNTIL N-1 DO                                                   00027000
+    BEGIN                                                                         00028000
+    WRITE (LINE, AF, A[R,R]);                                                     00029000
+    L:= R+1;                                                                      00030000
+    S:= 0;                                                                        00031000
+    FOR J:= L STEP 1 UNTIL N DO                                                   00032000
+      S:= S + A[R,J]**2;                                                          00033000
+                                                                                  00034000
+    S:= SIGN(A[R,L])/(2*SQRT(S));                                                 00035000
+    WRITE (LINE, BF, -0.5/S);                                                     00036000
+    X[L]:= SQRT(0.5 + A[R,L]*S);                                                  00037000
+    S:= S/X[L];                                                                   00038000
+    FOR J:= R+2 STEP 1 UNTIL N DO                                                 00039000
+      X[J]:= S*A[R,J];                                                            00040000
+    FOR J:= R STEP 1 UNTIL N DO                                                   00041000
+      BEGIN                                                                       00042000
+      S:= 0;                                                                      00043000
+      FOR K:= L STEP 1 UNTIL N DO                                                 00044000
+        S:= S + A[MIN(J,K), MAX(J,K)]*X[K];                                       00045000
+      P[J]:= S                                                                    00046000
+      END;                                                                        00047000
+                                                                                  00048000
+    S:= 0;                                                                        00049000
+    FOR J:= L STEP 1 UNTIL N DO                                                   00050000
+      S:= S + X[J]*P[J];                % X[J] WAS K[J]                           00051000
+    FOR J:= L STEP 1 UNTIL N DO                                                   00052000
+      P[J]:= P[J] - S*X[J];                                                       00053000
+    FOR J:= L STEP 1 UNTIL N DO                                                   00054000
+      FOR K:= J STEP 1 UNTIL N DO                                                 00055000
+        A[J,K]:= A[J,K] - 2*(X[J]*P[K] + X[K]*P[J])                               00056000
+    END;                                                                          00057000
+                                                                                  00058000
+  WRITE (LINE, AF, A[R,R]);                                                       00059000
+END.                                                                              00059100
+?DATA DATA                                                                        00062000
+1, 1,   4.0                                                                       00063000
+1, 2,   1.0                                                                       00064000
+1, 3,  -2.0                                                                       00065000
+1, 4,   2.0                                                                       00066000
+1, 5,   1.0                                                                       00067000
+2, 1,   1.0                                                                       00068000
+2, 2,   2.0                                                                       00069000
+2, 3,   0.0                                                                       00070000
+2, 4,   1.0                                                                       00071000
+2, 5,   1.0                                                                       00072000
+3, 1,  -2.0                                                                       00073000
+3, 2,   0.0                                                                       00074000
+3, 3,   3.0                                                                       00075000
+3, 4,  -2.0                                                                       00076000
+3, 5,   1.0                                                                       00077000
+4, 1,   2.0                                                                       00078000
+4, 2,   1.0                                                                       00079000
+4, 3,  -2.0                                                                       00080000
+4, 4,  -1.0                                                                       00081000
+4, 5,   1.0                                                                       00082000
+5, 1,   1.0                                                                       00083000
+5, 2,   1.0                                                                       00084000
+5, 3,   1.0                                                                       00085000
+5, 4,   1.0                                                                       00086000
+5, 5,   1.0                                                                       00087000
+0, 0,   0.0                                                                       00088000
+? END JOB                                                                         00099000

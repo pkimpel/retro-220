@@ -6,6 +6,11 @@ prepared for the retro-220 emulator.
 Unless otherwise specified, all files are in standard Windows text
 format, with carriage-return/line-feed delimiters.
 
+Loadable object decks can be executed by loading them into Card Reader
+1, clicking Start on the reader, Clearing the processor on the Control
+Console, entering 1000 60 0000 into the C register, setting the Execute
+Toggle, and finally clicking Start on the Control Console.
+
 
 BAC-220-Compiled-Object-Dump-Callout.card
     Loadable object deck for a utility that will dump a compiled program
@@ -18,10 +23,41 @@ BAC-220-Compiled-Object-Program-Callout.card
     program from an object tape (unit 1) produced by the BAC-220
     compiler. See Appendix B of the Compiler reference manual.
 
+BAC-220-Compiled-Object-Program-Loader.card
+    Loader deck for card decks punched by the BAC-220-Compiled-Object-
+    Dump-Callout.card program. This deck consists of the BAC-220-
+    Compiled-Object-Program-Loader-Bootstrap.card program, followed by
+    the program loader deck that is punched by the BAC-220-Compiled-
+    Object-Dump-Callout.card program when Program Control Switch 4 is
+    on, followed by the required blank card at the end.
+
+    To use, load this deck into card reader 1. Then load the object deck
+    for the compiled BALGOL program you wish to run, followed by its
+    data cards, if any, then start the processor as described above.
+
+BAC-220-Compiled-Object-Program-Loader-Bootstrap.card
+    Loadable bootstrap deck for the object program loader that is
+    punched by the BAC-220-Compiled-Object-Dump-Callout.card program
+    when Program Control Switch 4 is on. This bootstrap expects the
+    object deck for the program loader to follow it immediately.
+
+BAC-220-Compiled-Object-Program-Loader-Callout.card
+    Loadable bootstrap deck for the object program loader. This will
+    load the loader from the compiler tape to memory, but will then halt
+    with 0757 00 7250 in the C register. You must manually execute the
+    loader. This bootstrap deck is specifically intended for use when
+    loading compiled object programs from paper tape.
+
 BAC-220-Compiler.tape
+    Loadable BAC-220 Compiler tape produced by the BAC-220-Generator-
+    Callout.card deck below. This contains the standard compiler and
+    library, configured according to the defaults in the Generator
+    program. See Appendix A in the compiler manual.
+
+BAC-220-Compiler-10K.tape
     Loadable BAC-220 Compiler tape produced by the Generator. This
-    contains the compiler and library, configured according to the
-    statements in BAC-220-Generator-Callout.card
+    contains the standard compiler and library, but is configured for a
+    220 system with 10,000 words of memory.
 
 BAC-220-Compiler-Callout.card
     Bootstrap card deck to load the compiler from its tape and initiate
@@ -39,8 +75,13 @@ BAC-220-Generator-Bootstrap.card
     for how this is used.
 
 BAC-220-Generator-Callout.card
-    Bootstrap card deck and typical configuration statements for
-    generating a standard compiler tape from BAC-220-Generator.tape.
+    Bootstrap card deck and configuration statements for
+    generating a compiler tape with a default configuration from the
+    BAC-220-Generator.tape.
+
+BAC-220-Generator-Callout-10K.card
+    Bootstrap card deck and configuration statements for
+    generating the BAC-220-Compiler-10K.tape file above.
 
 BALGOL-Build-Notes.txt
     Notes for bootstrapping the BALGOL Generator and Compiler programs
@@ -223,4 +264,5 @@ BALGOL-Examples/
     file in the directory for details.
 
 Paul Kimpel
-February 2018
+July 2018
+

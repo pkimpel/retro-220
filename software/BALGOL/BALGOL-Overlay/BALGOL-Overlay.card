@@ -994,7 +994,7 @@
 1         LDB   SRCHX                                                   010 91 0
 1         BUN - 1               INCREMENTED EXIT                        010 92 0
 1         REM                                                           010 93 0
-1         REM   PROCESSING SUBROUTINE FOR INSTRUCTINS                   010 94 0
+1         REM   PROCESSING SUBROUTINE FOR INSTRUCTIONS                  010 94 0
 1         REM   IN THE LIBRARY AND EXTERNAL PROGRAMS                    010 95 0
 1         REM                                                           010 96 0
 1   *A    F4247 0,0,0                                                   010 97 0

@@ -1,0 +1,461 @@
+0200                   BAC-220 STANDARD VERSION   2/1/62
+ 
+0200      COMMENT FOURTH EXAMPLE PROGRAM FROM BALGOL MANUAL, MARCH 1963.
+ 
+0200              NOTE THAT THIS REQUIRES A SYSTEM WITH AT LEAST 8000 WORDS.
+ 
+0200
+ 
+0200      THE PROGRAM BELOW HAS BEEN WRITTEN BY G. FORSYTHE, OF STANFORD
+ 
+0200      UNIVERSITY. IT SOLVES A SET OF LINEAR EQUATIONS OF THE FORM AY = B,
+ 
+0200      USING CROUT@S METHOD WITH INTERCHANGES$
+ 
+0200
+ 
+0200      COMMENT FORSYTHE PROGRAM$
+ 
+0202      PROCEDURE PRODUCT ($ N, A(), P, E)$
+ 
+0202        BEGIN COMMENT THIS FORMS THE PRODUCT OF ARBITRARY FLOATING NUMBERS
+ 
+0202            A(I), FOR I=(1,1,N). EXPONENT OVERFLOW OR UNDERFLOW IS
+ 
+0202            PREVENTED. THE ANSWER IS P TIMES 10*E WHERE E IS 0 IF POSSIBLE.
+ 
+0202            IF E NEQ 0, THEN WE NORMALIZE P SO THAT 0.1 LEQ ABS(P) LSS 1.0$
+ 
+0202        INTEGER E, F, I, K, N$
+ 
+0202
+ 
+0204        Q = 1.0**-10$ F = 10$
+ 
+0208        FOR I = (1,1,N)$
+ 
+0219          BEGIN
+ 
+0223          IF A(I) EQL 0.0$
+ 
+0223            BEGIN
+ 
+0223            P = 0.0$
+ 
+0228            E = 0$
+ 
+0229            RETURN
+ 
+0231            END$
+ 
+0231
+ 
+0231          IF ABS(A(I)) LEQ 1.0$
+ 
+0231            BEGIN
+ 
+0231            F = F-20$
+ 
+0243            Q = Q.(10.0*20)
+ 
+0247            END$
+ 
+0247
+ 
+0249          Q = Q.A(I)$
+ 
+0256          X = ABS(Q)$
+ 
+0258          FOR K = (-10,1,10), (-11,-1,-41), (11,1,41)$
+ 
+0291            IF ((10.0*K LEQ X) AND (X LSS 10.0*(K+1)))$
+ 
+0291              BEGIN
+ 
+0321              Q = Q.(10.0*(-10-K))$
+ 
+0327              F = F + K + 10$
+ 
+0331              GO TO 1
+ 
+0332              END$
+ 
+0333      1.. END$
+ 
+0333
+ 
+0334        IF (((-40) LEQ F) AND (F LEQ 58))$
+ 
+0334          BEGIN
+ 
+0357          P = (Q.(10.0*9)).(10.0*(F-9))$
+ 
+0367          E = 0$
+ 
+0368          RETURN
+ 
+0370          END$
+ 
+0370
+ 
+0370        P = Q.(10.0*9)$
+ 
+0376        E = F - 9$
+ 
+0379        RETURN
+ 
+0381        END PRODUCT()$
+ 
+0381
+ 
+0395      PROCEDURE INNERPRODUCT (S, F, U(), V())$
+ 
+0395        BEGIN COMMENT THIS FORMS THE INNER PRODUCT OF THE VECTORS
+ 
+0395            U(I) AND V(I) FOR I = (S,1,F)$
+ 
+0395        INTEGER I, S, F$
+ 
+0395
+ 
+0399        SUM = 0.0$
+ 
+0400        FOR I = (S,1,F)$
+ 
+0411          SUM = SUM + U(I).V(I)$
+ 
+0425        INNERPRODUCT() = SUM$
+ 
+0426        RETURN
+ 
+0428        END INNERPRODUCT()$
+ 
+0428
+ 
+0433      PROCEDURE CROUT4 ($ N, A(,), B(), Y(), PIVOT(), DET, EX7$
+ 
+0437                        SINGULAR, IP())$
+ 
+0437        BEGIN COMMENT THIS IS CROUTS METHOD WITH INTERCHANGES, TO SOLVE
+ 
+0437            AY = B AND OBTAIN THE TRIANGULAR DECOMPOSITION. IP() STANDS FOR
+ 
+0437            AN INNERPRODUCT ROUTINE THAT MUST BE AVAILABLE WHEN CROUT4() IS
+ 
+0437            CALLED. ALSO, PRODUCT() MUST BE AVAILABLE. THE DETERMINANT OF A
+ 
+0437            IS COMPUTED IN THE FORM DET TIMES 10*EX7, WHERE EX7 IS 0 IF
+ 
+0437            POSSIBLE. IF EX7 NEQ 0, THEN WE NORMALIZE DET WITH 0.1 LEQ
+ 
+0437            ABS(DET) LSS 1$
+ 
+0437        INTEGER K, I, J, IMAX, N, PIVOT$
+ 
+0437        INTEGER EX7$
+ 
+0437
+ 
+0437        INT = 1.0$
+ 
+0439        FOR K = (1,1,N)$
+ 
+0450          BEGIN
+ 
+0450          TEMP = 0$
+ 
+0452          FOR I = (K,1,N)$
+ 
+0463            BEGIN
+ 
+0464            A(I,K) = A(I,K) - IP(1, K-1, A(I,), A(,K))$
+ 
+0509            IF ABS(A(I,K)) GTR TEMP$
+ 
+0509              BEGIN
+ 
+0521              TEMP = ABS(A(I,K))$
+ 
+0530              IMAX = I
+ 
+0530              END
+ 
+0532            END$
+ 
+0532
+ 
+0533          PIVOT(K) = IMAX$
+ 
+0539          COMMENT WE HAVE FOUND THAT A(IMAX,K) IS THE LARGEST PIVOT IN COL
+ 
+0539              K. NOW WE INTERCHANGE ROWS K AND IMAX$
+ 
+0539          IF IMAX NEQ K$
+ 
+0539            BEGIN
+ 
+0539            INT = -INT$
+ 
+0545            FOR J = (1,1,N)$
+ 
+0556              BEGIN
+ 
+0557              TEMP = A(K,J)$
+ 
+0566              A(K,J) = A(IMAX,J)$
+ 
+0582              A(IMAX,J) = TEMP
+ 
+0591              END$
+ 
+0591
+ 
+0592            TEMP = B(K)$
+ 
+0598            B(K) = B(IMAX)$
+ 
+0608            B(IMAX) = TEMP
+ 
+0614            END$
+ 
+0614
+ 
+0614          COMMENT NOW FOR THE ELIMINATION$
+ 
+0614          IF A(K,K) EQL 0$
+ 
+0614            BEGIN
+ 
+0614            DET = 0.0$
+ 
+0625            EX7 = 0$
+ 
+0626            GO TO SINGULAR$
+ 
+0627            END$
+ 
+0627
+ 
+0627          FOR I = (K+1,1,N)$
+ 
+0639            BEGIN
+ 
+0640            XX = A(I,K)$
+ 
+0649            XY = A(K,K)$
+ 
+0658            X = 1.0$
+ 
+0660            X = X.X$
+ 
+0663            A(I,K) = XX/XY
+ 
+0674            END$
+ 
+0674
+ 
+0675          FOR J = (K+1,1,N)$
+ 
+0687            A(K,J) = A(K,J) - IP(1, K-1, A(K,), A(,J))$
+ 
+0687
+ 
+0734          B(K) = B(K) - IP(1, K-1, A(K,), B())
+ 
+0759          END$
+ 
+0759
+ 
+0769        FOR I = (1,1,N)$
+ 
+0780          Y(I) = A(I,I)$
+ 
+0795        PRODUCT ($ N, Y(), DET, EX7)$
+ 
+0811        DET = INT.DET$
+ 
+0811
+ 
+0814        COMMENT NOW FOR THE BACK SUBSTITUTION$
+ 
+0814        FOR K = (N,-1,1)$
+ 
+0825          BEGIN
+ 
+0829          XX = B(K) - IP(K+1, N, A(K,), Y())$
+ 
+0856          XY = A(K,K)$
+ 
+0865          X = 1.0$
+ 
+0867          X = X.X$
+ 
+0870          Y(K) = XX/XY
+ 
+0878          END$
+ 
+0878
+ 
+0879        RETURN$
+ 
+0881        END CROUT4()$
+ 
+0881
+ 
+0953      PROCEDURE SOLV2 ($ N, B(,), C(), PIVOT(), Z()$ IP())$
+ 
+0953        BEGIN COMMENT IT IS ASSUMED THAT A MATRIX A HAS ALREADY BEEN
+ 
+0953            TRANSFORMED INTO B BY CROUT, BUT THAT A NEW COLUMN C HAS
+ 
+0953            NOT BEEN PROCESSED. SOLV2() SOLVES THE SYSTEM BZ = C.
+ 
+0953            AN INNERPRODUCT PROCEDURE MUST BE USED WITH SOLV2()$
+ 
+0953        INTEGER K, N, PIVOT$
+ 
+0953
+ 
+0957        FOR K = (1,1,N)$
+ 
+0968          BEGIN
+ 
+0972          TEMP = C(PIVOT(K))$
+ 
+0979          C(PIVOT(K)) = C(K)$
+ 
+0993          C(K) = TEMP$
+ 
+0999          C(K) = C(K) - IP(1, K-1, B(K,), C())
+ 
+1024          END$
+ 
+1024
+ 
+1034        FOR K = (N,-1,1)$
+ 
+1045          Z(K) = (C(K) - IP(K+1, N, B(K,), Z()))/B(K,K)$
+ 
+1090        RETURN
+ 
+1092        END SOLV2()$
+ 
+1092
+ 
+1122      COMMENT FORSYTHE TEST CROUT US169 EXT 2274$
+ 
+1122      FORMAT FRMTFL (W0, (6F19.8, W0))$
+ 
+1128      FORMAT FRMTFX (W0, (6I19, W0))$
+ 
+1134      INTEGER PIVOT()$
+ 
+1134      INTEGER EX$
+ 
+1134      INTEGER I, J, N$
+ 
+1134      ARRAY A(70,70), B(70), Y(70), C(70), PIVOT(70)$
+ 
+1134      INPUT DATA (N, FOR I=(1,1,N)$ (FOR J=(1,1,N)$ A(I,J), B(I)))$
+ 
+1180      INPUT VECTOR (N, FOR I=(1,1,N)$ C(I))$
+ 
+1180
+ 
+1204      START..
+ 
+1204        READ ($$ DATA)$
+ 
+1208        READ ($$ VECTOR)$
+ 
+1212        OUTPUT ORDER (N)$
+ 
+1219        OUTPUT DATAO (FOR I=(1,1,N)$ (FOR J=(1,1,N)$ A(I,J), B(I)))$
+ 
+1262        OUTPUT VECTORO (FOR I=(1,1,N)$ C(I))$
+ 
+1283        WRITE ($$ ORDER, FRMTFX)$
+ 
+1291        WRITE ($$ DATAO, FRMTFL)$
+ 
+1299        WRITE ($$ ORDER, FRMTFX)$
+ 
+1307        WRITE ($$ VECTORO, FRMTFL)$
+ 
+1315        CROUT4 ($ N, A(,), B(), Y(), PIVOT(), DET, EX$
+ 
+1347                SINGULAR, INNERPRODUCT())$
+ 
+1354        WRITE ($$ DATAO, FRMTFL)$
+ 
+1362        OUTPUT ANSWER (FOR I=(1,1,N)$ Y(I))$
+ 
+1383        OUTPUT PIVOTO (N, FOR I=(1,1,N)$ PIVOT(I))$
+ 
+1407        OUTPUT DETO (DET)$
+ 
+1414        OUTPUT EXPO (EX)$
+ 
+1421        WRITE ($$ PIVOTO, FRMTFX)$
+ 
+1429        WRITE ($$ ANSWER, FRMTFL)$
+ 
+1437        WRITE ($$ DETO, FRMTFL)$
+ 
+1445        WRITE ($$ EXPO, FRMTFX)$
+ 
+1453        SOLV2 ($ N, A(,), C(), PIVOT(), Y()$ INNERPRODUCT())$
+ 
+1483        WRITE ($$ VECTORO, FRMTFL)$
+ 
+1491        WRITE ($$ ANSWER, FRMTFL)$
+ 
+1499        GO TO START$
+ 
+1499
+ 
+1500      SINGULAR..
+ 
+1500        WRITE ($$ FRMTSI)$
+ 
+1504        FORMAT FRMTSI (W0, *SINGULAR*, W0)$
+ 
+1510        GO TO START$
+ 
+1511      FINISH$
+COMPILED PROGRAM ENDS AT 1512
+PROGRAM VARIABLES BEGIN AT 4253
+ 
+ 
+ 
+ 
+ 
+ 
+                  4
+ 
+      .90000000, 01      .30000000, 01      .30000000, 01      .30000000, 01      .24000000, 02      .30000000, 01
+      .10000000, 02     -.20000000, 01     -.20000000, 01      .17000000, 02      .30000000, 01     -.20000000, 01
+      .18000000, 02      .10000000, 02      .45000000, 02      .30000000, 01     -.20000000, 01      .10000000, 02
+      .10000000, 02      .29000000, 02
+ 
+                  4
+ 
+      .24000000, 02      .17000000, 02      .45000000, 02      .29000000, 02
+ 
+      .90000000, 01      .30000000, 01      .30000000, 01      .30000000, 01      .24000000, 02      .33333333, 00
+      .90000010, 01     -.29999999, 01     -.29999999, 01      .90000010, 01      .33333333, 00     -.33333328, 00
+      .16000001, 02      .80000010, 01      .40000000, 02      .33333333, 00     -.33333328, 00      .50000003, 00
+      .40000000, 01      .39999990, 01
+ 
+                  4                  1                  2                  3                  4
+ 
+      .10000003, 01      .19999996, 01      .20000000, 01      .99999975, 00
+ 
+      .51840008, 04
+ 
+                  0
+ 
+      .24000000, 02      .90000010, 01      .40000000, 02      .39999990, 01
+ 
+      .10000003, 01      .19999996, 01      .20000000, 01      .99999975, 00
+

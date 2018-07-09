@@ -1,0 +1,83 @@
+2 COMMENT FIFTH EXAMPLE PROGRAM - FROM BALGOL MANUAL, JANUARY 1961
+2 EDITION.
+2
+2 THE FOLLOWING PROGRAM FOR OPTICAL RAY-TRACING WAS WRITTEN BY
+2 R. MITCHELL;
+2
+2 COMMENT OPTICAL TRACE PROGRAM, R. F. MITCHELL, VIDYA 1;
+2 INTEGER M, J, K, JA, JB;
+2 ARRAY A(4), B(4), C(4);
+2
+2 A(1) = -260.0; A(3) = -600.0; A(4) = 0.0;
+2 ARRAY G(6) = (25.0, 50.0, 75.0, 100.0, 125.0, 150.0);
+2 C(1) = 1.0; C(2) = 3.436; C(3) = 1.0; C(4) = -1.0;
+2 B(2) = 339.75; B(3) = 1.0; B(4) = 0.0;
+2 ARRAY B1(6) = (5.5, 5.75, 6.0, 6.25, 6.75, 7.0);
+2
+2 FOR JB = (1, 1, 6);
+2   BEGIN
+2   B(1) = B1(JB);
+2   A(2) = A(1) - B1(JB)(1.0 - 1.0/C(2).C(2));
+2   WRITE (;; PARAM, F6);
+2   OUTPUT PARAM (FOR K = (1, 1, 4); (A(K), B(K), C(K)));
+2   FORMAT F6 (W3,11(3F20.8,W4));
+2   FOR M = (1, 1, 6);
+2     BEGIN
+2     H1 = G(M);
+2     WRITE (;; GVALU, F1);
+2     OUTPUT GVALU (H1);
+2     FORMAT F1 (B10,*G*,X20.8,W6);
+2     SUMD = 0.0; E = 0.0; P = H1;
+2     FOR J = (1, 1, 3);
+2       BEGIN
+2       R1 = P/A(J);
+2       IF ABS(R1) GTR 0.95;
+2         GO TO PRINT;
+2
+2       I = ARCSIN(R1);
+2       R2 = R1.C(J)/C(J+1);
+2       IF ABS(R2) GTR 0.95;
+2         GO TO PRINT;
+2
+2       IP = ARCSIN(R2);
+2       E = E + I - IP;
+2       H2 =(J+1)SIN(E+I);
+2       R3 = SIN(E);
+2       COMMENT IF R3 = SIN(E);                                         *APPARENT DUPLICATE LINE
+2       IF R3 EQL 0.0;
+2         R3 = 1.0**-20;
+2
+2       DL = (H2-H1)/R3;
+2       DU = DL.C(J+1);
+2       SUMD = SUMD + DU;
+2       H1 = H2;
+2       WRITE (;; EDH, F2);
+2       OUTPUT EDH(E, DU, H1);
+2       FORMAT F2 (B5,*E*,X15.8,B10,*D*,X15.8,B10,*H*,X15.8,W4);
+2       IF (PCS(1));
+2         BEGIN
+2         WRITE (;; ALL, F5);
+2         OUTPUT ALL (R1, R2, I, IP, E, H2, R3, DL, DU, P);
+2         FORMAT F5 (2(5F12.5,W4))
+2         END;
+2
+2       P = A(J).R2 - R3(A(J+1) = A(J) + B(J))
+2       END;
+2
+2     L = A(3)(1.0 + R2/R3);
+2     SUMD = SUMD - DU;
+2     WRITE (;; LSUMD, F3);
+2     OUTPUT LSUMD (L, SUMD);
+2     FORMAT F3 (B10,*L*,X20.8,B10,*SUMD*,X20.8,W6,W4)
+2     END
+2   END;
+2
+2 STOP;
+2
+2 PRINT..
+2 WRITE (;; ERROR, F);
+2 OUTPUT ERROR (R1, R2, A(J), C(J+1), P);
+2 FORMAT F (*R1*,X9.4,B4,*R2*,X9.4,B4,*A*,X9.4,B4,*C*,X9.6,B4,
+2            *P*,X9.4,W1);
+2 STOP;
+2 FINISH;

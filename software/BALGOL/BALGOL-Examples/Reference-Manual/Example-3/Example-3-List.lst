@@ -1,0 +1,141 @@
+0200                   BAC-220 STANDARD VERSION   2/1/62
+
+0200      COMMENT THIRD EXAMPLE PROGRAM FROM BALGOL MANUAL, MARCH 1963.
+
+0200
+
+0200      THE SHORT PROGRAM WHICH FOLLOWS IS FOR A REDUCTION OF A SQUARE MATRIX
+
+0200      TO TRIDIAGONAL FORM, USING THE METHOD OF HOUSEHOLDER$
+
+0200
+
+0200      COMMENT HOUSEHOLDER REDUCTION TO TRIDIAGONAL FORM$
+
+0200      INTEGER I, J, K, L, R, N$
+
+0200      ARRAY A(50,50), X(50), P(50)$
+
+0200      INPUT
+
+0205        ELEMENT (I, J, Q)$
+
+0213      OUTPUT
+
+0215        AOUT (A(R,R)),
+
+0226        BOUT (-0.5/S)$
+
+0235      FORMAT
+
+0235        AF (B10, X10.5, W),
+
+0235        BF (B40, X10.5, W)$
+
+0235
+
+0244        N = 5$
+
+0246      IN..
+
+0246        READ ($$ ELEMENT)$
+
+0250        IF I NEQ 0$
+
+0250          BEGIN
+
+0252          A(I,J) = Q$
+
+0260          GO TO IN
+
+0261          END$
+
+0261
+
+0261        FOR R = (1,1,N-1)$
+
+0275          BEGIN
+
+0280          WRITE ($$ AOUT, AF)$
+
+0284          L = R+1$
+
+0287          S = 0$
+
+0288          FOR J = (L,1,N)$
+
+0299            S = S + A(R,J)*2$
+
+0299
+
+0311          S = SIGN(A(R,L))/2SQRT(S)$
+
+0332          WRITE ($$ BOUT, BF)$
+
+0340          X(L) = SQRT(0.5 + A(R,L).S)$
+
+0353          S = S/X(L)$
+
+0358          FOR J = (R+2,1,N)$
+
+0370            X(J) = S.A(R,J)$
+
+0382          FOR J = (R,1,N)$
+
+0393            BEGIN
+
+0393            S = 0$
+
+0395            FOR K = (L,1,N)$
+
+0406              S = S + A(MIN(J,K), MAX(J,K)).X(K)$
+
+0426            P(J) = S
+
+0429            END$
+
+0429
+
+0430          S = 0$
+
+0431          FOR J = (L,1,N)$
+
+0442            S = S + X(J).P(J)$
+
+0449          FOR J = (L,1,N)$
+
+0460            P(J) = P(J) - S.X(J)$
+
+0467          FOR J = (L,1,N)$
+
+0478            FOR K = (J,1,N)$
+
+0490              A(J,K) = A(J,K) - 2(X(J).P(K) + X(K).P(J))
+
+0510          END$
+
+0510
+
+0520        WRITE ($$ AOUT, AF)$
+
+0528        STOP$
+
+0529        GO TO IN$
+
+0530      FINISH$
+COMPILED PROGRAM ENDS AT 0531
+PROGRAM VARIABLES BEGIN AT 1888
+
+
+
+
+
+             4.00000
+                                          -3.16227
+             3.29999
+                                          -1.30766
+             -.42280
+                                          -1.88627
+              .53947
+                                           1.81620
+             1.58333
