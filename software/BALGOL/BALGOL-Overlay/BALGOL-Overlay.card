@@ -1902,7 +1902,7 @@
 1         REM                                                           019 99 0
 1   LOD1  DEFN  *               THIS PROGRAM IS RELOCATED TO            020 00 0
 1   *Q    NOP 8 J++1            LOCATION 0100 AT OBJECT TIME            020 01 0
-1   *R    CLB 8 I+              AND CUASES THE PRINTING OF              020 02 0
+1   *R    CLB 8 I+              AND CAUSES THE PRINTING OF              020 02 0
 1         BUN 8 *+3             THE FOLLOWING LIST                      020 03 0
 1   *A    LDB 8 B+                                                      020 04 0
 1         IBB 8 C+,1                                                    020 05 0

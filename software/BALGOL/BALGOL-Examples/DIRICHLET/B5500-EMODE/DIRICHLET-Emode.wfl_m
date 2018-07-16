@@ -1,0 +1,20 @@
+BEGIN JOB MISC/DIRICHLET;                                                         00100100
+JOBSUMMARY = UNCONDITIONAL;                                                       00100200
+                                                                                  00102000
+PRINTDEFAULTS = (PRINTDISPOSITION=EOJ, DESTINATION="PCTEXT");                     00102100
+                                                                                  00110000
+TASK                                                                              00110100
+  T;                                                                              00110200
+                                                                                  00900000
+COMPILE OBJECT/MISC/DIRICHLET ALGOL [T] LIBRARY;                                  00900100
+    ALGOL FILE SOURCE = SRCE/MISC/DIRICHLET ON DISK;                              00900200
+    OPTION = (FAULT, DSED, ARRAY);                                                00900300
+    ALGOL DATA                                                                    00900400
+$ SET MERGE LIST                                                                  00900500
+?                                                                                 00900600
+IF T IS COMPILEDOK THEN                                                           00900700
+  BEGIN                                                                           00900800
+  RUN OBJECT/MISC/DIRICHLET;                                                      00900900
+      FILE CDS (DEPENDENTSPECS, TITLE=DATA/MISC/DIRICHLET ON DISK);               00901000
+  END;                                                                            00901100
+? END JOB                                                                         00999900
