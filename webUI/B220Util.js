@@ -49,24 +49,18 @@ B220Util.$$ = function $$(e) {
 };
 
 /**************************************/
-B220Util.hasClass = function hasClass(e, name) {
-    /* returns true if element "e" has class "name" in its class list */
+B220Util.toFixedWithCommas = function toFixedWithCommas(v) {
+    /* Formats the value "v" as an integer with commas separating thousands */
+    var s = v.toFixed();
+    var t = "";
+    var x = s.length;
 
-    return e.classList.contains(name);
-};
+    while (x > 3) {
+        t = "," + s.substring(x-3, x) + t;
+        x -= 3;
+    }
 
-/**************************************/
-B220Util.addClass = function addClass(e, name) {
-    /* Adds a class "name" to the element "e"s class list */
-
-    e.classList.add(name);
-};
-
-/**************************************/
-B220Util.removeClass = function removeClass(e, name) {
-    /* Removes the class "name" from the element "e"s class list */
-
-    e.classList.remove(name);
+    return s.substring(0, x) + t;
 };
 
 /**************************************/
@@ -164,7 +158,7 @@ B220Util.xlateDOMTreeText = function xlateDOMTreeText(n, xlate) {
 /**************************************/
 B220Util.openPopup = function openPopup(parent, url, windowName, options, context, onload) {
     /* Schedules the opening of a pop-up window so that browsers such as Apple
-    Safari (11.0+) will not block the opens if they occur too close together. 
+    Safari (11.0+) will not block the opens if they occur too close together.
     Parameters:
         parent:     parent window for the pop-up
         url:        url of window context, passed to window.open()
@@ -222,7 +216,7 @@ B220Util.dequeuePopup = function dequeuePopup() {
             }
 
             loader2 = function(ev) {    // remove the load event listeners after loading
-                win.removeEventListener("load", loader2, false);   
+                win.removeEventListener("load", loader2, false);
                 if (loader1) {
                     win.removeEventListener("load", loader1, false);
                 }

@@ -84,12 +84,14 @@ function B220Processor(config, devices) {
     this.IB = new B220Processor.Register(11*4, this, true);     // memory Input Buffer
 
     // Processor throttling control and timing statistics
+    this.asyncTime = 0;                 // time for processor asynchronous operation during I/O
     this.execClock = 0;                 // emulated internal processor clock, ms
     this.execLimit = 0;                 // current time slice limit on this.execClock, ms
+    this.instructionCount = 0;          // total instructions executed
     this.opTime = 0;                    // estimated time for current instruction, ms
-    this.procStart = 0;                 // Javascript time that the processor started running, ms
-    this.procTime = 0;                  // total internal running time for processor, ms
-    this.runStamp = 0;                  // timestamp of last run() slice, ms
+    this.procTimer = 0;                 // elapsed time that the processor has been running, ms
+    this.procTime = 0;                  // total emulated running time for processor, ms
+    this.runStamp = 0;                  // timestamp of start of last time slice, ms
     this.runTimer = 0;                  // elapsed run-time timer value, ms
     this.scheduler = 0;                 // current setCallback token
 
@@ -258,7 +260,7 @@ function B220Processor(config, devices) {
 *   Global Constants                                                   *
 ***********************************************************************/
 
-B220Processor.version = "0.07";
+B220Processor.version = "1.00";
 
 B220Processor.tick = 1000/200000;       // milliseconds per clock cycle (200KHz)
 B220Processor.cyclesPerMilli = 1/B220Processor.tick;
@@ -716,12 +718,43 @@ B220Processor.prototype.updateLampGlow = function updateLampGlow(beta) {
 };
 
 /**************************************/
-B220Processor.prototype.clockIn = function clockIn() {
-    /* Updates the emulated processor clock during asynchronous I/O so that
-    glow averages can be updated based on elapsed time. Also used at the end of
-    and I/O to synchronize the emulated clock with real time */
+B220Processor.prototype.asyncOff = function asyncOff() {
+    /* Updates the emulated processor clock while operating asynchronously during
+    I/O so that glow averages can be updated based on elapsed time. Also used at
+    the end of and I/O to synchronize the emulated clock with real time */
 
-    this.execClock = performance.now();
+    if (this.asyncTime < 0) {
+        this.asyncTime += performance.now();
+        this.execClock += this.asyncTime;
+        this.procSlack += this.asyncTime;       // consider I/O time to be processor slack
+    }
+};
+
+/**************************************/
+B220Processor.prototype.asyncOn = function asyncOn() {
+    /* Sets this.asyncTime to start asynchronous timing for the processor during I/O */
+
+    if (this.asyncTime >= 0) {
+        this.asyncTime = -performance.now();
+    }
+};
+
+/**************************************/
+B220Processor.prototype.procOff = function procOff() {
+    /* Stops emulated internal run timing for the processor */
+
+    while (this.procTime < 0) {
+        this.procTime += this.execClock;
+    }
+};
+
+/**************************************/
+B220Processor.prototype.procOn = function procOn() {
+    /* Starts emulated internal run timing for the processor */
+
+    while (this.procTime >= 0) {
+        this.procTime -= this.execClock;
+    }
 };
 
 
@@ -2109,7 +2142,8 @@ B220Processor.prototype.compareField = function compareField() {
     is LOW (UET=1, HIT=0), EQUAL (UET=0, HIT=1), or HIGH (UET=1, HIT=1) with
     respect to the memory field. Note that the sign digit, if included in the
     comparison is handled in a very strange fashion -- see the discussion in the
-    220 Operational Characteristics manual for the truly gruesome details */
+    220 Operational Characteristics manual for the truly gruesome details. And
+    no, I didn't get this right the first time, nor the second, nor the third */
     var adder = 0;                      // current adder digit
     var carry = 1;                      // carry flag defaults to 1, since we're subtracting
     var compl = 1;                      // do complement addition by default, since we're subtracting
@@ -2161,28 +2195,36 @@ B220Processor.prototype.compareField = function compareField() {
         // the non-signed digits need to be compared in a signed, algebraic manner,
         // but the transformed sign digits need to be compared unsigned. Since the
         // compare is based on a signed subtraction, then if the original sign of
-        // either of the operands is negative, we use the 9s-complement of the
-        // transformed sign digit for that operand, converting the unsigned
-        // compare of the transformed sign digits into a signed one.
+        // either of the operands indicates negative (1, 2, 3), we use the 9s-
+        // complement of the transformed sign digit for that operand, converting
+        // the unsigned compare of the transformed sign digits into a signed one.
         if (L > s) {                    // sign digit is included
             rSign = (rw - rw%0x10000000000)/0x10000000000;
-            dSign = (dw - dw%0x10000000000)/0x10000000000;
-            sign = 1-dSign%2;
-            compl = ((rSign%2)^sign);
-            carry = compl;
-            if (rSign%2) {              // complement the transformed sign
-                rSign = 9 - (rSign<8 ? rSign^3 : rSign);
-            } else if (rSign < 8) {     // just transform the sign
+            if (rSign < 8) {
                 rSign ^= 3;
             }
 
-            rw = rw%0x10000000000 + rSign*0x10000000000;
-            if (dSign%2) {              // complement the transformed sign
-                dSign = 9 - (dSign<8 ? dSign^3 : dSign);
-            } else if (dSign < 8) {
-                dSign ^= 3;             // just transform the sign
+            dSign = (dw - dw%0x10000000000)/0x10000000000;
+            if (dSign < 8) {
+                dSign ^= 3;
             }
 
+            if (dSign > 2) {
+                sign = 1;
+            } else {                    // treat as negative
+                sign = 0;
+                dSign = 9-dSign;
+            }
+
+            if (rSign > 2) {
+                compl = sign;
+            } else {                    // treat as negative
+                compl = 1-sign;
+                rSign = 9-rSign;
+            }
+
+            carry = compl;
+            rw = rw%0x10000000000 + rSign*0x10000000000;
             dw = dw%0x10000000000 + dSign*0x10000000000;
         }
 
@@ -2698,7 +2740,7 @@ B220Processor.prototype.consoleOutputSign = function consoleOutputSign(printSign
     var d;
     var w;
 
-    this.clockIn();
+    this.asyncOff();
     if (this.AST.value) {               // if false, we've probably been cleared
         d = this.bcdAdd(this.CCONTROL, 0x990, 3); // decrement word count
         this.CCONTROL += d - this.CCONTROL%0x1000;
@@ -2719,6 +2761,7 @@ B220Processor.prototype.consoleOutputSign = function consoleOutputSign(printSign
             this.EWT.set(0);
             this.PZT.set(d == 2 && !this.HOLDPZTZEROSW);
             this.PA.set(0x80 + d);      // translate numerically
+            this.asyncOn();
             printSign(this.PA.value, this.boundConsoleOutputChar);
         }
     }
@@ -2732,14 +2775,16 @@ B220Processor.prototype.consoleOutputChar = function consoleOutputChar(printChar
     var d;
     var w;
 
-    this.clockIn();
+    this.asyncOff();
     if (this.AST.value) {               // if false, we've probably been cleared
         if (this.EWT.value) {
             if (this.CCONTROL%0x1000 < 0x10) {
+                this.asyncOn();
                 printChar(0x35, this.boundConsoleOutputFinished);
             } else {
                 this.C.inc();
                 this.CADDR = this.C.value%0x10000;
+                this.asyncOn();
                 printChar(0x35, this.boundConsoleOutputSign);
             }
         } else if (this.PZT.value) {    // Output alphabetically
@@ -2753,6 +2798,8 @@ B220Processor.prototype.consoleOutputChar = function consoleOutputChar(printChar
             if (this.DC.value >= 0x20) {
                 this.EWT.set(1);
             }
+
+            this.asyncOn();
             printChar(d, this.boundConsoleOutputChar);
         } else {                        // Output numerically
             if (this.DPT.value && !this.LEADINGZEROESSW) {
@@ -2762,6 +2809,7 @@ B220Processor.prototype.consoleOutputChar = function consoleOutputChar(printChar
                     this.DPT.set(0);
                     this.LT1.set(0);    // stop any zero-suppression
                     this.PA.set(0x03);  // decimal point code
+                    this.asyncOn();
                     printChar(0x03, this.boundConsoleOutputChar);
                     return;             // early exit
                 }
@@ -2782,6 +2830,8 @@ B220Processor.prototype.consoleOutputChar = function consoleOutputChar(printChar
             if (this.DC.value >= 0x20) {
                 this.EWT.set(1);
             }
+
+            this.asyncOn();
             printChar(d, this.boundConsoleOutputChar);
         }
     }
@@ -2791,7 +2841,7 @@ B220Processor.prototype.consoleOutputChar = function consoleOutputChar(printChar
 B220Processor.prototype.consoleOutputFinished = function consoleOutputFinished() {
     /* Handles the final cycle of console output */
 
-    this.clockIn();
+    this.asyncOff();
     if (this.AST.value) {               // if false, we've probably been cleared
         this.EWT.set(0);
         this.ioComplete(true);
@@ -2803,7 +2853,8 @@ B220Processor.prototype.consoleInputFinishWord = function consoleInputFinishWord
     /* Finishes the receipt of a word from the Console paper tape reader and
     either stores it in memory or shunts it to the C register for execution.
     Updates the C register as necessary and decides whether to initiate receipt
-    of another word */
+    of another word. Note that this routine does not do asyncOff -- that is handled
+    by the caller */
     var d;
     var w;
 
@@ -2813,7 +2864,10 @@ B220Processor.prototype.consoleInputFinishWord = function consoleInputFinishWord
         this.C.set((this.CCONTROL*0x100 + this.COP)*0x10000 + this.CADDR);
     }
 
-    if (this.COP == 0x05) {             // read inverse: permute the sign digit
+    if (this.COP != 0x05) {             // read normal: sign digit in normal position
+        w = this.D.value%0x10000000000;
+        d = (this.D.value - w)/0x10000000000;
+    } else {                            // read inverse: permute the sign digit
         d = this.D.value%0x10;
         w = (this.D.value - d)/0x10;
         this.D.set(w + d*0x10000000000);
@@ -2822,9 +2876,6 @@ B220Processor.prototype.consoleInputFinishWord = function consoleInputFinishWord
             this.ioComplete(true);
             return;                     // >>> ALARM ERROR EXIT <<<
         }
-    } else {                            // sign digit in normal position
-        w = this.D.value%0x10000000000;
-        d = (this.D.value - w)/0x10000000000;
     }
 
     if (this.rDigit & d & 0x08) {       // B-modify word before storing
@@ -2848,6 +2899,7 @@ B220Processor.prototype.consoleInputFinishWord = function consoleInputFinishWord
             this.ioComplete(true);
         } else {                        // initiate input of another word
             this.D.set(0);
+            this.asyncOn();
             if (this.COP == 0x05) {
                 d = this.console.inputUnitSelect(this.selectedUnit, this.boundConsoleInputInitiateInverse);
             } else {
@@ -2869,7 +2921,7 @@ B220Processor.prototype.consoleInputInitiateNormal = function consoleInputInitia
     should be translated numerically or alphanumerically */
     var code = result.code;
 
-    this.clockIn();
+    this.asyncOff();
     if (this.AST.value) {               // if false, we've probably been cleared
         this.E.set(this.CADDR);
         this.C.inc();
@@ -2886,15 +2938,18 @@ B220Processor.prototype.consoleInputInitiateNormal = function consoleInputInitia
         case 0x82:                      // sign=2, set alpha translation
             this.PZT.set(!this.HOLDPZTZEROSW);
             this.D.set(2);
+            this.asyncOn();
             result.readChar(this.boundConsoleInputReceiveChar);
             break;
         default:                        // anything else, set numeric translation
             this.PZT.set(0);
             if ((code & 0xF0) == 0x80) {// it's a numeric sign -- okay
                 this.D.set(code%0x10);
+                this.asyncOn();
                 result.readChar(this.boundConsoleInputReceiveChar);
             } else if (code == 0) {     // we'll take a space as a zero
                 this.D.set(0);
+                this.asyncOn();
                 result.readChar(this.boundConsoleInputReceiveChar);
             } else {                    // sign is non-numeric -- invalid
                 this.D.set(0);
@@ -2913,7 +2968,7 @@ B220Processor.prototype.consoleInputInitiateInverse = function consoleInputIniti
     rotates the sign digit into the D register, and sets PZT for numeric translation */
     var code = result.code;
 
-    this.clockIn();
+    this.asyncOff();
     if (this.AST.value) {               // if false, we've probably been cleared
         this.E.set(this.CADDR);
         this.C.inc();
@@ -2931,9 +2986,11 @@ B220Processor.prototype.consoleInputInitiateInverse = function consoleInputIniti
             this.PZT.set(0);
             if ((code & 0xF0) == 0x80) {// it's a numeric code -- okay
                 this.D.set(code%0x10);
+                this.asyncOn();
                 result.readChar(this.boundConsoleInputReceiveChar);
             } else if (code == 0) {     // we'll take a space as a zero
                 this.D.set(0);
+                this.asyncOn();
                 result.readChar(this.boundConsoleInputReceiveChar);
             } else {                    // digit is non-numeric -- invalid
                 this.D.set(0);
@@ -2956,7 +3013,7 @@ B220Processor.prototype.consoleInputReceiveChar = function consoleInputReceiveCh
     var sign;                           // register sign digit
     var word;                           // register word less sign
 
-    this.clockIn();
+    this.asyncOff();
     if (this.AST.value) {               // if false, we've probably been cleared
         switch (code) {
         case 0x17:                      // invalid character/parity error
@@ -2969,13 +3026,16 @@ B220Processor.prototype.consoleInputReceiveChar = function consoleInputReceiveCh
         default:                        // anything else, accumulate digits in word
             if (this.PZT.value) {       // alphanumeric translation
                 this.D.set((this.D.value % 0x1000000000)*0x100 + code);
+                this.asyncOn();
                 result.readChar(this.boundConsoleInputReceiveChar);
             } else {                    // numeric translation
                 if ((code & 0xF0) == 0x80) {// it's a numeric code -- okay
                     this.D.set((this.D.value % 0x10000000000)*0x10 + code%0x10);
+                    this.asyncOn();
                     result.readChar(this.boundConsoleInputReceiveChar);
                 } else if (code == 0) {     // we'll take a space as a zero
                     this.D.set((this.D.value % 0x10000000000)*0x10);
+                    this.asyncOn();
                     result.readChar(this.boundConsoleInputReceiveChar);
                 } else {                    // code is non-numeric -- invalid
                     this.setPaperTapeCheck(1);
@@ -2997,7 +3057,7 @@ B220Processor.prototype.cardatronOutputWord = function cardatronOutputWord() {
     Cardatron Control Unit. Returns a negative number to stop transfer */
     var word;
 
-    this.clockIn();
+    this.asyncOff();
     if (!this.AST.value) {              // we've probably been cleared
         word = -1;
     } else if (this.MET.value) {        // previous memory access error
@@ -3013,6 +3073,7 @@ B220Processor.prototype.cardatronOutputWord = function cardatronOutputWord() {
         this.execClock += 0.117;        // time for full-word transfer
     }
 
+    this.asyncOn();
     return word;
 };
 
@@ -3036,7 +3097,7 @@ B220Processor.prototype.cardatronReceiveWord = function cardatronReceiveWord(wor
     var returnCode = 0;                 // default is to continue receiving
     var sign;                           // D-register sign digit
 
-    this.clockIn();
+    this.asyncOff();
     if (!this.AST.value) {              // we've probably been cleared
         returnCode = -1;
     } else if (word < 0) {
@@ -3046,6 +3107,7 @@ B220Processor.prototype.cardatronReceiveWord = function cardatronReceiveWord(wor
         returnCode = -1;
     } else if (this.MET.value) {
         // Memory error has occurred: just ignore further data from Cardatron
+        this.asyncOn();
     } else {
         // Full word accumulated -- process it and initialize for the next word
         this.D.set(word);
@@ -3064,6 +3126,8 @@ B220Processor.prototype.cardatronReceiveWord = function cardatronReceiveWord(wor
             if (!this.MET.value) {
                 this.E.dec();                   // decrement memory address for next word
             }
+
+            this.asyncOn();
             break;
 
         case 6:                         // sign is 6, 7: execute control word
@@ -3074,6 +3138,8 @@ B220Processor.prototype.cardatronReceiveWord = function cardatronReceiveWord(wor
                 if (!this.MET.value) {
                     this.E.dec();               // decrement memory address for next word
                 }
+
+                this.asyncOn();
             } else {                            // input control words are executed
                 this.IB.set(this.D.value);      // move word to IB for use by fetch()
                 this.ioComplete(false);         // terminate I/O but do not restart Processor yet
@@ -3088,7 +3154,7 @@ B220Processor.prototype.cardatronReceiveWord = function cardatronReceiveWord(wor
             if (!(this.rDigit & 0x08)) {        // no B-register modification
                 this.IB.set(this.D.value);
             } else {                            // add B to low-order four digits of word
-                word = word - word%0x100000 + this.bcdAdd(word, this.B.value, 4);
+                word = word - word%0x10000 + this.bcdAdd(word, this.B.value, 4);
                 this.C10.set(0);                // reset carry toggle
                 this.IB.set((sign%2)*0x10000000000 + word);
             }
@@ -3096,6 +3162,8 @@ B220Processor.prototype.cardatronReceiveWord = function cardatronReceiveWord(wor
             if (!this.MET.value) {
                 this.E.dec();                   // decrement memory address for next word
             }
+
+            this.asyncOn();
             break;
         } // switch sign
 
@@ -3113,10 +3181,10 @@ B220Processor.prototype.cardatronReceiveWord = function cardatronReceiveWord(wor
 B220Processor.prototype.magTapeComplete = function magTapeComplete(control, word) {
     /* Call-back routine to signal completion of a magnetic tape operation.
     If this.AST is false, does nothing, as we have probably either been cleared
-    or the Reset/Transfer switch has been activated. Otherwsie, if "control" is
+    or the Reset/Transfer switch has been activated. Otherwise, if "control" is
     true, the contents of "word" are processed as a tape control word and an
     appropriate branch is set up. Unconditionally terminates the tape I/O
-    instruction */
+    instruction. asyncOff() will be done by ioComplete() */
     var aaaa = 0;                       // address where C & P will be stored
     var bbbb = 0;                       // address to load into P
 
@@ -3153,11 +3221,11 @@ B220Processor.prototype.magTapeSendWord = function magTapeSendWord(initialFetch)
     occurs, and the I/O must be aborted. Returns the BCD memory word otherwise */
     var result;                         // return value
 
+    this.asyncOff();
     if (!this.AST.value) {
         result = -1;                    // we've probably been cleared
     } else {
         if (initialFetch) {
-            this.clockIn();
             this.CCONTROL = this.CADDR; // copy C address into control digits
         }
 
@@ -3170,10 +3238,10 @@ B220Processor.prototype.magTapeSendWord = function magTapeSendWord(initialFetch)
         } else {
             result = this.IB.value;
             this.D.set(result);
-            this.execClock += 0.480;    // time to transfer one word to tape
         }
     }
 
+    this.asyncOn();
     return result;
 };
 
@@ -3188,11 +3256,11 @@ B220Processor.prototype.magTapeReceiveWord = function magTapeReceiveWord(initial
     var result = 0;                     // return value
     var sign;                           // sign digit
 
+    this.asyncOff();
     if (!this.AST.value) {
         result = -1;                    // we've probably been cleared
     } else {
         if (initialStore) {
-            this.clockIn();
             this.CCONTROL = this.CADDR; // copy C address into control digits
         }
 
@@ -3204,7 +3272,7 @@ B220Processor.prototype.magTapeReceiveWord = function magTapeReceiveWord(initial
             sign = (word - word%0x10000000000)/0x10000000000;
             if (sign & 0x08) {          // this word is to be B-adjusted
                 word = (sign&0x07)*0x10000000000 + word%0x10000000000 -
-                       word%0x100000 + this.bcdAdd(word, this.B.value, 4);
+                       word%0x10000 + this.bcdAdd(word, this.B.value, 4);
                 this.C10.set(0);        // reset carry toggle
             }
         }
@@ -3213,11 +3281,10 @@ B220Processor.prototype.magTapeReceiveWord = function magTapeReceiveWord(initial
         this.writeMemory();
         if (this.MET.value) {           // invalid address
             result = -1;
-        } else {
-            this.execClock += 0.480;    // time to transfer one word to tape
         }
     }
 
+    this.asyncOn();
     return result;
 };
 
@@ -3301,6 +3368,7 @@ B220Processor.prototype.execute = function execute() {
     this.COP = (w%0x1000000 - w%0x10000)/0x10000;       // C register operation code
     this.CADDR = w%0x10000;                             // C register operand address
     this.opTime = 0;                                    // clear the current instruction timer
+    ++this.instructionCount;
 
     if (this.OFT.value && this.HCT.value && this.COP != 0x31) {
         this.setStop();                 // if overflow and SOH and instruction is not BOF, stop
@@ -3318,7 +3386,6 @@ B220Processor.prototype.execute = function execute() {
         break;
 
     case 0x01:      //--------------------- NOP     No operation
-        // do nothing
         this.opTime = 0.010;
         this.operationComplete();
         break;
@@ -3414,6 +3481,7 @@ B220Processor.prototype.execute = function execute() {
         break;
 
     case 0x08:      //--------------------- KAD     Keyboard add
+        this.opTime = 0.005;
         this.D.set(0);
         this.setStop();
         this.operationComplete();
@@ -3588,8 +3656,8 @@ B220Processor.prototype.execute = function execute() {
         break;
 
     case 0x30:      //--------------------- BUN     Branch, unconditionally
-        this.P.set(this.CADDR);
         this.opTime = 0.035;
+        this.P.set(this.CADDR);
         this.operationComplete();
         break;
 
@@ -4211,10 +4279,8 @@ B220Processor.prototype.ioComplete = function ioComplete(restart) {
     resume automatic operation */
 
     this.AST.set(0);
-    this.clockIn();
-    while (this.procTime < 0) {
-        this.procTime += this.execClock;
-    }
+    this.asyncOff();
+    this.procOff();
 
     this.operationComplete();
     if (restart && this.RUT.value) {
@@ -4227,6 +4293,7 @@ B220Processor.prototype.ioInitiate = function ioInitiate() {
     /* Initiates asynchronous mode of the processor for I/O */
 
     this.AST.set(1);
+    this.asyncOn();
     this.updateLampGlow(0);             // update the console lamps
     this.execLimit = 0;                 // kill the run() loop
 };
@@ -4305,7 +4372,7 @@ B220Processor.prototype.schedule = function schedule() {
     If the processor remains active, this routine will reschedule itself after
     an appropriate delay, thereby throttling the performance and allowing other
     modules to share the single Javascript execution thread */
-    var delayTime;                      // delay from/until next run() for this processor, ms
+    var delayTime = 0;                  // delay from/until next run() for this processor, ms
     var stamp = performance.now();      // ending time for the delay and the run() call, ms
 
     this.scheduler = 0;
@@ -4315,7 +4382,7 @@ B220Processor.prototype.schedule = function schedule() {
         delayTime = stamp - this.delayLastStamp;
         this.procSlack += delayTime;
 
-        // Compute the exponential weighted average of scheduling delay.
+        // Compute the exponential weighted average of scheduling delay deviation.
         this.delayDeltaAvg = (delayTime - this.delayRequested)*B220Processor.delayAlpha +
                              this.delayDeltaAvg*B220Processor.delayAlpha1;
         this.procSlackAvg = delayTime*B220Processor.slackAlpha +
@@ -4323,9 +4390,8 @@ B220Processor.prototype.schedule = function schedule() {
     }
 
     // Execute the time slice.
-    this.procTime -= this.execClock;        // prepare to accumulate internal processor time
-    this.runStamp = stamp;                  // starting clock time for time slice
-
+    this.runStamp = stamp;              // starting clock time for time slice
+    this.procOn();                      // prepare to accumulate internal processor time
     this.run();
 
     stamp = performance.now();
@@ -4333,15 +4399,16 @@ B220Processor.prototype.schedule = function schedule() {
                       this.procRunAvg*B220Processor.slackAlpha1;
 
     // Determine what to do next.
+    this.runStamp = stamp;              // DEBUG: for DiagMonitor use only.
     if (!this.RUT.value) {
         // Processor is stopped, just inhibit delay averaging on next call and exit.
         this.delayLastStamp = 0;
-        this.procTime += this.execClock;    // accumulate internal processor time for the slice
+        this.procOff();                 // accumulate internal processor time for the slice
     } else if (this.AST.value) {
-        // Processor is idle during I/O, but still accumulating clocks.
+        // Processor is idle during I/O, but still accumulating clocks, so no procOff().
         this.delayLastStamp = 0;
     } else {
-        this.procTime += this.execClock;    // accumulate internal processor time for the slice
+        this.procOff();                 // accumulate internal processor time for the slice
 
         // The processor is still running, so schedule next time slice after a
         // throttling delay. delayTime is the number of milliseconds the
@@ -4355,7 +4422,7 @@ B220Processor.prototype.schedule = function schedule() {
         delayTime = this.execClock - stamp;
         this.delayRequested = delayTime;
         this.delayLastStamp = stamp;
-        this.scheduler = setCallback(this.mnemonic, this, delayTime, this.schedule);
+        this.scheduler = setCallback(this.mnemonic, this, delayTime, schedule);
     }
 };
 
@@ -4370,11 +4437,16 @@ B220Processor.prototype.start = function start() {
                           !this.TAT.value && !this.CRT.value &&
                           !this.PAT.value && !this.HAT.value &&
                           !this.systemNotReady.value && !this.computerNotReady.value) {
-        this.procStart = stamp;
         this.execClock = stamp;
+        this.asyncTime = 0;
         this.delayLastStamp = 0;
         this.delayRequested = 0;
         this.RUT.set(1);
+
+        // Start the processor timer
+        while (this.procTimer >= 0) {
+            this.procTimer -= stamp;
+        }
 
         // Start the run timer
         while (this.runTimer >= 0) {
@@ -4398,12 +4470,17 @@ B220Processor.prototype.stop = function stop() {
         this.AST.set(0);
 
         // Stop the timers
-        this.clockIn();
-        while (this.procTime < 0) {
-            this.procTime += this.execClock;
-        }
+        this.asyncOff();
+        this.procOff();
+
+        // Stop the run timer
         while (this.runTimer < 0) {
             this.runTimer += stamp;
+        }
+
+        // Stop the processor timer
+        while (this.procTimer < 0) {
+            this.procTimer += stamp;
         }
 
         this.updateLampGlow(1);         // freeze state in the lamps
@@ -4485,6 +4562,7 @@ B220Processor.prototype.resetRunTimer = function resetRunTimer() {
     /* Resets the elapsed run-time timer to zero */
 
     if (this.poweredOn) {
+        this.instructionCount = 0;
         if (this.runTimer < 0) {        // it's running, adjust its bias
             this.runTimer = -performance.now();
         } else {                        // it's stopped, just zero it
@@ -4500,6 +4578,14 @@ B220Processor.prototype.resetTransfer = function resetTransfer() {
     when running */
 
     if (this.poweredOn) {
+        this.digitCheckAlarm.set(0);
+        this.ALT.set(0);
+        this.MET.set(0);
+        this.TAT.set(0);
+        this.CRT.set(0);
+        this.PAT.set(0);
+        this.HAT.set(0);
+
         this.E.set(0x0000);
         this.readMemory();
         this.IB.set(this.IB.value - this.IB.value % 0x100000000 +
@@ -4536,8 +4622,9 @@ B220Processor.prototype.powerUp = function powerUp() {
     if (!this.poweredOn) {
         this.clear();
         this.poweredOn = 1;
-        this.procTime = this.runTimer = 0;
-        this.procSlack = this.procSlackAvg = this.procRunAvg = 0;
+        this.procTimer = this.runTimer = this.instructionCount = 0;
+        this.procTime = this.procSlack = 0;
+        this.procSlackAvg = this.procRunAvg = 0;
         this.delayDeltaAvg = this.delayRequested = 0;
 
         this.console = this.devices.ControlConsole;

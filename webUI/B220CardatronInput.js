@@ -79,7 +79,7 @@ function B220CardatronInput(mnemonic, unitIndex, config) {
 /**************************************/
 
 B220CardatronInput.prototype.eolRex = /([^\n\r\f]*)((:?\r[\n\f]?)|\n|\f)?/g;
-B220CardatronInput.prototype.cardsPerMinute = 240;      // IBM Type 087/089 collator
+B220CardatronInput.prototype.cardsPerMinute = 240;      // 240=IBM Type 087/089 collator, 100=Type 523 Summary Punch
 B220CardatronInput.prototype.eodBias = -0x900000000000; // signals end-of-data to Processor
 
 B220CardatronInput.trackSize = 319;     // digits
@@ -184,12 +184,12 @@ B220CardatronInput.prototype.setReaderReady = function setReaderReady(ready) {
 
     this.$$("CIFileSelector").disabled = ready;
     if (ready && !this.ready) {
-        B220Util.addClass(this.$$("CIStartBtn"), "greenLit")
-        B220Util.removeClass(this.$$("CIStopBtn"), "redLit");
+        this.$$("CIStartBtn").classList.add("greenLit")
+        this.$$("CIStopBtn").classList.remove("redLit");
         this.ready = true;
     } else if (this.ready && !ready) {
-        B220Util.removeClass(this.$$("CIStartBtn"), "greenLit")
-        B220Util.addClass(this.$$("CIStopBtn"), "redLit");
+        this.$$("CIStartBtn").classList.remove("greenLit")
+        this.$$("CIStopBtn").classList.add("redLit");
         this.ready = false;
     }
 };
@@ -444,7 +444,7 @@ B220CardatronInput.prototype.determineFormatBand = function determineFormatBand(
         case "7":
             format = 7;
             break;
-        case "`":                       // 1-8 punch
+        case "\`":                      // 1-8 punch
             format = 1;
             this.noReload = true;
             this.setFormatLockout(true);
@@ -464,7 +464,7 @@ B220CardatronInput.prototype.determineFormatBand = function determineFormatBand(
             this.noReload = true;
             this.setFormatLockout(true);
             break;
-        case "'":                       // 5-8 punch
+        case "\'":                      // 5-8 punch
         case "|":                           // translates to a 5-numeric digit
             format = 5;
             this.noReload = true;

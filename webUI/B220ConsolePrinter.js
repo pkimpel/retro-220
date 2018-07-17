@@ -45,6 +45,7 @@ function B220ConsolePrinter(mnemonic, unitIndex, config) {
 
     // Create the printer window and onload event
     this.doc = null;
+    this.window = null;
     this.paper = null;
     this.printerEOP = null;
     this.printerLine = 0;
@@ -61,8 +62,8 @@ B220ConsolePrinter.onSwitchImage = "./resources/ToggleUp.png";
 
 B220ConsolePrinter.ttySpeed = 10;       // TTY printer speed, char/sec
 B220ConsolePrinter.ttyNewLine = 200;    // TTY carriage-return delay, ms
-B220ConsolePrinter.whippetSpeed = 5000; // Whippet printer speed, char/sec
-B220ConsolePrinter.whippetNewLine = 200;// Whippet carriage-return delay, ms
+B220ConsolePrinter.whippetSpeed = 1000; // Whippet printer speed, char/sec
+B220ConsolePrinter.whippetNewLine = 75; // Whippet carriage-return delay, ms
 B220ConsolePrinter.formFeedPeriod = 500;// form-feed average delay, ms
 
 B220ConsolePrinter.pageSize = 66;       // lines/page for form-feed
@@ -166,8 +167,8 @@ B220ConsolePrinter.prototype.printChar = function printChar(code) {
 /**************************************/
 B220ConsolePrinter.prototype.printTab = function printTab() {
     /* Simulates tabulation by outputting an appropriate number of spaces */
-    var tabCol;                         // tabulation column
-    var x;                              // scratch index
+    var tabCol = this.columns+1;        // tabulation column (defaults to line overflow)
+    var x = 0;                          // scratch index
 
     for (x=0; x<this.tabStop.length; ++x) {
         if (this.tabStop[x] > this.printerCol) {
@@ -210,7 +211,7 @@ B220ConsolePrinter.prototype.copyPaper = function copyPaper(ev) {
     var text = this.paper.textContent;
     var title = "B220 " + this.mnemonic + " Text Snapshot";
 
-    B220Util.openPopup(this.window, "./B220FramePaper.html", this.mnemonic + "-Snapshot",
+    B220Util.openPopup(this.window, "./B220FramePaper.html", "",
             "scrollbars,resizable,width=500,height=500",
             this, function(ev) {
         var doc = ev.target;
@@ -314,7 +315,7 @@ B220ConsolePrinter.prototype.text_OnChange = function text_OnChange(ev) {
     /* Handler for text onchange events */
     var prefs = this.config.getNode("ConsoleOutput.units", this.unitIndex);
     var text = ev.target.value;
-    var v;
+    var v = null;
 
     switch (ev.target.id) {
     case "Columns":
@@ -329,7 +330,7 @@ B220ConsolePrinter.prototype.text_OnChange = function text_OnChange(ev) {
         v = this.parseTabStops(prefs.tabs || "", this.window);
         if (v !== null) {
             this.tabStop = v;
-            ev.target.value = text = v.join(",");
+            ev.target.value = text = this.formatTabStops(v);
             prefs.tabs = text;
         }
         break;
@@ -341,7 +342,21 @@ B220ConsolePrinter.prototype.text_OnChange = function text_OnChange(ev) {
 };
 
 /**************************************/
-B220ConsolePrinter.prototype.parseTabStops = function parsetabStops(text, alertWin) {
+B220ConsolePrinter.prototype.formatTabStops = function formatTabStops(tabStops) {
+    /* Formats the array "tabStops" of 0-relative tab stop positions as a comma-
+    delimited string of 1-relative numbers */
+    var s = (tabStops[0]+1).toString();
+    var x = 0;
+
+    for (x=1; x<tabStops.length; ++x) {
+        s += "," + (tabStops[x]+1).toString();
+    }
+
+    return s;
+};
+
+/**************************************/
+B220ConsolePrinter.prototype.parseTabStops = function parseTabStops(text, alertWin) {
     /* Parses a comma-delimited list of 1-relative tab stops. If the list is parsed
     successfully, returns an array of 0-relative tab stop positions; otherwise
     returns null. An alert is displayed on the window for the first parsing or
@@ -386,7 +401,7 @@ B220ConsolePrinter.prototype.printerOnLoad = function printerOnLoad(ev) {
     var id;
     var mask;
     var prefs = this.config.getNode("ConsoleOutput.units", this.unitIndex);
-    var tabStop;
+    var tabStop = null;
     var x;
 
     this.doc = ev.target;
@@ -442,7 +457,7 @@ B220ConsolePrinter.prototype.printerOnLoad = function printerOnLoad(ev) {
     tabStop = this.parseTabStops(prefs.tabs || "", this.window);
     if (tabStop !== null) {
         this.tabStop = tabStop;
-        this.$$("TabStops").value = tabStop.join(",");
+        this.$$("TabStops").value = this.formatTabStops(tabStop);
     }
 
     // Events

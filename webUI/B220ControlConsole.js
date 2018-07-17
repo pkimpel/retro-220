@@ -103,13 +103,13 @@ function B220ControlConsole(p, systemShutdown) {
 }
 
 /**************************************/
-B220ControlConsole.displayRefreshPeriod = 50;   // milliseconds
+B220ControlConsole.displayRefreshPeriod = 100;  // milliseconds
 B220ControlConsole.offSwitchImage = "./resources/ToggleDown.png";
 B220ControlConsole.onSwitchImage = "./resources/ToggleUp.png";
 B220ControlConsole.offOrganSwitchImage = "./resources/Organ-Switch-Up.png"
 B220ControlConsole.onOrganSwitchImage = "./resources/Organ-Switch-Down.png"
 
-B220ControlConsole.codeXlate = [        // translate internal B220 code to ANSI
+B220ControlConsole.codeXlate = [        // translate internal 220 code to ANSI
         " ", "_", " ", ".", "\u00A4", "_",  "_",  "_", "_", "_", "!", "!", "!", "!", "!", "!",  // 00-0F
         "&", "_", "_", "$", "*",      "^",  "~",  "_", "_", "_", "!", "!", "!", "!", "!", "!",  // 10-1F
         "-", "/", "_", ",", "%",      "_",  "|",  "_", "_", "_", "!", "!", "!", "!", "!", "!",  // 20-2F
@@ -392,7 +392,7 @@ B220ControlConsole.prototype.meatballMemdump = function meatballMemdump() {
     }
 
     // Outer block of meatBallMemdump
-    B220Util.openPopup(this.window, "./B220FramePaper.html", this.mnemonic + "-MEMDUMP",
+    B220Util.openPopup(window, "./B220FramePaper.html", "",
             "location=no,scrollbars=yes,resizable,width=800,height=600",
             this, memdumpSetup);
 };
@@ -470,7 +470,7 @@ B220ControlConsole.prototype.updatePanel = function updatePanel() {
     text = (timer/1000 + 10000).toFixed(1);
     this.intervalTimer.textContent = text.substring(text.length-6);
 
-    p.updateLampGlow(p.AST.value ? 0.25 : 0);
+    p.updateLampGlow(p.AST.value ? 0.75 : 0);
     eLevel = (p.RUT.value ? p.EXT.glow : p.EXT.value);
 
     // Primary Registers
@@ -506,9 +506,16 @@ B220ControlConsole.prototype.updatePanel = function updatePanel() {
     this.equalLamp.set(p.compareEqualLamp.glow);
     this.highLamp.set(p.compareHighLamp.glow);
 
-    this.$$("ProcDelta").textContent = p.delayDeltaAvg.toFixed(2) + " D";
-    this.$$("ProcSlack").textContent = p.procSlackAvg.toFixed(2)  + " S";
-    this.$$("ProcRun").textContent = p.procRunAvg.toFixed(2)  +     " R";
+    // Compute the timing statistics
+    timer = this.p.procTimer;
+    while (timer <= 0) {
+        timer += stamp;
+    }
+
+    this.$$("ProcDelta").textContent = p.delayDeltaAvg.toFixed(2) + "=D";
+    this.$$("ProcSlack").textContent = (p.procSlack/timer*100).toFixed(2) + "%S";
+    this.$$("ProcRun").textContent = p.procRunAvg.toFixed(2) + "=R";
+    this.$$("ICount").textContent = B220Util.toFixedWithCommas(p.instructionCount) + "=I";
     /********** DEBUG **********
     this.displayCallbackState();
     ***************************/
@@ -526,47 +533,43 @@ B220ControlConsole.prototype.lamp_Click = function lamp_Click(ev) {
     var reg;                            // register prefix from id
 
     if (p.poweredOn) {
-        if (ix < 0) {
-            return;
-        } else if (ix > 0) {
+        if (ix > 0) {
             reg = id.substring(0, ix);
             bit = parseInt(id.substring(ix+1), 10);
-            if (isNaN(bit)) {
-                return;
+            if (!isNaN(bit)) {
+                ev.preventDefault();
+                ev.stopPropagation();
+
+                switch (reg) {
+                case "A":
+                    p.A.flipBit(bit);
+                    break;
+                case "B":
+                    p.B.flipBit(bit);
+                    break;
+                case "C":
+                    p.C.flipBit(bit);
+                    break;
+                case "D":
+                    p.D.flipBit(bit);
+                    break;
+                case "E":
+                    p.E.flipBit(bit);
+                    break;
+                case "P":
+                    p.P.flipBit(bit);
+                    break;
+                case "R":
+                    p.R.flipBit(bit);
+                    break;
+                case "S":
+                    p.S.flipBit(bit);
+                    break;
+                } // switch reg
             }
         }
-
-        switch (reg) {
-        case "A":
-            p.A.flipBit(bit);
-            break;
-        case "B":
-            p.B.flipBit(bit);
-            break;
-        case "C":
-            p.C.flipBit(bit);
-            break;
-        case "D":
-            p.D.flipBit(bit);
-            break;
-        case "E":
-            p.E.flipBit(bit);
-            break;
-        case "P":
-            p.P.flipBit(bit);
-            break;
-        case "R":
-            p.R.flipBit(bit);
-            break;
-        case "S":
-            p.S.flipBit(bit);
-            break;
-        } // switch reg
     }
 
-    ev.preventDefault();
-    ev.stopPropagation();
-    return false;
 };
 
 /**************************************/
@@ -608,7 +611,6 @@ B220ControlConsole.prototype.switch_Click = function switch_Click(ev) {
             break;
         case "StepSwitch":
             this.stepSwitch.flip();
-            //this.keyboard.keyboardEnable(0);
             p.step();
             break;
         case "ClearSwitch":
@@ -776,9 +778,17 @@ B220ControlConsole.prototype.switch_Click = function switch_Click(ev) {
             p.tracing = !p.tracing;
             this.$$("LeftPanelBtn").focus();    // release any selection by the click
             if (p.tracing) {
-                B220Util.addClass(ev.target, "tracing");
+                ev.target.classList.add("tracing");
             } else {
-                B220Util.removeClass(ev.target, "tracing");
+                ev.target.classList.remove("tracing");
+            }
+            break;
+
+        case "Blank2LampLabel":                 // initialize to boot from cards (undocumented)
+            if (!p.RUT.value) {
+                p.clear();
+                p.C.set(0x1000600000);          // CRD unit 1
+                p.setCycle(1);
             }
             break;
         } // switch ev.target.id
@@ -792,11 +802,11 @@ B220ControlConsole.prototype.switch_Click = function switch_Click(ev) {
 /**************************************/
 B220ControlConsole.prototype.consoleOnLoad = function consoleOnLoad(ev) {
     /* Initializes the Supervisory Panel window and user interface */
-    var body;
+    var barStyles = {backgroundColor: "white"};
+    var body = null;
     var p = this.p;                     // local copy of processor object
-    var panel;
+    var panel = null;
     var prefs = this.config.getNode("ControlConsole");
-    var x;
 
     this.doc = ev.target;
     this.window = this.doc.defaultView;
@@ -815,10 +825,14 @@ B220ControlConsole.prototype.consoleOnLoad = function consoleOnLoad(ev) {
     this.regP = new PanelRegister(this.$$("PRegPanel"),  4*4, 4, "P_", "P");
     this.regS = new PanelRegister(this.$$("SRegPanel"),  4*4, 4, "S_", "S");
 
-    this.regA.drawBox(6, 2, 4, "2px solid white", "2px solid white");
-    this.regC.drawBox(5, 2, 4, "2px solid white", "2px solid white");
-    this.regD.drawBox(6, 2, 4, "2px solid white", "2px solid white");
-    this.regR.drawBox(6, 2, 4, "2px solid white", "2px solid white");
+    this.regA.drawBar(6, 4, barStyles);
+    this.regA.drawBar(8, 4, barStyles);
+    this.regC.drawBar(5, 4, barStyles);
+    this.regC.drawBar(7, 4, barStyles);
+    this.regD.drawBar(6, 4, barStyles);
+    this.regD.drawBar(8, 4, barStyles);
+    this.regR.drawBar(6, 4, barStyles);
+    this.regR.drawBar(8, 4, barStyles);
 
     // Status Panels
 
@@ -998,6 +1012,7 @@ B220ControlConsole.prototype.consoleOnLoad = function consoleOnLoad(ev) {
 
     this.$$("BurroughsMeatball").addEventListener("click", this.boundMeatballMemdump, false);
     this.$$("B220Logo").addEventListener("dblclick", this.boundSwitch_Click);
+    this.$$("Blank2LampLabel").addEventListener("click", this.boundSwitch_Click);
     this.$$("IntervalTimerResetBtn").addEventListener("click", this.boundResetTimer, false);
     this.$$("PowerOffBtn").addEventListener("dblclick", this.boundPowerBtn_Click, false);
 

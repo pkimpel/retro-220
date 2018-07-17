@@ -35,8 +35,10 @@ function B220PaperTapeReader(mnemonic, unitIndex, config) {
     this.boundReadTapeChar = B220PaperTapeReader.prototype.readTapeChar.bind(this);
 
     this.readResult = {                 // object passed back to Processor for each read
-        code: 0,
-        readChar: this.boundReadTapeChar
+        code: 0,                                // 220 char code sent to processor
+        signDigit: 0,                           // copy of first digit read for word
+        frameCount: 0,                          // count of tape frames read for word
+        readChar: this.boundReadTapeChar        // callback function for next char
     };
 
     this.clear();
@@ -154,6 +156,7 @@ B220PaperTapeReader.prototype.fileSelector_onChange = function fileSelector_onCh
         }
     }
 
+    this.tapeView.value = "";
     for (x=f.length-1; x>=0; x--) {
         tape = new FileReader();
         tape.onload = fileLoader_onLoad;
@@ -302,6 +305,9 @@ B220PaperTapeReader.prototype.initiateInput = function initiateInput(successor) 
     the processor and gets the ball rolling */
     var stamp = performance.now();
 
+    this.readResult.code = 0;
+    this.readResult.signDigit = 0;
+    this.readResult.frameCount = 0;
     if (stamp-this.nextCharTime < B220PaperTapeReader.idleTime) {
         this.readTapeChar(successor);
     } else {
@@ -320,6 +326,11 @@ B220PaperTapeReader.prototype.sendTapeChar = function sendTapeChar(c, code, rece
     var text = this.tapeView.value;
 
     this.readResult.code = code;
+    ++this.readResult.frameCount;
+    if (this.readResult.frameCount == 1) {
+        this.readResult.signDigit = code;
+    }
+
     if (this.nextCharTime < stamp) {
         delay = 0;
         this.nextCharTime = stamp + this.charPeriod;
@@ -340,6 +351,29 @@ B220PaperTapeReader.prototype.sendTapeChar = function sendTapeChar(c, code, rece
 };
 
 /**************************************/
+B220PaperTapeReader.prototype.conditionalSendEOW = function conditionalSendEOW(receiver) {
+    /* Checks for the special case of sending an alphanumeric word (sign=2) with
+    less than five alpha characters. Since text editors may trim trailing blanks
+    from the end of lines, alpha words with trailing blanks may be trimmed in the
+    tape image file. If the sign digit was 2 and fewer than six characters (sign
+    plus five alpha codes) have been sent to the processor, sends a space code to
+    pad the alpha word and returns false. Otherwise, sends an End-of-Word code and
+    returns true */
+    var code = 0x35;                    // EOW code
+    var result = true;
+
+    if (this.readResult.signDigit == 0x82) {    // sign digit was a "2"
+        if (this.readResult.frameCount < 6) {
+            code = 0x00;                // space code
+            result = false;
+        }
+    }
+
+    this.sendTapeChar(0x20, code, receiver);
+    return result;
+};
+
+/**************************************/
 B220PaperTapeReader.prototype.readTapeChar = function readTapeChar(receiver) {
     /* Reads one character frame from the paper-tape buffer and passes it to the
     "receiver" function. If at end-of-line, passes an end-of-word (0x35) code;
@@ -352,7 +386,7 @@ B220PaperTapeReader.prototype.readTapeChar = function readTapeChar(receiver) {
     loaded, the fileSelector_onChange event will set ready, notice the hanging
     read (this.busy=true) and restart the read */
     var bufLength = this.bufLength;     // current buffer length
-    var c;                              // current character ANSI code
+    var c = 0;                          // current character ANSI code
     var x = this.bufIndex;              // current buffer index
 
     if (!this.ready) {
@@ -362,23 +396,26 @@ B220PaperTapeReader.prototype.readTapeChar = function readTapeChar(receiver) {
     } else {
         this.busy = false;
         if (x >= bufLength) {       // end of buffer -- send finish
-            this.sendTapeChar(0x20, 0x35, receiver);
-            this.setReaderEmpty();
+            if (this.conditionalSendEOW(receiver)) {
+                this.setReaderEmpty();
+            }
         } else {
             c = this.buffer.charCodeAt(x) % 0x100;
             if (c == 0x0D) { // carriage return -- send EOW and check for LF
-                if (++x < bufLength && this.buffer.charCodeAt(x) == 0x0A) {
-                    ++x;
-                }
-                this.sendTapeChar(0x20, 0x35, receiver);
-                if (x >= bufLength) {
-                    this.setReaderEmpty();
+                if (this.conditionalSendEOW(receiver)) {
+                    if (++x < bufLength && this.buffer.charCodeAt(x) == 0x0A) {
+                        ++x;
+                    }
+                    if (x >= bufLength) {
+                        this.setReaderEmpty();
+                    }
                 }
             } else if (c == 0x0A) { // line feed -- send EOW
-                ++x;
-                this.sendTapeChar(0x20, 0x35, receiver);
-                if (x >= bufLength) {
-                    this.setReaderEmpty();
+                if (this.conditionalSendEOW(receiver)) {
+                    ++x;
+                    if (x >= bufLength) {
+                        this.setReaderEmpty();
+                    }
                 }
             } else {                // translate character and send its code
                 ++x;
@@ -386,8 +423,8 @@ B220PaperTapeReader.prototype.readTapeChar = function readTapeChar(receiver) {
             }
         }
 
-        this.tapeSupplyBar.value = bufLength-x;
         this.bufIndex = x;
+        this.tapeSupplyBar.value = bufLength-x;
     }
 };
 

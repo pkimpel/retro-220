@@ -90,22 +90,28 @@
 
 #ProcDelta {
     position:           absolute;
-    width:              64px;
+    width:              48px;
     text-align:         right;
-    left:               120px;
-    bottom:             12px}
+    left:               132px;
+    bottom:             16px}
 #ProcSlack {
     position:           absolute;
     width:              64px;
     text-align:         right;
-    left:               190px;
-    bottom:             12px}
+    left:               180px;
+    bottom:             16px}
 #ProcRun {
     position:           absolute;
-    width:              64px;
+    width:              48px;
     text-align:         right;
-    left:               260px;
-    bottom:             12px}
+    left:               244px;
+    bottom:             16px}
+#ICount {
+    position:           absolute;
+    width:              80px;
+    text-align:         right;
+    left:               292px;
+    bottom:             16px}
 
 #PanelSurface {
     height:             100%;

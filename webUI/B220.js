@@ -121,9 +121,8 @@ window.addEventListener("load", function() {
         if (!window.JSON) {missing += ", JSON"}
         if (!window.localStorage) {missing += ", LocalStorage"}
         if (!window.indexedDB) {missing += ", IndexedDB"}
-        if (!window.postMessage) {missing += ", window.postMessage"}
-        if (!(window.performance && "now" in performance)) {missing += ", performance.now"}
         if (!window.Promise) {missing += ", Promise"}
+        if (!(window.performance && "now" in performance)) {missing += ", performance.now"}
 
         if (missing.length == 0) {
             return true;
@@ -147,7 +146,7 @@ window.addEventListener("load", function() {
         document.getElementById("ConfigureBtn").disabled = false;
         document.getElementById("ConfigureBtn").addEventListener("click", configureSystem, false);
 
-        document.getElementById("StatusMsg").textContent = "The Application Cache feature has been deimplemented";
-            clearStatusMsg(30);
+        //document.getElementById("StatusMsg").textContent = "The Application Cache feature has been deimplemented";
+        //clearStatusMsg(30);
     }
 }, false);

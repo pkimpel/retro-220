@@ -819,6 +819,29 @@ PanelRegister.prototype.panelHeight = function panelHeight(rows) {
 };
 
 /**************************************/
+PanelRegister.prototype.drawBar = function drawBar(col, rows, styles) {
+    /* Creates a bar along the left border of a group of lamps in a register.
+    styles is a JS object with name/value pairs to set additional styles for 
+    the bar's <div> element */
+    var bar = document.createElement("div");
+    var e = "";
+
+    bar.style.position = "absolute";
+    bar.style.left = (this.xCoord(col) - (PanelRegister.hSpacing-PanelRegister.lampDiameter)/2 + 1).toString() + "px";
+    bar.style.width = "2px";
+    bar.style.top = this.yCoord(1).toString() + "px";
+    bar.style.height = (this.yCoord(rows+1) - this.yCoord(1)).toString() + "px";
+    if (styles) {
+        for (e in styles) {
+            bar.style[e] = styles[e];
+        }
+    }
+    
+    this.element.appendChild(bar);
+    return bar;
+};
+
+/**************************************/
 PanelRegister.prototype.drawBox = function drawBox(col, lamps, rows, leftStyle, rightStyle) {
     /* Creates a box centered around a specified group of lamps in a register.
     leftStyle and rightStyle specify the left and right borders of the box using

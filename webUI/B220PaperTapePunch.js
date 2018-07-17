@@ -157,7 +157,7 @@ B220PaperTapePunch.prototype.punchCopyTape = function punchCopyTape(ev) {
     var text = this.punchTape.textContent;
     var title = "B220 " + this.mnemonic + " Text Snapshot";
 
-    B220Util.openPopup(this.window, "./B220FramePaper.html", this.mnemonic + "-Snapshot",
+    B220Util.openPopup(this.window, "./B220FramePaper.html", "",
             "scrollbars,resizable,width=500,height=500",
             this, function(ev) {
         var doc = ev.target;

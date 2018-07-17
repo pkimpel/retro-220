@@ -34,9 +34,11 @@ window.addEventListener("load", function(ev) {
     var p = null;                       // the Processor object
     var delayDeltaNode = document.getElementById("DelayDeltaAvg").firstChild;
     var execClockNode = document.getElementById("ExecClock").firstChild;
+    var lastDelayNode = document.getElementById("Delay").firstChild;
     var procRunNode = document.getElementById("ProcRunAvg").firstChild;
     var procSlackNode = document.getElementById("ProcSlackAvg").firstChild;
     var procTimeNode = document.getElementById("ProcTime").firstChild;
+    var stampDeltaNode = document.getElementById("StampDelta").firstChild;
     var timeStampNode = document.getElementById("TimeStamp").firstChild;
 
     function clockIn(stamp, val) {
@@ -53,7 +55,7 @@ window.addEventListener("load", function(ev) {
     function refreshStats() {
         /* Obtains the current "delayDev" has from the SetCallback mechanism and
         formats the data to DiagBody */
-        var cat;
+        var cat = "";
         var cell;
         var textNode;
         var delayDev;
@@ -66,10 +68,12 @@ window.addEventListener("load", function(ev) {
             p = window.global.B220Processor.instance;
         } else {
             timeStampNode.nodeValue = p.runStamp.toFixed(2);
-            execClockNode.nodeValue = clockIn(stamp, p.execClock).toFixed(2);
+            execClockNode.nodeValue = p.execClock.toFixed(2);
+            stampDeltaNode.nodeValue = (p.execClock-p.runStamp).toFixed(2);
+            lastDelayNode.nodeValue = p.delayRequested.toFixed(2);
             procTimeNode.nodeValue = clockIn(stamp, p.procTime).toFixed(2);
             delayDeltaNode.nodeValue = p.delayDeltaAvg.toFixed(2);
-            procSlackNode.nodeValue = p.procSlackAvg.toFixed(4);
+            procSlackNode.nodeValue = p.procSlackAvg.toFixed(2);
             procRunNode.nodeValue = p.procRunAvg.toFixed(4);
         }
 
@@ -121,6 +125,8 @@ window.addEventListener("load", function(ev) {
 <tbody id=DiagBody>
 <tr><td id=TimeStamp class=rj>      <td>Time Stamp
 <tr><td id=ExecClock class=rj>      <td>Exec Clock
+<tr><td id=StampDelta class=rj>     <td>Stamp Delta
+<tr><td id=Delay class=rj>          <td>Last delay
 <tr><td id=ProcTime class=rj>       <td>Proc Time
 <tr><td id=DelayDeltaAvg class=rj>  <td>Delay Delta Avg
 <tr><td id=ProcSlackAvg class=rj>   <td>Proc Slack Avg

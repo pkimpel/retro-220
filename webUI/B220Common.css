@@ -138,7 +138,6 @@ DIV.neonLamp {
     height:             16px;
     font-size:          4px;
     border-radius:      50%;
-    /* border:             2px solid #999; */
     background-image:   radial-gradient(circle, #999, #333)}
 DIV.neonLit1 {
     background-image:   radial-gradient(circle, #A85, #444)}
@@ -308,7 +307,7 @@ DIV.blackControlKnobBottomCaption {
 
 DIV.panelSurface {
     position:           absolute;
-    background-color:   #D8C5BC;        /* was #E4DDCD; putty #EDEAE8; */
+    background-color:   #EADAD1;        /* was #D8C5BC; #E4DDCD; putty #EDEAE8; */
     color:              black}
 
 DIV.panelRegister {
@@ -374,8 +373,8 @@ DIV.panelTopCaption {
     top:                0.75em;
     left:               4px;
     right:              4px;
-    border-top:         2px solid #D8C5BC;
-    color:              #D8C5BC}
+    border-top:         2px solid #EADAD1;
+    color:              #EADAD1}
 
 SPAN.panelTopCaptionSpan {
     position:           relative;
@@ -383,7 +382,7 @@ SPAN.panelTopCaptionSpan {
     font-size:          7px;
     padding-left:       4px;
     padding-right:      4px;
-    color:              #D8C5BC;
+    color:              #EADAD1;
     background-color:   #333}
 
 DIV.panelRegCaption {
@@ -505,7 +504,7 @@ BUTTON.plainButton {
     width:              auto;
     height:             24px;
     padding:            2px;
-    color:              #D8C5BC;
+    color:              #EADAD1;
     background-color:   #999;
     box-shadow:         3px 3px 2px #999;
     border:             1px solid #DDD;
@@ -515,10 +514,10 @@ BUTTON.panelLabel {
     position:           absolute;
     width:              32px;
     height:             18px;
-    color:              #D8C5BC;
+    color:              #EADAD1;
     background-color:   #333;
     border-radius:      4px;
-    border:             1px solid #D8C5BC;
+    border:             1px solid #EADAD1;
     line-height:        5px;
     font-size:          5px;
     font-weight:        normal}

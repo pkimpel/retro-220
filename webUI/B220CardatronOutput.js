@@ -209,12 +209,12 @@ B220CardatronOutput.prototype.setDeviceReady = function setDeviceReady(ready) {
 
     this.runoutSupplyCount = 0;
     if (ready && !this.ready) {
-        B220Util.addClass(this.$$("COStartBtn"), "greenLit")
-        B220Util.removeClass(this.$$("COStopBtn"), "redLit");
+        this.$$("COStartBtn").classList.add("greenLit")
+        this.$$("COStopBtn").classList.remove("redLit");
         this.ready = true;
     } else if (!ready && this.ready) {
-        B220Util.removeClass(this.$$("COStartBtn"), "greenLit")
-        B220Util.addClass(this.$$("COStopBtn"), "redLit");
+        this.$$("COStartBtn").classList.remove("greenLit")
+        this.$$("COStopBtn").classList.add("redLit");
         this.ready = false;
     }
 };
@@ -224,7 +224,7 @@ B220CardatronOutput.prototype.runoutSupply = function runoutSupply(ev) {
     /* Handles an event to clear the supply from the printer/punch */
 
     this.runoutSupplyCount = 0;
-    B220Util.removeClass(this.$$("COEndOfSupplyBtn"), "redLit");
+    this.$$("COEndOfSupplyBtn").classList.remove("redLit");
     this.supplyMeter.value = this.supplyLeft = this.maxSupplyLines;
     this.groupLinesLeft = 0;
     while (this.supply.firstChild) {
@@ -251,7 +251,7 @@ B220CardatronOutput.prototype.copySupply = function copySupply(ev) {
         barGroup = barGroup.nextSibling;
     }
 
-    B220Util.openPopup(this.window, "./B220FramePaper.html", this.mnemonic + "-Snapshot",
+    B220Util.openPopup(this.window, "./B220FramePaper.html", "",
             "scrollbars,resizable,width=500,height=500",
             this, function(ev) {
         var doc = ev.target;
@@ -333,10 +333,10 @@ B220CardatronOutput.prototype.printLine = function printLine(text, spaceBefore) 
 
     this.appendLine(text || "\xA0");
     if (this.supplyLeft > 0) {
-        this.supplyMeter.value = this.supplyLeft -= 1;
+        this.supplyMeter.value = (this.supplyLeft -= 1);
     } else {
         this.setDeviceReady(false);
-        B220Util.addClass(this.$$("COEndOfSupplyBtn"), "redLit");
+        this.$$("COEndOfSupplyBtn").classList.add("redLit");
     }
 };
 
@@ -430,12 +430,12 @@ B220CardatronOutput.prototype.initiateWrite = function initiateWrite() {
         }
 
         // Convert to ASCII line image and determine carriage control
-        line = String.fromCharCode.apply(null, this.lineBuffer.subarray(lx, this.lineWidth+lx));
+        line = String.fromCharCode.apply(null, this.lineBuffer.subarray(lx, this.lineWidth+lx))
+                     .replace(this.rtrimRex, '');
         if (this.useAlgolGlyphs) {
-            line = B220Util.xlateASCIIToAlgol(line.replace(this.rtrimRex, ''));
-        } else {
-            line = line.replace(this.rtrimRex, '');
+            line = B220Util.xlateASCIIToAlgol(line);
         }
+
         switch (this.cDigit) {
         case 1:                         // Relay 1 (eject page after printing)
         case 9:                         // same as 1
@@ -544,10 +544,14 @@ B220CardatronOutput.prototype.COStopBtn_onClick = function COStopBtn_onClick(ev)
 
 /**************************************/
 B220CardatronOutput.prototype.CORunoutSupplyBtn_onClick = function CORunoutSupplyBtn_onClick(ev) {
-    /* Handle the click event for the Skip To Heading button */
+    /* Handle the click event for the Skip To Heading or Runout Supply button */
 
     if (!this.ready) {
-        this.printLine("", -1);
+        if (this.atTopOfForm) {
+            this.appendLine("\xA0");    // force start of a new greenbar group
+        }
+
+        this.skipToChannel();
         this.endOfSupply.scrollIntoView();
         if (++this.runoutSupplyCount >= 3) {
             if (this.window.confirm("Do you want to clear the output from the device?")) {
@@ -569,7 +573,7 @@ B220CardatronOutput.prototype.COEndOfSupplyBtn_onClick = function COEndOfSupplyB
 
     if (this.supplyLeft <= 0 && !this.ready) {
         this.runoutSupplyCount = 0;
-        B220Util.removeClass(this.$$("COEndOfSupplyBtn"), "redLit");
+        this.$$("COEndOfSupplyBtn").classList.remove("redLit");
         this.setDeviceReady(true);
     }
 };
@@ -651,8 +655,8 @@ B220CardatronOutput.prototype.COSetZSBtn_onClick = function COSetZSBtn_onClick(e
         zsCol = tron.parseZeroSuppressList(text, win);
         if (zsCol !== null) {
             tron.zsCol = zsCol;
-            B220Util.removeClass(tron.$$("COSetZSBtn"), (zsCol.length > 0 ? "blackButton1" : "greenButton1"));
-            B220Util.addClass(tron.$$("COSetZSBtn"), (zsCol.length > 0 ? "greenButton1" : "blackButton1"));
+            tron.$$("COSetZSBtn").classList.remove(zsCol.length > 0 ? "blackButton1" : "greenButton1");
+            tron.$$("COSetZSBtn").classList.add(zsCol.length > 0 ? "greenButton1" : "blackButton1");
 
             // Store the new list in the system configuration object
             text = zsCol.join(",");
@@ -758,8 +762,8 @@ B220CardatronOutput.prototype.deviceOnLoad = function deviceOnLoad(ev) {
     if (zsCol !== null) {
         this.zsCol = zsCol;
         if (zsCol.length > 0) {
-            B220Util.removeClass(this.$$("COSetZSBtn"), (zsCol.length > 0 ? "blackButton1" : "greenButton1"));
-            B220Util.addClass(this.$$("COSetZSBtn"), (zsCol.length > 0 ? "greenButton1" : "blackButton1"));
+            this.$$("COSetZSBtn").classList.remove(zsCol.length > 0 ? "blackButton1" : "greenButton1");
+            this.$$("COSetZSBtn").classList.add(zsCol.length > 0 ? "greenButton1" : "blackButton1");
         }
     }
 
