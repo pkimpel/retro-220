@@ -237,19 +237,19 @@ DIV.blueLamp {
     height:             24px;
     font-size:          4px;
     border-radius:      50%;
-    background-image:   radial-gradient(circle, #009, #003)}
+    background-image:   radial-gradient(circle, #009, #007, #003)}
 DIV.blueLit1 {
-    background-image:   radial-gradient(circle, #11A, #006)}
+    background-image:   radial-gradient(circle, #11A, #009, #006)}
 DIV.blueLit2 {
-    background-image:   radial-gradient(circle, #22B, #009)}
+    background-image:   radial-gradient(circle, #22B, #11A, #009)}
 DIV.blueLit3 {
-    background-image:   radial-gradient(circle, #33C, #00A)}
+    background-image:   radial-gradient(circle, #33C, #22B, #00A)}
 DIV.blueLit4 {
-    background-image:   radial-gradient(circle, #55D, #00C)}
+    background-image:   radial-gradient(circle, #55D, #44C, #00C)}
 DIV.blueLit5 {
-    background-image:   radial-gradient(circle, #77E, #00D)}
+    background-image:   radial-gradient(circle, #77E, #55D, #00D)}
 DIV.blueLit {
-    background-image:   radial-gradient(circle, #99F, #00F)}
+    background-image:   radial-gradient(circle, #99F, #77E, #00F)}
 
 DIV.coloredLampTopCaption {
     position:           absolute;

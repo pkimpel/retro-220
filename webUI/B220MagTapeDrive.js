@@ -361,6 +361,16 @@ B220MagTapeDrive.prototype.setTapeReady = function setTapeReady(makeReady) {
 };
 
 /**************************************/
+B220MagTapeDrive.prototype.setTransportPower = function setTransportPower(toOn) {
+    /* Sets Transport Power for the drive to On or Standby */
+
+    this.powerOn = toOn && (this.tapeState != this.tapeUnloaded);
+    this.transportOnLamp.set(this.powerOn ? 1 : 0);
+    this.transportStandbyLamp.set(this.powerOn ? 0 : 1);
+    this.setTapeReady(this.powerOn);
+};
+
+/**************************************/
 B220MagTapeDrive.prototype.setTapeUnloaded = function setTapeUnloaded() {
     /* Controls the loaded/unloaded-state of the tape drive */
 
@@ -579,9 +589,11 @@ B220MagTapeDrive.prototype.loadTape = function loadTape() {
         mt.tapeState = mt.tapeLocal;    // setTapeReady() requires it not be unloaded
         mt.setLane(0, null);
         mt.$$("MTLaneNrLight").style.visibility = "visible";
-        mt.setTapeReady(true);
         mt.reelIcon.style.visibility = "visible";
         mt.$$("MTUnloadedLight").classList.remove("annunciatorLit");
+
+        // Automatically turn on transport power and make drive ready
+        mt.setTransportPower($$$("MTLoadTransportPowerOn").checked);
     }
 
     function writeBlockStart(length) {
@@ -1160,10 +1172,7 @@ B220MagTapeDrive.prototype.WriteBtn_onclick = function WriteBtn_onclick(ev) {
 B220MagTapeDrive.prototype.TransportOnBtn_onclick = function TransportOnBtn_onclick(ev) {
     /* Handle the click event for the TRANSPORT POWER ON and STANDBY buttons */
 
-    this.powerOn = (ev.target.id == "TransportOnBtn") && (this.tapeState != this.tapeUnloaded);
-    this.transportOnLamp.set(this.powerOn ? 1 : 0);
-    this.transportStandbyLamp.set(this.powerOn ? 0 : 1);
-    this.setTapeReady(this.powerOn);
+    this.setTransportPower(ev.target.id == "TransportOnBtn");
 };
 
 /**************************************/
