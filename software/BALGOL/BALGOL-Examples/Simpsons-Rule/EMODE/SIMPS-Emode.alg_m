@@ -1,0 +1,75 @@
+BEGIN                                                                   00000100          
+COMMENT SIMPSON-S RULE INTEGRATION PROCEDURE, TRANSLATED TO BALGOL      00000200          
+        FROM THE EXAMPLE IN THE PRELIMINARY IAL REPORT;                 00000300          
+                                                                        00000400          
+COMMENT                                                                 00000500          
+    EXAMPLE.. INTEGRATION OF A FUNCTION F(X) BY SIMPSON-S RULE. THE     00000600          
+    VALUES OF F(X) ARE SUPPLIED BY AN ASSUMED EXISTENT FUNCTION         00000700          
+    ROUTINE. THE MESH SIZE IS HALVED UNTIL TWO SUCCESSIVE SIMPSON       00000800          
+    SUMS AGREE WITHIN A PRESCRIBED ERROR. DURING THE MESH REDUCTION     00000900          
+    F(X) IS EVALUATED AT MOST ONCE FOR ANY X. A VALUE V GREATER THAN    00001000          
+    THE MAXIMUM ABSOLUTE VALUE ATTAINED BY THE FUNCTION ON THE          00001100          
+    INTERVAL IS REQUIRED FOR INITIALZING;                               00001200          
+                                                                        00110000          
+FILE LINE(KIND=PRINTER, MAXRECSIZE=132, FRAMESIZE=8, FILEUSE=OUT);      00110100          
+FORMAT F1("SUM = ",F12.5);                                              00110200          
+REAL SUM;                                                               00110300          
+LIST RESULT (SUM);                                                      00110400          
+                                                                        00200000          
+REAL PROCEDURE SIMPS(A, B, DELTA, V, F);                                00200100          
+  VALUE A, B, DELTA, V;                                                 00200200          
+  REAL A, B, DELTA, V;                                                  00200300          
+  REAL PROCEDURE F(X); VALUE X; REAL X; FORMAL;                         00200400          
+    COMMENT A, B ARE THE MIN AND MAX, RESP. OF THE POINTS DEF.          00200500          
+    INTERVAL OF INTEG. F() IS THE FUNCTION TO INTEGRATED.               00200600          
+    DELTA IS THE PERMISSIBLE DIFFERENCE BETWEEN TO SUCCESSIVE SIMPSON   00200700          
+    SUMS. V IS GREATER THAN THE MAXIMUM ABSOLUTE VALUE OF F ON A, B;    00200800          
+  BEGIN                                                                 00200900          
+  INTEGER K, N;                                                         00201000          
+  REAL H, I, IBAR, J, S;                                                00201100          
+  LABEL J1;                                                             00201200          
+  MONITOR LINE (IBAR, N, H, J, S K, I);                                 00201300          
+                                                                        00201400          
+  IBAR:= V*(B-A);                                                       00201500          
+  N:= 1;                                                                00201600          
+  H:= (B-A)/2;                                                          00201700          
+  J:= H*(F(A) + F(B));                                                  00201800          
+                                                                        00201900          
+J1:                                                                     00202000          
+  S:= 0;                                                                00202100          
+  FOR K:= 1 STEP 1 UNTIL N DO                                           00202200          
+    S:= S + F(A + (2*K-1)*H);                                           00202300          
+                                                                        00202400          
+  I:= J + 4*H*S;                                                        00202500          
+  IF DELTA < ABS(I-IBAR) THEN                                           00202600          
+    BEGIN                                                               00202700          
+    IBAR:= I;                                                           00202800          
+    J:= (I+J)/4;                                                        00202900          
+    N:= 2*N;                                                            00203000          
+    H:= H/2;                                                            00203100          
+    GO TO J1                                                            00203200          
+    END;                                                                00203300          
+                                                                        00203400          
+  SIMPS:= I/3;                                                          00203500          
+  END SIMPS;                                                            00203600          
+                                                                        00210000          
+REAL PROCEDURE TORADS(X); VALUE X; REAL X; TORADS:= 3.1415926*X/180;    00210100          
+                                                                        00210200          
+REAL PROCEDURE SINE(X); VALUE X; REAL X; SINE:= SIN(X);                 00210300          
+                                                                        00210400          
+REAL PROCEDURE DARCTAN(X); VALUE X; REAL X; DARCTAN:= 1/(X**2 + 1);     00210500          
+                                                                        00210600          
+REAL PROCEDURE LOGISTICSIGMOID(X);                                      00210700          
+  VALUE X;                                                              00210800          
+  REAL X;                                                               00210900          
+  BEGIN                                                                 00211000          
+  LOGISTICSIGMOID:= 1/(1 + EXP(-X));                                    00211100          
+  END LOGISTICSIGMOID;                                                  00211200          
+                                                                        00900000          
+SUM:= SIMPS(TORADS(30), TORADS(90), 0.00001, 2.0, SINE);                00900600          
+WRITE(LINE, F1, RESULT);                                                00900700          
+SUM:= SIMPS(0, 1, 1@-5, 2.0, DARCTAN);                                  00900800          
+WRITE(LINE, F1, RESULT);                                                00900900          
+SUM:= SIMPS(0.5, 3, 1@-5, 2.0, LOGISTICSIGMOID);                        00901000          
+WRITE(LINE, F1, RESULT);                                                00901100          
+END.                                                                    00999900          

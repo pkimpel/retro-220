@@ -245,6 +245,38 @@ Bootstrap deck:
         606|00001000048|05000000000|00000000000|00000000000|
         601|00001100054|40000990000|           |           |
 
+A similar correction must be made to the object deck for the MONIT
+routine (MONIT-Object.card) after it has been inserted into the
+Bootstrap deck.
+
+    * Locate the instruction word 6 0050 30 0200, which should be at
+    relative address 0029. This is another branch to the RITE
+    subroutine.
+
+    * The /44 field of this instruction needs to be relocated relative
+    to the starting physical address of the routine, as for the ERROR
+    routine above.
+
+    * Insert a new-line in the card image in front of this instruction.
+    It should be the last word on the fifth line of the deck. Adjust the
+    digit in column 3 of that line to reflect the number of words now
+    contained on that line (should be from 6 to 5).
+
+    * On the new line that has been created, insert the following in
+    front of the text:
+
+        60x0000yy0zzzz40000040000
+
+    where x is one plus the number of words originally on the new line
+    (should be 2), yy is the sequence number of the line, and must be
+    one plus the number in the corresponding columns above it (should be
+    06), and zzzz is the relative address of the first word on that line
+    (should be 0029).
+
+    * Adjust the sequence numbers in columns 8-9 on all following cards
+    for the routine so that they increase by one from the number on the
+    preceding card.
+
 You can arrange the library routines in any order, but it is probably
 best to use the same order that the routines appear in the scanned
 listing of the Compiler on the Computer History Museum's web site.
@@ -398,4 +430,3 @@ PROCESS LIBRARY statement and the library object decks.
 
 Paul Kimpel
 July 2018
-

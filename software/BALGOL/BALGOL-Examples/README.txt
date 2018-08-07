@@ -224,6 +224,15 @@ DIRICHLET
         results from a run on a 300 RPM LX100 VM system running MCP
         10.1.
 
+Simpsons-Rule/
+    BALGOL program to compute the integral of an arbitrary single-
+    argument function between between two points using Simpson's Rule.
+    This example is adapted to BALGOL from the one at the end of the
+    Algol-58 "Preliminary Report--International Algorithmic Language",
+    Communications of the ACM, Volume 1, Number 12 (December 1958),
+    pages 8-22. It also illustrates the use of the MONITOR declaration
+    to trace variable assignments.
+
 U.Dayton-Program/
     Source for two short BALGOL programs submitted to Burroughs by the
     University of Dayton in 1963 to report a compiler issue. Includes a
@@ -242,6 +251,5 @@ February 2018
     Finalize DIRICHLET program and tests.
 2018-07-07  Paul Kimpel
     Complete Reference-Manual example programs and update results.
-
-
-
+2018-07-19  Paul Kimpel
+    Add Simpsons-Rule example.
