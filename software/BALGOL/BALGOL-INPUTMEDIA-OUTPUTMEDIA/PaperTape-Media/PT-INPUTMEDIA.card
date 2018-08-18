@@ -1,0 +1,13 @@
+          REM   BALGOL COMPILER INPUTMEDIA ROUTINE FOR PAPER TAPE.
+          REM   2018-07-31 P.KIMPEL
+          REM
+    PTU   DEFN  1               PAPER TAPE INPUT UNIT NR
+          REM
+    ITBL  NOP   *               ENTRY POINT
+          LDB 8 ITBL            LOAD RETURN ADDRESS TO B
+          STB 8 EXIT,04         STORE IN EXIT BUN ADDR
+          DLB - 9999,44,0       LOAD BUFFER ADDR TO B
+          PRD - 0,PTU,14        READ 14 WORDS INTO BUFFER
+          STB - 0,22            MAKE 1ST CHAR IN BUFFER A SPACE
+    EXIT  BUN   *               RETURN TO CALLER
+          FINI  ITBL

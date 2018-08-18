@@ -1,0 +1,27 @@
+Assembler for the Burroughs 220 BALGOL Compiler & Library -- 2018-08-06 14:22
+
+Source File: PT-INPUTMEDIA.card
+
+START PASS 2
+
+                                                       BALGOL COMPILER INPUTMEDIA ROUTINE FOR PAPER TAPE.
+                                                       2018-07-31 P.KIMPEL
+
+             4      0000                   PTU   DEFN  1               PAPER TAPE INPUT UNIT NR
+
+             6      0000  0 0000 01 0000   ITBL  NOP   *               ENTRY POINT
+             7      0001  8 0000 42 0000         LDB 8 ITBL            LOAD RETURN ADDRESS TO B
+             8      0002  8 0412 40 0007         STB 8 EXIT,04         STORE IN EXIT BUN ADDR
+             9      0003  1 4400 28 9999         DLB - 9999,44,0       LOAD BUFFER ADDR TO B
+            10      0004  1 1140 03 0000         PRD - 0,PTU,14        READ 14 WORDS INTO BUFFER
+            11      0005  0 0001 45 0000         CLA                   ZERO A REG
+            12      0006  1 2210 40 0000         STA - 0,22            MAKE 1ST CHAR IN BUFFER A SPACE
+            13      0007  0 0000 30 0007   EXIT  BUN   *               RETURN TO CALLER
+            14      0008                         FINI  ITBL
+
+
+SYMBOL TABLE
+
+    8 BMOD              7 EXIT              0 ITBL              1 PTU               1 RLO
+
+END PASS 2, ERRORS = 0

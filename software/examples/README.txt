@@ -65,10 +65,12 @@ WINTER.PI/
     digits of Pi. This program was ported to the 220 by Paul Kimpel (via
     Burroughs B5500 Algol and the ElectroData/Burroughs 205) from a C
     program written by Dik T. Winter of CWI in Amsterdam (see
-    https://cs.uwaterloo.ca/~alopez-o/math-faq/mathtext/node12.html).
+    https://cs.uwaterloo.ca/~alopez-o/math-faq/mathtext/node12.html
+    and https://crypto.stanford.edu/pbc/notes/pi/code.html).
     Assemble with software/tools/BAC-Assembler.html.
 
-    The listing includes sample output to the SPO.
+    The listing includes sample output to the SPO. The program takes
+    about 40 minutes to run to completion.
 
     WINTER.PI.Code.lst is an assembly listing with the assembled code
     arranged for manual conversion to retro-220 paper-tape image format.

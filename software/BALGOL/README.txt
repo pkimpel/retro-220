@@ -277,10 +277,15 @@ BALGOL-Library/
     object decks for the compiler's standard library routines as
     produced by the Generator program PUNCH LIBRARY... statement.
 
+BALGOL-INPUTMEDIA-OUTPUTMEDIA/
+    Notes and object decks for alternate input/output routines for the
+    Compiler and Library. These are used to configure the compiler and
+    run-time to use different types of peripheral devices, e.g., paper
+    tape. See the README file in the directory for details.
+
 BALGOL-Examples/
     Source code and listings for sample BALGOL programs. See the README
     file in the directory for details.
 
 Paul Kimpel
-July 2018
-
+August 2018

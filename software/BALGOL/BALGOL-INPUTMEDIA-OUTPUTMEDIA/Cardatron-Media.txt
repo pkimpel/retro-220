@@ -1,0 +1,90 @@
+Annotation of the default INPUTMEDIA and OUTPUTMEDIA routines for
+Cardatron devices. The routines from the GENERATOR listing are used
+by the BALGOL compiler; those from the Library are used by compiled
+programs at run time.  2018-07-20 P.Kimpel
+
+
+From GENERATOR listing:
+
+Cardatron input routine for Compiler:
+
+ 722      0616  0 0000 00 0006         IK          (6)                  number of words in input routine
+ 723      0617  0 0000 01 0000         ITBL        NOP                  entry point
+ 724      0618  8 0000 42 0000                    8LDB     ($-1)-ITBL   load return address to B from entry point word
+ 725      0619  8 0412 40 0005                    8STB     (1F)-ITBL/04 store return address in BUN at 1F /04 field
+ 726      0620  1 4400 28 9999                    -DLB     -1/44        load B with /44 field of BUN at calling address (buffer address)
+ 727      0621  1 1010 60 0015         UNIT1      -CNC     15,1         read card from unit 1 to buffer address+15 (Cardatron stores words backwards in memory)
+ 728      0622  0 0000 30 0622         1           BUN     $            return to caller
+
+Cardatron output routine for Compiler:
+
+ 746      0780  0 0000 00 0013         OK          (13)                 number of words in output routine
+ 747      0781  0 0000 01 0000         OTBL        NOP                  entry point
+ 748      0782  8 0000 42 0000                    8LDB     ($-1)-OTBL   load return address to B from entry point word
+ 749      0783  8 0412 40 0012                    8STB     (1F)-OTBL/04 store return address at 1F /04 field
+ 750      0784  1 0000 10 9999                    -CAD     -1           load the word before the return address (should be the BUN for the call)
+ 751      0785  0 0000 48 0006                     SRA     6            shift word right 6 digits (/44 field now in /04 field: buffer address)
+ 752      0786  8 0410 40 0011                    8STA     (2F)-OTBL/04 store buffer address in /04 field of CWR at 2F
+ 753      0787  1 0000 10 9998                    -CAD     -2           load second word before return address (should be STP for the call)
+ 754      0788  8 4210 40 0011                    8STA     (2F)-OTBL/42 store /42 field into CWR at 2F (c and f digits)
+ 755      0789  0 0000 48 0008                     SRA     8            shift word right 8 digits (/22 field not in /02 field: buffer length)
+ 756      0790  0 0000 13 4100                     SUB     XONE+1       subtract 1 from buffer length
+ 757      0791  8 0000 19 0011                    8ADL     (2F)-OTBL    add (buffer length - 1) to base address in CWR at 2F (Cardatron fetches words backwards, too)
+ 758                                   UNIT2       IS      $+1
+ 759      0792  0 2009 61 0000         2           CWR     0,2,0        write card/line to unit 2
+ 760      0793  0 0000 30 0793         1           BUN     $            return to caller
+
+
+From BALGOL-Main: Format Bands
+
+1   FR1   FBGR  INPUT,T2Z1B4A,15(T5A)                                   046 57 0
+1   FR2   FBGR  INPUT,16(P5A),P10Z                                      046 58 0
+1   FR3   FBGR  PRINT,49B,TZZZZZZNNNN,BBB,SBNNNNBNNBNNNN,BT5A,44B       046 59 0
+1   FR6   FBGR  PRINT,49B,TZZZZZZNNNN,BBB,SBNNNNBNNBZZZZ,5BT5A,44B      046 60 0
+1   FR7   FBGR  PRINT,49B,TZZZZZZNNNN,BBB,T6Z10BNNNN,50B                046 61 0
+1   FR4   FBGR  PRINT,7(T5A),85B                                        046 62 0
+1   FR8   FBGR  PRINT,TZZNNNNZZZZ,4B,16(T5A),32B                        046 63 0
+
+
+From Library REED listing: Cardatron input routine for Library:
+
+     .00.0     1      0000                   READ  DEFN  100
+     .00.0     2      0000  0 0000 01 0000   REED  NOP                  entry point
+     .00.0     3      0001  0 1000 60 0117         CRD   0117,1         read from card unit 1 to absolute 0117 (backwards)
+     .00.0     4      0002  6 0000 30 0111         BUN 6 0111           branch to READ routine + 11 words (freefield input formatter)
+     .00.0     5      0003  4 0000 99 0000         CNST  40000990000    pseudo-op to signal end of routine to library linker
+     .00.0     6      0004  2 5945 45 4400         CNST  $REED READ=1 $ library configuration data...
+                      0005  2 5945 41 4433                                "
+                      0006  2 8100 00 0000                                "
+     .00.0     7      0007  9 0000 00 0000         CNST  90000000000      "
+     .00.0     8      0008                         FINI  REED
+
+
+From Library RITE listing: Cardatron output routine for Library:
+
+     .00.0     1      0000  0 0000 01 0000   RITE  NOP                  entry point
+     .00.0     2      0001  8 0000 42 0000         LDB 8 *-1            load return address to B from entry point word
+     .00.0     3      0002  1 0000 10 9999         CAD - 9999           load word before entry point (should be BUN at the calling location)
+     .00.0     4      0003  0 0000 48 0006         SRA   6              shift word right 6 digits (/44 field now in /04 field: buffer address)
+     .00.0     5      0004  8 0410 40 0010         STA 8 A+,04          store buffer address in /04 field of CWR at A+
+     .00.0     6      0005  1 0000 10 9998         CAD - 9998           load second word before return address (should be STP at the calling location)
+     .00.0     7      0006  8 4210 40 0010         STA 8 A+,42          store /42 field into CWR at A+ (c and f digits)
+     .00.0     8      0007  0 0000 48 0008         SRA   8              shift word right 8 digits (/22 field now in /02 field: buffer length)
+     .00.0     9      0008  8 0000 13 0012         SUB 8 +1             subtract 1 from buffer length
+     .00.0    10      0009  8 0000 19 0010         ADL 8 A+             add (buffer length - 1) to base address in CWR at A+ (Cardatron fetches backwards)
+     .00.0    11      0010  0 2000 61 0000   *A    CWR   0,02,0         write card/line to unit 2
+     .00.0    12      0011  1 0000 30 0000         BUN - 0              return to caller
+     .00.0    13      0012                   LOCN  LOCN  *+1            reserve space for literal pool
+     .00.0    14      0013  4 0000 99 0000         CNST  40000990000    pseudo-op to signal end of routine to library linker
+     .00.0    15      0014  2 5949 63 4500         CNST  $RITE $        library configuration data...
+     .00.0    16      0015  9 0000 00 0000         CNST  90000000000      "
+     .00.0    17      0016                         LOCN  LOCN           restore literal pool location
+     .00.0    18      0012                         FINI  RITE
+                      0012  0 0000 00 0001               +0000000001    literal pool
+
+From BALGOL-Overlay: Format Bands:
+
+1   FMT1  FBGR  INPUT,16(P5A),P10Z                                       02 50 0
+1   FMT3  FBGR  PRINT,49B,T5A,T1A1B2A4Z,T10N,T8Z1A,XB6Z2A,48B MONITOR   002 51 0
+1   FMT4  FBGR  PRINT,32B,11(T5A),33B        ERROR MESSAGE FORMAT BAND  002 52 0
+1   FMT5  FBGR  PRINT,24(T5A)                PRINTER-PUNCH FORMAT BAND  002 56 0

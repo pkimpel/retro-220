@@ -243,6 +243,24 @@ U.Dayton-Program/
     Note: the version of the compiler reconstructed by the retro-220
     project still exhibits this error.
 
+WINTER-PI/
+    BALGOL program to compute the first 800 digits of Pi. This was
+    converted from a version for the Burroughs B5500, which in turn was
+    adapted from a one-line C program by Dik T. Winter at CWI in
+    Amsterdam:
+
+    int a=10000,b,c=2800,d,e,f[2801],g;main(){for(;b-c;)f[b++]=a/5;
+         for(;d=0,g=c*2;c-=14,printf("%.4d",e+d/a),e=d%a)
+         for(b=c;d+=f[b]*a,f[b]=d%--g,d/=g--,--b;d*=b);}
+
+    See https://cs.uwaterloo.ca/~alopez-o/math-faq/mathtext/node12.html
+    and https://crypto.stanford.edu/pbc/notes/pi/code.html.
+
+    This program takes about 73 minutes to run to completion. Compare
+    this to the hand-coded assembler version in the software/examples/
+    WINTER.PI/ directory of the repository, which takes about 40 minutes
+    to complete.
+
 
 Paul Kimpel
 February 2018
@@ -253,3 +271,5 @@ February 2018
     Complete Reference-Manual example programs and update results.
 2018-07-19  Paul Kimpel
     Add Simpsons-Rule example.
+2018-08-10  Paul Kimpel
+    Add WINTER-PI example.

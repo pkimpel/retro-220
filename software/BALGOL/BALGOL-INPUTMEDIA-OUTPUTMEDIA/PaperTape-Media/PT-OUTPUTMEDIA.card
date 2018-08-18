@@ -1,0 +1,155 @@
+          REM   BALGOL COMPILER OUTPUTMEDIA ROUTINE FOR PAPER TAPE.
+          REM   2018-07-31 P.KIMPEL
+          REM
+    PTU   DEFN  1               PAPER TAPE/TTY OUTPUT UNIT NR
+          REM
+    OTBL  NOP   *               ENTRY POINT
+          LDB 8 OTBL            LOAD RETURN ADDRESS TO B
+          STB 8 EXIT,04         STORE IN EXIT BUN ADDR
+          LDR - 9998            LOAD STP WORD TO R
+          REM
+          REM   OUTPUT CARRIAGE CONTROL BEFORE PRINT
+          REM
+          BFR 8 SSB,31,00       SINGLE SPACE BEFORE
+          BFR 8 SSB,31,22       SINGLE SPACE BEFORE AND AFTER
+          BFR 8 FFB,31,33       SKIP CH.1 BEFORE
+          BFR 8 DSB,31,44       DOUBLE SPACE BEFORE
+          BFR 8 FFB,31,55       SKIP CH.2 BEFORE
+          BFR 8 DSB,31,66       DOUBLE SPACE BEFORE/SINGLE AFTER
+          BFR 8 FFB,31,77       SKIP CH.3 BEFORE
+          BUN 8 FMT             ALL OTHER CASES, NO CC BEFORE
+          REM
+    FFB   PWR 8 FF,PTU,1        OUTPUT FORM-FEED
+          BUN 8 FMT
+    DSB   PWR 8 CR,PTU,1        OUTPUT CARRIAGE-RETURN
+    SSB   PWR 8 CR,PTU,1        OUTPUT CARRIAGE-RETURN
+          REM
+          REM   FORMAT LINE ACCORDING TO F-DIGIT IN STP WORD
+          REM
+    FMT   DLB - 9999,44,0       LOAD BUFFER ADDR TO B
+          BFR 8 FMT2,41,22      FORMAT ALGOL STATEMENT
+          BFR 8 FMT1,41,00      FORMAT MACHINE INSTRUCTION
+          BFR 8 FMT3,41,44      FORMAT FORWARDS
+          BFR 8 FMT5,41,88      FORMAT FIXUPS
+          REM
+    FMT4  SRT   1               SHIFT BUF LEN IN R TO /32
+          STR 8 *+1,32          STORE BUF LEN INTO PWR NEXT
+          PWR - 0,PTU,*         OUTPUT WORDS FROM BUFFER
+          BUN 8 CCA             BRANCH TO CARRIAGE CONTROL
+          REM
+    FMT1  CAD - 0               FETCH 1ST WORD FROM BUFFER
+          STP 8 PFX1X           OUTPUT INSTRUCTION PREFIX
+          BUN 8 PFX1
+          CAD - 1               FETCH 2ND WORD FROM BUFFER
+          STP 8 IOUTX           FORMAT 7 HIGH-ORDER DIGITS
+          BUN 8 IOUT
+          CAD - 1               REFETCH 2ND WORD FROM BUFFER
+          STP 8 AOUTX           OUTPUT THE ADDRESS FIELD
+          BUN 8 AOUT
+          PWR 8 SP1,PTU,1       OUTPUT A SPACE
+          PWR - 2,PTU,1         OUTPUT 3RD WORD FROM BUFFER
+          BUN 8 CCA             BRANCH TO CARRIAGE CONTROL
+          REM
+    FMT2  CAD - 0               FETCH 1ST WORD FROM BUFFER
+          SRA   4               POSITION ADDRESS DIGITS
+          STP 8 AOUTX           OUTPUT THE ADDRESS
+          BUN 8 AOUT
+          PWR 8 SP4,PTU,1       OUTPUT 4 SPACES
+          SRT   1               SHIFT BUF LEN IN R TO /32
+          STR 8 *+2,32          STORE BUF LEN INTO PWR NEXT
+          DFL 8 *+1,31,1        DECREMENT LEN BY 1
+          PWR - 0,PTU,*         OUTPUT WORDS FROM BUFFER
+          BUN 8 CCA             BRANCH TO CARRIAGE CONTROL
+          REM
+    FMT3  CAD - 0               FETCH 1ST WORD FROM BUFFER
+          STP 8 PFX1X           OUTPUT INSTRUCTION PREFIX
+          BUN 8 PFX1
+          CAD - 1               FETCH 2ND WORD FROM BUFFER
+          STP 8 IOUTX           FORMAT 7 HIGH-ORDER DIGITS
+          BUN 8 IOUT
+          PWR 8 SP5,PTU,1       OUTPUT 5 SPACES
+          PWR - 2,PTU,1         OUTPUT 3RD WORD FROM BUFFER
+          BUN 8 CCA             BRANCH TO CARRIAGE CONTROL
+          REM
+    FMT5  CAD - 0               FETCH 1ST WORD FROM BUFFER
+          STP 8 PFX1X           OUTPUT INSTRUCTION PREFIX
+          BUN 8 PFX1
+          PWR 8 SP5,PTU,1       OUTPUT 5 SPACES
+          PWR 8 SP5,PTU,1       OUTPUT 5 MORE
+          CAD - 1               FETCH 2ND WORD FROM BUFFER
+          STP 8 AOUTX           OUTPUT THE ADDRESS
+          BUN 8 AOUT
+          REM
+          REM   CARRIAGE CONTROL AFTER PRINT
+          REM
+    CCA   LDB 8 OTBL            LOAD RETURN ADDRESS TO B
+          LDR - 9998            LOAD STP WORD TO R
+          BFR 8 FFA,31,11       SKIP CH.1 AFTER
+          BFR 8 SSA,31,22       SINGLE SPACE BEFORE AND AFTER
+          BFR 8 SSA,31,66       DOUBLE SPACE BEFORE/SINGLE AFTER
+          BUN 8 EXIT            ALL OTHER CASES, NO CC AFTER
+          REM
+    FFA   PWR 8 FF,PTU,1        OUTPUT FORM-FEED
+          BUN 8 EXIT
+    SSA   PWR 8 CR,PTU,1        OUTPUT CARRIAGE-RETURN
+          REM
+    EXIT  BUN   *               RETURN TO CALLER
+          REM
+          REM   OUTPUT INSTRUCTION PREFIX ROUTINE
+          REM
+    PFX1  PWR 8 SP5,PTU,1       OUTPUT 5 SPACES
+          CAD - 0               LOAD ADDRESS WORD FROM BUF
+          STP 8 AOUTX           OUTPUT THE ADDRESS
+          BUN 8 AOUT
+          PWR 8 SP3,PTU,1       OUTPUT 3 SPACES
+    PFX1X BUN   *               RETURN TO CALLER
+          REM
+          REM   OUTPUT 4 LOW-ORDER DIGITS IN A ROUTINE
+          REM
+    AOUT  SRT   4,900           SHIFT DIGITS TO R
+          CAD 8 SP3             LOAD SP3 WORD FOR 02 CHAR
+          IFL 8 AOUT,11,4       SET REPEAT COUNT
+    *L    LSA   8               SET SIGN TO 8
+          SLS   1               ROTATE IT TO THE /01 DIGIT
+          SLT   1               SHIFT DIGIT FROM R
+          DFL 8 AOUT,11,1       DECREMENT REPEAT COUNT
+          BRP 8 L-              LOOP IF NOT DONE
+          STA 8 SIGN2,00        STORE IN /00 OF OUTPUT WORD
+          PWR 8 SIGN2,PTU,1     OUTPUT ADDRESS STRING
+    AOUTX BUN   *               RETURN TO CALLER
+          REM
+          REM   OUTPUT 7 HIGH-ORDER INSTRUCTION DIGITS IN A ROUTINE
+          REM
+    IOUT  SRT   10              MOVE INSTRUCTION TO R
+          CAD 8 SP1             LOAD SP1 WORD AS SKELETON
+          SLT   0               COPY SIGN FROM R TO A
+          SRS   1               SHIFT SIGN DIGIT TO /11
+          LSA   8               SET NUMERIC ZONE
+          SRS   1               SHIFT ZONE TO /11
+          STA 8 SIGN2,44        STORE RESULT IN OUTPUT WORD
+          PWR 8 SIGN2,PTU,1     OUTPUT SIGN+SPACE
+          SLT   4               SHIFT CONTROL DIGITS TO A
+          STP 8 AOUTX           OUTPUT CONTROL DIGITS
+          BUN 8 AOUT
+          CAD 8 SP4             LOAD SP4 WORD AS SKELETON
+          LSA   8               SET SIGN TO 8
+          SLA   1               SHIFT 1ST ZONE DIGIT TO /01
+          SLT   1               SHIFT 1ST NUMERIC DIGIT TO /01
+          LSA   8               SET SIGN TO 8
+          SLA   1               SHIFT 2ND ZONE DIGIT TO /01
+          SLT   1               SHIFT 2ND NUMERIC DIGIT TO /01
+          SRA   2               SHIFT ZERO (SPACE) TO /01
+          STA 8 SIGN2,00        STORE IN /00 OF OUTPUT WORD
+          PWR 8 SIGN2,PTU,1     OUTPUT OP CODE DIGITS
+    IOUTX BUN   *               RETURN TO CALLER
+          REM
+          REM   STORAGE
+          REM
+    SIGN2 CNST  20000000000     SIGN-2 WORD FOR PWR OUTPUT
+    CR    CNST  21602020202     CARRIAGE-RETURN WORD
+    FF    CNST  21615020202     FORM-FEED WORD
+    SP1   CNST  20002020202     1 SPACE
+    SP3   CNST  20000000202     3 SPACES
+    SP4   CNST  20000000002     4 SPACES
+    SP5   CNST  20000000000     5 SPACES
+          FINI  OTBL

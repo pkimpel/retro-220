@@ -1,0 +1,97 @@
+          REM   BALGOL LIBRARY RITE ROUTINE FOR PAPER TAPE.
+          REM   2018-08-05 P.KIMPEL
+          REM
+    PTU   DEFN  1               PAPER TAPE/TTY OUTPUT UNIT NR
+          REM
+    RITE  NOP   *               ENTRY POINT
+          LDB 8 RITE            LOAD RETURN ADDRESS TO B
+          STB 8 EXIT,04         STORE IN EXIT BUN
+          LDR - 9998            LOAD STP WORD TO R
+          REM
+          REM   OUTPUT CARRIAGE CONTROL BEFORE PRINT
+          REM
+          BFR 8 SSB,31,00       SINGLE SPACE BEFORE
+          BFR 8 SSB,31,22       SINGLE SPACE BEFORE AND AFTER
+          BFR 8 FFB,31,33       SKIP CH.1 BEFORE
+          BFR 8 DSB,31,44       DOUBLE SPACE BEFORE
+          BFR 8 FFB,31,55       SKIP CH.2 BEFORE
+          BFR 8 DSB,31,66       DOUBLE SPACE BEFORE/SINGLE AFTER
+          BFR 8 FFB,31,77       SKIP CH.3 BEFORE
+          BUN 8 FMT             ALL OTHER CASES, NO CC BEFORE
+          REM
+    FFB   PWR 8 FF,PTU,1        OUTPUT FORM-FEED
+          BUN 8 FMT
+    DSB   PWR 8 CR,PTU,1        OUTPUT CARRIAGE-RETURN
+    SSB   PWR 8 CR,PTU,1        OUTPUT CARRIAGE-RETURN
+          REM
+          REM   FORMAT LINE ACCORDING TO F-DIGIT IN STP WORD
+          REM
+    FMT   DLB - 9999,44,0       LOAD BUFFER ADDR TO B
+          BFR 8 FMT3,41,44      FORMAT MONITOR OUTPUT
+          BFR 8 FMT4,41,66      FORMAT ERRORS
+          REM
+    FMT5  SRT   1               SHIFT BUF LEN IN R TO /32
+          STR 8 *+1,32          STORE BUF LEN INTO PWR NEXT
+          PWR - 0,PTU,*         OUTPUT WORDS FROM BUFFER
+          BUN 8 CCA             BRANCH TO CARRIAGE CONTROL
+          REM
+    FMT3  PWR 8 SP5,PTU,1       OUTPUT 5 SPACES
+          PWR - 0,PTU,1         OUTPUT 1ST WORD FROM BUFFER
+          CAD - 1               FETCH 2ND WORD FROM BUFFER
+          SRT   8               SLIDE 1ST CHAR TO /02, REST TO R
+          SLA   2               ROTATE SPACE AFTER 1ST CHAR
+          SLT   4               SHIFT NEXT 2 CHAR INTO A
+          SLA   1               ROTATE ZERO DIGIT FOR 02 CHAR
+          LSA   2               LOAD NUMERIC DIGIT FOR 02 CHAR
+          SLS   1               ROTATE NUMERIC DIGIT FOR 02 CHAR
+          STA 8 SIGN2,00        STORE IN OUTPUT WORD
+          PWR 8 SIGN2,PTU,1     OUTPUT WORD
+          CAD - 2               FETCH 3RD WORD FROM BUFFER
+          LSA   0               CLEAR SIGN TO PRINT NUMERICALLY
+          STA 8 SIGN2           STORE IN OUTPUT WORD
+          PWR 8 SIGN2,PTU,1     OUTPUT WORD
+          CAD 8 CR              LOAD CR WORD AS SKELETON
+          LSA   2               ROTATE CR CHAR TO /02
+          STA 8 SIGN2           STORE IN OUTPUT WORD
+          CAD - 3               FETCH 4TH WORD FROM BUFFER
+          STA 8 SIGN2,02        STORE CHAR IN OUTPUT WORD
+          PWR 8 SIGN2,PTU,1     OUTPUT WORD
+          CAD 8 CR              LOAD CR WORD AS SKELETON
+          LSA   2               ROTATE CR CHAR TO /02
+          STA 8 SIGN2           STORE IN OUTPUT WORD
+          CAD - 4               FETCH 5TH WORD FROM BUFFER
+          STA 8 SIGN2,04        STORE TWO LOW-ORDER CHARS
+          DFL 8 SIGN2,61,2      CLEAR /62 CHAR TO SPACE
+          BSA 8 *+1,0           IF SIGN=0, DO NOTHING
+          IFL 8 SIGN2,51,2      OTHERWISE, SET /62 TO "-"
+          PWR 8 SIGN2,PTU,1     OUTPUT WORD
+          BUN 8 CCA             BRANCH TO CARRIAGE CONTROL
+          REM
+    FMT4  PWR 8 SP5,PTU,1       OUTPUT 5 SPACES
+          SRT   1               SHIFT BUF LEN IN R TO /32
+          STR 8 *+1,32          STORE BUF LEN INTO PWR NEXT
+          PWR - 0,PTU,*         OUTPUT WORDS FROM BUFFER
+          REM
+          REM   CARRIAGE CONTROL AFTER PRINT
+          REM
+    CCA   LDB 8 RITE            LOAD RETURN ADDRESS TO B
+          LDR - 9998            LOAD STP WORD TO R
+          BFR 8 FFA,31,11       SKIP CH.1 AFTER
+          BFR 8 SSA,31,22       SINGLE SPACE BEFORE AND AFTER
+          BFR 8 SSA,31,66       DOUBLE SPACE BEFORE/SINGLE AFTER
+          BUN 8 EXIT            ALL OTHER CASES, NO CC AFTER
+          REM
+    FFA   PWR 8 FF,PTU,1        OUTPUT FORM-FEED
+          BUN 8 EXIT
+    SSA   PWR 8 CR,PTU,1        OUTPUT CARRIAGE-RETURN
+          REM
+    EXIT  BUN   *               RETURN TO CALLER
+          REM
+          REM   STORAGE
+          REM
+    SIGN2 CNST  20000000000     SIGN-2 WORD FOR PWR OUTPUT
+    CR    CNST  21602020202     CARRIAGE-RETURN WORD
+    FF    CNST  21615020202     FORM-FEED WORD
+    SP5   CNST  20000000000     5 SPACES
+          CNST  40000990000     END SIGNAL FOR LOADER
+          FINI  RITE

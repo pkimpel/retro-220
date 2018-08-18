@@ -1,0 +1,16 @@
+          REM   BALGOL LIBRARY REED ROUTINE FOR PAPER TAPE.
+          REM   2018-08-05 P.KIMPEL
+          REM
+    PTU   DEFN  1               PAPER TAPE INPUT UNIT NR
+          REM
+    REED  NOP   *               ENTRY POINT
+          LDB 8 REED            LOAD RETURN ADDRESS TO B
+          STB 8 EXIT,04         STORE IN EXIT BUN ADDR
+          CAD - 9998            LOAD STP WORD INTO A
+          SRA   1               SHIFT BUF LEN TO /32
+          STA 8 *+2,32          STORE BUF LEN IN PRD WORD
+          DLB - 9999,44,0       LOAD BUFFER ADDR TO B
+          PRD - 0,PTU,*         READ WORDS INTO BUFFER
+    EXIT  BUN   *               RETURN TO CALLER
+          CNST  40000990000     END SIGNAL FOR LOADER
+          FINI  REED
