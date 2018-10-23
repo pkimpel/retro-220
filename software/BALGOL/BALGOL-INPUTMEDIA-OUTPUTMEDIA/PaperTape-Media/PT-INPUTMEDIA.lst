@@ -1,4 +1,4 @@
-Assembler for the Burroughs 220 BALGOL Compiler & Library -- 2018-08-06 14:22
+Assembler for the Burroughs 220 BALGOL Compiler & Library -- 2018-10-22 16:53
 
 Source File: PT-INPUTMEDIA.card
 
@@ -8,20 +8,25 @@ START PASS 2
                                                        2018-07-31 P.KIMPEL
 
              4      0000                   PTU   DEFN  1               PAPER TAPE INPUT UNIT NR
+             5      0000                   WORDS DEFN  14
 
-             6      0000  0 0000 01 0000   ITBL  NOP   *               ENTRY POINT
-             7      0001  8 0000 42 0000         LDB 8 ITBL            LOAD RETURN ADDRESS TO B
-             8      0002  8 0412 40 0007         STB 8 EXIT,04         STORE IN EXIT BUN ADDR
-             9      0003  1 4400 28 9999         DLB - 9999,44,0       LOAD BUFFER ADDR TO B
-            10      0004  1 1140 03 0000         PRD - 0,PTU,14        READ 14 WORDS INTO BUFFER
-            11      0005  0 0001 45 0000         CLA                   ZERO A REG
-            12      0006  1 2210 40 0000         STA - 0,22            MAKE 1ST CHAR IN BUFFER A SPACE
-            13      0007  0 0000 30 0007   EXIT  BUN   *               RETURN TO CALLER
-            14      0008                         FINI  ITBL
+             7      0000  0 0000 01 0000   ITBL  NOP   *-*             ENTRY POINT
+             8      0001  8 0000 42 0000         LDB 8 ITBL            LOAD RETURN ADDRESS TO B
+             9      0002  8 0412 40 0010         STB 8 EXIT,04         STORE IN EXIT BUN ADDR
+            10      0003  1 4400 28 9999         DLB - 9999,44,0       LOAD BUFFER ADDR TO B
+            11      0004  1 1140 03 0000         PRD - 0,PTU,WORDS     READ 14 WORDS INTO BUFFER
+            12      0005  0 0001 45 0000         CLA                   CLEAR A TO ZEROES
+            13      0006  0 0002 43 0000         LSA   2               MAKE IT A WORD OF SPACES
+            14      0007  1 2210 40 0000         STA - 0,22            MAKE 1ST CHAR IN BUFFER A SPACE
+            15      0008  1 0000 40 0014         STA - WORDS           CLEAR COLS 71-80 TO SPACES
+            16      0009  1 0000 40 0015         STA - WORDS+1
+            17      0010  0 0000 30 0000   EXIT  BUN   *-*             RETURN TO CALLER
+            18      0011                         FINI  ITBL
 
 
 SYMBOL TABLE
 
-    8 BMOD              7 EXIT              0 ITBL              1 PTU               1 RLO
+    8 BMOD             10 EXIT              0 ITBL              1 PTU               1 RLO
+   14 WORDS
 
 END PASS 2, ERRORS = 0

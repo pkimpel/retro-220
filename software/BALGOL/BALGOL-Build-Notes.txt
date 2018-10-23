@@ -45,9 +45,15 @@ The layout of the final Generator Tape is:
         value. The high-order three bits of the sign digit are ignored
         by 220 integer addition.
 
-        2 blocks (51..52) reserved for compiler patches. These are also
-        checksummed in the same fashion, but the checksum word is stored
-        at the beginning of the first block, not the end of the second.
+        2 blocks (51..52) reserved for compiler patches. More
+        importantly, this is where the INPUTMEDIA and OUTPUTMEDIA
+        routines for the compiler are stored, which is why these
+        routines are limited to 200 words in the aggregate. These blocks
+        are prepared by the Generator, then read into high memory
+        addresses by the compiler Main's loader routine located at its
+        addresses 0000-0059. These blocks are checksummed in the same
+        fashion as above, but the checksum word is stored at the
+        beginning of the first block, not the end of the second.
 
         3 blocks (53..55) containing a copy of words 3996-4295 from the
         Compiler, not checksummed. This range of addresses is originally
@@ -430,3 +436,5 @@ PROCESS LIBRARY statement and the library object decks.
 
 Paul Kimpel
 July 2018
+
+

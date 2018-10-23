@@ -2,12 +2,17 @@
           REM   2018-07-31 P.KIMPEL
           REM
     PTU   DEFN  1               PAPER TAPE INPUT UNIT NR
+    WORDS DEFN  14
           REM
-    ITBL  NOP   *               ENTRY POINT
+    ITBL  NOP   *-*             ENTRY POINT
           LDB 8 ITBL            LOAD RETURN ADDRESS TO B
           STB 8 EXIT,04         STORE IN EXIT BUN ADDR
           DLB - 9999,44,0       LOAD BUFFER ADDR TO B
-          PRD - 0,PTU,14        READ 14 WORDS INTO BUFFER
-          STB - 0,22            MAKE 1ST CHAR IN BUFFER A SPACE
-    EXIT  BUN   *               RETURN TO CALLER
+          PRD - 0,PTU,WORDS     READ 14 WORDS INTO BUFFER
+          CLA                   CLEAR A TO ZEROES
+          LSA   2               MAKE IT A WORD OF SPACES
+          STA - 0,22            MAKE 1ST CHAR IN BUFFER A SPACE
+          STA - WORDS           CLEAR COLS 71-80 TO SPACES
+          STA - WORDS+1
+    EXIT  BUN   *-*             RETURN TO CALLER
           FINI  ITBL

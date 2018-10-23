@@ -1,4 +1,4 @@
-Assembler for the Burroughs 220 BAC Generator -- 2018-07-07 10:18
+Assembler for the Burroughs 220 BAC Generator -- 2018-09-23 17:49
 
 Source File: BALGOL-Generator.card
 Pool Data:   BALGOL-Generator-PoolSet.js
@@ -15,7 +15,6 @@ UNRESOLVED POOL LITERAL EXPRESSIONS = 20
 LITERAL POOL LENGTH = 183, LAST = 183
 END PASS 1, ERRORS = 0
 RESTARTING PASS 1 TO RE-RESOLVE SYMBOLS
-
 
 START PASS 1
 
@@ -54,7 +53,7 @@ START PASS 2
   27                                   LODOX       IS      5200+74
   28                                   LIBRARYTABLE
   29                                               IS      1857
-  30                                   NUMB        IS      4800+1335
+  30                                   NUMB        IS      4800+1334   **ON LISTING AS 4800+1335**
   31                                   LOD2        IS      4800+3127
   32                                   POSCT       IS      4800+3384
   33                                   HALT        IS      4800+3450
@@ -438,17 +437,17 @@ START PASS 2
  390
  391                                               DJ      00
  392      0312  0 0000 00 0024         1           (24)
- 393      0313  3 0000 35 0061                    3J       (NUMB/100)(04)+(NUMB//100)(64)
+ 393      0313  3 0000 34 0061                    3J       (NUMB/100)(04)+(NUMB//100)(64)
  394      0314  1 0408 27 1677                    -DFL     IA/04,8
- 395      0315  3 0000 36 0061                    3J       ((NUMB+1)/100)(04)+((NUMB+1)//100)(64)
+ 395      0315  3 0000 35 0061                    3J       ((NUMB+1)/100)(04)+((NUMB+1)//100)(64)
  396      0316  1 0414 26 1677                    -IFL     IA/04,14
- 397      0317  3 0000 37 0061                    3J       ((NUMB+2)/100)(04)+((NUMB+2)//100)(64)
+ 397      0317  3 0000 36 0061                    3J       ((NUMB+2)/100)(04)+((NUMB+2)//100)(64)
  398      0318  1 0409 27 1677                    -DFL     IA/04,9
- 399      0319  3 0000 42 0061                    3J       ((NUMB+7)/100)(04)+((NUMB+7)//100)(64)
+ 399      0319  3 0000 41 0061                    3J       ((NUMB+7)/100)(04)+((NUMB+7)//100)(64)
  400      0320  1 0414 26 1677                    -IFL     IA/04,14
- 401      0321  3 0000 43 0061                    3J       ((NUMB+8)/100)(04)+((NUMB+8)//100)(64)
+ 401      0321  3 0000 42 0061                    3J       ((NUMB+8)/100)(04)+((NUMB+8)//100)(64)
  402      0322  1 0408 27 1677                    -DFL     IA/04,8
- 403      0323  3 0000 47 0061                    3J       ((NUMB+12)/100)(04)+((NUMB+12)//100)(64)
+ 403      0323  3 0000 46 0061                    3J       ((NUMB+12)/100)(04)+((NUMB+12)//100)(64)
  404      0324  1 0414 26 1677                    -IFL     IA/04,14
  405      0325  3 0000 67 0079                    3J       ((LOD2+40)/100)(04)+((LOD2+40)//100)(64)
  406      0326  1 4209 27 1677                    -DFL     IA/42,09
@@ -2157,7 +2156,7 @@ SYMBOL TABLE
  1798 LL0            1008 LLC            1799 LMAX              2 LOAD           4217 LOCN
  7927 LOD2           5274 LODOX          4227 MAMAX           224 MAMAXP         1223 MATCHSRF
  1177 MATCHSRF.1      473 MOW             448 MRD            1045 NAME           1074 NAME2
- 1800 NI             6135 NUMB            351 NUMBER         1005 NUMBERWORDS    1121 NUMERIC
+ 1800 NI             6134 NUMB            351 NUMBER         1005 NUMBERWORDS    1121 NUMERIC
  3129 NUTBL           780 OK              992 OREL            233 OSWITCH         781 OTBL
   364 OUTPUTFORMATS   767 OUTPUTMEDIA    8184 POSCT          1801 PRINTER        1802 PRMAX
   247 PROCESSBIT     2241 PRTABLE        1120 PSDO            308 PTVER          1803 PUNCH
@@ -2183,7 +2182,6 @@ SYMBOL TABLE
  4099 XONE           5227 ZERO
 
 
-
 ASSEMBLE PROGRAM UNIT #2:
 
 START PASS 1
@@ -2193,7 +2191,6 @@ UNRESOLVED POOL LITERAL EXPRESSIONS = 3
 LITERAL POOL LENGTH = 6, LAST = 6
 END PASS 1, ERRORS = 0
 RESTARTING PASS 1 TO RE-RESOLVE SYMBOLS
-
 
 START PASS 1
 
@@ -2576,3 +2573,4 @@ SYMBOL TABLE
     0 LOADL            29 LOADP            77 LODOX            51 M               333 MRD
    73 O                 1 OT              388 OUTFMT          115 PFMT             67 R
    78 SECT             72 X                74 Z                25 ZERO
+

@@ -1,29 +1,34 @@
-Assembler for the Burroughs 220 BALGOL Compiler & Library -- 2018-08-06 14:07
+Assembler for the Burroughs 220 BALGOL Compiler & Library -- 2018-10-22 16:55
 
 Source File: PT-REED.card
 
 START PASS 2
 
                                                        BALGOL LIBRARY REED ROUTINE FOR PAPER TAPE.
-                                                       2018-08-05 P.KIMPEL
+                                                       2018-08-05 P.KIMPEL, REVISED 2018-10-22
 
-             4      0000                   PTU   DEFN  1               PAPER TAPE INPUT UNIT NR
+                                                       NOTE- THE BUFFER ADDRESS PASSED BY THE READ ROUTINE
+                                                             IS 0117, WHICH IS THE *ENDING* BUFFER ADDRESS
+                                                             REQUIRED BY THE CARDATRON. THE EFFECTIVE
+                                                             STARTING ADDRESS IS 0101 (M+1), FOR SO FOR
+                                                             PAPER-TAPE INPUT, WE USE THAT.
 
-             6      0000  0 0000 01 0000   REED  NOP   *               ENTRY POINT
-             7      0001  8 0000 42 0000         LDB 8 REED            LOAD RETURN ADDRESS TO B
-             8      0002  8 0412 40 0008         STB 8 EXIT,04         STORE IN EXIT BUN ADDR
-             9      0003  1 0000 10 9998         CAD - 9998            LOAD STP WORD INTO A
-            10      0004  0 0000 48 0001         SRA   1               SHIFT BUF LEN TO /32
-            11      0005  8 3210 40 0007         STA 8 *+2,32          STORE BUF LEN IN PRD WORD
-            12      0006  1 4400 28 9999         DLB - 9999,44,0       LOAD BUFFER ADDR TO B
-            13      0007  1 1070 03 0000         PRD - 0,PTU,*         READ WORDS INTO BUFFER
-            14      0008  0 0000 30 0008   EXIT  BUN   *               RETURN TO CALLER
-            15      0009  4 0000 99 0000         CNST  40000990000     END SIGNAL FOR LOADER
-            16      0010                         FINI  REED
+            10      0000                   PTU   DEFN  1               PAPER TAPE INPUT UNIT NR
+            11      0000                   M     DEFN  0100            I/O BUFFER ADDRESS
+            12      0000                   WORDS DEFN  16              NUMBER OF WORDS TO READ
+
+            14      0000  0 0000 01 0000   REED  NOP   *-*             ENTRY POINT
+            15      0001  8 0000 42 0000         LDB 8 REED            LOAD RETURN ADDRESS TO B
+            16      0002  0 1160 03 0101         PRD   M+1,PTU,WORDS   READ WORDS INTO BUFFER ADDR
+            17      0003  0 0000 46 0117         CLL   M+WORDS+1       CLEAR LAST WORD OF BUFFER
+            18      0004  1 0000 30 0000   EXIT  BUN - 0               RETURN TO CALLER
+            19      0005  4 0000 99 0000         CNST  40000990000     END SIGNAL FOR LOADER
+            20      0006                         FINI  REED
 
 
 SYMBOL TABLE
 
-    8 BMOD              8 EXIT              1 PTU               0 REED              1 RLO
+    8 BMOD              4 EXIT            100 M                 1 PTU               0 REED
+    1 RLO              16 WORDS
 
 END PASS 2, ERRORS = 0

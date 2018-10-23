@@ -39,11 +39,11 @@ From BALGOL-Main: Format Bands
 
 1   FR1   FBGR  INPUT,T2Z1B4A,15(T5A)                                   046 57 0
 1   FR2   FBGR  INPUT,16(P5A),P10Z                                      046 58 0
-1   FR3   FBGR  PRINT,49B,TZZZZZZNNNN,BBB,SBNNNNBNNBNNNN,BT5A,44B       046 59 0
-1   FR6   FBGR  PRINT,49B,TZZZZZZNNNN,BBB,SBNNNNBNNBZZZZ,5BT5A,44B      046 60 0
-1   FR7   FBGR  PRINT,49B,TZZZZZZNNNN,BBB,T6Z10BNNNN,50B                046 61 0
-1   FR4   FBGR  PRINT,7(T5A),85B                                        046 62 0
-1   FR8   FBGR  PRINT,TZZNNNNZZZZ,4B,16(T5A),32B                        046 63 0
+1   FR3   FBGR  PRINT,49B,TZZZZZZNNNN,BBB,SBNNNNBNNBNNNN,BT5A,44B       046 59 0        Machine Instructions, band 1
+1   FR6   FBGR  PRINT,49B,TZZZZZZNNNN,BBB,SBNNNNBNNBZZZZ,5BT5A,44B      046 60 0        Forward References, band 3
+1   FR7   FBGR  PRINT,49B,TZZZZZZNNNN,BBB,T6Z10BNNNN,50B                046 61 0        Fix-ups, band 5
+1   FR4   FBGR  PRINT,7(T5A),85B                                        046 62 0        Error messages, band 4
+1   FR8   FBGR  PRINT,TZZNNNNZZZZ,4B,16(T5A),32B                        046 63 0        Algol statements, band 2
 
 
 From Library REED listing: Cardatron input routine for Library:

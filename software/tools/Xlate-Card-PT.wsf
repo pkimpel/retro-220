@@ -1,0 +1,127 @@
+<?XML version="1.0"?>
+<package>
+<job id="Xlate-Card-PT">
+<reference object="Scripting.FileSystemObject" />
+<script language="VBScript">
+<![CDATA[
+
+Option Explicit
+'-----------------------------------------------------------------------
+' retro-220 Xlate-Card-PT.wsf
+' Copyright (c) 2018, Paul Kimpel,
+' Licensed under the MIT License, see
+'       http://www.opensource.org/licenses/mit-license.php
+'-----------------------------------------------------------------------
+' VBScript to reformat card-image files to the paper-tape format used by
+' the retro-220 emulator.
+' Uses Scripting Runtime FileSystemObject.
+' Parameters:
+'   Name of card-image file (required).
+'   Number of words per paper-tape record (5 char/word) (optional,
+'       defaults to 14).
+'   Name of resulting retro-220 file (optional, by defaults to the name
+'       of the card-image file with ".pt" replacing the orginal file
+'       name extension.
+'-----------------------------------------------------------------------
+' Modification Log.
+' 2018-10-22  P.Kimpel
+'   Original version, cloned from retro-220 Mahon-PT-Xlate.wsf.
+'-----------------------------------------------------------------------
+
+Const charsPerWord = 5
+Const defaultSuffix = ".pt"
+Const defaultWordsPerRec = 14
+
+Dim args
+Dim cardFile
+Dim cardName
+Dim charsPerRec
+Dim fso
+Dim ptFile
+Dim ptName
+Dim wordsPerRec
+
+'---------------------------------------
+Sub ReformatPaperTape
+  'Creates the retro-220 paper-tape file from the card-image file.
+  Dim code
+  Dim count
+  Dim line
+  Dim word
+  Dim x
+
+  count = 0
+  word = ""
+
+  Do While Not cardFile.AtEndOfStream
+    line = cardFile.ReadLine
+    count = Len(line)
+    If count > charsPerRec Then
+      line = Left(line, charsPerRec)
+    Else
+      Do While count < charsPerRec
+        line = line + " "
+        count = count+1
+      Loop
+    End If
+
+    For x = 1 To charsPerRec Step charsPerWord
+      ptFile.WriteLine "2" & Mid(line, x, charsPerWord)
+    Next
+  Loop
+End Sub
+
+'---------------------------------------------------------------
+
+Set fso = WScript.CreateObject("Scripting.FileSystemObject")
+wordsPerRec = defaultWordsPerRec
+
+Set args = WScript.Arguments
+If args.Count < 1 Then
+  MsgBox "Must supply at least the name of the assembler-encoded file."
+  WScript.Quit 9
+Else
+  cardName = Trim(args.Item(0))
+  If args.Count > 1 Then
+    If IsNumeric(args.Item(1)) Then
+      wordsPerRec = CLng(args.Item(1))
+    Else
+      MsgBox "Second parameter must be number of words."
+      WScript.Quit 9
+    End If
+  End If
+
+  If args.Count > 2 Then
+    ptName = Trim(args.Item(2))
+  Else
+    ptName = fso.BuildPath(fso.GetParentFolderName(cardName), fso.GetBaseName(cardName)) & defaultSuffix
+  End If
+End If
+
+Set args = Nothing
+charsPerRec = wordsPerRec*charsPerWord
+
+'-- Main Line --
+If Not fso.FileExists(cardName) Then
+  MsgBox "Card-image file does not exist: " & vbCrLf & cardName
+Else
+  Set cardFile = fso.OpenTextFile(cardName, ForReading, False)
+  Set ptFile = fso.CreateTextFile(ptName, True, False)
+
+  ReformatPaperTape
+
+  ptFile.Close
+  Set ptFile = Nothing
+  cardFile.Close
+  Set cardFile = Nothing
+  MsgBox "retro-220 paper-tape file created: " & vbCrLf & ptName
+End If
+
+Set fso = Nothing
+
+WScript.Quit 0
+
+]]>
+</script>
+</job>
+</package>

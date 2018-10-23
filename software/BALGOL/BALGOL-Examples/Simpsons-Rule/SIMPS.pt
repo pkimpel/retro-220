@@ -1,0 +1,938 @@
+22 COM
+2MENT 
+2SIMPS
+2ON-S 
+2RULE 
+2INTEG
+2RATIO
+2N PRO
+2CEDUR
+2E, TR
+2ANSLA
+2TED T
+2O BAL
+2GOL  
+22    
+2     
+2FROM 
+2THE E
+2XAMPL
+2E IN 
+2THE P
+2RELIM
+2INARY
+2 IAL 
+2REPOR
+2T;   
+2     
+2     
+22    
+2     
+2     
+2     
+2     
+2     
+2     
+2     
+2     
+2     
+2     
+2     
+2     
+2     
+22 COM
+2MENT 
+2     
+2     
+2     
+2     
+2     
+2     
+2     
+2     
+2     
+2     
+2     
+2     
+22    
+2 EXAM
+2PLE..
+2 INTE
+2GRATI
+2ON OF
+2 A FU
+2NCTIO
+2N F(X
+2) BY 
+2SIMPS
+2ON-S 
+2RULE.
+2 THE 
+22    
+2 VALU
+2ES OF
+2 F(X)
+2 ARE 
+2SUPPL
+2IED B
+2Y AN 
+2ASSUM
+2ED EX
+2ISTEN
+2T FUN
+2CTION
+2     
+22    
+2 ROUT
+2INE. 
+2THE M
+2ESH S
+2IZE I
+2S HAL
+2VED U
+2NTIL 
+2TWO S
+2UCCES
+2SIVE 
+2SIMPS
+2ON   
+22    
+2 SUMS
+2 AGRE
+2E WIT
+2HIN A
+2 PRES
+2CRIBE
+2D ERR
+2OR. D
+2URING
+2 THE 
+2MESH 
+2REDUC
+2TION 
+22    
+2 F(X)
+2 IS E
+2VALUA
+2TED A
+2T MOS
+2T ONC
+2E FOR
+2 ANY 
+2X. A 
+2VALUE
+2 V GR
+2EATER
+2 THAN
+22    
+2 THE 
+2MAXIM
+2UM AB
+2SOLUT
+2E VAL
+2UE AT
+2TAINE
+2D BY 
+2THE F
+2UNCTI
+2ON ON
+2 THE 
+2     
+22    
+2 INTE
+2RVAL 
+2IS RE
+2QUIRE
+2D FOR
+2 INIT
+2IALZI
+2NG;  
+2     
+2     
+2     
+2     
+2     
+22    
+2     
+2     
+2     
+2     
+2     
+2     
+2     
+2     
+2     
+2     
+2     
+2     
+2     
+22 PRO
+2CEDUR
+2E SIM
+2PS(A,
+2 B, D
+2ELTA,
+2 V;; 
+2F());
+2     
+2     
+2     
+2     
+2     
+2     
+22    
+2 COMM
+2ENT A
+2, B A
+2RE TH
+2E MIN
+2 AND 
+2MAX, 
+2RESP.
+2 OF T
+2HE PO
+2INTS 
+2DEF. 
+2     
+22    
+2 INTE
+2RVAL 
+2OF IN
+2TEG. 
+2F() I
+2S THE
+2 FUNC
+2TION 
+2TO IN
+2TEGRA
+2TED. 
+2     
+2     
+22    
+2 DELT
+2A IS 
+2THE P
+2ERMIS
+2SIBLE
+2 DIFF
+2ERENC
+2E BET
+2WEEN 
+2TO SU
+2CCESS
+2IVE S
+2IMPSO
+22    
+2 SUMS
+2. V I
+2S GRE
+2ATER 
+2THAN 
+2THE M
+2AXIMU
+2M ABS
+2OLUTE
+2 VALU
+2E OF 
+2F ON 
+2A, B;
+22   B
+2EGIN 
+2     
+2     
+2     
+2     
+2     
+2     
+2     
+2     
+2     
+2     
+2     
+2     
+22   M
+2ONITO
+2R IBA
+2R, N,
+2 H, J
+2, S, 
+2K, I;
+2     
+2     
+2     
+2     
+2     
+2     
+2     
+22   I
+2NTEGE
+2R K, 
+2N;   
+2     
+2     
+2     
+2     
+2     
+2     
+2     
+2     
+2     
+2     
+22    
+2     
+2     
+2     
+2     
+2     
+2     
+2     
+2     
+2     
+2     
+2     
+2     
+2     
+22   I
+2BAR =
+2 V(B-
+2A);  
+2     
+2     
+2     
+2     
+2     
+2     
+2     
+2     
+2     
+2     
+22   N
+2 = 1;
+2     
+2     
+2     
+2     
+2     
+2     
+2     
+2     
+2     
+2     
+2     
+2     
+22   H
+2 = (B
+2-A)/2
+2;    
+2     
+2     
+2     
+2     
+2     
+2     
+2     
+2     
+2     
+2     
+22   J
+2 = H(
+2F(A) 
+2+ F(B
+2));  
+2     
+2     
+2     
+2     
+2     
+2     
+2     
+2     
+2     
+22    
+2     
+2     
+2     
+2     
+2     
+2     
+2     
+2     
+2     
+2     
+2     
+2     
+2     
+22 J1.
+2.    
+2     
+2     
+2     
+2     
+2     
+2     
+2     
+2     
+2     
+2     
+2     
+2     
+22   S
+2 = 0;
+2     
+2     
+2     
+2     
+2     
+2     
+2     
+2     
+2     
+2     
+2     
+2     
+22   F
+2OR K 
+2= (1,
+2 1, N
+2);   
+2     
+2     
+2     
+2     
+2     
+2     
+2     
+2     
+2     
+22    
+2 S = 
+2S + F
+2(A + 
+2(2K-1
+2)H); 
+2     
+2     
+2     
+2     
+2     
+2     
+2     
+2     
+22    
+2     
+2     
+2     
+2     
+2     
+2     
+2     
+2     
+2     
+2     
+2     
+2     
+2     
+22   I
+2 = J 
+2+ 4H.
+2S;   
+2     
+2     
+2     
+2     
+2     
+2     
+2     
+2     
+2     
+2     
+22   I
+2F DEL
+2TA LS
+2S ABS
+2(I-IB
+2AR); 
+2     
+2     
+2     
+2     
+2     
+2     
+2     
+2     
+22    
+2 BEGI
+2N    
+2     
+2     
+2     
+2     
+2     
+2     
+2     
+2     
+2     
+2     
+2     
+22    
+2 IBAR
+2 = I;
+2     
+2     
+2     
+2     
+2     
+2     
+2     
+2     
+2     
+2     
+2     
+22    
+2 J = 
+2(I+J)
+2/4;  
+2     
+2     
+2     
+2     
+2     
+2     
+2     
+2     
+2     
+2     
+22    
+2 N = 
+22N;  
+2     
+2     
+2     
+2     
+2     
+2     
+2     
+2     
+2     
+2     
+2     
+22    
+2 H = 
+2H/2; 
+2     
+2     
+2     
+2     
+2     
+2     
+2     
+2     
+2     
+2     
+2     
+22    
+2 GO T
+2O J1 
+2     
+2     
+2     
+2     
+2     
+2     
+2     
+2     
+2     
+2     
+2     
+22    
+2 END;
+2     
+2     
+2     
+2     
+2     
+2     
+2     
+2     
+2     
+2     
+2     
+2     
+22    
+2     
+2     
+2     
+2     
+2     
+2     
+2     
+2     
+2     
+2     
+2     
+2     
+2     
+22   S
+2IMPS(
+2) = I
+2/3;  
+2     
+2     
+2     
+2     
+2     
+2     
+2     
+2     
+2     
+2     
+22   R
+2ETURN
+2;    
+2     
+2     
+2     
+2     
+2     
+2     
+2     
+2     
+2     
+2     
+2     
+22   E
+2ND SI
+2MPS()
+2;    
+2     
+2     
+2     
+2     
+2     
+2     
+2     
+2     
+2     
+2     
+22    
+2     
+2     
+2     
+2     
+2     
+2     
+2     
+2     
+2     
+2     
+2     
+2     
+2     
+22 FUN
+2CTION
+2 TORA
+2DS(X)
+2 = 3.
+214159
+226X/1
+280;  
+2     
+2     
+2     
+2     
+2     
+2     
+22    
+2     
+2     
+2     
+2     
+2     
+2     
+2     
+2     
+2     
+2     
+2     
+2     
+2     
+22 FUN
+2CTION
+2 DARC
+2TAN(X
+2) = 1
+2/(X*2
+2 + 1)
+2;    
+2     
+2     
+2     
+2     
+2     
+2     
+22    
+2     
+2     
+2     
+2     
+2     
+2     
+2     
+2     
+2     
+2     
+2     
+2     
+2     
+22 PRO
+2CEDUR
+2E LOG
+2ISTIC
+2SIGMO
+2ID(X)
+2;    
+2     
+2     
+2     
+2     
+2     
+2     
+2     
+22   B
+2EGIN 
+2     
+2     
+2     
+2     
+2     
+2     
+2     
+2     
+2     
+2     
+2     
+2     
+22   L
+2OGIST
+2ICSIG
+2MOID(
+2) = 1
+2/(1 +
+2 EXP(
+2-X));
+2     
+2     
+2     
+2     
+2     
+2     
+22   R
+2ETURN
+2;    
+2     
+2     
+2     
+2     
+2     
+2     
+2     
+2     
+2     
+2     
+2     
+22   E
+2ND LO
+2GISTI
+2CSIGM
+2OID()
+2;    
+2     
+2     
+2     
+2     
+2     
+2     
+2     
+2     
+22    
+2     
+2     
+2     
+2     
+2     
+2     
+2     
+2     
+2     
+2     
+2     
+2     
+2     
+22 SUM
+2 = SI
+2MPS(T
+2ORADS
+2(30.0
+2), TO
+2RADS(
+290.0)
+2, 0.0
+20001,
+2 2.0;
+2; SIN
+2()); 
+2     
+22 WRI
+2TE(;;
+2 RESU
+2LT, F
+21);  
+2     
+2     
+2     
+2     
+2     
+2     
+2     
+2     
+2     
+22 SUM
+2 = SI
+2MPS(0
+2.0, 1
+2.0, 1
+2**-5,
+2 2.0;
+2; DAR
+2CTAN(
+2));  
+2     
+2     
+2     
+2     
+22 WRI
+2TE(;;
+2 RESU
+2LT, F
+22);  
+2     
+2     
+2     
+2     
+2     
+2     
+2     
+2     
+2     
+22 SUM
+2 = SI
+2MPS(0
+2.5, 3
+2.0, 1
+2**-5,
+2 2.0;
+2; LOG
+2ISTIC
+2SIGMO
+2ID())
+2;    
+2     
+2     
+22 WRI
+2TE(;;
+2 RESU
+2LT, F
+23);  
+2     
+2     
+2     
+2     
+2     
+2     
+2     
+2     
+2     
+22    
+2     
+2     
+2     
+2     
+2     
+2     
+2     
+2     
+2     
+2     
+2     
+2     
+2     
+22 OUT
+2PUT R
+2ESULT
+2(SUM)
+2;    
+2     
+2     
+2     
+2     
+2     
+2     
+2     
+2     
+2     
+22 FOR
+2MAT F
+21(*SI
+2NE IN
+2TEGRA
+2L =  
+2  *,X
+210.6,
+2W0), 
+2     
+2     
+2     
+2     
+2     
+22    
+2    F
+22(*DA
+2RCTAN
+2 INTE
+2GRAL 
+2= *,X
+210.6,
+2W0), 
+2     
+2     
+2     
+2     
+2     
+22    
+2    F
+23(*LO
+2GISTI
+2C INT
+2EGRAL
+2 =*,X
+210.6,
+2W0); 
+2     
+2     
+2     
+2     
+2     
+22 FIN
+2ISH; 
+2     
+2     
+2     
+2     
+2     
+2     
+2     
+2     
+2     
+2     
+2     
+2     

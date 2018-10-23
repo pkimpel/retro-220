@@ -16,8 +16,6 @@ PaperTape-Media/
     Compiler and Library routines to support paper-tape I/O for the
     BALGOL compiler.
 
-    >>> This is a work in progress <<<
-
 
 Paul Kimpel
 August 2018

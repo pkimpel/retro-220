@@ -39,8 +39,19 @@ Mahon-PT-Xlate.wsf
     image format required by the retro-220 emulator.
     See /software/SNAP-Assembler for more on that assembler.
 
+Xlate-Card-PT.wsf
+    Windows VBScript utility to translate card image files to the paper
+    tape image format required by the retro-220 emulator. An optional
+    parameter specifies the number of words per paper-tape record. This
+    defaults to 14 for input to the paper-tape version of the BALGOL
+    compiler. It should be 16 for input to programs compiled by the
+    paper-tape version of BALGOL.
+
 Paul Kimpel
 January 2018
     Original submission.
 2018-06-10
     Add BALGOL-Dumpanalyzer.
+2018-10-22
+    Added Xlate-Card-PT.wsf
+

@@ -192,6 +192,7 @@ LABEL {
              <option value=""        >No Object
              <option value=L SELECTED>Loadable Deck
              <option value=M         >BALGOL ML Deck
+             <option value=P         >Gen MEDIA Deck
              <option value=T         >Object Tape
          </select>
     <td class=rj>
@@ -3092,6 +3093,47 @@ window.addEventListener("load", function() {
     }
 
     /**************************************/
+    function generateGeneratorMediaDeck(asmCode, outputChecksum, startAddress) {
+        /* Formats the assembled object code as a Generator INPUTMEDIA/OUTPUTMEDIA
+        deck in a temporary window. From there it can be save, copied, etc. */
+        var doc = null;                 // temp window document object
+        var deck = null;                // temp window text area
+        var pval = p10[10];             // modulus for a word's absolute value
+        var psign = pval*2;             // modulus for a word's sign bit
+        var title = "220 GEN-Assembler Generator MEDIA Deck";
+        var win = window.open("../../webUI/B220FramePaper.html", "GEN-Asm-MEDIA",
+                "scrollbars,resizable,width=600,height=500");
+
+        function writeCard(word, addr, seq) {
+
+            deck.appendChild(doc.createTextNode(
+                    "600" + padLeft(seq, 7, "0") + padLeft(addr, 4, "0") +
+                    padRight(" ", 22, " ") + padLeft(word, 11, "0") + "\n"));
+        }
+
+        function generateDeck(ev) {
+            var addr = 0;               // assembled code address
+            var seq = 10;               // card sequence number
+            var word = undefined;       // object code word
+
+            win.removeEventListener("load", generateDeck, false);
+            doc = win.document;
+            doc.title = title;
+            deck = doc.getElementById("Paper");
+
+            while (addr < asmCode.length) {
+                word = asmCode[addr] || 0;
+                writeCard(word, addr, seq);
+                seq += 10;
+                ++addr;
+            } // while addr
+        }
+
+        win.addEventListener("load", generateDeck, false);
+        win.moveTo((screen.availWidth-win.outerWidth)/2, (screen.availHeight-win.outerHeight)/2);
+    }
+
+    /**************************************/
     function generateObjectTape(asmCode, outputChecksum, startAddress) {
         /* Formats the assembled object code as a 220 tape image in a temporary
         window. From there it can be save, copied, etc. */
@@ -3264,6 +3306,9 @@ window.addEventListener("load", function() {
                     break;
                 case "M":
                     generateMachineLanguageDeck(asmCode, outputChecksum, startAddress);
+                    break;
+                case "P":
+                    generateGeneratorMediaDeck(asmCode, outputChecksum, startAddress);
                     break;
                 case "T":
                     generateObjectTape(asmCode, outputChecksum, startAddress);

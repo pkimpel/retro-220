@@ -1,113 +1,137 @@
-Assembler for the Burroughs 220 BALGOL Compiler & Library -- 2018-08-06 14:08
+Assembler for the Burroughs 220 BALGOL Compiler & Library -- 2018-10-22 18:07
 
 Source File: PT-RITE.card
 
 START PASS 2
 
                                                        BALGOL LIBRARY RITE ROUTINE FOR PAPER TAPE.
-                                                       2018-08-05 P.KIMPEL
+                                                       2018-08-05 P.KIMPEL, REVISED 2018-10-21
 
              4      0000                   PTU   DEFN  1               PAPER TAPE/TTY OUTPUT UNIT NR
 
-             6      0000  0 0000 01 0000   RITE  NOP   *               ENTRY POINT
+             6      0000  0 0000 01 0000   RITE  NOP   *-*             ENTRY POINT
              7      0001  8 0000 42 0000         LDB 8 RITE            LOAD RETURN ADDRESS TO B
-             8      0002  8 0412 40 0067         STB 8 EXIT,04         STORE IN EXIT BUN ADDR
-             9      0003  1 0000 41 9998         LDR - 9998            LOAD STP WORD TO R
+             8      0002  8 0412 40 0078         STB 8 XBUN,04         STORE IN EXIT BUN ADDR
+             9      0003  8 0001 40 0083         STR 8 RSAVE           PRESERVE CALLER-S R REG
+            10      0004  1 0000 41 9998         LDR - 9998            LOAD STP WORD TO R
 
                                                        OUTPUT CARRIAGE CONTROL BEFORE PRINT
 
-            13      0004  8 3100 37 0015         BFR 8 SSB,31,00       SINGLE SPACE BEFORE
             14      0005  8 3122 37 0015         BFR 8 SSB,31,22       SINGLE SPACE BEFORE AND AFTER
             15      0006  8 3133 37 0012         BFR 8 FFB,31,33       SKIP CH.1 BEFORE
             16      0007  8 3144 37 0014         BFR 8 DSB,31,44       DOUBLE SPACE BEFORE
             17      0008  8 3155 37 0012         BFR 8 FFB,31,55       SKIP CH.2 BEFORE
             18      0009  8 3166 37 0014         BFR 8 DSB,31,66       DOUBLE SPACE BEFORE/SINGLE AFTER
             19      0010  8 3177 37 0012         BFR 8 FFB,31,77       SKIP CH.3 BEFORE
-            20      0011  8 0000 30 0016         BUN 8 FMT             ALL OTHER CASES, NO CC BEFORE
+            20      0011  8 0000 30 0015         BUN 8 SSB             ALL OTHER CASES, SINGLE SPACE BEFORE
 
-            22      0012  8 1010 06 0070   FFB   PWR 8 FF,PTU,1        OUTPUT FORM-FEED
+            22      0012  8 1010 06 0081   FFB   PWR 8 FF,PTU,1        OUTPUT FORM-FEED
             23      0013  8 0000 30 0016         BUN 8 FMT
-            24      0014  8 1010 06 0069   DSB   PWR 8 CR,PTU,1        OUTPUT CARRIAGE-RETURN
-            25      0015  8 1010 06 0069   SSB   PWR 8 CR,PTU,1        OUTPUT CARRIAGE-RETURN
+            24      0014  8 1010 06 0080   DSB   PWR 8 CR,PTU,1        OUTPUT CARRIAGE-RETURN
+            25      0015  8 1010 06 0080   SSB   PWR 8 CR,PTU,1        OUTPUT CARRIAGE-RETURN
 
                                                        FORMAT LINE ACCORDING TO F-DIGIT IN STP WORD
 
-            29      0016  1 4400 28 9999   FMT   DLB - 9999,44,0       LOAD BUFFER ADDR TO B
-            30      0017  8 4144 37 0023         BFR 8 FMT3,41,44      FORMAT MONITOR OUTPUT
-            31      0018  8 4166 37 0054         BFR 8 FMT4,41,66      FORMAT ERRORS
+            29      0016                   FMT   DEFN  *
+            30      0016  1 4400 28 9999         DLB - 9999,44,0       LOAD BUFFER ADDR TO B
+            31      0017  8 4144 37 0020         BFR 8 FMT3,41,44      FORMAT MONITOR OUTPUT
+            32      0018  8 4166 37 0050         BFR 8 FMT4,41,66      FORMAT ERRORS
 
-            33      0019  0 0001 48 0001   FMT5  SRT   1               SHIFT BUF LEN IN R TO /32
-            34      0020  8 3211 40 0021         STR 8 *+1,32          STORE BUF LEN INTO PWR NEXT
-            35      0021  1 1210 06 0000         PWR - 0,PTU,*         OUTPUT WORDS FROM BUFFER
-            36      0022  8 0000 30 0058         BUN 8 CCA             BRANCH TO CARRIAGE CONTROL
+            34      0019                   FMT5  DEFN  *               FORMAT 5 -- OUTPUT WORDS FROM BUFFER
+            35      0019  8 0000 30 0051         BUN 8 WBUF            BRANCH TO BUFFER WRITE
 
-            38      0023  8 1010 06 0071   FMT3  PWR 8 SP5,PTU,1       OUTPUT 5 SPACES
-            39      0024  1 1010 06 0000         PWR - 0,PTU,1         OUTPUT 1ST WORD FROM BUFFER
-            40      0025  1 0000 10 0001         CAD - 1               FETCH 2ND WORD FROM BUFFER
-            41      0026  0 0001 48 0008         SRT   8               SLIDE 1ST CHAR TO /02, REST TO R
-            42      0027  0 0000 49 0002         SLA   2               ROTATE SPACE AFTER 1ST CHAR
-            43      0028  0 0001 49 0004         SLT   4               SHIFT NEXT 2 CHAR INTO A
-            44      0029  0 0000 49 0001         SLA   1               ROTATE ZERO DIGIT FOR 02 CHAR
-            45      0030  0 0002 43 0000         LSA   2               LOAD NUMERIC DIGIT FOR 02 CHAR
-            46      0031  0 0002 49 0001         SLS   1               ROTATE NUMERIC DIGIT FOR 02 CHAR
-            47      0032  8 0010 40 0068         STA 8 SIGN2,00        STORE IN OUTPUT WORD
-            48      0033  8 1010 06 0068         PWR 8 SIGN2,PTU,1     OUTPUT WORD
-            49      0034  1 0000 10 0002         CAD - 2               FETCH 3RD WORD FROM BUFFER
-            50      0035  0 0000 43 0000         LSA   0               CLEAR SIGN TO PRINT NUMERICALLY
-            51      0036  8 0000 40 0068         STA 8 SIGN2           STORE IN OUTPUT WORD
-            52      0037  8 1010 06 0068         PWR 8 SIGN2,PTU,1     OUTPUT WORD
-            53      0038  8 0000 10 0069         CAD 8 CR              LOAD CR WORD AS SKELETON
-            54      0039  0 0002 43 0000         LSA   2               ROTATE CR CHAR TO /02
-            55      0040  8 0000 40 0068         STA 8 SIGN2           STORE IN OUTPUT WORD
-            56      0041  1 0000 10 0003         CAD - 3               FETCH 4TH WORD FROM BUFFER
-            57      0042  8 0210 40 0068         STA 8 SIGN2,02        STORE CHAR IN OUTPUT WORD
-            58      0043  8 1010 06 0068         PWR 8 SIGN2,PTU,1     OUTPUT WORD
-            59      0044  8 0000 10 0069         CAD 8 CR              LOAD CR WORD AS SKELETON
-            60      0045  0 0002 43 0000         LSA   2               ROTATE CR CHAR TO /02
-            61      0046  8 0000 40 0068         STA 8 SIGN2           STORE IN OUTPUT WORD
-            62      0047  1 0000 10 0004         CAD - 4               FETCH 5TH WORD FROM BUFFER
-            63      0048  8 0410 40 0068         STA 8 SIGN2,04        STORE TWO LOW-ORDER CHARS
-            64      0049  8 6102 27 0068         DFL 8 SIGN2,61,2      CLEAR /62 CHAR TO SPACE
-            65      0050  8 0000 33 0051         BSA 8 *+1,0           IF SIGN=0, DO NOTHING
-            66      0051  8 5102 26 0068         IFL 8 SIGN2,51,2      OTHERWISE, SET /62 TO "-"
-            67      0052  8 1010 06 0068         PWR 8 SIGN2,PTU,1     OUTPUT WORD
-            68      0053  8 0000 30 0058         BUN 8 CCA             BRANCH TO CARRIAGE CONTROL
+            37      0020                   FMT3  DEFN  *               FORMAT 3 -- MONITOR OUTPUT
+            38      0020  8 1010 06 0082         PWR 8 SP5,PTU,1       OUTPUT 5 SPACES
+            39      0021  1 0000 10 0000         CAD - 0               LOAD 1ST WORD FROM BUFFER
+            40      0022  8 0010 40 0079         STA 8 SIGN2,00        MAKE IT ALPHA
+            41      0023  8 1010 06 0079         PWR 8 SIGN2,PTU,1     OUTPUT 1ST WORD FROM BUFFER
+            42      0024  1 0000 10 0001         CAD - 1               FETCH 2ND WORD FROM BUFFER
+            43      0025  0 0001 48 0008         SRT   8               SLIDE 1ST CHAR TO /02, REST TO R
+            44      0026  0 0000 49 0002         SLA   2               ROTATE A SPACE AFTER 1ST CHAR
+            45      0027  0 0001 49 0004         SLT   4               SHIFT NEXT 2 CHAR INTO A
+            46      0028  0 0000 49 0001         SLA   1               ROTATE ZERO DIGIT FOR 02 CHAR
+            47      0029  0 0002 43 0000         LSA   2               LOAD NUMERIC DIGIT FOR 02 CHAR
+            48      0030  0 0002 49 0001         SLS   1               ROTATE NUMERIC DIGIT FOR 02 CHAR
+            49      0031  8 0010 40 0079         STA 8 SIGN2,00        STORE IN OUTPUT WORD
+            50      0032  8 1010 06 0079         PWR 8 SIGN2,PTU,1     OUTPUT THE 2ND WORD
+            51      0033  1 1010 06 0002         PWR - 2,PTU,1         OUTPUT THE 3RD WORD
+            52      0034  8 0000 10 0080         CAD 8 CR              LOAD CR WORD AS SKELETON
+            53      0035  0 0000 49 0002         SLA   2               ROTATE CR CHAR TO /02
+            54      0036  8 0000 40 0079         STA 8 SIGN2           STORE IN OUTPUT WORD
+            55      0037  1 0000 10 0003         CAD - 3               FETCH 4TH WORD FROM BUFFER
+            56      0038  8 0210 40 0079         STA 8 SIGN2,02        STORE CHAR IN OUTPUT WORD
+            57      0039  8 1010 06 0079         PWR 8 SIGN2,PTU,1     OUTPUT THE WORD
+            58      0040  8 0000 10 0080         CAD 8 CR              LOAD CR WORD AS SKELETON
+            59      0041  0 0000 49 0002         SLA   2               ROTATE CR CHAR TO /02
+            60      0042  8 0000 40 0079         STA 8 SIGN2           STORE IN OUTPUT WORD
+            61      0043  1 0000 10 0004         CAD - 4               FETCH 5TH WORD FROM BUFFER
+            62      0044  8 0410 40 0079         STA 8 SIGN2,04        STORE TWO LOW-ORDER CHARS
+            63      0045  8 6212 40 0079         STB 8 SIGN2,62        CLEAR /62 CHAR TO SPACE
+            64      0046  8 0000 33 0048         BSA 8 *+2,0           IF SIGN=0, DO NOTHING
+            65      0047  8 5102 26 0079         IFL 8 SIGN2,51,2      OTHERWISE, SET /62 TO "-"
+            66      0048  8 1010 06 0079         PWR 8 SIGN2,PTU,1     OUTPUT THE WORD
+            67      0049  8 0000 30 0067         BUN 8 CCA             BRANCH TO CARRIAGE CONTROL
 
-            70      0054  8 1010 06 0071   FMT4  PWR 8 SP5,PTU,1       OUTPUT 5 SPACES
-            71      0055  0 0001 48 0001         SRT   1               SHIFT BUF LEN IN R TO /32
-            72      0056  8 3211 40 0057         STR 8 *+1,32          STORE BUF LEN INTO PWR NEXT
-            73      0057  1 1570 06 0000         PWR - 0,PTU,*         OUTPUT WORDS FROM BUFFER
+            69      0050                   FMT4  DEFN  *               FORMAT 4 -- ERRORS
+            70      0050  8 1010 06 0082         PWR 8 SP5,PTU,1       OUTPUT 5 SPACES
+
+                                                       WRITE N WORDS FROM BUFFER ADDRESS, TRIMMING SPACES
+
+            74      0051                   WBUF  DEFN  *
+            75      0051  8 0412 40 0066         STB 8 P+,04           STORE BUF ADDR IN PWR WORD
+            76      0052  8 0412 40 0060         STB 8 C+,04           STORE BUF ADDR IN CAD WORD
+            77      0053  8 0000 42 0000         LDB 8 RITE            GET RETURN ADDR
+            78      0054  1 0000 10 9998         CAD - 9998            LOAD STP WORD TO A
+            79      0055  0 0000 48 0001         SRA   1               SHIFT BUF LEN IN A TO /33
+            80      0056  8 3210 40 0066         STA 8 P+,32           STORE BUF LEN INTO PWR WORD
+            81      0057  0 0000 48 0001   *B    SRA   1               SHIFT BUF LEN IN A TO /44
+            82      0058  8 4410 40 0057         STA 8 B-,44           STORE BUF LEN FOR DLB NEXT
+            83      0059  8 4401 28 0057         DLB 8 B-,44,1         LOAD BUF LEN MINUS 1 TO B
+            84      0060  1 0000 10 0000   *C    CAD - *-*             LOAD CURRENT LAST WORD OF BUFFER
+            85      0061  8 0000 36 0063         BFA 8 D+,00,00        BRANCH IF WORD IS ALL SPACES
+            86      0062  8 0000 30 0066         BUN 8 P+              IF NOT SPACES, WRITE BUFFER
+            87      0063  8 3201 27 0066   *D    DFL 8 P+,32,1         DECREMENT BUF LEN IN PWR WORD
+            88      0064  8 0001 21 0060         DBB 8 C-,1            DECREMENT B, LOOP IF NON-NEG
+            89      0065  8 0000 30 0067         BUN 8 CCA             BUFFER IS ALL SPACES, SKIP TO CC
+            90      0066  0 1000 06 0000   *P    PWR   *-*,PTU,*-*     WRITE THE TRIMMED BUFFER
 
                                                        CARRIAGE CONTROL AFTER PRINT
 
-            77      0058  8 0000 42 0000   CCA   LDB 8 RITE            LOAD RETURN ADDRESS TO B
-            78      0059  1 0000 41 9998         LDR - 9998            LOAD STP WORD TO R
-            79      0060  8 3111 37 0064         BFR 8 FFA,31,11       SKIP CH.1 AFTER
-            80      0061  8 3122 37 0066         BFR 8 SSA,31,22       SINGLE SPACE BEFORE AND AFTER
-            81      0062  8 3166 37 0066         BFR 8 SSA,31,66       DOUBLE SPACE BEFORE/SINGLE AFTER
-            82      0063  8 0000 30 0067         BUN 8 EXIT            ALL OTHER CASES, NO CC AFTER
+            94      0067                   CCA   DEFN  *
+            95      0067  8 0000 42 0000         LDB 8 RITE            LOAD RETURN ADDRESS TO B
+            96      0068  1 0000 41 9998         LDR - 9998            LOAD STP WORD TO R
+            97      0069  8 3111 37 0074         BFR 8 FFA,31,11       SKIP CH.1 AFTER
+            98      0070  8 3122 37 0076         BFR 8 SSA,31,22       SINGLE SPACE BEFORE AND AFTER
+            99      0071  8 3166 37 0076         BFR 8 SSA,31,66       DOUBLE SPACE BEFORE/SINGLE AFTER
+           100      0072  8 3199 37 0074         BFR 8 FFA,31,99       SKIP CH.1 AFTER
+           101      0073  8 0000 30 0077         BUN 8 EXIT            ALL OTHER CASES, NO CC AFTER
 
-            84      0064  8 1010 06 0070   FFA   PWR 8 FF,PTU,1        OUTPUT FORM-FEED
-            85      0065  8 0000 30 0067         BUN 8 EXIT
-            86      0066  8 1010 06 0069   SSA   PWR 8 CR,PTU,1        OUTPUT CARRIAGE-RETURN
+           103      0074  8 1010 06 0081   FFA   PWR 8 FF,PTU,1        OUTPUT FORM-FEED
+           104      0075  8 0000 30 0077         BUN 8 EXIT
+           105      0076  8 1010 06 0080   SSA   PWR 8 CR,PTU,1        OUTPUT CARRIAGE-RETURN
 
-            88      0067  0 0000 30 0067   EXIT  BUN   *               RETURN TO CALLER
+           107      0077                   EXIT  DEFN  *
+           108      0077  8 0000 41 0083         LDR 8 RSAVE           RESTORE CALLER-S R REG
+           109      0078  0 0000 30 0000   XBUN  BUN   *-*             RETURN TO CALLER
 
                                                        STORAGE
 
-            92      0068  2 0000 00 0000   SIGN2 CNST  20000000000     SIGN-2 WORD FOR PWR OUTPUT
-            93      0069  2 1602 02 0202   CR    CNST  21602020202     CARRIAGE-RETURN WORD
-            94      0070  2 1615 02 0202   FF    CNST  21615020202     FORM-FEED WORD
-            95      0071  2 0000 00 0000   SP5   CNST  20000000000     5 SPACES
-            96      0072  4 0000 99 0000         CNST  40000990000     END SIGNAL FOR LOADER
-            97      0073                         FINI  RITE
+           113      0079  2 0000 00 0000   SIGN2 CNST  20000000000     SIGN-2 WORD FOR PWR OUTPUT
+           114      0080  2 1602 02 0202   CR    CNST  21602020202     CARRIAGE-RETURN WORD
+           115      0081  2 1615 02 0202   FF    CNST  21615020202     FORM-FEED WORD
+           116      0082  2 0000 00 0000   SP5   CNST  20000000000     5 SPACES
+           117      0083  0 0000 00 0000   RSAVE CNST  0               STORAGE FOR CALLER-S R REG
+           118      0084  4 0000 99 0000         CNST  40000990000     END SIGNAL FOR LOADER
+           119      0085                         FINI  RITE
 
 
 SYMBOL TABLE
 
-    8 BMOD             58 CCA              69 CR               14 DSB              67 EXIT
-   70 FF               64 FFA              12 FFB              16 FMT              23 FMT3
-   54 FMT4             19 FMT5              1 PTU               0 RITE              1 RLO
-   68 SIGN2            71 SP5              66 SSA              15 SSB
+   57 *B..1            60 *C..1            63 *D..1            66 *P..1             8 BMOD
+   67 CCA              80 CR               14 DSB              77 EXIT             81 FF
+   74 FFA              12 FFB              16 FMT              20 FMT3             50 FMT4
+   19 FMT5              1 PTU               0 RITE              1 RLO              83 RSAVE
+   79 SIGN2            82 SP5              76 SSA              15 SSB              51 WBUF
+   78 XBUN
 
 END PASS 2, ERRORS = 0
