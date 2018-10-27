@@ -1,0 +1,1958 @@
+﻿1               LOAD    0000         ' IS A 4-8 PUNCH, PRINTS AS - (MIN
+1               ON      TAPE,1/4999
+1               REM
+1               REM
+1               REM     THE COMPILER GENERATOR
+1               REM
+1               REM     DEFINITIONS FOR THE COMPILER
+1               REM
+1   CHAR        IS      179
+1   SCNCT       IS      225
+1   VARB        IS      251
+1   CCCNT       IS      1587
+1   CCBEG       IS      1618
+1   IMAGE       IS      1632
+1   NUTBL       IS      3129
+1   XONE        IS      4097+2
+1   SCRTB       IS      4114+2
+1   SSC         IS      4214+2
+1   LOCN        IS      4215+2
+1   MAMAX       IS      4225+2
+1   HDNG        IS      4517
+1               REM
+1               REM     DEFINITIONS FOR THE OVERLAY
+1               REM
+1   B           IS      5200+13
+1   ZERO        IS      5200+27
+1   LODOX       IS      5200+74
+1   LIBRARYTABLE
+1               IS      1857
+1   NUMB        IS      4800+1334   ** ON LISTING AS 4800+1335 -- BUG **
+1   LOD2        IS      4800+3127
+1   POSCT       IS      4800+3384
+1   HALT        IS      4800+3450
+1               REM
+1               REM     DEFINITIONS FOR OBJECT PROGRAM CARD LOADER
+1               REM
+1   FIX         IS      4240
+1               REM
+1               REM
+1               REM
+1               BUN     LOAD
+1               BUN     STORE
+1   LOAD        MRW     010
+1               CLB
+1   1          -MNC     0,0,0
+1               LDB     $+1
+1               CLA     999
+1   2          -ADD     0
+1               DBB     2B,1
+1               BZA     3F
+1               SPO     R'CHECK SUM ERROR'
+1               MPB     0,0
+1               HLT     2720,0272(44)
+1               LDB     2B
+1               BUN     1B
+1   3           DFL     $+1/11,1
+1               LDB     2B,4(11)
+1               IBB     $+1,999
+1               STB     2B/04
+1               BRP     1B
+1               DFL     3B+1/11,5
+1               STA     2B/04
+1               BOF     THEBEGINNING
+1               REM
+1               REM
+1   STORE       MRW     010
+1   1           LDB     $+1
+1               CLA     998,4(11)
+1   2          -ADD     0
+1               DBB     $-1,1
+1               LDB     2B
+1              -LDR     999
+1              -STA     999
+1              -CSU     999
+1              -STA     999
+1              -MOW     0,0,0
+1              -STR     999
+1               IBB     $+1,999
+1               STB     2B/04
+1               DFL     1B+1/11,1
+1               BRP     1B
+1               BOF     $+1
+1               MRW     010
+1               HLT     8421,1248(44)
+1               CLT
+1               STA     2B/04
+1               DFL     1B+1/11,6
+1               BUN     LOAD
+1               REM
+1               REM
+1   THEBEGINNING
+1               SPO     LRT'THE COMPILER GENERATOR'R
+1               IFL     20F/11,1
+1               IFL     $+1/11,1
+1               CRI     20F,0
+1               BUN     THEBEGINNING+3
+1   20          CRF     ALFORMAT,0,2
+1               MRW     0
+1   21          DO      SCAN
+1               CFA     'COMME'/00
+1               BCE     COMMENT
+1               CFA     'COPYC'/00
+1               BCE     COMPILERTAPEUNIT
+1               CFA     'COMPI'/00
+1               BCE     SETLOCN
+1               CFA     'GENER'/00
+1               BCE     VERSION
+1               CFA     'SETSC'/00
+1               BCE     SETSCAN
+1               CFA     'PRINT'/00
+1               BCE     SETPRINTER
+1               CFA     'VARIA'/00
+1               BCE     VARIABLES
+1               CFA     'CARDP'/00
+1               BCE     SETPUNCH
+1               CFA     'CARDR'/00
+1               BCE     SETREADER
+1               CFA     'MACHI'/00
+1               BCE     SETSCRATCH
+1               CFA     'CORRE'/00
+1               BCE     SETCORRECTIONS
+1               CFA     'MEMOR'/00
+1               BCE     SETSIZE
+1               CFA     'PROCE'/00
+1               BCE     SETPROCESSBIT
+1               CFA     'POSIT'/00
+1               BCE     SETUPFORPOSITIONFORWARD
+1               CFA     'PUNCH'/00
+1               BCE     SETTHEPUNCHLIBRARYBIT
+1               CFA     'SUPPR'/00
+1               BCE     THEREGOESTHEHALT
+1               CFA     'DELET'/00
+1               BCE     WHATGOES
+1               CFA     'INPUT'/00
+1               BCE     INPUTMEDIA
+1               CFA     'OUTPU'/00
+1               BCE     OUTPUTMEDIA
+1               CFA     'FINIS'/00
+1               BCE     FINIS
+1   STATEMENTERROR
+1               SPO     R'INCORRECT STATEMENT'RRIII
+1               SPO     INPUT,16
+1               SPO     RRRRR''
+1               HLT     7310,1370(44)
+1               BUN     $-1
+1               REM
+1               REM
+1   WHATGOES    DO      SCAN
+1               CFA     'EOUTP'/00
+1               BCE     OUTPUTFORMATS
+1               CFA     'EINPU'/00
+1               BCE     INPUTFORMATS
+1               BUN     STATEMENTERROR
+1               REM
+1               REM
+1   SCAN.1      CLL     IMAGE.1
+1   3           DO      CHARACTER
+1   1           SLA     8
+1               ADL     IMAGE.1
+1               DFL     1B/01,2
+1               BRP     3B
+1               CAD     IMAGE.1
+1   SCAN        BUN     SCAN
+1   IMAGE.1     (0)
+1               REM
+1               REM
+1   CHARACTER.1
+1               IS      $+1
+1   3           IFL     SCNCT.1/05,2
+1               DLB     SCNCT.1/94
+1              -CAD     INPUT
+1               LDB     SCNCT.1
+1               DBB     40F,160
+1              -SLA     2
+1               EXT     =11=
+1               BZA     3B
+1   CHARACTER   BUN     CHARACTER
+1   40          LDR     20B
+1               STR     $+1/11
+1               CNC     INPUT+15,0
+1               CAD     INPUT+15
+1               CLL     SCNCT.1
+1               BSA     3B,2
+1               BUN     STATEMENTERROR
+1   SCNCT.1     (158)
+1               REM
+1               REM
+1   COMMENT     DFL     SCNCT.1/05,2
+1               DO      CHARACTER
+1               BFA     21B/02,13
+1               BUN     CHARACTER.1
+1               REM
+1               REM
+1   COMPILERTAPEUNIT
+1               DO      TAPENUMSCAN
+1               SLA     7
+1               STA     COMPILER/33
+1               BUN     COMMENT
+1               REM
+1               REM
+1   SETSCAN     DO      BASICNUMSCAN
+1               STA     HOLD0
+1               ADD     HOLD0
+1               SLA     6
+1               STA     TBL+3/42
+1               DO      BASICNUMSCAN
+1               STA     HOLD0
+1               ADD     HOLD0
+1               SLA     6
+1               STA     TBL+1/44
+1               DFL     TBL+3/42,4
+1               BUN     COMMENT
+1   SETSCAN.1   CAD     TBL+1
+1              -STA     IA/44
+1               BUN     RETURN
+1               REM
+1               REM
+1   SETPRINTER  DO      BASICNUMSCAN
+1               SLA     9
+1               STA     PRINTER/11
+1               STA     UNIT2/11
+1               BUN     COMMENT
+1               REM
+1               REM
+1   SETPUNCH    DO      BASICNUMSCAN
+1               SLA     9
+1               STA     PUNCH/11
+1               BUN     COMMENT
+1               REM
+1               REM
+1   SETREADER   DO      BASICNUMSCAN
+1               SLA     9
+1               STA     READER/11
+1               STA     UNIT1/11
+1               BUN     COMMENT
+1               REM
+1               REM
+1   SETSCRATCH  DO      TAPENUMSCAN
+1               SLA     7
+1               STA     SCRATCHML/33
+1               SLS     3
+1               RND
+1               SRS     10
+1               SRT     10
+1               CAD     SCRATCHML
+1               ADD     =1(31)=
+1               BZR     1F
+1               SUB     =2(31)=
+1   1           STA     SCRATCHDUMP/33
+1               BUN     COMMENT
+1               REM
+1               REM
+1   SETCORRECTIONS
+1               LDR     20B
+1               STR     1F/11
+1               STR     2F/11
+1   1           CNCL    CDR+12,0
+1               CAD     CDR
+1               BSA     COMMENT,2
+1               CLA              CREATE CHECK SUM TOTAL
+1               LDB     =6=
+1   12         -ADD     CDR+6
+1               DBB     12B,1
+1               BZA     $+4
+1               SPO     R'ERRONEOUS CORRECTION CARD'
+1               HLT     9669,9669(44)
+1               BUN     $-1
+1               REM
+1               CAD     CDR+9
+1               LDB     K
+1               IFL     KP/04,2
+1              -STA     TBL+1
+1               CAD     CDR+8
+1               ADD     CDR+7
+1               LDR     CDR+5
+1               BFR     3F/01,0
+1               BFR     4F/01,2
+1               BFR     CDR+6/01,3
+1               LSA     1
+1   3          -STA     TBL
+1               IFL     K/00,2
+1   2           CNC     CDR+12,0
+1               BUN     1B
+1   4           LSA     3
+1               BUN     3B
+1   K           (14)
+1   MAMAXP      (0)
+1               REM
+1               REM
+1   SETSIZE     DO      BASICNUMSCAN
+1               BFA     1F/02,00
+1               SPO     R'MEMORY SIZE MUST BE GIVEN AS A MULTIPLE' ...
+1                       ' OF ONE HUNDRED'RRRI
+1               HLT     7310,1370(44)
+1               BUN     $-1
+1   1           ADD     =9999=
+1               STA     RELOCATION/82
+1   OSWITCH     NOP     COMMENT
+1   3           STA     TBL+11/04
+1               ADD     =1=
+1               STA     TBL+9/04
+1               STA     FIX/04
+1               BUN     COMMENT
+1   RELOCATION  (4900)
+1               REM
+1               REM
+1   VARIABLES   DO      BASICNUMSCAN
+1               ADD     =9999=
+1               IFL     OSWITCH/62,29
+1               BUN     3B
+1               REM
+1               REM
+1   SETPROCESSBIT
+1               IFL     PROCESSBIT/05,1
+1               BUN     COMMENT
+1   PROCESSBIT  (0)
+1               REM
+1               REM
+1   SETUPFORPOSITIONFORWARD
+1               DO      BASICNUMSCAN
+1               STA     COUNT
+1               STA     2F/04
+1               LDB     =1F=
+1               DO      EXTENDTABLE
+1               BUN     COMMENT
+1   COUNT       (0)
+1   1           (2(04))
+1              ((POSCT/100)(04)+(POSCT//100)(64))
+1   2           NOP
+1               REM
+1               REM
+1   SETTHEPUNCHLIBRARYBIT
+1               IFL     THEPUNCHLIBRARYBIT/00,1
+1               DO      BASICNUMSCAN
+1               STA     3500+(NUMBERWORDS//100)(02)
+1               BUN     COMMENT
+1   THEPUNCHLIBRARYBIT
+1               (0)
+1               REM
+1               REM
+1   THEREGOESTHEHALT
+1               IFL     TBL+13/42,1
+1               BUN     COMMENT
+1               REM
+1               REM
+1   SETLOCN     DO      BASICNUMSCAN
+1               STA     2F/04
+1               STA     FIX+1/04
+1               STA     4F/04
+1               DFL     4F/04,1
+1               SLA     4
+1               STA     6F/64
+1               STA     8F/64
+1               LDB     =1F=
+1               DO      EXTENDTABLE
+1               BUN     COMMENT
+1   1           (8)
+1              ((LODOX/100)(04)+(LODOX//100)(64))
+1   2           BUN     0
+1              ((ZERO/100)(04)+(ZERO//100)(64))
+1   4           RTF     0,00
+1              (((LOCN+4)/100)(04)+((LOCN+4)//100)(64))
+1   6           (0)
+1              ((IMAGE)/100)(04)+((IMAGE)//100)(64)
+1   8          (20000000000)
+1               REM
+1               REM
+1   VERSION     DO      SCAN
+1               CFA     'ATEST'/00
+1               BCE     COMMENT
+1               CFA     'ATEPA'/00
+1               BCE     PTVER
+1               CFA     'ATEHS'/00
+1               BCE     HSPVER
+1               BUN     STATEMENTERROR
+1               REM
+1   HSPVER      LDB     =1F=
+1               DO      EXTENDTABLE
+1               BUN     COMMENT
+1   1           (4)
+1              ((HDNG/100)(04)+(HDNG//100)(64))
+1               HPI     HDNG
+1              (((HDNG+5)/100)(04)+((HDNG+5)//100)(64))
+1              4BUN     9898,(HDNG+6)(44)
+1               REM
+1               REM
+1   PTVER       LDB     =1F=
+1               DO      EXTENDTABLE
+1               BUN     COMMENT
+1               REM
+1               DJ      00
+1   1           (28)                                         ** MODIFIED
+1              (((HDNG+4)/100)(04)+((HDNG+4)//100)(64))      ** ADDED
+1              4STP     9898,(1106)(44)                      ** ADDED
+1              (((HDNG+5)/100)(04)+((HDNG+5)//100)(64))      ** ADDED
+1              4BUN     9898,(HDNG+22)(44)                   ** ADDED
+1              3J       (NUMB/100)(04)+(NUMB//100)(64)
+1              -DFL     IA/04,8
+1              3J       ((NUMB+1)/100)(04)+((NUMB+1)//100)(64)
+1              -IFL     IA/04,14
+1              3J       ((NUMB+2)/100)(04)+((NUMB+2)//100)(64)
+1              -DFL     IA/04,9
+1              3J       ((NUMB+7)/100)(04)+((NUMB+7)//100)(64)
+1              -IFL     IA/04,14
+1              3J       ((NUMB+8)/100)(04)+((NUMB+8)//100)(64)
+1              -DFL     IA/04,8
+1              3J       ((NUMB+12)/100)(04)+((NUMB+12)//100)(64)
+1              -IFL     IA/04,14
+1              3J       ((LOD2+40)/100)(04)+((LOD2+40)//100)(64)
+1              -DFL     IA/42,09
+1              3J       ((LOD2+67)/100)(04)+((LOD2+67)//100)(64)
+1              -DFL     IA/04,9
+1              3J       ((LOD2+69)/100)(04)+((LOD2+69)//100)(64)
+1              -DFL     IA/04,9
+1              3J       ((LOD2+71)/100)(04)+((LOD2+71)//100)(64)
+1              -DFL     IA/04,9
+1              3J       ((LOD2+73)/100)(04)+((LOD2+73)//100)(64)
+1              -DFL     IA/04,9
+1              3J       ((LOD2+97)/100)(04)+((LOD2+97)//100)(64)
+1              -DFL     IA/42,9
+1               REM
+1               REM
+1   BASICNUMSCAN.1
+1               DO      CHARACTER
+1               BFA     1F/91,8
+1               BUN     CHARACTER.1
+1   1           CLL     NUMBER
+1   2           SRT     1
+1               CAD     NUMBER
+1               SLT     1
+1               STA     NUMBER
+1               DO      CHARACTER
+1               BFA     2B/91,8
+1               CAD     NUMBER
+1   BASICNUMSCAN
+1               BUN     BASICNUMSCAN
+1   NUMBER      (0)
+1               REM
+1               REM
+1   TAPENUMSCAN.1
+1               DO      BASICNUMSCAN
+1               SLA     2
+1               STA     HOLD0
+1               DO      BASICNUMSCAN
+1               ADD     HOLD0
+1   TAPENUMSCAN
+1               BUN     TAPENUMSCAN
+1               REM
+1               REM
+1   INPUTFORMATS
+1               DO      BASICNUMSCAN
+1               ADD     =2=
+1               BUN     1F
+1               REM
+1               REM
+1   OUTPUTFORMATS
+1               DO      BASICNUMSCAN
+1   1           STA     HOLD
+1               LDB     HOLD
+1              -LDB     2F
+1               DO      EXTENDTABLE
+1               BUN     COMMENT
+1   2          F1,F2,F3,F4
+1               REM
+1               REM
+1   EXTENDTABLE.1
+1              -CAD     0
+1               STB     1F/04
+1               IFL     1F/04,1
+1               LDB     KP
+1               ADL     KP
+1               ADL     K
+1               SLA     7
+1               STA     1F/32
+1   1           RTF     0,0
+1   EXTENDTABLE
+1               BUN     EXTENDTABLE
+1   KP          (TBL+14)
+1               REM
+1               REM
+1   FINIS       LDR     COMPILER
+1               STR     $+1/32
+1               MRW     2
+1               BCS     $+2,1
+1               IFL     W.1/62,02
+1               CLB
+1   2          -LDR     TBL
+1               CFR     TBL+6/08
+1               BFR     1F/00,99
+1               BCU     2F
+1              -CAD     TBL+1
+1               BFR     $+3/12,00
+1               ADD     RELOCATION
+1               SUB     =4900=
+1               STA     MAMAXP
+1   2           IBB     2B,2
+1               REM
+1   1           CAD     MAMAXP
+1               SUB     IK
+1               STA     MAMAXP
+1               ADD     =1=
+1               STA     REL
+1               STA     IREL
+1               SUB     RELOCATION
+1               ADD     =5100=
+1               SLA     8
+1               SRT     2
+1               SRA     4
+1               SRT     8
+1               CAD     IK
+1               ADD     =((ITBL**10000)-1)=
+1               DO      PUTINTABLE
+1               REM
+1   1           CAD     MAMAXP
+1               SUB     OK
+1               STA     MAMAXP
+1               ADD     =1=
+1               STA     REL
+1               STA     OREL
+1               SUB     RELOCATION
+1               ADD     =5100=
+1               SLA     8
+1               SRT     2
+1               SRA     4
+1               SRT     8
+1               CAD     OK
+1               ADD     =((OTBL**10000)-1)=
+1               DO      PUTINTABLE
+1               LDR     MAMAXP
+1               STR     2F
+1               LDB     =1F=
+1               DO      EXTENDTABLE
+1               BUN     0F
+1   1           (2)
+1              (((MAMAX+4)/100)(04)+((MAMAX+4)//100)(64))
+1   2           (0)
+1               REM
+1   0           LDB     COUNT
+1   1           IBB     MRD,-1
+1               MPF     2,1
+1               BUN     1B
+1               REM
+1   MRD         MNC     IA,0,1
+1               LBC     =798=
+1   1           CAD     BLCT
+1              -CFA     TBL+798/04
+1               BCE     3F
+1   25          IBB     1B,2
+1               REM
+1               LDB     =99=
+1   97         -CAA     IA
+1               STP     IO.1
+1               BSA     IO,4
+1   98          DBB     97B,1
+1               REM
+1               LDB     BLCT
+1              -CAD     SUMTBL
+1               STA     2F/04
+1               SRS     4
+1               STA     4F/04
+1               STA     HOLD0
+1               DLB     HOLD0/64
+1               CLA
+1   4          -SUB     0
+1               DBB     4B,1
+1               ADD     IA+100
+1               CLL     IA+100
+1   2           STA     0
+1               BOF     $+1
+1               REM
+1   MOW         LDB     =IA=
+1               DO      W
+1               IFL     BLCT/04,1
+1               CAD     BLCT
+1               CFA     =52=/04
+1               BCE     5F
+1               CFA     =83=/04
+1               BCH     6F
+1               BUN     MRD
+1               REM
+1   5           MPB     2,2
+1               MRD     4800,2,2
+1               CLL     IA+100
+1               CLL     4800
+1               LDB     =199=
+1               CLA
+1              -SUB     4800
+1               DBB     $-1,1
+1               STA     4800
+1               MPB     2,2
+1               MOW     4800,2,2
+1               MPF     0,3
+1               BUN     MRD
+1               REM
+1   3          -CAD     TBL+799
+1              -LDR     TBL+798
+1               STB     HOLD0
+1              -DLB     TBL+798/64
+1               BFR     33F/12,30
+1              -STA     IA
+1               BFR     30F/12,20
+1               BFR     $+5/12,00
+1               LSA     0
+1               ADD     RELOCATION
+1               SUB     =4900=
+1              -STA     IA/04
+1               LDB     HOLD0
+1               BUN     25B
+1   30          PRD     IA,1,100
+1               BUN     $-3
+1   33          STA     $+1
+1               HLT
+1   RETURN      LDB     HOLD0
+1               BUN     25B
+1               REM
+1   6           DLB     5F/44,0
+1   1          -RTF     9500
+1               DFL     $+2/11,1
+1   5           BRP     1B,4500(44)
+1               LDB     PROCESSBIT,3(11)
+1               DBB     THELIBRARYPROCESSOR,1
+1               REM
+1   1           MRD     IA,0,1
+1               LDB     =IA=
+1               DO      W
+1               CAD     IA
+1               CFA     =99999999999=
+1               BCU     1B
+1               REM
+1               REM
+1   CRDUMP.1    BCS     $+2,1
+1               IFL     15F/62,02
+1   3           LDB     =IA=,3(11)
+1   2           RTF     4500,00
+1               LDB     =99=
+1   9          -CAA     IA
+1               STP     IO.1
+1               BSA     IO,4
+1               BSA     IO,5
+1               DBB     9B,1
+1               LDB     =IA=
+1   15         -MIW     0,2,1
+1               IFL     THECOUNT/00,1
+1               IFL     2B/81,1
+1               DFL     3B/11,1
+1               BRP     3B
+1   CRDUMP      BUN     $+1
+1               REM
+1               REM
+1   ENDOFGENERATION
+1               SPO     R'END OF GENERATION OF THE COMPILER'R
+1               MRW     0
+1               CAD     THECOUNT
+1               SRT     4
+1               CLA
+1   1           SLA     1,3(11)
+1               IFL     $-1/11,9
+1               ADD     =8=
+1               SLT     1
+1               BOF     1B
+1               LSA     2
+1               STA     HOLD
+1               SPO     HOLD,1
+1               SPO     ' BLOCKS ON UNIT 2 'RR
+1               LDR     COMPILER
+1               STR     $+1/32
+1               MRW     2
+1               LDB     THEPUNCHLIBRARYBIT
+1               IBB     1F,-1
+1   RELOCATE    LDB     =1000=
+1   5           IFL     $+1/81,1
+1               RTF     3400,00
+1               DFL     6F/11,1
+1               BRP     5B
+1   6           BUN     READY,4(11)
+1   1           HLT     7250,757(44)
+1               BUN     $-1
+1               REM
+1               REM
+1   PUTINTABLE.1
+1               STA     TEMP1
+1               STR     TEMP2
+1   1           LDB     KP
+1               LDR     TEMP2
+1              -STR     0
+1               DLB     TEMP1/64,0
+1              -CAA
+1               BSA     $+7,8
+1               BSA     $+3,6
+1              -CAD     0
+1               BUN     $+8
+1               SRT     6
+1               ADD     REL
+1               SLT     6
+1               ADD     REL
+1              -STA     0/00
+1               CLA
+1              -ADD     0
+1               LDB     KP
+1              -STA     1
+1               IFL     TEMP1/64,1
+1               IFL     TEMP2/62,1
+1               IFL     KP/04,2
+1               DFL     TEMP1/04,1
+1               BOF     $+2
+1               BUN     $+2
+1               IFL     TEMP2/04,1
+1               BRP     1B
+1   PUTINTABLE  BUN     PUTINTABLE
+1   REL         (0)
+1               REM
+1               REM
+1   INPUTMEDIA  LDR     20B
+1               STR     1F/11
+1               STR     2F/11
+1               CLL     IK
+1   1           CNCL    CDR+12,0
+1               CAD     CDR
+1               BSA     COMMENT,2
+1               CAD     CDR+9
+1               IFL     IK/00,1
+1               LDB     IK
+1              -STA     ITBL-1
+1   2           CNC     CDR+12,0
+1               BUN     1B
+1   IK          (6)
+1   ITBL        NOP
+1              8LDB     ($-1)-ITBL
+1              8STB     (1F)-ITBL/04
+1              -DLB     -1/44
+1   UNIT1      -CNC     15,1
+1   1           BUN     $
+1               ORIGIN  ITBL+150
+1               REM
+1               REM
+1   OUTPUTMEDIA
+1               LDR     20B
+1               STR     1F/11
+1               STR     2F/11
+1               CLL     OK
+1   1           CNCL    CDR+12,0
+1               CAD     CDR
+1               BSA     COMMENT,2
+1               CAD     CDR+9
+1               IFL     OK/00,1
+1               LDB     OK
+1              -STA     OTBL-1
+1   2           CNC     CDR+12,0
+1               BUN     1B
+1   OK          (13)
+1   OTBL        NOP
+1              8LDB     ($-1)-OTBL
+1              8STB     (1F)-OTBL/04
+1              -CAD     -1
+1               SRA     6
+1              8STA     (2F)-OTBL/04
+1              -CAD     -2
+1              8STA     (2F)-OTBL/42
+1               SRA     8
+1               SUB     XONE+1
+1              8ADL     (2F)-OTBL
+1   UNIT2       IS      $+1
+1   2           CWR     0,2,0
+1   1           BUN     $
+1               ORIGIN  OTBL+150
+1               REM
+1               REM
+1               REM
+1   98          IS      IO.1
+1   IO.1        BUN     IO.1
+1   IO          BFA     CRD/62,60
+1               BFA     CRD/62,62
+1               BFA     CRD/62,64
+1               BFA     CWR/62,61
+1               BFA     CWR/62,63
+1               BFA     CWR/62,65
+1               BFA     UNITLANE/62,50
+1               BFA     TAPE/51,5
+1               BFA     STPBUN/62,44
+1               BFA     STPBUN/62,30
+1               BUN     98B
+1               REM
+1               REM
+1   99          CLA
+1              -ADD     IA
+1              -STA     IA
+1               BUN     98B
+1               REM
+1               REM
+1   CRD         BFA     $+2/11,1
+1               BUN     98B
+1               CAD     READER
+1              -STA     IA/11
+1               BUN     99B
+1               REM
+1   CWR         BFA     1F/11,1
+1               BFA     $+2/11,2
+1               BUN     98B
+1               CAD     PRINTER
+1              -STA     IA/11
+1               BUN     99B
+1   1           CAD     PUNCH
+1              -STA     IA/11
+1               BUN     99B
+1               REM
+1               REM
+1   UNITLANE    BFA     1F/11,1
+1               BFA     2F/11,2
+1               BUN     98B
+1   1           LDR     SCRATCHML
+1               BFA     $+2/31,0
+1               LDR     SCRATCHDUMP
+1              -STR     IA/33
+1               BFA     98B/41,0
+1               BUN     99B
+1   2           LDR     COMPILER
+1              -STR     IA/33
+1               BFA     98B/41,0
+1               BUN     99B
+1               REM
+1               REM
+1   TAPE        BFA     1F/11,1
+1               BFA     2F/11,2
+1               BUN     98B
+1   1           LDR     SCRATCHML
+1              -STR     IA/11
+1               BUN     99B
+1   2           LDR     COMPILER
+1              -STR     IA/11
+1               BUN     99B
+1               REM
+1               REM
+1   STPBUN      BFA     1F/04,98
+1               BFA     2F/04,99
+1               BUN     98B
+1   1           LDR     OREL
+1               BUN     $+2
+1   2           LDR     IREL
+1              -STR     IA/04
+1               BUN     99B
+1   IREL        (0)
+1   OREL        (0)
+1               REM
+1               REM
+1   THELIBRARYPROCESSOR
+1               SPO     R'THE LIBRARY PROCESSOR'RRR'ROUTINE NAME'R
+1               MPB     0,10
+1               MPB     0,10
+1               MPB     0,10
+1               MPB     0,5
+1               MRD     3996,0,3
+1               LDB     $+2
+1               RTF     =0=,1
+1               RTF     LIBRARYTABLE,99
+1               RTF     LIBRARYTABLE,100
+1               RTF     LIBRARYTABLE,100,3(11)
+1               DFL     $-1/11,1
+1               LDB     =LIBRARYTABLE=
+1               DO      W
+1               BRP     $-4
+1   RD          STP     RDEX
+1               BUN     RDE
+1               BSA     RDP,2
+1               SPO     R'MISSING NAME CARD'II
+1               HLT     7310,1370(44)
+1               BUN     $-1
+1   RDP         STP     SCANX
+1               BUN     SCAN1
+1               CAD     SYMBOL
+1               CFA     'FINIS'/00
+1               BCU     $+4
+1               CAD     SYMBOL+1
+1               CFA     'H'/00
+1               BCE     DONE
+1               STP     SYMBOLINSERTX
+1               BUN     SYMBOLINSERT
+1               SPO     ''RIIII
+1               SPO     SYMBOL,2
+1               IFL     LIBRARYINDEX/04,1
+1               CAD     LIBRARYINDEX
+1               SLA     6
+1               STA     WRITEBUFFER
+1               LDB     LIBRARYINDEX
+1               CAD     L
+1              -STA     LIBRARYTABLE/64
+1               STP     SCANX
+1               BUN     SCAN1
+1               STB     RR2/65
+1               CLL     RR3
+1               IFL     RR3/01,3
+1               CAD     SYMBOL
+1               BFA     NAME/22,23
+1               BZA     NAME2
+1   PUNCTUATIONERROR
+1               SPO     R'INCORRECT PUNCTUATION'III
+1               HLT     7310,1370(44)
+1               BUN     $-1
+1               REM
+1               REM
+1   NAME        STP     SCANX
+1               BUN     SCAN1
+1               CAD     SYMBOL
+1               CFA     'INTEG'/00
+1               BCE     1F
+1               CFA     'BOOLE'/00
+1               BCU     2F
+1   1           IFL     RR2/21,1
+1               BUN     3F
+1   2           CFA     'REAL'/00
+1               BCE     3F
+1               CFA     'FLOAT'/00
+1               BCE     3F
+1               IFL     RR2/21,3
+1   3           STP     SCANX
+1               BUN     SCAN1
+1               CAD     SYMBOL
+1               BZA     NAME2
+1               BFA     1F/22,24
+1               BUN     PUNCTUATIONERROR
+1   1           STP     SCANX
+1               BUN     SCAN1
+1               CAD     SYMBOL
+1               CFA     'INTEG'/00
+1               BCE     1F
+1               CFA     'BOOLE'/00
+1               BCU     2F
+1   1           IFL     RR3/01,1
+1   2           DFL     RR3/01,3
+1               REM
+1               REM
+1   NAME2       DLB     L/64
+1              -CLL     0
+1               CAD     RR2
+1              -STA     0/21
+1               CAD     RR3
+1              -STA     0/01
+1              -IFL     0/11,3
+1               CLL     LENGTH
+1               CLL     EQUIVALENCETABLE
+1               LDB     =EQUIVALENCETABLE+1=
+1               RTF     EQUIVALENCETABLE,99
+1               REM
+1               REM
+1   EQP         STP     RDEX
+1               BUN     RDE
+1               BSA     NUMERIC,0
+1               STP     SCANX
+1               BUN     SCAN1
+1               STP     SYMBOLINSERTX
+1               BUN     SYMBOLINSERT
+1               STP     SCANX
+1               BUN     SCAN1
+1               BFA     EQIV/22,33
+1               BUN     PUNCTUATIONERROR
+1               REM
+1   EQIV        STP     SCANX
+1               BUN     SCAN1
+1   EQIP        CFA     =100=
+1               STA     EQUIVALENCEINDEX/02
+1               BCL     1F
+1               SPO     R'EQUIVALENCE NUMBER TOO LARGE'I
+1               HLT     7310,1370(44)
+1               BUN     $-1
+1   1           CAD     LMAX
+1               LDB     LIBRARYINDEX
+1              -LDR     LIBRARYTABLE
+1              -STA     LIBRARYTABLE/04
+1               DLB     LMAX/04,1
+1              -STR     1/04
+1               CAD     L
+1              -STA     1/64
+1               LDB     EQUIVALENCEINDEX
+1              -STA     EQUIVALENCETABLE/64
+1               SLA     2
+1               ADD     EQUIVALENCEINDEX
+1               LSA     4
+1               STA     INSTRUCTION
+1               STP     WRITX
+1               BUN     WRIT
+1               BUN     EQP
+1               REM
+1               REM
+1   NUMERIC     CLL     NI
+1               CLL     ADDRESS
+1   2           CLA
+1               STA     READ+8/99
+1   8           DFL     READ+8/01,1
+1               IFL     READ+8/44,1
+1               BRP     1F
+1               CNC     READ+15,1
+1               CAD     READ
+1               BSA     2B,0
+1               SPO     R'MISPLACED NAME CARD'
+1               HLT     7310,1370(44)
+1               BUN     $-1
+1   1           CAD     READ+9
+1               CFA     ADDRESS/04
+1               STA     ADDRESS/04
+1               BCE     4F
+1               BCH     4F
+1               SPO     R'SEQUENCE ERROR'
+1               HLT     7310,1370(44)
+1               BUN     $-1
+1   4           DLB     READ+8/44
+1              -CAD     READ+9
+1               STA     INSTRUCTION
+1               BSA     6F,4
+1               BSA     7F,5
+1               BSA     7F,6
+1   3           IFL     LENGTH/64,1
+1   0           STP     WRITX
+1               BUN     WRIT
+1               BUN     8B
+1               REM
+1   7           BFA     3B/62,90
+1               BFA     3B/62,91
+1               STA     TEMP/82
+1               STB     TEMP/62
+1               DLB     TEMP/84
+1              -LDR     EQUIVALENCETABLE
+1               BZR     $+2
+1               BUN     3B
+1               SPO     R'MISSING EQUIVALENT'II
+1               HLT     7310,1370(44)
+1               BUN     $-1
+1               REM
+1   6           BFA     4F/62,0
+1               BFA     5F/62,99
+1               BFA     7B/62,90
+1               BFA     7B/62,91
+1               BFA     0B/62,01
+1               BFA     0B/62,02
+1               BFA     0B/62,03
+1               BFA     0B/62,04
+1               SPO     R'IMPROPER PSEUDO-OP'I
+1               HLT     7310,1370(44)
+1               BUN     $-1
+1               REM
+1   4           SLA     4
+1               ADL     LENGTH
+1               BUN     0B
+1               REM
+1   5           STP     WRITX
+1               BUN     WRITF
+1               LDB     LIBRARYINDEX
+1              -DLB     LIBRARYTABLE/64
+1               CAD     LENGTH
+1              -STA     0/64
+1               BUN     RD
+1               REM
+1               REM
+1   RDE         LDB     $+2
+1               RTF     =0=,1
+1               RTF     READ,15
+1               LDR     20B
+1               STR     $+1/11
+1               CNC     READ+15,1
+1               CAD     READ
+1               CLL     RDI
+1   RDEX        BUN     $
+1               REM
+1               REM
+1   SCAN1       IFL     RDI/05,2
+1               CLL     SYMBOL
+1               LDB     =SYMBOL+1=
+1               RTF     SYMBOL,9
+1               DLB     RDI/94
+1              -CAD     READ
+1               IBB     1F,9984
+1               CLT
+1               BUN     SCANX
+1   1           LDB     RDI
+1              -SLA     0
+1               STA     CHARACTER/22
+1               BFA     SCAN1/22,0
+1               BFA     SCNN/11,8
+1               BFA     SCNA/11,4
+1               BFA     SCNA/11,5
+1               BFA     SCNA/11,6
+1               STA     SYMBOL/22
+1   SCANX       BUN     SCANX
+1               REM
+1               REM
+1   SCNN        CLL     SYMBOL
+1   1           SRT     9
+1               CAD     SYMBOL
+1               SLT     1
+1               STA     SYMBOL
+1               IFL     RDI/05,2
+1               DLB     RDI/94
+1              -CAD     READ
+1               LDB     RDI
+1              -SLA     0
+1               BFA     1B/11,8
+1               DFL     RDI/05,2
+1               CAD     SYMBOL
+1               BUN     SCANX
+1               REM
+1               REM
+1   SCNA        CLL     SYMBOL
+1               LDB     =SYMBOL+1=
+1               RTF     SYMBOL,9
+1               CLL     DD
+1   1           SRA     8
+1               LBC     DD
+1              -SLA     8
+1               DLB     DD/94
+1               IFL     DD/04,2
+1              -ADL     SYMBOL
+1               IFL     RDI/04,2
+1               DLB     RDI/94
+1              -CAD     READ
+1               LDB     RDI
+1              -SLA     0
+1               BFA     1B/11,4
+1               BFA     1B/11,5
+1               BFA     1B/11,6
+1               BFA     1B/11,8
+1               BFA     1B/22,14
+1               DFL     RDI/05,2
+1               IFL     SYMBOL/12,20
+1               IFL     SYMBOL+1/12,20
+1               CAD     SYMBOL
+1               BUN     SCANX
+1               REM
+1               REM
+1   WRIT        CAD     INSTRUCTION
+1               LDB     BC
+1              -STA     WRITEBUFFER-1
+1               ADL     WRITEBUFFER+99
+1               BOF     $+1
+1               IFL     BC/02,1
+1               BOF     1F
+1   WRITX       BUN     WRITX
+1   WRITF       LDB     BC
+1               CAD     INSTRUCTION
+1              -STA     WRITEBUFFER-1
+1               ADL     WRITEBUFFER+99
+1   1           CSU     WRITEBUFFER+99
+1               STA     WRITEBUFFER+99
+1               LDB     =WRITEBUFFER=
+1               DO      W
+1   WRITE       CLL     BC
+1               IFL     BC/00,2
+1               IFL     WRITEBUFFER/00,1
+1               LDB     $+2
+1               RTF     =0=,1
+1               RTF     WRITEBUFFER+1,98
+1               BUN     WRITX
+1               REM
+1               REM
+1   SYMBOLINSERT
+1               LDR     DD
+1               CFR     =10=
+1               SLT     6
+1               STR     RTF/44
+1               IFL     RTF/43,9
+1               SLT     2
+1               STR     DD/22
+1               BCH     1F
+1               LDR     SYMBOL
+1               LDB     PRMAX
+1   3          -CFR     PRTABLE/00
+1               BCU     2F
+1              -CAD     PRTABLE+1
+1               STA     L/64
+1   SYMBOLINSERTX
+1               BUN     SYMBOLINSERTX
+1   2           DBB     3B,2
+1   1           CAA     SYMBOL
+1               SRT     10
+1               DIV     =99=
+1               SLT     10
+1               ADD     =SCRTB=
+1               STA     LL0
+1               STA     K
+1               LDB     K
+1               CAD     DD
+1   3          -CFA     0/22
+1               BCU     1F
+1              -DLB     0/64
+1               STB     COMPARE/04
+1               IFL     COMPARE/04,1
+1               DLB     RTF/34
+1               IBB     $+1,9999
+1   COMPARE    -LDR     0
+1              -CFR     SYMBOL/00
+1               BCU     2F
+1               DBB     COMPARE,1
+1               LDB     K
+1              -CAD     0
+1               STA     L/64
+1               BUN     SYMBOLINSERTX
+1               REM
+1   2           LDB     K
+1   1          -LDB     0
+1               STB     K
+1               IBB     INSERT,8000
+1               IBB     3B,2000
+1   INSERT      LDB     LL0
+1              -LDR     0
+1               BZR     1F
+1               CAD     SSC
+1              -STA     0/04
+1               LDB     SSC
+1               IFL     SSC/04,1
+1   1          -STR     0/04
+1               CAD     SSC
+1               SLA     4
+1              -STA     0/67
+1               CAD     DD
+1              -STA     0/22
+1              -CAD     0
+1               STA     L/64
+1               LDB     SSC
+1               RTF     =0=,1
+1   RTF         RTF     SYMBOL,1
+1               STB     SSC
+1               BUN     SYMBOLINSERTX
+1               REM
+1               REM
+1   DONE        CAD     =99999999999=
+1               STA     WRITEBUFFER
+1               LDB     =WRITEBUFFER=
+1               DO      W
+1               DO      CRDUMP.1
+1               MPB     2,10
+1               LDR     COMPILER
+1               STR     $+1/32
+1               MTS     =0=,2
+1               MPB     2,3
+1               MOW     LIBRARYTABLE,2,3
+1               CLL     K
+1   1           IFL     K/00,1
+1               LDB     K
+1              -CAD     LIBRARYTABLE
+1               BZA     VALMIS
+1               STA     L
+1   4           LDB     L
+1               IBB     1B,-1
+1              -CAD     1
+1               STA     L
+1               DLB     L/64
+1              -CAD     0
+1               BFA     3F/64,0
+1               BUN     4B
+1   3           SPO     R'REFERENCE WAS MADE TO THE UNDEFINED' ...
+1                       ' LIBRARY PROCEDURE(S)'RII
+1               STB     3B/62
+1               IFL     3B/62,1
+1               SPO     ''RIIII
+1              -SPO     1,1
+1               BUN     4B
+1               REM
+1   VALMIS      MPB     2,10
+1               MPB     2,10
+1               MPB     2,10
+1               MPB     2,10
+1               MPB     2,7
+1               REM
+1               CLB
+1   4          -CAA     TBL
+1               BFA     6F/00,99
+1               STB     HOLD
+1               CFA     =40=/04
+1               BCL     7F
+1               CFA     =43=/04
+1               BCH     7F
+1               SLA     2
+1               STA     HOLD0
+1               SRA     6
+1               ADD     HOLD0
+1               SUB     =IA+4=
+1               STA     HOLD0
+1               LDB     HOLD
+1              -CAD     TBL+1
+1              -DFL     TBL/12,10
+1               LDB     HOLD0
+1              -STA     IA
+1               BRP     $+2
+1               BUN     7F
+1               LSA     0
+1               ADD     RELOCATION
+1               SUB     =4900=
+1              -STA     IA/04
+1   7           LDB     HOLD
+1               IBB     4B,2
+1   6           LDB     =3996-IA=
+1   7          -CAA     IA
+1   1           STP     IO.1
+1               BSA     IO,4
+1               IFL     1B/43,2
+1               BOF     6F
+1               IBB     7B,1
+1               REM
+1   6           MOW     3996,2,5
+1               MRD     4496,2,5
+1               CLL     4995
+1               CLA
+1               LDB     =999=
+1   1          -SUB     3996
+1               DBB     1B,1
+1               STA     4995
+1               MPB     2,10
+1               MOW     3996,2,0
+1               SPO     R'LIBRARY PROCESSING COMPLETE'II
+1               BUN     ENDOFGENERATION
+1               REM
+1               REM
+1   W.1        -MIW     0,2,1
+1               BCS     $+2,2
+1               BUN     W-1
+1               LDR     THECOUNT
+1               SLT     4
+1               STR     7F/64
+1               HPI     $+2
+1               BUN     $-1
+1               HPW     7F-1,2
+1               STB     7F-1/11
+1   3           STB     1F/04
+1               LDB     =2F=
+1   1           RTF     0,10
+1               HPI     $+2
+1               BUN     $-1
+1               HPW     2F-1,11
+1               LDB     1B,9(11)
+1               IFL     $-1/11,9
+1               DBB     0,-10
+1               BOF     3B
+1               HPI     $+2
+1               BUN     $-1
+1               HPW     3F-1,25
+1               IFL     THECOUNT/00,1
+1   W           BUN     $
+1   THECOUNT    (0)
+1              10000000000
+1   2           FILL    0,10
+1               (0)
+1   3           FILL    20000000000,24
+1              03000000000
+1   7          4000009000
+1               REM
+1               REM
+1               REM
+1               REM
+1               REM
+1               REM
+1   ADDRESS     (0)
+1   ALFORMAT-28
+1               FORMAT  INPUT,16(T5A)
+1   BC          (2)
+1   BLCT        (0)
+1               REM
+1   COMPILER    (2)(11)
+1   CDR-6       FILL    0,22
+1   DD          (0)
+1   EQUIVALENCEINDEX
+1               (12)(62)
+1   EQUIVALENCETABLE
+1               FILL    0,100
+1               DJ      046422
+1   F1          (12)
+1              3J       0,10,45
+1              -DFL     IA/62,62
+1              3J       0,11,45
+1              -DFL     IA/62,62
+1              3J       0,12,45
+1              -DFL     IA/62,62
+1              3J       0,13,45
+1              -DFL     IA/62,62
+1              3J       0,14,45
+1              -DFL     IA/62,62
+1              3J       0,32,55
+1              -DFL     IA/62,62
+1               REM
+1   F2          (8)                 ** ON LISTING AS (6) -- BUG **
+1              3J       0,36,54
+1              -DFL     IA/62,64
+1              3J       0,37,54
+1              -DFL     IA/62,29
+1              3J       0,38,54
+1              -DFL     IA/62,64
+1              3J       0,43,54
+1              -DFL     IA/62,64
+1               REM
+1   F3          (4)
+1              3J       0,04,45
+1              -DFL     IA/62,61
+1              3J       0,09,45
+1              -DFL     IA/62,61
+1               REM
+1   F4          (2)
+1              3J       0,30,54
+1              -DFL     IA/62,63
+1               REM
+1   HOLD        HLT     0
+1   HOLD0       HLT     0
+1   IA          FILL    0,101
+1   INPUT       FILL    0,16
+1   INSTRUCTION
+1               (0)
+1   L           (0)
+1   LENGTH      (0)
+1   LIBRARYINDEX
+1               (0)
+1   LL0         (0)
+1   LMAX       (LIBRARYTABLE+299)
+1   NI          (0)
+1   PRINTER     (2)(11)
+1   PRMAX       (22)
+1   PUNCH       (1)(11)
+1   READ-3      FILL    0,19
+1   READER      (1)(11)
+1   RDI         (0)
+1   RR2         (0)
+1   RR3         (0)
+1   SCRATCHML   (1)(11)
+1   SCRATCHDUMP
+1              (101)(33)
+1               REM
+1               REM
+1   SYMBOL      FILL    0,10
+1   LIBRARYTABLE
+1               FILL    0,300
+1   SUMTBL      IS      LIBRARYTABLE+300
+1               FILL    99(23)+IA(64)+(IA+100)(04),9
+1               FILL    98(23)+IA(64)+(IA+99)(04),1
+1               FILL    99(23)+IA(64)+(IA+100)(04),9
+1               FILL    98(23)+IA(64)+(IA+99)(04),1
+1               FILL    99(23)+IA(64)+(IA+100)(04),9
+1               FILL    98(23)+IA(64)+(IA+99)(04),1
+1               FILL    99(23)+IA(64)+(IA+100)(04),9
+1               FILL    98(23)+IA(64)+(IA+99)(04),1
+1               FILL    99(23)+IA(64)+(IA+100)(04),9
+1               FILL    98(23)+IA(64)+(IA+99)(04),1
+1               FILL    98(23)+IA(64)+(IA+100)(04),2
+1               FILL    99(23)+IA(64)+(IA+100)(04),31
+1               FILL    98(23)+IA(64)+(IA+99)(04),1
+1               REM
+1   PRTABLE    'FIX'
+1              (SCRTB+106)(64)
+1              'FLOAT'
+1              (SCRTB+108)(64)
+1              'FX*FX'
+1              (SCRTB+102)(64)
+1              'FX*FL'
+1              (SCRTB+103)(64)
+1              'FL*FX'
+1              (SCRTB+104)(64)
+1              'FL*FL'
+1              (SCRTB+105)(64)
+1              'LABEL'
+1              (SCRTB-9)(64)
+1              'MONIT'
+1              (SCRTB+110)(64)
+1              'ERROR'
+1              (SCRTB+113)(64)
+1              'TRACE'
+1              (SCRTB+114)(64)
+1              'RITE'
+1              (SCRTB+117)(64)
+1              'REED'
+1              (SCRTB+116)(64)
+1               REM
+1               POOL
+1   TBL        30(12)+((CCCNT+1)/100)(04)+((CCCNT+1)//100)(64)
+1               BUN     SETSCAN.1,144(44)
+1              30(12)+((CCBEG+1)/100)(04)+((CCBEG+1)//100)(64)
+1              -IFL     IA/42,0
+1              -((0050/100)(04)+(0050//100)(64))
+1              -ADD     4800
+1              -(((MAMAX+4)/100)(04)+((MAMAX+4)//100)(64))
+1               HLT     4999
+1              (B/100)(04)+(B//100)(64)
+1               HLT     5000
+1              (VARB/100)(04)+(VARB//100)(64)
+1               HLT     4999
+1              30(12)+(HALT/100)(04)+(HALT//100)(64)
+1              -IFL     IA/62,00
+1               FILL    99999999999,786
+1               REM
+1   TEMP        (0)
+1   TEMP1       (0)
+1   TEMP2       (0)
+1   WRITEBUFFER
+1               FILL    0,100
+1               REM
+1               REM
+1               REM
+1               ORIGIN  1000
+1               PLACE   3500
+1   TEMP3       (0)
+1   LIC         (0)
+1   SRFC        (0)
+1   SEQNBR     ((1)(41))
+1   WC          (0)
+1   NUMBERWORDS
+1               (6)
+1   LL          (0)
+1   RLOC        (0)
+1   LLC         (0)
+1   EQUIV       (0)
+1   BUFAREA     FILL    0,16
+1   EIGHT       (8)
+1   HLT        (725007570)
+1               REM
+1               REM
+1   READY       LDB     COUNT
+1               IBB     $+3,-1
+1               MPF     2,1
+1               BUN     $-2
+1               MRD     0000,2,0
+1               LDB     =9997=
+1               MPF     2,10
+1               IBB     $-1,1
+1               MRD     3996,2,4
+1               MPF     2,10
+1               MPF     2,10
+1               MPF     2,10
+1               MPF     2,10
+1               MRD     LIBRARYTABLE,2,3
+1               MPF     2,6
+1               LDR     COMPILER
+1               STR     $+1/32
+1               MTS     SEQNBR,002
+1               MRD     IA,2,1
+1               CWF     LIBRARYFORMAT,1,1
+1               CWF     LIBRARYFORMAT,2,1
+1               REM
+1               REM
+1               LDB     =LIBRARYTABLE=
+1               STB     TEMP1
+1   HEADERCARD  LDB     TEMP1
+1               IBB     $+1,1
+1               STB     TEMP1
+1              -LDR     0
+1               BZR     HLT
+1              -DLB     0/64,0
+1               STB     TEMP2
+1               DO      MATCHSRF.1
+1   EXAMINEOPERAND
+1               LDB     TEMP2
+1              -CAD     0
+1               BFA     55F/21,3
+1               CAD     =23=
+1               DO      BUFFERFILL.2
+1               LDB     TEMP2
+1              -CAD     0
+1               BFA     BP1/21,0
+1               DO      INTEGER
+1               DFL     25F/62,29
+1   99          LDB     TEMP2
+1              -CAD     0
+1               BFA     55F/01,3
+1               CAD     =24=
+1               DO      BUFFERFILL.2
+1               LDB     TEMP2
+1              -CAD     0
+1               BFA     BP2/01,0
+1               DO      INTEGER
+1               DFL     25F/62,29
+1   88          CAD     =04=
+1               DO      BUFFERFILL.2
+1   55          DO      PUNCHING.2
+1               REM
+1   WORDS       DO      GET.1
+1               BSA     EQUIVALENCE,4
+1               LDR     =28=
+1               STR     LLC
+1               STA     TEMP3
+1               SRT     10
+1               STA     EIGHT/90
+1               CAD     EIGHT
+1               SLS     1
+1               DO      BUFFERFILL.2
+1   2           CAD     =8=,9(11)
+1               SLT     1
+1               DO      BUFFERFILL.2
+1               DFL     2B/11,1
+1               BRP     2B
+1               REM
+1               REM
+1   TST         IFL     WC/01,1
+1               CAD     TEMP3
+1               BSA     PSDO,4
+1               CLL     CNST
+1               LDR     WC
+1               CFR     NUMBERWORDS/01
+1               BCE     9F
+1               DO      GET.1
+1               BUN     WORDS+5
+1               REM
+1   9           DO      FIXCNT.1
+1               BUN     WORDS
+1               REM
+1   PSDO        LDB     CNST
+1               DBB     TST+3,1
+1               BFA     1F/62,01
+1               BFA     ENDSUBR/62,99
+1               BUN     TST+3
+1   1           IFL     CNST/01,1
+1               BUN     TST+4
+1   CNST        (0)
+1               REM
+1   GET.1       CAD     IA+1,98(22)
+1               IFL     $-1/22,99
+1               IFL     GET.1/04,1
+1   GET         BOF     $
+1               MRD     IA,2,1
+1               DFL     GET.1/22,2
+1               DFL     GET.1/04,99
+1               BUN     GET.1
+1               REM
+1               REM
+1   EQUIVALENCE
+1               BFA     $+2/62,12
+1               BUN     WORDS+3
+1               STA     EQUIV
+1               SRT     12
+1               DO      MATCHSRF.1
+1               CAD     =33=
+1               DO      BUFFERFILL.2
+1               CAD     EQUIV
+1               CLR
+1               SRT     2
+1   3           CAD     =8=
+1               SLT     1
+1               DO      BUFFERFILL.2
+1               BZR     $+2
+1               BUN     3B
+1               DO      PUNCHING.2
+1               BUN     WORDS
+1               REM
+1               REM
+1   FIXCNT.1    CAD     WC
+1               SLA     4
+1               ADD     =86008(55)=
+1               STA     BUFAREA
+1               CLL     WC
+1               CLA
+1               LDR     RLOC
+1   1           SLA     1
+1               ADD     =8=
+1               SLT     1
+1               BFA     1B/31,0
+1               SLA     2
+1               STA     BUFAREA+2/88
+1               CAD     NUMBERWORDS
+1               SLA     6
+1               STA     1F/42
+1   1           IFL     RLOC/44,0
+1               DO      PUNCHING.1
+1   FIXCNT      BUN     $
+1               REM
+1               REM
+1   MATCHSRF.1  CAD     =82=
+1               DO      BUFFERFILL.2
+1               LDB     =22=
+1   1          -CFR     PRTABLE+1/64
+1               BCE     5F
+1               DBB     1B,2
+1               BUN     10F
+1               REM
+1   5          -LDR     PRTABLE
+1               CLA
+1               SLT     2
+1               DO      BUFFERFILL.2
+1               BZR     MATCHSRF
+1               BUN     5B+1
+1               REM
+1   10          SRT     4
+1               STR     TEMP2
+1               LDB     TEMP2
+1              -LDR     1
+1               CLA
+1               DIV     =99=
+1               SLT     10
+1               ADD     =SCRTB=
+1               STA     L
+1               CAD     TEMP2
+1               SLA     4
+1               STA     SRFC
+1               DO      FINDSRF
+1               SRA     8
+1   5           STA     LL
+1               REM
+1   3           CAD     LIC
+1               SRA     1
+1               ADD     TEMP2
+1               STA     TEMP3
+1               LDB     TEMP3
+1              -CAD     1
+1               LDB     LIC
+1              -SLA     2
+1               DO      BUFFERFILL.2
+1               IFL     LIC/05,2
+1               CAD     LIC
+1               CFA     LL/04
+1               BCE     $+2
+1               BUN     3B
+1   MATCHSRF    BUN     $
+1               REM
+1               REM
+1   FINDSRF.1   LDB     L
+1              -CAD     0
+1               STA     L
+1               CFA     SRFC/64
+1               BCU     FINDSRF.1
+1   FINDSRF     BUN     $
+1               REM
+1               REM
+1   BUFFERFILL.2
+1               EXT     =11=
+1               LBC     LLC
+1              -SLA     8
+1               DLB     LLC/94,0
+1              -ADD     BUFAREA
+1              -STA     BUFAREA/00
+1               IFL     LLC/05,2
+1   BUFFERFILL  BUN     $
+1               REM
+1               REM
+1   ENDSUBR     DO      FIXCNT.1
+1               CLL     RLOC
+1               LDR     $+6
+1               STR     GET.1
+1               MRD     IA,2,1
+1               LDR     IA
+1               BFR     HLT/00,99
+1               BUN     HEADERCARD
+1              (980010)(66)+(IA+1)(04)
+1               REM
+1               REM
+1   INTEGER.1   CLT
+1               LDR     'INTEG'
+1   5           SLT     2
+1               DO      BUFFERFILL.2
+1               CLA
+1               BZR     25F
+1               BUN     5B
+1               REM
+1   25          NOP     INTEGER
+1               IFL     $-1/62,29
+1               LDR     'ER'
+1               BUN     5B
+1   INTEGER     BUN     $
+1               REM
+1   BP1         DO      REAL
+1               BUN     99B
+1               REM
+1   BP2         DO      REAL
+1               BUN     88B
+1   REAL.1      CLT
+1               LDR     'REAL'
+1   4           SLT     2
+1               DO      BUFFERFILL.2
+1               CLA
+1   REAL        BZR     $
+1               BUN     4B
+1               REM
+1               REM
+1   PUNCHING.2  CLL     LIC
+1   PUNCHING.1  CWR     BUFAREA+15,2,1
+1               CWR     BUFAREA+15,1,1
+1               CLL     LLC
+1               CLL     BUFAREA
+1               LDB     =BUFAREA+1=
+1               RTF     BUFAREA,15
+1   PUNCHING    BUN     $
+1               REM
+1   LIBRARYFORMAT-28
+1               FORMAT  PUNCH,16(T5A)
+1               PLACED
+1               REM
+1               REM
+1               FORGET  NAMES
+1               ORIGIN  0000
+1               PLACE   4000
+1               REM
+1               REM     OBJECT PROGRAM CARD LOADER
+1               REM
+1               REM
+1   LOADL      4CRI     $+2,1
+1               BUN     $-1
+1              4CRFL    PFMT,1,1
+1   LOADB      4CRF     FMT1,1,5
+1   1           IFL     B/54,1
+1               BOF     2F
+1              4CWI     2F,2
+1               BUN     1B
+1   2          4CWI     $+2,2
+1               BUN     $+4
+1              4CWF     FMT3,2,3          MONIT
+1              4CWF     FMT4,2,4           ERR
+1              4CWF     FMT5,2,5        PRINTER
+1              4CWI     $+2,1
+1               BUN     $+2
+1              4CWF     FMT5,1,5         PUNCH
+1               REM
+1   LOADC       IS      $+1
+1               LDR     FIX
+1               STR     B
+1               LDR     FIX+1
+1               STR     LODOX/04
+1               STR     ZERO/04
+1               DFL     ZERO/04,1
+1               LDR     B
+1               LDB     $+2
+1               RTF     A,1
+1   ZERO        RTF     199,00
+1               STB     A
+1               CFR     A/04
+1               BCU     ZERO
+1               REM
+1   LOADP       LDR     X
+1               STR     M
+1               BCS     INP,3
+1               LDB     =9899=
+1               IBB     $+1,5
+1   3          5CNC     200,1
+1               IBB     3B,5
+1   CHK         LBC     $+1
+1               CLA     100
+1   4          -ADD     200
+1              -ADD     201
+1              -ADD     202
+1              -ADD     203
+1              -ADD     204
+1               IBB     4B,5
+1               BOF     $+1
+1               BZA     M
+1               SPO     R'CHECK SUM ERROR'
+1               HLT     9669,9669(44)
+1               BUN     $-1
+1   INP         PNC     0100,1,100
+1               BUN     CHK
+1               REM
+1   M           CAD     101
+1               LDB     M
+1               BSA     C,4
+1               REM
+1               CLL     Z
+1               IFL     Z/02,99
+1   5           DLB     Z/04,1
+1              -LDR     100
+1               BFR     END/12,80
+1               BZR     LOADP
+1              -DLB     100/64,0
+1              -STR     0/04
+1               BUN     5B
+1               REM
+1   C           STA     R/66
+1               DBB     0,-1
+1               STB     R/04
+1              -LDB     -1
+1   R           RTF     0,00
+1               SRT     7
+1               ADD     O
+1               ADL     M
+1               BUN     M
+1   X           CAD     101
+1   O           HLT     1
+1   Z           HLT     99
+1               REM
+1   END         CFR     SECT/67
+1               BCU     5B
+1   LODOX       BUN     200
+1               REM
+1               REM
+1   SECT        (80(12))
+1   A           (0)
+1   B           (5000)
+1               POOL
+1   PFMT-28     FORMAT  INPUT,25B,5(S10N)
+1   FMT1-28     FORMAT  INPUT,16(P5A),P10Z
+1   FMT5-28     FORMAT  PRINT,24(T5A)
+1   FMT4-28     FORMAT  PRINT,32B,11(T5A),33B
+1   FMT3-28     FORMAT  PRINT,49B,T5A,T1A1B2A4Z,T10N,T8Z1A,XB6Z2A,48B
+1               REM
+1               ORIGIN  240
+1   FIX         (5000)
+1               (200)
+1               REM
+1               REM
+1               REM
+1               REM     OBJECT DUMP
+1               REM
+1               ORIGIN  300
+1   IA          IS      100
+1   OT          IS      1
+1               REM
+1   DUMP.1      BCS     $+3,3
+1              4CWF     OUTFMT,1,1
+1               BUN     $+2
+1               PWR     CALL,1,7
+1              4MRW     OT
+1              4MPF     OT,3
+1               BCS     DUMPL,4
+1              4MIB     MRD,OT
+1               BUN     $-1
+1               REM
+1   DUMP.2      BCS     DUMP.3,3          PT OUT
+1               LDB     =BUF+1=
+1   1           RTF     IA,5
+1              4CWR     BUF+5,1,1
+1               IFL     BUF/04,1
+1               IFL     1B/02,5
+1               BOF     MRD
+1               BUN     DUMP.2+1
+1               REM
+1   DUMP.3      PWR     IA,1,100
+1               BUN     MRD
+1               REM
+1   DUMPL       BCS     DUMP.4,3
+1               IFL     BUF/61,5
+1               LDB     =BUF+1=
+1   1           RTF     250,5
+1              4CWR     BUF+5,1,1
+1               DFL     1B/04,5
+1               IFL     BUF/04,1
+1               BRP     DUMPL+2
+1               CLL     BUF
+1               IFL     BUF/61,1
+1               BUN     MRD
+1               REM
+1   DUMP.4      PWR     0000,1,100
+1               PWR     100,1,100
+1               PWR     200,1,100
+1               REM
+1   MRD        4MNC     IA,OT,1
+1               CAD     IA
+1               BFA     HLT/00,99
+1               CLA     100
+1               LBC     $-1
+1   1          -ADD     200
+1               IBB     1B,1
+1               BOF     $+1
+1               BZA     DUMP.2
+1               SPO     R'CHECK SUM ERROR'
+1               HLT     9669,9669(44)
+1              4MPB     OT,1
+1               BUN     MRD
+1   HLT         HLT     7250,0757(44)
+1               REM
+1   BUF         (10000)
+1               FILL    0,5
+1   CALL        BCS     302,4
+1               BUN     LOADB
+1               PNC     0000,1,100
+1               PNC     0100,1,100
+1               PNC     0200,1,100
+1               BUN     LOADB
+1              6BUN     300
+1               REM
+1   OUTFMT-28   FORMAT  PUNCH,P5ZN9B4N,11B,5(S10N)
+1               REM
+1               PLACED
+1               END     4800

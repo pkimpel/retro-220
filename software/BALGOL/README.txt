@@ -103,7 +103,9 @@ BAC-220-Loader-Blank-Card.card
 
 BALGOL-Build-Notes.txt
     Notes for bootstrapping the BALGOL Generator and Compiler programs
-    from source code and generating loadable tapes for each one.
+    from source code and generating loadable tapes for each one. A
+    somewhat reformatted version of these notes is in the
+    "BuildingBALGOL" wiki page.
 
 BALGOL-Generator/
     Compiler generator program to build versions of the BAC-220 compiler
@@ -115,16 +117,11 @@ BALGOL-Generator/
     http://bitsavers.org/pdf/burroughs/electrodata/220/
     220-21017_B220_BALGOL_Mar63.pdf.
 
-    .bacg
-        Assembly listing of the BALGOL compiler-generator program,
-        transcribed by Paul Kimpel from:
-        http://archive.computerhistory.org/resources/text/
-        Knuth_Don_X4100/PDF_index/k-1-pdf/k-1-u2196-
-        balgol220compiler.pdf.
-
     .card
-        Card-image assembler source deck extracted from the .bacg file
-        for input to the assembler.
+        Current card-image assembler source deck for the Generator
+        program. This contains corrections to the original Generator
+        program transcribed from Prof. Knuth's listing (see the BALGOL-
+        Generator--ORIGINAL/ directory below).
         Assemble with software/tools/GEN-Assembler.
 
     -Fixup-1.card
@@ -145,9 +142,8 @@ BALGOL-Generator/
         Loadable band-6 object deck to execute the -Fixup-2 program.
 
     -List.lst
-        Assembly listing of .card produced by the GEN-Assembler. This
-        output was compared back to the .bacg file to verify the
-        transcription of the Generator.
+        Current assembly listing of .card above produced by the GEN-
+        Assembler.
 
     -Object.tape
         Object code tape image for the Generator produced by GEN-
@@ -165,11 +161,37 @@ BALGOL-Generator/
         by the GEN-Assembler in assembling the Generator. Pre-loading
         the literal pool assures that the same addresses will be
         assigned by the assembler to literal values and strings as were
-        originally present in the transcribed .bacg file.
+        originally present in the transcribed .bacg file. Note that if
+        the Generator source is modified so that symbols used in literal
+        expressions [e.g., =(IA+1)=] are assigned different addresses,
+        the corresponding pool values may need to be updated in this
+        file to match the new values of the literal expressions.
 
     -SPO-Output.txt
         Sample SPO output from the Generator run that builds the
         standard library and initial Compiler tape.
+
+    BALGOL-Generator--ORIGINAL/
+        This directory holds the files from the original transcription
+        of the Generator program:
+
+        BALGOL-Generator.bacg
+            Assembly listing of the BALGOL compiler-generator program,
+            transcribed by Paul Kimpel from:
+            http://archive.computerhistory.org/resources/text/
+            Knuth_Don_X4100/PDF_index/k-1-pdf/k-1-u2196-
+            balgol220compiler.pdf.
+
+        BALGOL-Generator.card
+            Original card-image assembler source deck extracted from the
+            .bacg file for input to the GEN-Assembler. This file
+            represents the source for the Generator as it was
+            transcribed.
+
+        BALGOL-Generator-List.lst
+            Assembly listing of the .card file above produced by GEN-
+            Assembler. Pass 2 of this output was compared back to the
+            .bacg file to verify the transcription of the Generator.
 
 BALGOL-Main/
     Main program for the BAC-220 compiler. This performs the basic one-
@@ -288,4 +310,6 @@ BALGOL-Examples/
     file in the directory for details.
 
 Paul Kimpel
-August 2018
+October 2018
+
+
