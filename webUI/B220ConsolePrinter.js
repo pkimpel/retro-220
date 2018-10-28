@@ -64,7 +64,7 @@ B220ConsolePrinter.ttySpeed = 10;       // TTY printer speed, char/sec
 B220ConsolePrinter.ttyNewLine = 200;    // TTY carriage-return delay, ms
 B220ConsolePrinter.whippetSpeed = 1000; // Whippet printer speed, char/sec
 B220ConsolePrinter.whippetNewLine = 75; // Whippet carriage-return delay, ms
-B220ConsolePrinter.formFeedPeriod = 500;// form-feed average delay, ms
+B220ConsolePrinter.formFeedPeriod = 500;// full-page form-feed delay, ms
 
 B220ConsolePrinter.pageSize = 66;       // lines/page for form-feed
 B220ConsolePrinter.maxScrollLines = 15000;
@@ -122,19 +122,25 @@ B220ConsolePrinter.prototype.emptyPaper = function emptyPaper() {
     while (this.paper.firstChild) {
         this.paper.removeChild(this.paper.firstChild);
     }
+
     this.paper.appendChild(this.doc.createTextNode(""));
+    this.printerLine = 0;
+    this.printerCol = 0;
+    this.printerEOP.scrollIntoView();
 };
 
 /**************************************/
-B220ConsolePrinter.prototype.emptyLine = function emptyLine(text) {
-    /* Removes excess lines already output, then appends a new text node to the
-   <pre> element within the paper element. Note that "text" is an ANSI string */
+B220ConsolePrinter.prototype.printNewLine = function printNewLine(text) {
+    /* Removes excess lines already output, then appends a newline to the
+    current text node, and then a new text node to the end of the <pre> element
+    within the paper element. Note that "text" is an ANSI string */
     var paper = this.paper;
     var line = text || "";
 
     while (paper.childNodes.length > B220ConsolePrinter.maxScrollLines) {
         paper.removeChild(paper.firstChild);
     }
+
     paper.lastChild.nodeValue += "\n";     // newline
     paper.appendChild(this.doc.createTextNode(line));
     ++this.printerLine;
@@ -152,14 +158,14 @@ B220ConsolePrinter.prototype.printChar = function printChar(code) {
     if (c != "?") {                     // some 220 codes just don't print
         line = this.paper.lastChild.nodeValue;
         len = line.length;
-        if (len < 1) {
+        if (len < 1) {                  // first char on line
             this.paper.lastChild.nodeValue = c;
             this.printerCol = 1;
-        } else if (len < this.columns) {
+        } else if (len < this.columns) {// normal char
             this.paper.lastChild.nodeValue = line + c;
             ++this.printerCol;
-        } else {
-             this.emptyLine(c);
+        } else {                        // right margin overflow
+             this.printNewLine(c);
         }
     }
 };
@@ -178,22 +184,35 @@ B220ConsolePrinter.prototype.printTab = function printTab() {
     } // for x
 
     if (this.columns < tabCol) {
-        this.emptyLine();                   // tab would overflow right margin
+        this.printNewLine();            // tab would overflow right margin
     } else {
         while (this.printerCol < tabCol) {
-            this.printChar(0x00);           // output a space
+            this.printChar(0x00);       // output a space
         }
     }
 };
 
 /**************************************/
 B220ConsolePrinter.prototype.printFormFeed = function printFormFeed() {
-    /* Simulates a form feed by outputting an appropriate number of blank lines */
+    /* Simulates a form feed by appending a newline and form feed to the
+    current text node, and then a new text node to the end of the <pre> element
+    within the paper element, with sufficient spaces to position the print head
+    to the same position on the line */
+    var paper = this.paper;
+    var line = "";
 
-    this.printerLine %= B220ConsolePrinter.pageSize;
-    while (this.printerLine < B220ConsolePrinter.pageSize) {
-        this.emptyLine();
+    while (line.length < this.printerCol-8) {
+        line += "        ";
     }
+
+    while (line.length < this.printerCol) {
+        line += " ";
+    }
+
+    paper.lastChild.nodeValue += "\n\f";        // newline + formfeed
+    paper.appendChild(this.doc.createTextNode(line));
+    this.printerLine = 0;
+    this.printerEOP.scrollIntoView();
 };
 
 /**************************************/
@@ -223,7 +242,6 @@ B220ConsolePrinter.prototype.copyPaper = function copyPaper(ev) {
     });
 
     this.emptyPaper();
-    this.emptyLine();
     ev.preventDefault();
     ev.stopPropagation();
 };
@@ -234,11 +252,11 @@ B220ConsolePrinter.prototype.button_Click = function button_Click(ev) {
 
     switch (ev.target.id) {
     case "LineFeedBtn":
-        this.emptyLine();
+        this.printNewLine();
         break;
     case "CarriageReturnBtn":
         if (this.printerCol > 0) {
-            this.emptyLine();
+            this.printNewLine();
         }
         break;
     case "OpenPanelBtn":
@@ -410,7 +428,6 @@ B220ConsolePrinter.prototype.printerOnLoad = function printerOnLoad(ev) {
     this.paper = this.$$("Paper");
     this.printerEOP = this.$$("EndOfPaper");
     this.emptyPaper();
-    this.emptyLine();
 
     body = this.$$("FormatControlsDiv");
     this.remoteKnob = new BlackControlKnob(body, null, null, "RemoteKnob",
@@ -536,7 +553,7 @@ B220ConsolePrinter.prototype.receiveSign = function receiveSign(char, successor)
         break;
     } // switch
 
-    if (this.nextCharTime <= stamp) {
+    if (this.nextCharTime < stamp) {
         this.nextCharTime = stamp;
     }
 
@@ -548,7 +565,7 @@ B220ConsolePrinter.prototype.receiveSign = function receiveSign(char, successor)
 B220ConsolePrinter.prototype.receiveChar = function receiveChar(char, successor) {
     /* Receives a non-sign character from the processor and outputs it. Special handling
     is provided for tabs, carriage returns, form feeds, and end-of-word characters */
-    var delay = this.charPeriod;                // default character delay
+    var delay = this.charPeriod;                // default character delay, ms
     var nextReceiver = this.boundReceiveChar;   // default routine to receive next char
     var stamp = performance.now();              // current time
 
@@ -558,10 +575,12 @@ B220ConsolePrinter.prototype.receiveChar = function receiveChar(char, successor)
         break;
 
     case 0x02:                          // blank (non-print)
+        delay = 10;                             // a guess...
         break;
 
     case 0x15:                          // form-feed
-        delay = B220ConsolePrinter.formFeedPeriod;
+        delay = this.newLinePeriod + B220ConsolePrinter.formFeedPeriod *
+                    (1 - (this.printerLine%B220ConsolePrinter.pageSize)/B220ConsolePrinter.pageSize);
         this.suppressLZ = 0;
         this.printFormFeed();
         break;
@@ -569,7 +588,7 @@ B220ConsolePrinter.prototype.receiveChar = function receiveChar(char, successor)
     case 0x16:                          // carriage-return
         delay = this.newLinePeriod;
         this.suppressLZ = 0;
-        this.emptyLine();
+        this.printNewLine();
         break;
 
     case 0x26:                          // tab
@@ -589,7 +608,7 @@ B220ConsolePrinter.prototype.receiveChar = function receiveChar(char, successor)
                 break;
             case 2:                             // EOW = carriage-return
                 delay = this.newLinePeriod;
-                this.emptyLine();
+                this.printNewLine();
                 break;
             }
         }

@@ -260,22 +260,20 @@ function B220Processor(config, devices) {
 *   Global Constants                                                   *
 ***********************************************************************/
 
-B220Processor.version = "1.00a";
+B220Processor.version = "1.01";
 
 B220Processor.tick = 1000/200000;       // milliseconds per clock cycle (200KHz)
 B220Processor.cyclesPerMilli = 1/B220Processor.tick;
                                         // clock cycles per millisecond (200 => 200KHz)
-B220Processor.timeSlice = 10;           // maximum processor time slice, ms
-B220Processor.delayAlpha = 0.0001;      // decay factor for exponential weighted average delay
+B220Processor.timeSlice = 13;           // maximum processor time slice, ms
+B220Processor.delayAlpha = 0.000001;    // decay factor for exponential weighted average delay
 B220Processor.delayAlpha1 = 1-B220Processor.delayAlpha;
-B220Processor.slackAlpha = 0.0001;      // decay factor for exponential weighted average slack
+B220Processor.slackAlpha = 0.000001;    // decay factor for exponential weighted average slack
 B220Processor.slackAlpha1 = 1-B220Processor.slackAlpha;
 
-B220Processor.neonPersistence = 1000/60;
-                                        // persistence of neon bulb glow [ms]
+B220Processor.neonPersistence = 7;      // persistence of neon bulb glow [ms]
 B220Processor.maxGlowTime = B220Processor.neonPersistence;
                                         // panel bulb glow persistence [ms]
-B220Processor.lampGlowInterval = 50;    // background lamp sampling interval (ms)
 B220Processor.adderGlowAlpha = B220Processor.neonPersistence/12;
                                         // adder and carry toggle glow decay factor,
                                         // based on one digit (1/12 word) time [ms]
@@ -1833,7 +1831,7 @@ B220Processor.prototype.floatingAdd__WITH_ROUND = function floatingAdd(absolute)
             this.OFT.set(1);
             sign = ax = dx = limiter = 0;
         }
-    } else if (am < 0x50) {             // mantissa is zero
+    } else if (am == 0) {               // mantissa is zero
         ax = sign = limiter = 0;
         timing += 0.065;
     } else {                            // normalize the result as necessary
@@ -1870,12 +1868,16 @@ B220Processor.prototype.floatingAdd__WITH_ROUND = function floatingAdd(absolute)
 
     // Set toggles for display purposes and set the result.
     d = am%0x100;                       // get the rounding digits
-    am = (am - am%0x100)/0x100;         // scale back to 8 digits
-    if (d > 0x50) {                     // round required
+    am = (am - d)/0x100;                // scale back to 8 digits
+    if (d >= 0x50) {                    // round required
         am = this.bcdAdd(1, am, 11, 0, 0);
         if (am >= 0x100000000) {
-            am = (am - am%0x10)/0x10;
             ax = this.bcdAdd(1, ax, 3, 0, 0); // ignore exponent overflow, for now
+            d = am%0x10;
+            am = (am - d)/0x10;
+            if (d >= 5) {               // round again after scale right
+                am = this.bcdAdd(1, am, 11, 0, 0);
+            }
         }
     }
 
@@ -4294,7 +4296,6 @@ B220Processor.prototype.ioInitiate = function ioInitiate() {
 
     this.AST.set(1);
     this.asyncOn();
-    this.updateLampGlow(0);             // update the console lamps
     this.execLimit = 0;                 // kill the run() loop
 };
 

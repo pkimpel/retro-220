@@ -103,7 +103,7 @@ function B220ControlConsole(p, systemShutdown) {
 }
 
 /**************************************/
-B220ControlConsole.displayRefreshPeriod = 100;  // milliseconds
+B220ControlConsole.displayRefreshPeriod = 50;   // milliseconds
 B220ControlConsole.offSwitchImage = "./resources/ToggleDown.png";
 B220ControlConsole.onSwitchImage = "./resources/ToggleUp.png";
 B220ControlConsole.offOrganSwitchImage = "./resources/Organ-Switch-Up.png"
@@ -470,7 +470,7 @@ B220ControlConsole.prototype.updatePanel = function updatePanel() {
     text = (timer/1000 + 10000).toFixed(1);
     this.intervalTimer.textContent = text.substring(text.length-6);
 
-    p.updateLampGlow(p.AST.value ? 0.75 : 0);
+    p.updateLampGlow(p.AST.value ? 1 : 0);
     eLevel = (p.RUT.value ? p.EXT.glow : p.EXT.value);
 
     // Primary Registers
