@@ -40,13 +40,18 @@
 * Output of Pass 2 is a traditional assembler listing, with words of
 * generated object code and data. This listing is created by default.
 *
-* Output of the generated code and data can be obtained in three forms:
+* Output of the generated code and data can be obtained in four forms:
 *
 *   - Punched cards in a self-loading band-6 format (default).
 *
 *   - Punched cards in BALGOL Machine Language format. This is also a
 *     band-6 format, but requires a separate loader program. See Appendix
-*     F in the BAC-220 reference manual.
+*     F in the BAC-220 reference manual under the heading "PREPARATION OF
+*     EXTERNAL PROGRAMS".
+*
+*   - Punched cards in the BALGOL Generator program deck format for
+*     INPUTMEDIA and OUTPUTMEDIA routines. See Appendix F of the BAC-220
+*     reference manual under the heading "INPUT-OUTPUT PROCEDURES".
 *
 *   - Magnetic tape image recorded in 100-word blocks. The code is
 *     written to lane 0 of the tape image.
@@ -71,8 +76,9 @@ HTML {
 
 BODY {
     position:           relative;
+    background-color:   #FFC;
     font-family:        Arial, Helvetica, sans-serif;
-    height:             100%;
+    height:             calc(100% - 3ex);
     margin:             1ex}
 
 DIV.heading {
@@ -84,7 +90,6 @@ LABEL {
     font-size:          smaller}
 
 #CardReaderPanel {
-    position:           relative;
     color:              white;
     background-color:   #666;
     width:              640px;
@@ -100,8 +105,6 @@ LABEL {
     width:              100%}
 #CardReaderCol1 {
     width:              18ex}
-#CardReaderCol2 {
-    }
 #CardReaderTable TD {
     text-align:         left;
     vertical-align:     top;
@@ -119,22 +122,17 @@ LABEL {
     border:             1px solid white}
 
 #OptionsTable {
-    position:           relative;
     margin-top:         4px;
     margin-bottom:      4px;
-    width:              640px}
-
-#TextDiv {
-    position:           relative;
-    height:             75%;
     width:              640px}
 
 #TextPanel {
     position:           absolute;
     left:               0;
-    top:                0;
-    bottom:             8px;
-    width:              100%;
+    top:                160px; /* initially */
+    bottom:             0px;
+    width:              640px;
+    white-space:        pre;
     overflow:           scroll;
     padding:            4px;
     border:             1px solid black;
@@ -162,45 +160,47 @@ LABEL {
     Assembler for the Burroughs 220 BALGOL Compiler &amp; Library
 </div>
 
-<div id=CardReaderPanel>
-    <table id=CardReaderTable>
-    <colgroup><col id=CardReaderCol1><col id=CardReaderCol2></colgroup>
-    <tr><td>Pre-load Pool
-        <td><input id=CRPoolSelector type=file size=90>
-    <tr><td>Load Source &amp; Go
-        <td><input id=CRFileSelector type=file size=90>
+<div id=OptionsDiv>
+    <table id=OptionsTable>
+    <thead>
+    <tr>
+        <th><label for=Pass1ListCheck>List Pass 1</label>
+        <th><label for=Pass2ListCheck>List Pass 2</label>
+        <th><label for=ChecksumCheck>Write Checksum</label>
+        <th><label for=OutputModeSelect>Output Mode</label>
+        <th>&nbsp;
+    <tbody>
+    <tr>
+        <td class=center>
+            <input id=Pass1ListCheck type=checkbox value=1>
+        <td class=center>
+            <input id=Pass2ListCheck type=checkbox value=1 CHECKED>
+        <td class=center>
+            <input id=ChecksumCheck type=checkbox value=1>
+        <td class=center>
+            <select id=OutputModeSelect>
+                 <option value=""        >No Object
+                 <option value=L SELECTED>Loadable Deck
+                 <option value=M         >BALGOL ML Deck
+                 <option value=P         >Gen MEDIA Deck
+                 <option value=T         >Object Tape
+             </select>
+        <td class=rj>
+            <button id=ExtractListing type=button>Extract Listing</button>
     </table>
+
+    <div id=CardReaderPanel>
+        <table id=CardReaderTable>
+        <colgroup><col id=CardReaderCol1><col id=CardReaderCol2></colgroup>
+        <tr><td>Pre-load Pool
+            <td><input id=CRPoolSelector type=file size=90>
+        <tr><td>Load Source &amp; Go
+            <td><input id=CRFileSelector type=file size=90>
+        </table>
+    </div>
 </div>
 
-<table id=OptionsTable>
-<thead>
-<tr>
-    <th><label for=Pass1ListCheck>List Pass 1</label>
-    <th><label for=Pass2ListCheck>List Pass 2</label>
-    <th><label for=ChecksumCheck>Write Checksum</label>
-    <th><label for=OutputModeSelect>Output Mode</label>
-    <th>&nbsp;
-<tbody>
-<tr>
-    <td class=center>
-        <input id=Pass1ListCheck type=checkbox value=1>
-    <td class=center>
-        <input id=Pass2ListCheck type=checkbox value=1 CHECKED>
-    <td class=center>
-        <input id=ChecksumCheck type=checkbox value=1>
-    <td class=center>
-        <select id=OutputModeSelect>
-             <option value=""        >No Object
-             <option value=L SELECTED>Loadable Deck
-             <option value=M         >BALGOL ML Deck
-             <option value=P         >Gen MEDIA Deck
-             <option value=T         >Object Tape
-         </select>
-    <td class=rj>
-        <button id=SelectListing type=button>Select Listing</button>
-</table>
-
-<div id=TextDiv><pre id=TextPanel></pre></div>  <!-- Don't add any whitespace! -->
+<div id=TextPanel></div>  <!-- Don't add any whitespace inside the div! -->
 
 
 <script>
@@ -362,7 +362,7 @@ window.addEventListener("load", function() {
     *       13 = BU pair for CRF/CWF: (B-1)*2 added to (41), U in (11)
     *       14 = reload-lockout value added to (41)
     *       15 = digit inserted in (11); if specified, insert 1 in (41)
-    *       16 = format band digit added to (41): (B-1)*2
+    *       16 = Cardatron c-digit inserted in (31) for T-relays (carriage control)
     *       17 = variant value added to (41)
     *       18 = mag tape unit/lane as LLU, inserted as ULL in (33)
     *       19 = resolved address only
@@ -475,7 +475,7 @@ window.addEventListener("load", function() {
         "MIE":  [    159,  1, -1,  4, -1,  8,  0],
         "CRD":  [     60,  1, -1,  4, -1,  5,  0,  8,  0],
         "CNC":  [   1060,  1, -1,  4, -1,  5,  0],
-        "CWR":  [     61,  1, -1, 13, -1, 16,  0,  8,  0],
+        "CWR":  [     61,  1, -1, 13, -1, 16,  0],
         "CRF":  [     62,  1, -1, 13, -1, 14,  0],
         "CWF":  [     63,  1, -1, 13, -1, 14,  0],
         "CRI":  [     64,  1, -1,  4, -1],
@@ -1373,11 +1373,8 @@ window.addEventListener("load", function() {
                     word = putField(word, 1, 41);
                 }
                 break;
-            case 16:                    // format band digit added to (41): (B-1)*2
-                w1 = f%10;
-                if (w1 > 0) {
-                word = putField(word, getField(word, 41) + (w1-1)*2, 41);
-                }
+            case 16:                    // Cardatron c-digit inserted in (31) for T-relays (carriage control)
+                word = putField(word, f, 31);
                 break;
             case 17:                    // BMOD value added to (41)
                 word = putField(word, getField(word, 41) + f%10, 41);
@@ -2108,8 +2105,7 @@ window.addEventListener("load", function() {
             if (errorCount == 0) {      // advance to Pass 2
                 setTimeout(initializePass2, 100);
             } else {
-                $$("TextDiv").removeChild($$("Spinner"));
-                // And... we're done at this point -- just exit the script
+                finishAssembly();
             }
         }
     }
@@ -2455,8 +2451,36 @@ window.addEventListener("load", function() {
 
 
     /*******************************************************************
-    * Object Code Output                                               *
+    * Assembler Output                                                 *
     *******************************************************************/
+
+    /**************************************/
+    function extractListing(ev) {
+        /* Copies the text contents of the "paper" area of the assembler listing,
+        opens a new temporary window, and pastes that text into the window so it
+        can be copied or saved by the user */
+        var doc = null;                 // temp window document object
+        var text = panel.textContent;
+        var title = "BAC-Assembler Listing";
+        var win = window.open("../../webUI/B220FramePaper.html", "BAC-Asm-Listing",
+                "scrollbars,resizable,width=600,height=500");
+
+        function copyText(ev) {
+            var doc = ev.target;
+            var win = doc.defaultView;
+
+            win.removeEventListener("load", copyText, false);
+            doc = win.document;
+            doc.title = title;
+            doc.getElementById("Paper").textContent = text;
+        }
+
+        //clearPanel();
+        win.addEventListener("load", copyText, false);
+        win.moveTo((screen.availWidth-win.outerWidth)/2, (screen.availHeight-win.outerHeight)/2);
+        ev.preventDefault();
+        ev.stopPropagation();
+    }
 
     /**************************************/
     function generateFormat6LoadableDeck(asmCode, outputChecksum, startAddress) {
@@ -2793,7 +2817,7 @@ window.addEventListener("load", function() {
         $$("CRFileSelector").value = null;  // reset the <input> elements
         $$("CRPoolSelector").value = null;  // so they can be reused
         poolSets.length = 1;                // discard any poolSets that were loaded
-        $$("TextDiv").removeChild($$("Spinner"));   // remove the spinner image
+        document.body.removeChild($$("Spinner"));   // remove the spinner image
         // And... we're done -- just fall out of the script.
     }
 
@@ -2934,7 +2958,7 @@ window.addEventListener("load", function() {
         e = document.createElement("img");
         e.src = "../../webUI/resources/ajax-spinner.gif";
         e.id = "Spinner";
-        $$("TextDiv").appendChild(e);
+        document.body.appendChild(e);
 
         reader.onload = fileLoader_onLoad;
         reader.readAsText(f);
@@ -2962,7 +2986,18 @@ window.addEventListener("load", function() {
         }
     }
 
+    /**************************************/
+    function repositionTextPanel() {
+        /* Repositions and resizes the #TextPanel element so that it fills the
+        bottom portion of the window */
+        var opts = $$("OptionsDiv");
+        var panel = $$("TextPanel");
+
+        panel.style.top = (opts.offsetTop + opts.offsetHeight + 8).toFixed() + "px";
+    }
+
     /******************** Start of window.onload() ********************/
+    repositionTextPanel();
     if (checkBrowser()) {
         return;
     }
@@ -2987,9 +3022,7 @@ window.addEventListener("load", function() {
         outputChecksum = ev.target.checked;
     });
 
-    $$("SelectListing").addEventListener("click", function(ev) {
-        window.getSelection().selectAllChildren($$("TextPanel"));
-    });
+    $$("ExtractListing").addEventListener("click", extractListing);
 }, false);
 </script>
 
