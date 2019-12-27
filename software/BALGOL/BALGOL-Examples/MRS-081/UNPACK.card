@@ -1,0 +1,150 @@
+1         REM   UNPACK WORDS ROUTINE FOR MRS-081 PROGRAM
+1         REM
+1         REM   UNPACKS THREE 3-DIGIT CODES PER WORD FROM A ROW OF THE
+1         REM   PROGRAM-S M(,) ARRAY TO ANOTHER ARRAY ROW.
+1         REM   PARAMETERS..
+1         REM     M()           1-DIMENSIONAL SOURCE ROW
+1         REM     (HIDDEN)      STRIDE OF M PASSED BY BALGOL
+1         REM     SHEET         SHEET TYPE (0=BROWN, 1=WHITE)
+1         REM     XRAY          XRAY DATA (0=EXCL, 1=INCL, NOT IMPL)
+1         REM     EQUATION      EQUATION NUMBER (9 OR 10)
+1         REM     ROW()         DESTINATION ROW FOR UNPACKED CODES
+1         REM     (HIDDEN)      STRIDE OF ROW PASSED IN A-REG
+1         REM
+1         REM   THIS IS THE ORIGINAL VERSION, DISASSEMBLED FROM THE
+1         REM   PUBLISHED CODE, WITH PARAMETERS IN ASCENDING LOCATIONS
+1         REM   WITH RESPECT TO THEIR ORDER IN THE BALGOL CALLING
+1         REM   SEQUENCE, WITH THE (44) FIELD OF THE ENTRY POINT WORD
+1         REM   SPECIFYING THE BEGINNING OF THE PARAMETER AREA, AS FOR
+1         REM   THE VERSION OF THE COMPILER DATED 1961-02-20.
+1         REM
+1   UNPAK NOP 7 *-*,PARAM       ENTRY POINT
+1         STB 8 SAVEB           SAVE B+R REGS
+1         STR 8 SAVER
+1         CLL 8 COUNT           ZERO THE WORD COUNT
+1         CAD 8 ROW             LOAD ROW() BASE ADDR
+1         STA 8 ROWA,04         SET ADDR IN ROWA
+1         IFL 8 ROWA,04,1       INCR ROWA TO ROW(1)
+1         CAD 8 K2              OFFSET TO M(2)
+1         LDR 8 EQNR            R = EQUATION NR
+1         BFR 8 A+,02,10        BRANCH IF EQNR=10
+1         REM
+1         REM                   UNPACK FOR EQUATION NR NEQ 10
+1         REM
+1         IFL 8 COUNT,02,16     SET COUNT=16
+1         BUN 8 F+              BRANCH TO FINISH UP
+1         REM
+1         REM                   UNPACK FOR EQUATION NR EQL 10
+1         REM
+1   *A    IFL 8 COUNT,02,4      SET COUNT = 4
+1         STP 8 UPW             CALL TO UPACK 5 WORDS
+1         BUN 8 UPW+1
+1         IFL 8 COUNT,02,5      SET COUNT = 5
+1         IFL 8 ROWA,04,21      INCR ROWA TO ROW(22)
+1         CAD 8 K9              OFFSET TO M(9)
+1         STP 8 UPW             CALL TO UNPACK 6 WORDS
+1         BUN 8 UPW+1
+1         NOP   0               (NOT USED)
+1         IFL 8 ROWA,04,27      INCR ROWA BY 27 TO ROW(49)
+1         CAD 8 K18             OFFSET TO M(18)
+1         STP 8 UPW             CALL TO UNPACK 1 WORD (COUNT=0)
+1         BUN 8 UPW+1
+1         CAD 8 SHEET           A = SHEET PARAM
+1         BFA 8 B+,02,1         BRANCH IF SHEET=01
+1         REM
+1         REM                   PROCESS SHEET NEQ 1 CASE
+1         REM
+1         CAD 8 ROWA            LOAD CURR ROW() ADDR
+1         STA 8 C+,04           SET CLL ADDRESS BELOW
+1         NOP   0               (NOT USED)
+1         IFL 8 COUNT,02,1      SET COUNT = 1
+1         DFL 8 ROWA,04,33      DECR ROWA BY 33 TO ROW(16)
+1         CAD 8 K7              OFFSET TO M(7)
+1         STP 8 UPW             CALL TO UNPACK 2 WORDS
+1         BUN 8 UPW+1
+1   *C    CLL   *-*             CLEAR ROW() CELL SET ABOVE
+1         BUN 8 EXIT            ALL DONE
+1         NOP   0               (NOT USED)
+1         NOP   0               (NOT USED)
+1         NOP   0               (NOT USED)
+1         REM
+1         REM                   PROCESS SHEET EQL 1 CASE
+1         REM
+1   *B    CAD 8 ROW             LOAD ROW() BASE ADDRESS
+1         ADD 8 K19             OFFSET TO ROW(19)
+1         STA 8 D+,04           SET STA ADDRESS BELOW
+1         CAD 8 M               LOAD BASE ADDRESS OF M()
+1         ADD 8 K8              OFFSET TO M(8)
+1         STA 8 *+1,04          SET CAD ADDRESS, NEXT
+1         CAD   *-*             LOAD M(8) WORD AS SET ABOVE
+1         SRA   6               SHIFT WORD TO 1ST CODE
+1   *D    STA   *-*,03          STORE CODE IN ROW() AS SET ABOVE
+1         NOP   0               (NOT USED)
+1         IFL 8 COUNT,02,2      SET COUNT = 2
+1         DFL 8 ROWA,04,9       DECR ROWA BY 9 TO ROW(10)
+1         CAD 8 K15             OFFSET TO M(15)
+1   *F    STP 8 UPW             CALL TO UNPACK 3 WORDS
+1         BUN 8 UPW+1
+1         BUN 8 EXIT            ALL DONE
+1         NOP   0               (NOT USED)
+1         NOP   0               (NOT USED)
+1         NOP   0               (NOT USED)
+1         NOP   0               (NOT USED)
+1   EXIT  LDB 8 SAVEB           RESTORE B-REG
+1         LDR 8 SAVER           RESTORE R-REG
+1         CAD 8 UNPAK           EXTRACT RETURN ADDRESS
+1         STA 8 *+1,04          SET RETURN ADDRESS, NEXT
+1         BUN   *-*             RETURN TO CALLER
+1         REM
+1         REM   UPW.. SUBROUTINE TO UNPACK A RANGE OF WORDS
+1         REM     A-REG         OFFSET IN M() TO 1ST SOURCE WORD
+1         REM     COUNT         COUNT -1 OF WORDS TO UNPACK
+1         REM     ROWA          ADDR IN ROW() TO 1ST DESTINATION WORD
+1         REM   RETURNS WITH A, R, AND B OVERWRITTEN, COUNT SET TO 0
+1         REM
+1   UPW   BUN   *-*             RETURN TO CALLER
+1         LDB 8 ROWA            ENTRY POINT, B = CURR ROW() ADDR
+1         ADD 8 M               ADD ADDRESS OF M() TO OFFSET
+1         STA 8 MA+,04          SET CAD ADDRESS AT OFFSET
+1         STA 8 *+1,04          SET LDR ADDRESS AT OFFSET
+1         LDR   *-*             LOAD FIRST WORD OF RANGE
+1   *NW   IFL 8 *+1,04,1        INCR CAD ADDRESS
+1   *MA   CAD   *-*             LOAD NEXT WORD INTO A
+1         SLT   4               ROTATE A+R LEFT TO 1ST CODE
+1         STA - 0,03            STORE 1ST 3-DIGIT CODE TO ROW()
+1         IBB 8 *+1,1           INCR ROW() ADDR
+1         SLT   3               ROTATE A+R TO 2ND CODE
+1         STA - 0,03            STORE 2ND 3-DIGIT CODE TO ROW()
+1         IBB 8 *+1,1           INCR ROW() ADDR
+1         SLT   3               ROTATE A+R TO 3RD CODE
+1         STA - 0,03            STORE 3RD 3-DIGIT CODE TO ROW()
+1         IBB 8 *+1,1           INCR ROW() ADDR
+1         DFL 8 COUNT,02,1      DECREMENT WORD COUNT
+1         BRP 8 NW-             LOOP IF COUNT NOT EXHAUSTED
+1         CLL 8 COUNT           OTHERWISE, CLEAR COUNT AND
+1         BUN 8 UPW             EXIT SUBROUTINE
+1         REM
+1         REM   STORAGE, CONSTANTS, AND PARAMETERS
+1         REM
+1   COUNT CNST  1               WORD COUNT FOR UNPACKING
+1         NOP   0               (NOT USED)
+1   SAVEB NOP   0               SAVED B-REG
+1   SAVER NOP   0               SAVED R-REG
+1   ROWA  NOP   0               CURRENT ROW() ADDR
+1   K2    HLT   2               CONSTANT 2
+1   K7    HLT   7               CONSTANT 7
+1   K8    HLT   8               CONSTANT 8
+1   K9    HLT   9               CONSTANT 9
+1   K15   HLT   15              CONSTANT 15
+1   K18   HLT   18              CONSTANT 18
+1   K19   HLT   19              CONSTANT 19
+1         HLT   1               (NOT USED)
+1   PARAM CNST  40000000007     ALLOCATE STORAGE FOR PARAMETERS
+1   M     DEFN  PARAM+0         ADDR OF ARRAY M()
+1   M1STR DEFN  PARAM+1         STRIDE FOR M() (NOT USED, =1)
+1   SHEET DEFN  PARAM+2         SHEET TYPE
+1   XRAY  DEFN  PARAM+3         XRAY PARAM (NOT USED)
+1   EQNR  DEFN  PARAM+4         EQUATION NUMBER
+1   ROW   DEFN  PARAM+5         ADDR OF OUTPUT ROW() ARRAY
+1         CNST  40000990000
+1         FINI

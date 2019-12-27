@@ -1,0 +1,435 @@
+2 COMMENT          CONGENITAL  HEART  DISEASE  DIAGNOSIS  PROGRAM.      CHDD0001
+2                  FROM A SET OF CLINICAL SYMPTOMS, THE PROBABILITIES   CHDD0002
+2                  FOR EACH OF THE 33 CONGENITAL HEART DISEASES BEING   CHDD0003
+2                  PRESENT IN THE PATIENT UNDER CONSIDERATION IS        CHDD0004
+2                  CALCULATED AND THOSE GREATER THAN ONE PERCENT        CHDD0005
+2                  ARE PRINTED OUT TOGETHER WITH DISEASE IDENTIFICATION CHDD0006
+2                  AND CASE INFORMATION.                                CHDD0007
+2
+2                         FRED B FIELDING                               CHDD0008
+2                  SAN FRANCISCO DISTRICT OFFICE                        CHDD0009
+2
+2                  CARD SEQUENCE CODE FOR THE PROGRAM STARTS WITH       CHDD0010
+2                  CHDD0001 AND  ROW 01-1 FOR SYMPTOM-DISEASE MATRIX.   CHDD0011
+2                  FIRST RELEASE   05 - 31 - 61                        $CHDD0012
+2
+2
+2 INTEGER          CASENO , CASEIN , SHEET , XRAY , EQUATION ,          CHDD0013
+2                  MO , DAY , YEAR , LAST ,                             CHDD0014
+2                  E , J , K , P , X ,                                  CHDD0015
+2                  TOTE , TOTP , TOTX , OUTSHEET ,                      CHDD0016
+2                  T22 , T2021 , T4243 , T4445 , T6789 ,                CHDD0017
+2                  ( SYE() , SYP() )  ,  ( TE() , TP() ) ,              CHDD0018
+2                  ROW () , MX () , M (,)   $                           CHDD0019
+2 REAL             SUM , FTROW () , FTMX () , PYKX () , PYX ()   $      CHDD0020
+2
+2 ARRAY            ( SYE(20) , SYP(20) )  ,  ( TE(50) , TP(50) ) ,      CHDD0021
+2                  ( ROW(51) , FTROW(50) ) , ( MX(10) , FTMX(10) ) ,    CHDD0022
+2                  PYKX (33) , PYX (33) , M (33,18)   $                 CHDD0023
+2
+2 EXTERNAL PROCEDURE  UNPACK ( M(K, ),SHEET,XRAY,EQUATION $ ROW( ) )   $CHDD0024
+2
+2 COMMENT          READ DATA FOR SYMPTOM-DISEASE MATRIX.               $CHDD0025
+2 INPUT            MATRIX(FOR K=(1,1,33) $ FOR J=(1,1,18) $ M(K,J) )   $CHDD0026
+2                  READ ( $ $ MATRIX )   $                              CHDD0027
+2
+2 COMMENT          THE PROGRAM BEGINS HERE.  THE FIRST TWO INPUT CARDS  CHDD0028
+2                  ARE READ, THE FIRST TWO LINES OF OUTPUT ARE PRINTED, CHDD0029
+2                  THE NUMBER OF SYMPTOMS ARE CALCULATED,               CHDD0030
+2                  AND THE EQUATION TYPE DETERMINED.       $            CHDD0031
+2
+2 NEWCASE..        FOR P = (1,1,20)  $  SYP (P) = 0   $                 CHDD0032
+2                  FOR J = (1,1,50)  $  TP (J) = ROW (J) = 0   $        CHDD0033
+2                  FOR J = (1,1,50)  $  FTROW (J) = 0.0   $             CHDD0034
+2 INPUT            CASE (CASENO,CASEIN,SHEET,XRAY,EQUATION,             CHDD0035
+2                  MO,DAY,YEAR,LAST )   $                               CHDD0036
+2 CARD1..          READ  ( $ $ CASE )   $                               CHDD0037
+2 OUTPUT           IDOUT ( CASENO , CASEIN , MO , DAY , YEAR )   $      CHDD0038
+2 FORMAT           IDFORM (B5,*CASE NUMBER*,I7,B5,                      CHDD0039
+2*PATIENT*,B2,A3,B5,*DATE*,B1,3(I3),W3 )   $                            CHDD0040
+2                  WRITE ( $ $ IDOUT , IDFORM)   $                      CHDD0041
+2 INPUT            PRESENT  ( FOR P = (1,1,20) $  SYP (P)  )   $        CHDD0042
+2 CARD2..          READ (  $ $ PRESENT )   $                            CHDD0043
+2                  P = 1   $                                            CHDD0044
+2                  FOR J = (1,1,50)   $                                 CHDD0045
+2             BEGIN                                                     CHDD0046
+2                  IF SYP (P)  EQL J  $                                 CHDD0047
+2                  ( TP (J) = 1  $  P = P+1 )                           CHDD0048
+2             END $                                                     CHDD0049
+2                  TOTP = P - 1   $                                     CHDD0050
+2 OUTPUT           POUT ( FOR P = (1,1,TOTP)  $  SYP (P) )   $          CHDD0051
+2 FORMAT           PFORM (B5,*SYMPTOMS PRESENT*,B4,20(I4),W4)   $       CHDD0052
+2                  WRITE ( $ $ POUT , PFORM )   $                       CHDD0053
+2                  K = 1   $                                            CHDD0054
+2                  IF  SHEET  EQL 1  $                                  CHDD0055
+2                  ( OUTSHEET = 6600000000  $  GO TO  EQTEST )   $      CHDD0056
+2                  OUTSHEET = 4200000000   $                            CHDD0057
+2 EQTEST..         IF EQUATION  EQL 10  $  GO TO  EQ10   $              CHDD0058
+2
+2 COMMENT          CALCULATE PROBABILITIES USING EQUATION 9.        $   CHDD0059
+2
+2
+2 COMMENT          ONE ROW OF THE MATRIX IS UNPACKED AND THE            CHDD0060
+2                  INDEPENDENT SYMPTOMS PRESENT RECOMPLEMENTED.        $CHDD0061
+2
+2 XP9..            UNPACK ( M(K, ),SHEET,XRAY,EQUATION $ ROW( ) )   $   CHDD0062
+2                  FOR J = (8,1,16), 24, 25, (30,1,33), 38, 39, 50  $   CHDD0063
+2                  ( IF TP (J)  EQL 1  $  ROW (J) = 1000 - ROW (J) )   $CHDD0064
+2
+2 COMMENT          THE ROW-PRODUCT IS CALCULATED AND ZEROES TESTED FOR.$CHDD0065
+2                  PYKX (K) = M (K,1)  $                                CHDD0066
+2                  FOR  P = (1,1,TOTP)   $                              CHDD0067
+2             BEGIN                                                     CHDD0068
+2                  IF ROW ( SYP(P) )  EQL 0  $                          CHDD0069
+2                  ( PYKX (K) = 0.0  $  GO TO  TAL9 )   $               CHDD0070
+2                  FTROW (P) = ROW ( SYP(P) )                           CHDD0071
+2             END $                                                     CHDD0072
+2
+2                  FOR P = (1,1,TOTP)   $                               CHDD0073
+2                  PYKX (K) = PYKX (K).FTROW (P)   $                    CHDD0074
+2
+2 TAL9..           K = K+1   $                                          CHDD0075
+2                  IF  K LEQ 33  $  GO TO  XP9   $                      CHDD0076
+2                                  GO TO  NORM   $                      CHDD0077
+2
+2
+2 COMMENT          CALCULATE PROBABILITIES USING EQUATION 10.      $    CHDD0078
+2
+2 EQ10..           FOR  J = (1,1,50)  $  TE (J) = 0   $                 CHDD0079
+2                  FOR E = (1,1,20)  $  SYE (E) = 0 $                   CHDD0080
+2                  FOR X = (1,1,10)  $  MX (X) = 0   $                  CHDD0081
+2                  FOR X = (1,1,10)  $  FTMX (X) = 0.0   $              CHDD0082
+2
+2 COMMENT          THE THIRD INPUT CARD IS READ, THE THIRD LINE OF      CHDD0083
+2                  OUTPUT IS PRINTED, AND THE NUMBER OF SYMPTOMS        CHDD0084
+2                  TO BE OMITTED FOR THIS CASE IS CALCULATED.      $    CHDD0085
+2
+2 INPUT            ( EXCLUDE  ( FOR E = (1,1,20)  $  SYE (E) ) )   $    CHDD0086
+2 CARD3..          READ      ( $ $ EXCLUDE )   $                        CHDD0087
+2                  E = 1   $                                            CHDD0088
+2                  FOR J = (1,1,50)   $                                 CHDD0089
+2             BEGIN                                                     CHDD0090
+2                  IF  SYE (E)  EQL J   $                               CHDD0091
+2                  ( TE (J) = 1  $  E = E+1 )                           CHDD0092
+2             END $                                                     CHDD0093
+2                  TOTE = E-1     $                                     CHDD0094
+2 OUTPUT           EOUT ( FOR E = (1,1,TOTE+1)  $  SYE (E) )   $        CHDD0095
+2 FORMAT           EFORM (B5,*SYMPTOMS OMITTED*,B4,20(I4),W4)   $       CHDD0096
+2                  WRITE ( $ $ EOUT , EFORM )   $                       CHDD0097
+2                  TOTX = SHEET+8  $                                    CHDD0098
+2
+2 COMMENT          ONE ROW OF THE MATRIX IS UNPACKED, THE               CHDD0099
+2                  INDEPENDENT SYMPTOMS PRESENT RECOMPLEMENTED,         CHDD0100
+2                  AND THE SYMPTOMS OMITTED FOR THIS CASE DELETED.     $CHDD0101
+2
+2 XP10..           UNPACK ( M(K, ),SHEET,XRAY,EQUATION $ ROW( ) )   $   CHDD0102
+2                  FOR  J = (8,1,15) , 24, 25, (30,1,33), 38, 39, 50   $CHDD0103
+2             BEGIN                                                     CHDD0104
+2                  IF TP(J)  EQL 1  $  ROW (J) = 1000 - ROW (J)   $     CHDD0105
+2                  IF  ROW (J)  EQL 0  $                                CHDD0106
+2                  ( PYKX (K) = 0.0  $  GO TO  TAL10 )   $              CHDD0107
+2                  IF TE (J)  EQL 1  $  ROW (J) = 0                     CHDD0108
+2             END $                                                     CHDD0109
+2
+2 COMMENT          THE ROW-PRODUCT IS CALCULATED FOR THOSE INDEPENDENT  CHDD0110
+2                  SYMPTOMS COMMON TO BOTH SHEETS, ZERO VALUES TESTED   CHDD0111
+2                  FOR, AND EACH ELEMENT SCALED.                       $CHDD0112
+2
+2                  PYKX (K)= M (K,1)   $                                CHDD0113
+2                  FOR  J= (8,1,15), 24, 25, (30,1,33), 38, 39, 50  $   CHDD0114
+2             BEGIN                                                     CHDD0115
+2                  FTROW(J) = ROW(J)  $  FTROW(J) = FTROW(J)/100.0   $  CHDD0116
+2                  IF FTROW (J) NEQ 0.0  $                              CHDD0117
+2                  PYKX (K) = PYKX(K).FTROW(J)                          CHDD0118
+2             END $                                                     CHDD0119
+2
+2
+2 COMMENT          THE APPROPRIATE VALUE IS OBTAINED FOR THOSE MUTUALLY CHDD0120
+2                  EXCLUSIVE SYMPTOM-SETS COMMON TO BOTH BROWN AND      CHDD0121
+2                  WHITE SYMPTOM CHECK SHEETS PER TABLE V.          $   CHDD0122
+2
+2 X1TO3..          MX (1) = ROW ( SYP (1) )   $                         CHDD0123
+2 X4TO7..          IF  TE (4)  EQL 1   $                                CHDD0124
+2                  ( MX (2) = 100  $  GO TO  X26 )   $                  CHDD0125
+2                  IF  SYP (2)  LEQ 7  $                                CHDD0126
+2                  ( MX (2) = ROW ( SYP(2) )  $  GO TO  X26 )   $       CHDD0127
+2                  MX (2) = 1000 - ROW(4) - ROW(5) - ROW(6) - ROW(7)   $CHDD0128
+2 X26..            X = 3   $                                            CHDD0129
+2                  FOR  J = 26 , 28, 34, 36   $                         CHDD0130    // WAS: FOR  J =*26 , ... (407 MISPRINT?)
+2             BEGIN                                                     CHDD0131
+2                  IF  TE (J)  EQL 1   $                                CHDD0132
+2                  ( MX (X) = 100  $  GO TO  LAB5 )   $                 CHDD0133
+2                  IF  TP (J)  EQL   TP (J+1)   $                       CHDD0134
+2                  ( MX(X) = 1000 - ROW(J) - ROW(J+1)  $  GO TO LAB5 ) $CHDD0135
+2                  IF  TP (J)  EQL 1   $                                CHDD0136
+2                  ( MX (X) = ROW (J)  $  GO TO  LAB5 )   $             CHDD0137
+2                  MX (X) = ROW (J+1)   $                               CHDD0138
+2 LAB5..           X = X+1                                              CHDD0139
+2             END $                                                     CHDD0140
+2
+2 BNORWH..         IF  SHEET  EQL 1  $  GO TO  WHITE   $                CHDD0141
+2
+2 COMMENT          THE APPROPRIATE VALUE IS OBTAINED FOR THOSE MUTUALLY CHDD0142
+2                  EXCLUSIVE SYMPTOM-SETS FOR THE BROWN SHEET OPTION.  $CHDD0143
+2
+2 BROWN..          IF  TP (16)  EQL 1  $  ROW (16) = 1000 - ROW (16)   $CHDD0144
+2                  IF  ROW (16)  EQL 0   $                              CHDD0145
+2                  ( PYKX (K) = 0.0  $  GO TO  TAL10 )   $              CHDD0146
+2                  IF  TE (16) EQL 1   $                                CHDD0147
+2                  ( ROW (16) = 0  $  GO TO  X17TO19 )   $              CHDD0148
+2             BEGIN                                                     CHDD0149
+2                  FTROW (16) = ROW (16)   $                            CHDD0150
+2                  PYKX (K) = PYKX (K).FTROW (16) / 100.0               CHDD0151
+2             END $                                                     CHDD0152
+2 X17TO19..        IF  TE (17)  EQL 1   $                               CHDD0153
+2                  ( MX (7) =100  $  GO TO X20 )   $                    CHDD0154
+2                  IF  ( TP(17) EQL TP(18) ) AND ( TP(18) EQL TP(19) ) $CHDD0155
+2             BEGIN                                                     CHDD0156
+2                  MX(7) =(1000-ROW(17)).(1000-ROW(18)).(1000-ROW(19)) $CHDD0157
+2                  GO TO  X20                                           CHDD0158
+2             END $                                                     CHDD0159
+2                  IF  TP (19)  EQL 1   $                               CHDD0160
+2                  ( MX (7) = ROW (19)  $  GO TO  X20 )   $             CHDD0161
+2                  IF  TP (17)  EQL 0   $                               CHDD0162
+2                  ( MX(7) = ROW(18).(1000 - ROW(17) )  $  GO TO X20 ) $CHDD0163
+2                  IF  TP (18)  EQL 0   $                               CHDD0164
+2                  ( MX(7) = ROW(17).(1000 - ROW(18) )  $  GO TO X20 ) $CHDD0165
+2                  MX (7) = ROW(17).ROW(18)   $                         CHDD0166
+2
+2 X20..            IF  TE (20)  EQL 1   $                               CHDD0167
+2                  ( MX (8) = 100  $  GO TO FLTMX )   $                 CHDD0168
+2                  T2021 = ( 1000 - ROW (20) - ROW (21) )   $           CHDD0169
+2                   T22  = ( 1000 0 ROW (22) )   $                      CHDD0170
+2
+2                  IF ( TP(20) EQL TP(21) ) AND ( TP(21) EQL TP(22) )   CHDD0171
+2                       AND ( TP(22) EQL TP(23) )   $                   CHDD0172
+2                  (MX(8) = T2021.T22.(1000 - ROW(23) ) $ GO TO FLTMX )$CHDD0173
+2                  IF  TP (20)  EQL 1   $                               CHDD0174
+2             BEGIN                                                     CHDD0175
+2                  IF  TP (22) EQL 1   $                                CHDD0176
+2                  ( MX(8) = ROW(20).ROW(22)  $  GO TO  FLTMX )   $     CHDD0177
+2                  MX (8) = ROW (20).T22  $  GO TO  FLTMX               CHDD0178
+2             END $                                                     CHDD0179
+2                                                                       CHDD0180
+2                  IF  TP (21)  EQL 1   $                               CHDD0181
+2             BEGIN                                                     CHDD0182
+2                  IF TP (22) EQL 1   $                                 CHDD0183
+2                  ( MX(8) = ROW(21).ROW(22)  $  GO TO  FLTMX )   $     CHDD0184
+2                  MX (8) = ROW (21).T22  $  GO TO  FLTMX               CHDD0185
+2             END $                                                     CHDD0186
+2                  IF TP (22)  EQL 1   $                                CHDD0187
+2                  ( MX(8) = ROW(22).T2021  $  GO TO  FLTMX )   $       CHDD0188
+2                  MX (8) = ROW (23)  $  GO TO  FLTMX    $              CHDD0189
+2
+2 COMMENT          THE APPROPRIATE VALUE IS OBTAINED FOR THOSE MUTUALLY CHDD0190
+2                  EXCLUSIVE SYMPTOM-SETS FOR THE WHITE SHEET OPTION.  $CHDD0191
+2
+2 WHITE..          IF  (TE(19) EQL TE(42) )  AND  ( TE(42) EQL TE(44) ) CHDD0192
+2                  AND ( TE(44) EQL 1 )   $                             CHDD0193
+2                  ( MX (7) = 100   $  GO TO  X40 )   $                 CHDD0194
+2                  T4243 = ( 1000 - ROW(42) - ROW(43) )   $             CHDD0195
+2                  T4445 = ( 1000 - ROW(44) - ROW(45) )   $             CHDD0196
+2
+2                  IF  ( TP(19) EQL TP(42) ) AND ( TP(42) EQL TP(43) )  CHDD0197
+2                  AND ( TP(43) EQL TP(44) ) AND ( TP(44) EQL TP(45) ) $CHDD0198
+2                  ( MX(7) = (1000 - ROW(19)).T4243.T4445 $ GO TO X40 )$CHDD0199
+2                  IF  TP (19)  EQL 1   $                               CHDD0200
+2                  ( MX(7) = ROW(19)  $  GO TO  X40 )   $               CHDD0201
+2                  IF  TP (42)  EQL 1   $                               CHDD0202
+2             BEGIN                                                     CHDD0203
+2                  IF  TP(44)  EQL 1   $                                CHDD0204
+2                  ( MX(7) = ROW(42).ROW(44)  $  GO TO  X40 )   $       CHDD0205
+2                  IF  TP (45)  EQL 1   $                               CHDD0206
+2                  ( MX(7) = ROW(42).ROW(45)  $  GO TO  X40 )   $       CHDD0207
+2                  MX (7) = ROW (42).T4445  $  GO TO  X40               CHDD0208
+2             END $                                                     CHDD0209
+2                  IF TP (43)  EQL 1   $                                CHDD0210
+2             BEGIN                                                     CHDD0211
+2                  IF  TP (44)  EQL 1   $                               CHDD0212
+2                  ( MX(7) = ROW(43).ROW(44)  $  GO TO  X40 )   $       CHDD0213
+2                  IF  TP (45)  EQL 1   $                               CHDD0214
+2                  ( MX(7) = ROW(43).ROW(45)  $  GO TO  X40 )   $       CHDD0215
+2                  MX (7) = ROW (43).T4445  $  GO TO  X40               CHDD0216
+2             END $                                                     CHDD0217
+2                  IF  TP (44)  EQL 1   $                               CHDD0218
+2                  ( MX(7) = ROW(44).T4243  $  GO TO  X40 )   $         CHDD0219
+2                  MX (7) = ROW (45).T4243   $                          CHDD0220
+2
+2 X40..            IF  TE (40)  EQL 1   $                               CHDD0221
+2                  ( MX (8) = 100  $  GO TO  X2369 )   $                CHDD0222
+2                  IF  TP (40)  EQL  TP (41)   $                        CHDD0223
+2                  ( MX(8) = 1000 - ROW(40) - ROW(41)  $ GO TO X2369 ) $CHDD0224
+2                  IF  TP (40)  EQL 1   $                               CHDD0225
+2                  ( MX(8) = ROW(40)  $  GO TO  X2369 )   $             CHDD0226
+2                  MX (8) = ROW (41)   $                                CHDD0227
+2
+2 X2369..          IF  ( TE(22) EQL TE(46) )  AND  ( TE(46) EQL 1 )   $ CHDD0228
+2                  ( MX (9) = 100  $  GO TO  FLTMX )   $                CHDD0229
+2                  T22 = 1000 - ROW (22)   $                            CHDD0230
+2                  T6789 = 1000 - ROW(46) - ROW(47) - ROW(48) - ROW(49)$CHDD0231
+2                  IF  ( TP(22) EQL TP(23) ) AND ( TP(23) EQL TP(46) )  CHDD0232
+2                  AND ( TP(46) EQL TP(47) ) AND ( TP(47) EQL TP(48) )  CHDD0233
+2                  AND ( TP(48) EQL TP(49) )   $                        CHDD0234
+2                  ( MX(9) = T22.(1000 - ROW(23)).T6789  $ GO TO FLTMX)$CHDD0235
+2                  IF  TP (22)  EQL 1   $                               CHDD0236
+2             BEGIN                                                     CHDD0237
+2                  FOR  J = (46,1,49)   $                               CHDD0238
+2             BEGIN                                                     CHDD0239
+2                  IF  TP (J)  EQL 1   $                                CHDD0240
+2                  ( MX(9) = ROW(J).ROW(22)  $  GO TO FLTMX )           CHDD0241
+2             END $                                                     CHDD0242
+2                  MX (9) = ROW (22).T6789  $  GO TO  FLTMX             CHDD0243
+2             END $                                                     CHDD0244
+2                  FOR  J = (46,1,49)   $                               CHDD0245
+2             BEGIN                                                     CHDD0246
+2                  IF  TP (J)  EQL 1   $                                CHDD0247
+2                  ( MX(9) = ROW(J).T22  $  GO TO  FLTMX )              CHDD0248
+2             END $                                                     CHDD0249
+2                  MX (9) = ROW (23)  $  GO TO  FLTMX   $               CHDD0250
+2
+2 FLTMX..          FOR  X = (1,1,TOTX)   $                              CHDD0251
+2                  ( FTMX(X) = MX(X)  $  FTMX(X) = FTMX(X)/100.00 )   $ CHDD0252
+2                  FOR  X = (1,1,TOTX)   $                              CHDD0253
+2                  PYKX (K) = PYKX (K).FTMX (X)   $                     CHDD0254
+2
+2 COMMENT          AT THIS POINT, THE ROW-PRODUCT HAS BEEN COMPUTED     CHDD0255
+2                  AND A TEST IS MADE TO DETERMINE WHETHER THERE        CHDD0256
+2                  ARE MORE ROWS YET TO BE PROCESSED, OR TO PRINT-OUT. $CHDD0257
+2
+2 TAL10..          K = K+1   $                                          CHDD0258
+2                  IF  K  LEQ 33  $  GO TO  XP10   $                    CHDD0259
+2                                     GO TO NORM   $                    CHDD0260
+2
+2 COMMENT          THE ROW-PROBABILITIES ARE FIRST NORMALIZED TO GIVE A CHDD0261
+2                  TRUE PERCENTAGE FIGURE AND LINES 4 - 6 ARE PRINTED. $CHDD0262
+2
+2 NORM..           SUM = 0.0            $                               CHDD0263
+2 OUTPUT           SHOUT ( OUTSHEET )   $                               CHDD0264
+2 FORMAT           SHFORM(B5,*SYMPTOMS USED*,B3,A2,W4)   $              CHDD0265
+2                  WRITE ( $ $ SHOUT , SHFORM )   $                     CHDD0266
+2                  FOR  K = (1,1,33)   $                                CHDD0267
+2                  SUM = SUM + PYKX (K)  $                              CHDD0268
+2 OUTPUT           EQOUT ( EQUATION )   $                               CHDD0269
+2 FORMAT           EQFORM(B5,*EQUATION USED*,I5,W6)   $                 CHDD0270
+2                  WRITE ( $ $ EQOUT , EQFORM )   $                     CHDD0271
+2                  FOR  K = (1,1,33)   $                                CHDD0272
+2                  PYX (K) = PYKX (K) / SUM   $                         CHDD0273
+2
+2
+2
+2 FORMAT           HEAD(B15,*DISEASE*,B5,*PROBABILITY*,W6)   $          CHDD0274
+2                  WRITE ( $ $ HEAD )   $                               CHDD0275
+2
+2 COMMENT          THE PROBABILITIES ARE NOW PRINTED WHICH ARE ONE      CHDD0276
+2                  PERCENT OR GREATER TOGETHER WITH DISEASE I. D. .    $CHDD0277
+2
+2                  K = 1   $                                            CHDD0278
+2 PRINT..          IF  PYX (K)  LSS 0.01  $  GO TO  TALPT   $           CHDD0279
+2                  SWITCH K, ( Y01,Y02,Y03,Y04,Y05,Y06,Y07,Y08,Y09,     CHDD0280
+2                  Y10,Y11,Y12,Y13,Y14,Y15,Y16,Y17,Y18,Y19,Y20,Y21,     CHDD0281
+2                  Y22,Y23,Y24,Y25,Y26,Y27,Y28,Y29,Y30,Y31,Y32,Y33 )   $CHDD0282
+2 OUTPUT           ANS ( FOR X = K  $  PYX (X) )   $                    CHDD0283
+2 FORMAT           FORM1 (B8,*Y01*,B7,*N*,S16.4,W0)   $                 CHDD0284
+2 Y01..            WRITE ( $ $ ANS , FORM1  )  $  GO TO  TALPT   $      CHDD0285
+2 FORMAT           FORM2 (B8,*Y02*,B5,*A S D*,S14.4,W0)   $             CHDD0286
+2 Y02..            WRITE ( $ $ ANS , FORM2  )  $  GO TO  TALPT   $      CHDD0287
+2 FORMAT           FORM3 (B8,*Y03*,B2,*A S D - P S*,S11.4,W0)   $       CHDD0288
+2 Y03..            WRITE ( $ $ ANS , FORM3  )  $  GO TO  TALPT   $      CHDD0289
+2 FORMAT           FORM4 (B8,*Y04*,B2,*A S D - P H*,S11.4,W0)   $       CHDD0290
+2 Y04..            WRITE ( $ $ ANS , FORM4  )  $  GO TO  TALPT   $      CHDD0291
+2 FORMAT           FORM5 (B8,*Y05*,B4,*C E C D*,S13.4,W0)   $           CHDD0292
+2 Y05..            WRITE ( $ $ ANS , FORM5  )  $  GO TO  TALPT   $      CHDD0293
+2 FORMAT           FORM6 (B8,*Y06*,B3,*P A P V C*,S12.4,W0)   $         CHDD0294
+2 Y06..            WRITE ( $ $ ANS , FORM6  )  $  GO TO  TALPT   $      CHDD0295
+2 FORMAT           FORM7 (B8,*Y07*,B3,*T A P V C*,S12.4,W0)   $         CHDD0296
+2 Y07..            WRITE ( $ $ ANS , FORM7  )  $  GO TO  TALPT   $      CHDD0297
+2 FORMAT           FORM8 (B8,*Y08*,B6,*T A*,S15.4,W0)   $               CHDD0298
+2 Y08..            WRITE ( $ $ ANS , FORM8  )  $  GO TO  TALPT   $      CHDD0299
+2 FORMAT           FORM9 (B8,*Y09*,B5,*EBST.*,S14.4,W0)   $             CHDD0300
+2 Y09..            WRITE ( $ $ ANS , FORM9  )  $  GO TO  TALPT   $      CHDD0301
+2 FORMAT           FORM10(B8,*Y10*,B1,*V S D - V P S*,S10.4,W0)   $     CHDD0302
+2 Y10..            WRITE ( $ $ ANS , FORM10 )  $  GO TO  TALPT   $      CHDD0303
+2 FORMAT           FORM11(B8,*Y11*,B1,*V S D - I P S*,S10.4,W0)   $     CHDD0304
+2 Y11..            WRITE ( $ $ ANS , FORM11 )  $  GO TO  TALPT   $      CHDD0305
+2 FORMAT           FORM12(B8,*Y12*,B5,*V P S*,S14.4,W0)   $             CHDD0306
+2 Y12..            WRITE ( $ $ ANS , FORM12 )  $  GO TO  TALPT   $      CHDD0307
+2 FORMAT           FORM13(B8,*Y13*,B5,*I P S*,S14.4,W0)   $             CHDD0308
+2 Y13..            WRITE ( $ $ ANS , FORM13 )  $  GO TO  TALPT   $      CHDD0309
+2 FORMAT           FORM14(B8,*Y14*,B3,*P. ATRES.*,S12.4,W0)   $         CHDD0310
+2 Y14..            WRITE ( $ $ ANS , FORM14 )  $  GO TO  TALPT   $      CHDD0311
+2 FORMAT           FORM15(B8,*Y15*,B2,*COARCT. P A*,S11.4,W0)   $       CHDD0312
+2 Y15..            WRITE ( $ $ ANS , FORM15 )  $  GO TO  TALPT   $      CHDD0313
+2 FORMAT           FORM16(B8,*Y16*,B6,*P H*,S15.4,W0)   $               CHDD0314
+2 Y16..            WRITE ( $ $ ANS , FORM16 )  $  GO TO  TALPT   $      CHDD0315
+2 FORMAT           FORM17(B8,*Y17*,B5,*A P W*,S14.4,W0)   $             CHDD0316
+2 Y17..            WRITE ( $ $ ANS , FORM17 )  $  GO TO  TALPT   $      CHDD0317
+2 FORMAT           FORM18(B8,*Y18*,B5,*P D A*,S14.4,W0)   $             CHDD0318
+2 Y18..            WRITE ( $ $ ANS , FORM18 )  $  GO TO  TALPT   $      CHDD0319
+2 FORMAT           FORM19(B8,*Y19*,B2,*P A-V FIST.*,S11.4,W0)   $       CHDD0320
+2 Y19..            WRITE ( $ $ ANS , FORM19 )  $  GO TO  TALPT   $      CHDD0321
+2 FORMAT           FORM20(B8,*Y20*,B6,*M S*,S15.4,W0)   $               CHDD0322
+2 Y20..            WRITE ( $ $ ANS , FORM20 )  $  GO TO  TALPT   $      CHDD0323
+2 FORMAT           FORM21(B8,*Y21*,B4,*MYOC. D*,S13.4,W0)   $           CHDD0324
+2 Y21..            WRITE ( $ $ ANS , FORM21 )  $  GO TO  TALPT   $      CHDD0325
+2 FORMAT           FORM22(B8,*Y22*,B2,*A O COR. A*,S12.4,W0)   $        CHDD0326
+2 Y22..            WRITE ( $ $ ANS , FORM22 )  $  GO TO  TALPT   $      CHDD0327
+2 FORMAT           FORM23(B8,*Y23*,B2,*A S - VALV.*,S11.4,W0)   $       CHDD0328
+2 Y23..            WRITE ( $ $ ANS , FORM23 )  $  GO TO  TALPT   $      CHDD0329
+2 FORMAT           FORM24(B8,*Y24*,B2,*A S - SUB.*,S12.4,W0)   $        CHDD0330
+2 Y24..            WRITE ( $ $ ANS , FORM24 )  $  GO TO  TALPT   $      CHDD0331
+2 FORMAT           FORM25(B8,*Y25*,B3,*COARCT. A*,S12.4,W0)   $         CHDD0332
+2 Y25..            WRITE ( $ $ ANS , FORM25 )  $  GO TO  TALPT   $      CHDD0333
+2 FORMAT           FORM26(B8,*Y26*,B4,*TRUNC.*,S14.4,W0)   $            CHDD0334
+2 Y26..            WRITE ( $ $ ANS , FORM26 )  $  GO TO  TALPT   $      CHDD0335
+2 FORMAT           FORM27(B8,*Y27*,B3,*TRANSP.*,S14.4,W0)   $           CHDD0336
+2 Y27..            WRITE ( $ $ ANS , FORM27 )  $  GO TO  TALPT   $      CHDD0337
+2 FORMAT           FORM28(B8,*Y28*,B3,*C TRANSP.*,S12.4,W0)   $         CHDD0338
+2 Y28..            WRITE ( $ $ ANS , FORM28 )  $  GO TO  TALPT   $      CHDD0339
+2 FORMAT           FORM29(B8,*Y29*,B4,*AB. A O*,S13.4,W0)   $           CHDD0340
+2 Y29..            WRITE ( $ $ ANS , FORM29 )  $  GO TO  TALPT   $      CHDD0341
+2 FORMAT           FORM30(B8,*Y30*,B5,*V S D*,S14.4,W0)   $             CHDD0342
+2 Y30..            WRITE ( $ $ ANS , FORM30 )  $  GO TO  TALPT   $      CHDD0343
+2 FORMAT           FORM31(B8,*Y31*,B2,*V S D - P H*,S11.4,W0)   $       CHDD0344
+2 Y31..            WRITE ( $ $ ANS , FORM31 )  $  GO TO  TALPT   $      CHDD0345
+2 FORMAT           FORM32(B8,*Y32*,B2,*P D A - P H*,S11.4,W0)   $       CHDD0346
+2 Y32..            WRITE ( $ $ ANS , FORM32 )  $  GO TO  TALPT   $      CHDD0347
+2 FORMAT           FORM33(B8,*Y33*,B1,*T A - TRANSP.*,S10.4,W0)   $     CHDD0348
+2 Y33..            WRITE ( $ $ ANS , FORM33 )  $  GO TO  TALPT   $      CHDD0349
+2
+2 TALPT..          K = K+1   $                                          CHDD0350
+2                  IF  K  LEQ 33  $  GO TO  PRINT   $                   CHDD0351
+2
+2 COMMENT          PROGRAM REPEATS TO BEGINNING IF THERE ARE MORE       CHDD0352
+2                  CASES TO BE RUN, AND HALTS IF NOT.  THE INITIALS     CHDD0353
+2                  H W  APPEAR IN THE A-REG. UPON COMPLETION.          $CHDD0354
+2
+2                  IF LAST EQL  0  $  GO TO  NEWCASE   $                CHDD0355
+2                  STOP  7270061216   $  GO TO  NEWCASE   $             CHDD0356
+2 FINISH   $                                                            CHDD0357
+2  UNPACK
+605           7009901000080002400088800014000898000046008680000100104
+605           8041040009080401260090800001000918000041010380210370012
+605           8021626008680000300053802042600868000044006580000300066
+605           8020526008680421260090800001000948000044006580000300066
+605           0000001000080427260090800001000968000044006580000300066
+605           8000010010180201360040800001000908041040003500000010000
+605           8020126008680433270090800001000928000044006580000300066
+605           0000046000080000300060000000100000000001000000000010000
+605           8000010010480000120097804104000488000010009980000120093
+605           8041040004600000100000000004800060031040000000000010000
+605           8020226008680409270090800001000958000044006580000300066
+605           8000030006000000010000000000100000000001000000000010000
+605           8000042008880000410089800001000008041040006400000300000
+605           0000030000080000420090800001200998041040007280410400070
+605           0000041000080401260072000001000000000149000410310400000
+605           8000120007600001490003103104000008000120007900001490003
+605           1031040000080001200082802012700868000032007180000460086
+602           8000030006500000000001
+604           00000010000000000100000000001000000000010000
+604           00000     2000000000070000000000800000000009
+604           00000    15000000000180000000001900000000001
+601           40000000007
+601           40000990000
+2 FINISH   $
+777 SYMPTOM-DISEASE MATRIX DATA CARDS FOLLOW THIS CARD
+777 CASE DATA CARDS FOLLOW THIS CARD
