@@ -1,4 +1,4 @@
-Assembler for the Burroughs 220 BALGOL Compiler & Library -- 2019-12-21 13:16
+Assembler for the Burroughs 220 BALGOL Compiler & Library -- 2019-12-21 15:07
 
 Source File: UNPACK.card
 
@@ -17,22 +17,22 @@ START PASS 2
                                                          ROW()         DESTINATION ROW FOR UNPACKED CODES
                                                          (HIDDEN)      STRIDE OF ROW PASSED IN A-REG
 
-                                                       THIS IS THE REVISED VERSION OF THE DISASSEMBLED CODE
-                                                       WITH PARAMETERS IN DESCENDING LOCATIONS WITH RESPECT
-                                                       TO THEIR ORDER IN THE BALGOL CALLING SEQUENCE, AND
-                                                       WITH THE (44) FIELD OF THE ENTRY POINT WORD SPECIFYING
-                                                       THE END OF THE PARAMETER AREA, AS FOR THE VERSION OF
-                                                       THE COMPILER DATED 1962-02-11.
+                                                       THIS IS THE ORIGINAL VERSION, DISASSEMBLED FROM THE
+                                                       PUBLISHED CODE, WITH PARAMETERS IN ASCENDING LOCATIONS
+                                                       WITH RESPECT TO THEIR ORDER IN THE BALGOL CALLING
+                                                       SEQUENCE, WITH THE (44) FIELD OF THE ENTRY POINT WORD
+                                                       SPECIFYING THE BEGINNING OF THE PARAMETER AREA, AS FOR
+                                                       THE VERSION OF THE COMPILER DATED 1961-02-20.
 
-            21      0000  7 0105 01 0000   UNPAK NOP 7 *-*,PARAM       ENTRY POINT
+            21      0000  7 0099 01 0000   UNPAK NOP 7 *-*,PARAM       ENTRY POINT
             22      0001  8 0002 40 0088         STB 8 SAVEB           SAVE B+R REGS
             23      0002  8 0001 40 0089         STR 8 SAVER
             24      0003  8 0000 46 0086         CLL 8 COUNT           ZERO THE WORD COUNT
-            25      0004  8 0000 10 0100         CAD 8 ROW             LOAD ROW() BASE ADDR
+            25      0004  8 0000 10 0104         CAD 8 ROW             LOAD ROW() BASE ADDR
             26      0005  8 0410 40 0090         STA 8 ROWA,04         SET ADDR IN ROWA
             27      0006  8 0401 26 0090         IFL 8 ROWA,04,1       INCR ROWA TO ROW(1)
             28      0007  8 0000 10 0091         CAD 8 K2              OFFSET TO M(2)
-            29      0008  8 0000 41 0101         LDR 8 EQNR            R = EQUATION NR
+            29      0008  8 0000 41 0103         LDR 8 EQNR            R = EQUATION NR
             30      0009  8 0210 37 0012         BFR 8 A+,02,10        BRANCH IF EQNR=10
 
                                                                        UNPACK FOR EQUATION NR NEQ 10
@@ -55,7 +55,7 @@ START PASS 2
             49      0022  8 0000 10 0096         CAD 8 K18             OFFSET TO M(18)
             50      0023  8 0000 44 0065         STP 8 UPW             CALL TO UNPACK 1 WORD (COUNT=0)
             51      0024  8 0000 30 0066         BUN 8 UPW+1
-            52      0025  8 0000 10 0103         CAD 8 SHEET           A = SHEET PARAM
+            52      0025  8 0000 10 0101         CAD 8 SHEET           A = SHEET PARAM
             53      0026  8 0201 36 0040         BFA 8 B+,02,1         BRANCH IF SHEET=01
 
                                                                        PROCESS SHEET NEQ 1 CASE
@@ -76,10 +76,10 @@ START PASS 2
 
                                                                        PROCESS SHEET EQL 1 CASE
 
-            73      0040  8 0000 10 0100   *B    CAD 8 ROW             LOAD ROW() BASE ADDRESS
+            73      0040  8 0000 10 0104   *B    CAD 8 ROW             LOAD ROW() BASE ADDRESS
             74      0041  8 0000 12 0097         ADD 8 K19             OFFSET TO ROW(19)
             75      0042  8 0410 40 0048         STA 8 D+,04           SET STA ADDRESS BELOW
-            76      0043  8 0000 10 0105         CAD 8 M               LOAD BASE ADDRESS OF M()
+            76      0043  8 0000 10 0099         CAD 8 M               LOAD BASE ADDRESS OF M()
             77      0044  8 0000 12 0093         ADD 8 K8              OFFSET TO M(8)
             78      0045  8 0410 40 0046         STA 8 *+1,04          SET CAD ADDRESS, NEXT
             79      0046  0 0000 10 0000         CAD   *-*             LOAD M(8) WORD AS SET ABOVE
@@ -110,7 +110,7 @@ START PASS 2
 
            105      0065  0 0000 30 0000   UPW   BUN   *-*             RETURN TO CALLER
            106      0066  8 0000 42 0090         LDB 8 ROWA            ENTRY POINT, B = CURR ROW() ADDR
-           107      0067  8 0000 12 0105         ADD 8 M               ADD ADDRESS OF M() TO OFFSET
+           107      0067  8 0000 12 0099         ADD 8 M               ADD ADDRESS OF M() TO OFFSET
            108      0068  8 0410 40 0072         STA 8 MA+,04          SET CAD ADDRESS AT OFFSET
            109      0069  8 0410 40 0070         STA 8 *+1,04          SET LDR ADDRESS AT OFFSET
            110      0070  0 0000 41 0000         LDR   *-*             LOAD FIRST WORD OF RANGE
@@ -145,26 +145,24 @@ START PASS 2
            139      0096  0 0000 00 0018   K18   HLT   18              CONSTANT 18
            140      0097  0 0000 00 0019   K19   HLT   19              CONSTANT 19
            141      0098  0 0000 00 0001         HLT   1               (NOT USED)
-           142      0099  4 0000 00 0007   PBLK  CNST  40000000007     ALLOCATE STORAGE FOR PARAMETERS
-           143      0100                   PARAM DEFN  PBLK+6          LOCATION OF END OF PARAMETER BLOCK
-           144      0100                   M     DEFN  PARAM-0         ADDR OF ARRAY M()
-           145      0100                   M1STR DEFN  PARAM-1         STRIDE FOR M() (NOT USED, =1)
-           146      0100                   SHEET DEFN  PARAM-2         SHEET TYPE
-           147      0100                   XRAY  DEFN  PARAM-3         XRAY PARAM (NOT USED)
-           148      0100                   EQNR  DEFN  PARAM-4         EQUATION NUMBER
-           149      0100                   ROW   DEFN  PARAM-5         ADDR OF OUTPUT ROW() ARRAY
-           150      0100  4 0000 99 0000         CNST  40000990000
-           151      0101                         FINI
+           142      0099  4 0000 00 0007   PARAM CNST  40000000007     ALLOCATE STORAGE FOR PARAMETERS
+           143      0100                   M     DEFN  PARAM+0         ADDR OF ARRAY M()
+           144      0100                   M1STR DEFN  PARAM+1         STRIDE FOR M() (NOT USED, =1)
+           145      0100                   SHEET DEFN  PARAM+2         SHEET TYPE
+           146      0100                   XRAY  DEFN  PARAM+3         XRAY PARAM (NOT USED)
+           147      0100                   EQNR  DEFN  PARAM+4         EQUATION NUMBER
+           148      0100                   ROW   DEFN  PARAM+5         ADDR OF OUTPUT ROW() ARRAY
+           149      0100  4 0000 99 0000         CNST  40000990000
+           150      0101                         FINI
 
 
 SYMBOL TABLE
 
    12 *A..1            40 *B..1            35 *C..1            48 *D..1            53 *F..1
-   72 *MA.1            71 *NW.1             8 BMOD             86 COUNT           101 EQNR
+   72 *MA.1            71 *NW.1             8 BMOD             86 COUNT           103 EQNR
    60 EXIT             95 K15              96 K18              97 K19              91 K2
-   92 K7               93 K8               94 K9              105 M               104 M1STR
-  105 PARAM            99 PBLK              1 RLO             100 ROW              90 ROWA
-   88 SAVEB            89 SAVER           103 SHEET             0 UNPAK            65 UPW
-  102 XRAY
+   92 K7               93 K8               94 K9               99 M               100 M1STR
+   99 PARAM             1 RLO             104 ROW              90 ROWA             88 SAVEB
+   89 SAVER           101 SHEET             0 UNPAK            65 UPW             102 XRAY
 
 END PASS 2, ERRORS = 0

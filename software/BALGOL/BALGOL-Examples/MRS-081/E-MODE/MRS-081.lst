@@ -1,0 +1,786 @@
+Unisys ClearPath Software Series ALGOL COMPILER, MCP 18.0 [59.180.000] (59.180.0086). Wednesday, December 25, 2019 14:04:51
+
+
+
+                                           ( P A U L ) M R S 0 8 1 / N E W   O N   O P S
+                                           = = = = = = = = = = = = = = = = = = = = = = =
+
+
+                  BEGIN                                                                                  0000:00000:0
+                                                                                              BLOCK#1 IS SEGMENT 0003
+                  COMMENT          CONGENITAL  HEART  DISEASE  DIAGNOSIS  PROGRAM.          1            0003:00001:0
+                                   FROM A SET OF CLINICAL SYMPTOMS, THE PROBABILITIES                    0003:00001:0
+                                   FOR EACH OF THE 33 CONGENITAL HEART DISEASES BEING                    0003:00001:0
+                                   PRESENT IN THE PATIENT UNDER CONSIDERATION IS                         0003:00001:0
+                                   CALCULATED AND THOSE GREATER THAN ONE PERCENT                         0003:00001:0
+                                   ARE PRINTED OUT TOGETHER WITH DISEASE IDENTIFICATION                  0003:00001:0
+                                   AND CASE INFORMATION.                                                 0003:00001:0
+                                                                                                         0003:00001:0
+                                          FRED B FIELDING                                                0003:00001:0
+                                   SAN FRANCISCO DISTRICT OFFICE                                         0003:00001:0
+                                                                                                         0003:00001:0
+                                   CARD SEQUENCE CODE FOR THE PROGRAM STARTS WITH                        0003:00001:0
+                                   CHDD0001 AND  ROW 01-1 FOR SYMPTOM-DISEASE MATRIX.                    0003:00001:0
+                                   FIRST RELEASE   05 - 31 - 61;                                         0003:00001:0
+                                                                                                         0003:00001:0
+                                                                                                         0003:00001:0
+                  INTEGER          CASENO, CASEIN, SHEET, XRAY, EQUATION,                                0003:00001:0
+                                   MO, DAY, YEAR, LAST,                                                  0003:00001:0
+                                   E, J, K, P, X,                                                        0003:00001:0
+                                   TOTE, TOTP, TOTX, OUTSHEET,                                           0003:00001:0
+                                   T22, T2021, T4243, T4445, T6789;                                      0003:00001:0
+                                                                                                         0003:00001:0
+                  REAL             SUM;                                                                  0003:00001:0
+                                                                                                         0003:00001:0
+                  INTEGER ARRAY    SYE[1:20], SYP[1:20], TE[1:50], TP[1:50],                             0003:00001:0
+                                   ROW[1:51], MX[1:10], M[1:33,1:18];                                    0003:00001:0
+                                                                                                         0003:00006:4
+                  REAL ARRAY       FTROW[1:50], FTMX[1:10], PYKX[1:33], PYX[1:33];                       0003:00006:4
+                                                                                                         0003:00006:4
+                  LABEL            NEWCASE, CARD1, CARD2, EQTEST, XP9, TAL9, EQ10,                       0003:00006:4
+                                   CARD3, XP10, X1TO3, X4TO7, X26, LAB5, BNORWH, BROWN,                  0003:00006:4
+                                   X17TO19, X20, WHITE, X40, X2369, FLTMX, TAL10,                        0003:00006:4
+                                   NORM, PRINT, TALPT, EOF,                                              0003:00006:4
+                                   Y01, Y02, Y03, Y04, Y05, Y06, Y07, Y08, Y09, Y10,                     0003:00006:4
+                                   Y11, Y12, Y13, Y14, Y15, Y16, Y17, Y18, Y19, Y20,                     0003:00006:4
+                                   Y21, Y22, Y23, Y24, Y25, Y26, Y27, Y28, Y29, Y30,                     0003:00006:4
+                                   Y31, Y32, Y33;                                                        0003:00006:4
+                                                                                                         0003:00006:4
+                  SWITCH           SWOUT:= Y01,Y02,Y03,Y04,Y05,Y06,Y07,Y08,Y09,                          0003:00006:4
+                                   Y10,Y11,Y12,Y13,Y14,Y15,Y16,Y17,Y18,Y19,Y20,Y21,                      0003:00006:4
+                                   Y22,Y23,Y24,Y25,Y26,Y27,Y28,Y29,Y30,Y31,Y32,Y33;                      0003:00006:4
+                                                                                                         0003:00006:4
+                  FILE             CARD(KIND=READER, MAXRECSIZE=14);                                     0003:00006:4
+                                                                                           DATA LENGTH IN WORDS IS 000A
+                  FILE             LINE (KIND=PRINTER, MAXRECSIZE=132, FRAMESIZE=8);                     0003:00006:4
+                                                                                           DATA LENGTH IN WORDS IS 000C
+                                                                                                         0003:00006:4
+                  LIST             MATRIX(FOR K:= 1 STEP 1 UNTIL 33 DO                                   0003:00006:4
+                                            FOR J:= 1 STEP 1 UNTIL 18 DO M[K,J]),                        0003:00008:1                                   KASE(CASENO, CASEIN, SHEET, XRAY, EQUATION,                           0003:00031:4
+                                            MO, DAY, YEAR, LAST),                                        0003:0003E:1
+                                   IDOUT(CASENO, CASEIN, MO, DAY, YEAR),                                 0003:00076:3
+                                   PRESENT(FOR P:= 1 STEP 1 UNTIL 20 DO SYP[P]),                         0003:0009E:4
+                                   POUT(FOR P:= 1 STEP 1 UNTIL TOTP DO SYP[P]),                          0003:000BA:1
+                                   EXCLUDE(FOR E:= 1 STEP 1 UNTIL 20 DO SYE[E]),                         0003:000D6:4
+                                   EOUT(FOR E:= 1 STEP 1 UNTIL TOTE+1 DO SYE[E]),                        0003:000F2:1
+                                   SHOUT(OUTSHEET),                                                      0003:0010F:1
+                                   EQOUT(EQUATION),                                                      0003:0011A:4
+                                   ANS(FOR X:= K DO PYX[X]);                                             0003:00126:1
+                                                                                                         0003:0013D:1
+                  FORMAT OUT       IDFORM(X5,"CASE NUMBER",I7,X5,"PATIENT",X2,A3,X5,                     0003:0013D:1
+                                       "DATE",X1,3(I3)),                                                 0003:0013D:1
+                                   PFORM(/,X5,"SYMPTOMS PRESENT",X4,20(I4)),                             0003:0013D:1
+                                   EFORM(/,X5,"SYMPTOMS OMITTED",X4,20(I4)),                             0003:0013D:1
+                                   SHFORM(/,X5,"SYMPTOMS USED",X3,A2),                                   0003:0013D:1
+                                   EQFORM(X5,"EQUATION USED",I5),                                        0003:0013D:1
+                                   HEAD(X15,"DISEASE",X5,"PROBABILITY"),                                 0003:0013D:1
+                                                                                                         0003:0013D:1
+                                   FORM1(X8,"Y01",X7,"N",F16.4),                                         0003:0013D:1
+                                   FORM2(X8,"Y02",X5,"A S D",F14.4),                                     0003:0013D:1
+                                   FORM3(X8,"Y03",X2,"A S D - P S",F11.4),                               0003:0013D:1
+                                   FORM4(X8,"Y04",X2,"A S D - P H",F11.4),                               0003:0013D:1
+                                   FORM5(X8,"Y05",X4,"C E C D",F13.4),                                   0003:0013D:1
+                                   FORM6(X8,"Y06",X3,"P A P V C",F12.4),                                 0003:0013D:1
+                                   FORM7(X8,"Y07",X3,"T A P V C",F12.4),                                 0003:0013D:1
+                                   FORM8(X8,"Y08",X6,"T A",F15.4),                                       0003:0013D:1
+                                   FORM9(X8,"Y09",X5,"EBST.",F14.4),                                     0003:0013D:1
+                                   FORM10(X8,"Y10",X1,"V S D - V P S",F10.4),                            0003:0013D:1
+                                   FORM11(X8,"Y11",X1,"V S D - I P S",F10.4),                            0003:0013D:1
+                                   FORM12(X8,"Y12",X5,"V P S",F14.4),                                    0003:0013D:1
+                                   FORM13(X8,"Y13",X5,"I P S",F14.4),                                    0003:0013D:1
+                                   FORM14(X8,"Y14",X3,"P. ATRES.",F12.4),                                0003:0013D:1
+                                   FORM15(X8,"Y15",X2,"COARCT. P A",F11.4),                              0003:0013D:1
+                                   FORM16(X8,"Y16",X6,"P H",F15.4),                                      0003:0013D:1
+                                   FORM17(X8,"Y17",X5,"A P W",F14.4),                                    0003:0013D:1
+                                   FORM18(X8,"Y18",X5,"P D A",F14.4),                                    0003:0013D:1
+                                                                                           DATA LENGTH IN WORDS IS 00E9
+                                   FORM19(X8,"Y19",X2,"P A-V FIST.",F11.4),                              0003:0013D:1
+                                   FORM20(X8,"Y20",X6,"M S",F15.4),                                      0003:0013D:1
+                                   FORM21(X8,"Y21",X4,"MYOC. D",F13.4),                                  0003:0013D:1
+                                   FORM22(X8,"Y22",X2,"A O COR. A",F12.4),                               0003:0013D:1
+                                   FORM23(X8,"Y23",X2,"A S - VALV.",F11.4),                              0003:0013D:1
+                                   FORM24(X8,"Y24",X2,"A S - SUB.",F12.4),                               0003:0013D:1
+                                   FORM25(X8,"Y25",X3,"COARCT. A",F12.4),                                0003:0013D:1
+                                   FORM26(X8,"Y26",X4,"TRUNC.",F14.4),                                   0003:0013D:1
+                                   FORM27(X8,"Y27",X3,"TRANSP.",F14.4),                                  0003:0013D:1
+                                   FORM28(X8,"Y28",X3,"C TRANSP.",F12.4),                                0003:0013D:1
+                                   FORM29(X8,"Y29",X4,"AB. A O",F13.4),                                  0003:0013D:1
+                                   FORM30(X8,"Y30",X5,"V S D",F14.4),                                    0003:0013D:1
+                                   FORM31(X8,"Y31",X2,"V S D - P H",F11.4),                              0003:0013D:1
+                                   FORM32(X8,"Y32",X2,"P D A - P H",F11.4),                              0003:0013D:1
+                                   FORM33(X8,"Y33",X1,"T A - TRANSP.",F10.4);                            0003:0013D:1
+                                                                                                         0003:0013D:1
+                  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%                 0003:0013D:1
+                  PROCEDURE UNPACK(M, SHEET, XRAY, EQUATION, ROW);                                       0003:0013D:1
+                    VALUE SHEET, XRAY, EQUATION;                                                         0003:0013D:1
+                    INTEGER SHEET, XRAY, EQUATION;                                                       0003:0013D:1
+                    INTEGER ARRAY M[1], ROW[1];                                                          0003:0013D:1                    BEGIN                                                                                0003:0013D:1
+                    INTEGER                                                                              0003:0013D:1
+                      ROWX;                                                                              0003:0013D:1
+                                                                                               UNPACK IS SEGMENT 0008
+                                                                                            2            0008:00001:0
+                    PROCEDURE UPACK(M, MX, ROW, ROWX, COUNT);                                            0008:00001:0
+                      VALUE MX, ROWX, COUNT;                                                             0008:00001:0
+                      INTEGER MX, ROWX, COUNT;                                                           0008:00001:0
+                      INTEGER ARRAY M[1], ROW[1];                                                        0008:00001:0
+                      BEGIN                                                                              0008:00001:0
+                      DO BEGIN                                                                           0008:00001:0
+                        ROW[ROWX]:= (M[MX] DIV 1000000) MOD 1000;                           4            0008:00001:0
+                        ROW[ROWX+1]:= (M[MX] DIV 1000) MOD 1000;                                         0008:00006:5
+                        ROW[ROWX+2]:= M[MX] MOD 1000;                                                    0008:0000C:2
+                        ROWX:= ROWX+3;                                                                   0008:00011:2
+                        MX:= MX+1;                                                                       0008:00013:3
+                        COUNT:= COUNT-1;                                                                 0008:00015:3
+                        END                                                                              0008:00017:3
+                      UNTIL COUNT < 0;                  % MODELS 220 DFL/BRP INSTRUCTION    4            0008:00017:3
+                      END UPACK;                                                                         0008:00019:1
+                                                                                            3            0008:00019:2
+                    ROWX:= 1;                                                                            0008:00019:2
+                    IF EQUATION ^= 10 THEN                                                               0008:0001A:1
+                      UPACK(M, 2, ROW, ROWX, 16)                                                         0008:0001B:2
+                    ELSE                                                                                 0008:0001F:3
+                      BEGIN                                                                              0008:00020:0
+                      UPACK(M, 2, ROW, ROWX, 4);                                            3            0008:00020:4
+                      ROWX:= ROWX+21;                   % ROWX=22                                        0008:00024:4
+                      UPACK(M, 9, ROW, ROWX, 5);                                                         0008:00026:4
+                      ROWX:= ROWX+27;                   % ROWX=49                                        0008:0002A:4
+                      UPACK(M, 18, ROW, ROWX, 0);                                                        0008:0002C:4
+                      IF SHEET ^= 1 THEN                                                                 0008:00030:3
+                        BEGIN                                                                            0008:00031:3
+                        UPACK(M, 7, ROW, ROWX-33, 1);   % ROWX=16                           4            0008:00032:1
+                        ROW[ROWX]:= 0;                                                                   0008:00036:4
+                        END                                                                              0008:00038:5
+                      ELSE                                                                  4            0008:00038:5
+                        BEGIN                                                                            0008:00038:5
+                        ROW[19]:= (M[8] DIV 1000000) MOD 1000;                              4            0008:00039:3
+                        ROWX:= ROWX-9;                  % ROWX=40                                        0008:0003E:0
+                        UPACK(M, 15, ROW, ROWX, 2);                                                      0008:00040:0
+                        END;                                                                             0008:00044:0
+                      END;                                                                  4            0008:00044:0
+                    END UNPACK;                                                             3            0008:00044:0
+                                                                                   UNPACK(0008) LENGTH IN WORDS IS 004B
+                                                                                            2            0003:0013D:1
+                  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%                 0003:0013D:1
+                                                                                                         0003:0013D:1
+                  COMMENT          READ DATA FOR SYMPTOM-DISEASE MATRIX.;                                0003:0013D:1
+                                   READ(CARD, /, MATRIX);                                                0003:0013D:1
+                                                                                                         0003:00146:5
+                  COMMENT          THE PROGRAM BEGINS HERE.  THE FIRST TWO INPUT CARDS                   0003:00146:5
+                                   ARE READ, THE FIRST TWO LINES OF OUTPUT ARE PRINTED,                  0003:00146:5
+                                   THE NUMBER OF SYMPTOMS ARE CALCULATED,                                0003:00146:5
+                                   AND THE EQUATION TYPE DETERMINED.;                                    0003:00146:5
+                                                                                                         0003:00146:5
+                  NEWCASE:         FOR P:= 1 STEP 1 UNTIL 20 DO                                          0003:00146:5
+                                     SYP[P]:= 0;                                                         0003:00147:4
+                                   FOR J:= 1 STEP 1 UNTIL 50 DO                                          0003:0014C:4                                     TP[J]:= ROW[J]:= 0;                                                 0003:0014D:3
+                                   FOR J:= 1 STEP 1 UNTIL 50 DO                                          0003:00154:3
+                                     FTROW[J]:= 0.0;                                                     0003:00155:2
+                                                                                                         0003:0015A:2
+                  CARD1:           READ(CARD, /, KASE) [EOF];                                            0003:0015A:2
+                                   WRITE(LINE[SKIP 1]);                                                  0003:00166:1
+                                   WRITE(LINE, IDFORM, IDOUT);                                           0003:0016D:4
+                  CARD2:           READ(CARD, /, PRESENT);                                               0003:00174:2
+                                   P:= 1;                                                                0003:0017E:0
+                                   FOR J:= 1 STEP 1 UNTIL 50 DO                                          0003:0017E:5
+                                     BEGIN                                                               0003:0017F:4
+                                     IF SYP[P] = J THEN                                     2            0003:0017F:4
+                                       BEGIN                                                             0003:00182:2
+                                       TP[J]:= 1;                                           3            0003:00183:0
+                                       P:= P+1                                                           0003:00185:1
+                                       END;                                                              0003:00185:5
+                                     END;                                                   3            0003:00187:0
+                                                                                            2            0003:00189:5
+                                   TOTP:= P - 1;                                                         0003:00189:5
+                                   WRITE(LINE, PFORM, POUT);                                             0003:0018B:4
+                                   K:= 1;                                                                0003:00192:3
+                                   IF SHEET = 1 THEN                                                     0003:00193:2
+                                     BEGIN                                                               0003:00194:2
+                                     OUTSHEET:= "W ";                                       2            0003:00195:0
+                                     GO TO EQTEST                                                        0003:00196:1
+                                     END;                                                                0003:00196:5
+                                   OUTSHEET:= "B ";                                         2            0003:00196:5
+                                                                                                         0003:00198:0
+                  EQTEST:          IF EQUATION = 10 THEN                                                 0003:00198:0
+                                     GO TO EQ10;                                                         0003:00199:1
+                                                                                                         0003:00199:5
+                  COMMENT          CALCULATE PROBABILITIES USING EQUATION 9.;                            0003:00199:5
+                                                                                                         0003:00199:5
+                  COMMENT          ONE ROW OF THE MATRIX IS UNPACKED AND THE                             0003:00199:5
+                                   INDEPENDENT SYMPTOMS PRESENT RECOMPLEMENTED.;                         0003:00199:5
+                                                                                                         0003:00199:5
+                  XP9:             UNPACK(M[K,*], SHEET, XRAY, EQUATION, ROW[*]);                        0003:00199:5
+                                   FOR J:= 8 STEP 1 UNTIL 16, 24, 25,                                    0003:0019F:3
+                                       30 STEP 1 UNTIL 33, 38, 39, 50 DO                                 0003:001AC:0
+                                     BEGIN                                                               0003:001B9:2
+                                     IF TP[J] = 1 THEN                                      2            0003:001B9:2
+                                       ROW[J]:= 1000 - ROW[J]                                            0003:001BB:3
+                                     END;                                                                0003:001C0:1
+                                                                                            2            0003:001C1:3
+                  COMMENT          THE ROW-PRODUCT IS CALCULATED AND ZEROES TESTED FOR.;                 0003:001C1:3
+                                   PYKX[K]:= M[K,1];                                                     0003:001C1:3
+                                   FOR  P:= 1 STEP 1 UNTIL TOTP DO                                       0003:001C5:4
+                                     BEGIN                                                               0003:001C6:3
+                                     IF ROW[SYP[P]] = 0 THEN                                2            0003:001C6:3
+                                       BEGIN                                                             0003:001C9:5
+                                       PYKX[K]:= 0.0;                                       3            0003:001CA:3
+                                       GO TO TAL9                                                        0003:001CC:4
+                                       END;                                                              0003:001CD:2
+                                     FTROW[P]:= ROW[SYP[P]]                                 3            0003:001CD:2
+                                     END;                                                                0003:001D2:0
+                                                                                            2            0003:001D5:3
+                                   FOR P:= 1 STEP 1 UNTIL TOTP DO                                        0003:001D5:3
+                                     PYKX[K]:= PYKX[K]*FTROW[P];                                         0003:001D6:2
+                                                                                                         0003:001DF:2                  TAL9:            K:= K+1;                                                              0003:001DF:2
+                                   IF K <= 33 THEN                                                       0003:001E1:1
+                                     GO TO XP9;                                                          0003:001E1:4
+                                   GO TO NORM;                                                           0003:001E2:2
+                                                                                                         0003:001E3:0
+                                                                                                         0003:001E3:0
+                  COMMENT          CALCULATE PROBABILITIES USING EQUATION 10.;                           0003:001E3:0
+                                                                                                         0003:001E3:0
+                  EQ10:            FOR  J:= 1 STEP 1 UNTIL 50 DO                                         0003:001E3:0
+                                     TE[J]:= 0;                                                          0003:001E3:5
+                                   FOR E:= 1 STEP 1 UNTIL 20 DO                                          0003:001E8:5
+                                     SYE[E]:= 0;                                                         0003:001E9:4
+                                   FOR X:= 1 STEP 1 UNTIL 10 DO                                          0003:001EE:4
+                                     MX[X]:= 0;                                                          0003:001EF:3
+                                   FOR X:= 1 STEP 1 UNTIL 10 DO                                          0003:001F4:3
+                                     FTMX[X]:= 0.0;                                                      0003:001F5:2
+                                                                                                         0003:001FA:2
+                  COMMENT          THE THIRD INPUT CARD IS READ, THE THIRD LINE OF                       0003:001FA:2
+                                   OUTPUT IS PRINTED, AND THE NUMBER OF SYMPTOMS                         0003:001FA:2
+                                   TO BE OMITTED FOR THIS CASE IS CALCULATED.;                           0003:001FA:2
+                                                                                                         0003:001FA:2
+                  CARD3:           READ(CARD, /, EXCLUDE);                                               0003:001FA:2
+                                   E:= 1;                                                                0003:00204:0
+                                   FOR J:= 1 STEP 1 UNTIL 50 DO                                          0003:00204:5
+                                     BEGIN                                                               0003:00205:4
+                                     IF SYE[E] = J THEN                                     2            0003:00205:4
+                                       BEGIN                                                             0003:00208:2
+                                       TE[J]:= 1;                                           3            0003:00209:0
+                                       E:= E+1                                                           0003:0020B:1
+                                       END;                                                              0003:0020B:5
+                                     END;                                                   3            0003:0020D:0
+                                                                                            2            0003:0020F:5
+                                   TOTE:= E-1;                                                           0003:0020F:5
+                                   WRITE(LINE, EFORM, EOUT);                                             0003:00211:4
+                                   TOTX:= SHEET+8;                                                       0003:00218:3
+                                                                                                         0003:0021A:3
+                  COMMENT          ONE ROW OF THE MATRIX IS UNPACKED, THE                                0003:0021A:3
+                                   INDEPENDENT SYMPTOMS PRESENT RECOMPLEMENTED,                          0003:0021A:3
+                                   AND THE SYMPTOMS OMITTED FOR THIS CASE DELETED.;                      0003:0021A:3
+                                                                                                         0003:0021A:3
+                  XP10:            UNPACK(M[K,*], SHEET, XRAY, EQUATION, ROW[*]);                        0003:0021A:3
+                                   FOR  J:= 8 STEP 1 UNTIL 15, 24, 25,                                   0003:00220:1
+                                       30 STEP 1 UNTIL 33, 38, 39, 50 DO                                 0003:0022C:4
+                                     BEGIN                                                               0003:0023A:0
+                                     IF TP[J] = 1 THEN                                      2            0003:0023A:0
+                                       ROW[J]:= 1000 - ROW[J];                                           0003:0023C:1
+                                     IF ROW[J] = 0 THEN                                                  0003:00241:3
+                                       BEGIN                                                             0003:00243:4
+                                       PYKX[K]:= 0.0;                                       3            0003:00244:2
+                                       GO TO TAL10                                                       0003:00246:3
+                                       END;                                                              0003:00247:1
+                                     IF TE[J] = 1 THEN                                      3            0003:00247:1
+                                       ROW[J]:= 0                                                        0003:00249:2
+                                     END;                                                                0003:0024B:5
+                                                                                            2            0003:0024C:5
+                  COMMENT          THE ROW-PRODUCT IS CALCULATED FOR THOSE INDEPENDENT                   0003:0024C:5
+                                   SYMPTOMS COMMON TO BOTH SHEETS, ZERO VALUES TESTED                    0003:0024C:5
+                                   FOR, AND EACH ELEMENT SCALED.;                                        0003:0024C:5
+                                                                                                         0003:0024C:5                                   PYKX[K]:= M[K,1];                                                     0003:0024C:5
+                                   FOR  J:= 8 STEP 1 UNTIL 15, 24, 25,                                   0003:00251:0
+                                       30 STEP 1 UNTIL 33, 38, 39, 50 DO                                 0003:0025D:3
+                                     BEGIN                                                               0003:0026A:5
+                                     FTROW[J]:= ROW[J];                                     2            0003:0026A:5
+                                     FTROW[J]:= FTROW[J]/100.0;                                          0003:0026E:4
+                                     IF FTROW[J] ^= 0.0 THEN                                             0003:00273:0
+                                       PYKX[K]:= PYKX[K]*FTROW[J]                                        0003:00275:1
+                                     END;                                                                0003:0027B:1
+                                                                                            2            0003:0027C:2
+                                                                                                         0003:0027C:2
+                  COMMENT          THE APPROPRIATE VALUE IS OBTAINED FOR THOSE MUTUALLY                  0003:0027C:2
+                                   EXCLUSIVE SYMPTOM-SETS COMMON TO BOTH BROWN AND                       0003:0027C:2
+                                   WHITE SYMPTOM CHECK SHEETS PER TABLE V.;                              0003:0027C:2
+                                                                                                         0003:0027C:2
+                  X1TO3:           MX[1]:= ROW[SYP[1]];                                                  0003:0027C:2
+                  X4TO7:           IF TE[4] = 1 THEN                                                     0003:0027F:4
+                                     BEGIN                                                               0003:00281:1
+                                     MX[2]:= 100;                                           2            0003:00281:5
+                                     GO TO X26                                                           0003:00283:2
+                                     END;                                                                0003:00284:0
+                                   IF SYP[2] <= 7 THEN                                      2            0003:00284:0
+                                     BEGIN                                                               0003:00285:3
+                                     MX[2]:= ROW[SYP[2]];                                   2            0003:00286:1
+                                     GO TO X26                                                           0003:00289:3
+                                     END;                                                                0003:0028A:1
+                                   MX[2]:= 1000 - ROW[4] - ROW[5] - ROW[6] - ROW[7];        2            0003:0028A:1
+                                                                                                         0003:00291:2
+                  X26:             X:= 3;                                                                0003:00291:2
+                                   FOR  J:= 26, 28, 34, 36 DO                                            0003:00292:2
+                                     BEGIN                                                               0003:0029E:2
+                                     IF TE[J] = 1 THEN                                      2            0003:0029E:2
+                                       BEGIN                                                             0003:002A0:3
+                                       MX[X]:= 100;                                         3            0003:002A1:1
+                                       GO TO LAB5                                                        0003:002A3:3
+                                       END;                                                              0003:002A4:1
+                                     IF TP[J] = TP[J+1] THEN                                3            0003:002A4:1
+                                       BEGIN                                                             0003:002A8:2
+                                       MX[X]:= 1000 - ROW[J] - ROW[J+1];                    3            0003:002A9:0
+                                       GO TO LAB5                                                        0003:002B0:0
+                                       END;                                                              0003:002B0:4
+                                     IF TP[J] = 1 THEN                                      3            0003:002B0:4
+                                       BEGIN                                                             0003:002B2:5
+                                       MX[X]:= ROW[J];                                      3            0003:002B3:3
+                                       GO TO LAB5                                                        0003:002B7:2
+                                       END;                                                              0003:002B8:0
+                                     MX[X]:= ROW[J+1];                                      3            0003:002B8:0
+                    LAB5:            X:= X+1                                                             0003:002BC:1
+                                     END;                                                                0003:002BC:5
+                                                                                            2            0003:002BE:4
+                  BNORWH:          IF SHEET = 1 THEN                                                     0003:002BE:4
+                                     GO TO WHITE;                                                        0003:002BF:4
+                                                                                                         0003:002C0:2
+                  COMMENT          THE APPROPRIATE VALUE IS OBTAINED FOR THOSE MUTUALLY                  0003:002C0:2
+                                   EXCLUSIVE SYMPTOM-SETS FOR THE BROWN SHEET OPTION.;                   0003:002C0:2
+                                                                                                         0003:002C0:2
+                  BROWN:           IF TP[16] = 1 THEN                                                    0003:002C0:2
+                                     ROW[16]:= 1000 - ROW[16];                                           0003:002C1:5
+                                   IF ROW[16] = 0 THEN                                                   0003:002C5:5                                     BEGIN                                                               0003:002C7:2
+                                     PYKX[K]:= 0.0;                                         2            0003:002C8:0
+                                     GO TO TAL10                                                         0003:002CA:1
+                                     END;                                                                0003:002CA:5
+                                   IF TE[16] = 1 THEN                                       2            0003:002CA:5
+                                     BEGIN                                                               0003:002CC:2
+                                     ROW[16]:= 0;                                           2            0003:002CD:0
+                                     GO TO X17TO19                                                       0003:002CE:3
+                                     END;                                                                0003:002CF:1
+                                                                                            2            0003:002CF:1
+                                   BEGIN                                                                 0003:002CF:1
+                                   FTROW[16]:= ROW[16];                                     2            0003:002CF:1
+                                   PYKX[K]:= PYKX[K]*FTROW[16] / 100.0                                   0003:002D1:4
+                                   END;                                                                  0003:002D6:4
+                                                                                            2            0003:002D7:2
+                  X17TO19:         IF TE[17] = 1 THEN                                                    0003:002D7:2
+                                     BEGIN                                                               0003:002D8:5
+                                     MX[7]:= 100;                                           2            0003:002D9:3
+                                     GO TO X20                                                           0003:002DB:1
+                                     END;                                                                0003:002DB:5
+                                   IF TP[17] = TP[18] AND TP[18] = TP[19] THEN              2            0003:002DB:5
+                                     BEGIN                                                               0003:002E1:0
+                                     MX[7]:= (1000-ROW[17])*(1000-ROW[18])*                 2            0003:002E1:4
+                                             (1000-ROW[19]);                                             0003:002E6:1
+                                     GO TO X20                                                           0003:002E9:0
+                                     END;                                                                0003:002E9:4
+                                   IF TP[19] = 1 THEN                                       2            0003:002E9:4
+                                     BEGIN                                                               0003:002EB:1
+                                     MX[7]:= ROW[19];                                       2            0003:002EB:5
+                                     GO TO X20                                                           0003:002EE:2
+                                     END;                                                                0003:002EF:0
+                                   IF TP[17] = 0 THEN                                       2            0003:002EF:0
+                                     BEGIN                                                               0003:002F0:3
+                                     MX[7]:= ROW[18]*(1000 - ROW[17]);                      2            0003:002F1:1
+                                     GO TO X20                                                           0003:002F5:5
+                                     END;                                                                0003:002F6:3
+                                   IF TP[18] = 0 THEN                                       2            0003:002F6:3
+                                     BEGIN                                                               0003:002F8:0
+                                     MX[7]:= ROW[17]*(1000 - ROW[18]);                      2            0003:002F8:4
+                                     GO TO X20                                                           0003:002FD:2
+                                     END;                                                                0003:002FE:0
+                                   MX[7]:= ROW[17]*ROW[18];                                 2            0003:002FE:0
+                                                                                                         0003:00302:0
+                  X20:             IF TE[20] = 1 THEN                                                    0003:00302:0
+                                     BEGIN                                                               0003:00303:3
+                                     MX[8]:= 100;                                           2            0003:00304:1
+                                     GO TO FLTMX                                                         0003:00305:5
+                                     END;                                                                0003:00306:3
+                                                                                            2            0003:00306:3
+                                   T2021:= (1000 - ROW[20] - ROW[21]);                                   0003:00306:3
+                                   T22:= (1000 - ROW[22]);                                               0003:0030A:3
+                                                                                                         0003:0030D:1
+                                   IF (TP[20] = TP[21]) AND (TP[21] = TP[22])                            0003:0030D:1
+                                        AND (TP[22] = TP[23]) THEN                                       0003:00311:5
+                                     BEGIN                                                               0003:00315:0
+                                     MX[8]:= T2021*T22*(1000 - ROW[23]);                    2            0003:00315:4
+                                     GO TO FLTMX                                                         0003:0031A:4
+                                     END;                                                                0003:0031B:2
+                                   IF TP[20] = 1 THEN                                       2            0003:0031B:2                                     BEGIN                                                               0003:0031C:5
+                                     IF TP[22] = 1 THEN                                     2            0003:0031D:3
+                                       BEGIN                                                             0003:0031F:0
+                                       MX[8]:= ROW[20]*ROW[22];                             3            0003:0031F:4
+                                       GO TO FLTMX                                                       0003:00323:4
+                                       END;                                                              0003:00324:2
+                                     MX[8]:= ROW[20]*T22;                                   3            0003:00324:2
+                                     GO TO FLTMX                                                         0003:00327:5
+                                     END;                                                                0003:00328:3
+                                                                                            2            0003:00328:3
+                                   IF TP[21] = 1 THEN                                                    0003:00328:3
+                                     BEGIN                                                               0003:0032A:0
+                                     IF TP[22] = 1 THEN                                     2            0003:0032A:4
+                                       BEGIN                                                             0003:0032C:1
+                                       MX[8]:= ROW[21]*ROW[22];                             3            0003:0032C:5
+                                       GO TO FLTMX                                                       0003:00330:5
+                                       END;                                                              0003:00331:3
+                                     MX[8]:= ROW[21]*T22;                                   3            0003:00331:3
+                                     GO TO FLTMX                                                         0003:00335:0
+                                     END;                                                                0003:00335:4
+                                   IF TP[22] = 1 THEN                                       2            0003:00335:4
+                                     BEGIN                                                               0003:00337:1
+                                     MX[8]:= ROW[22]*T2021;                                 2            0003:00337:5
+                                     GO TO FLTMX                                                         0003:0033B:2
+                                     END;                                                                0003:0033C:0
+                                   MX[8]:= ROW[23];                                         2            0003:0033C:0
+                                   GO TO FLTMX;                                                          0003:0033E:3
+                                                                                                         0003:0033F:1
+                  COMMENT          THE APPROPRIATE VALUE IS OBTAINED FOR THOSE MUTUALLY                  0003:0033F:1
+                                   EXCLUSIVE SYMPTOM-SETS FOR THE WHITE SHEET OPTION.;                   0003:0033F:1
+                                                                                                         0003:0033F:1
+                  WHITE:           IF (TE[19] = TE[42])AND  (TE[42] = TE[44])                            0003:0033F:1
+                                       AND (TE[44] = 1)THEN                                              0003:00343:5
+                                     BEGIN                                                               0003:00346:0
+                                     MX[7]:= 100;                                           2            0003:00346:4
+                                     GO TO X40                                                           0003:00348:2
+                                     END;                                                                0003:00349:0
+                                                                                            2            0003:00349:0
+                                   T4243:= (1000 - ROW[42] - ROW[43]);                                   0003:00349:0
+                                   T4445:= (1000 - ROW[44] - ROW[45]);                                   0003:0034D:0
+                                                                                                         0003:00351:0
+                                   IF (TP[19] = TP[42]) AND (TP[42] = TP[43])                            0003:00351:0
+                                       AND (TP[43] = TP[44]) AND (TP[44] = TP[45]) THEN                  0003:00355:4
+                                     BEGIN                                                               0003:0035B:3
+                                     MX[7]:= (1000 - ROW[19])*T4243*T4445;                  2            0003:0035C:1
+                                     GO TO X40                                                           0003:00361:1
+                                     END;                                                                0003:00361:5
+                                   IF TP[19] = 1 THEN                                       2            0003:00361:5
+                                     BEGIN                                                               0003:00363:2
+                                     MX[7]:= ROW[19];                                       2            0003:00364:0
+                                     GO TO X40                                                           0003:00366:3
+                                     END;                                                                0003:00367:1
+                                   IF TP[42] = 1 THEN                                       2            0003:00367:1
+                                     BEGIN                                                               0003:00368:4
+                                     IF TP[44] = 1 THEN                                     2            0003:00369:2
+                                       BEGIN                                                             0003:0036A:5
+                                       MX[7]:= ROW[42]*ROW[44];                             3            0003:0036B:3
+                                       GO TO X40                                                         0003:0036F:3
+                                       END;                                                              0003:00370:1                                     IF TP[45] = 1 THEN                                     3            0003:00370:1
+                                       BEGIN                                                             0003:00371:4
+                                       MX[7]:= ROW[42]*ROW[45];                             3            0003:00372:2
+                                       GO TO X40                                                         0003:00376:2
+                                       END;                                                              0003:00377:0
+                                     MX[7]:= ROW[42]*T4445;                                 3            0003:00377:0
+                                     GO TO X40                                                           0003:0037A:3
+                                     END;                                                                0003:0037B:1
+                                                                                            2            0003:0037B:1
+                                   IF TP[43] = 1 THEN                                                    0003:0037B:1
+                                     BEGIN                                                               0003:0037C:4
+                                     IF TP[44] = 1 THEN                                     2            0003:0037D:2
+                                       BEGIN                                                             0003:0037E:5
+                                       MX[7]:= ROW[43]*ROW[44];                             3            0003:0037F:3
+                                       GO TO X40                                                         0003:00383:3
+                                       END;                                                              0003:00384:1
+                                     IF TP[45] = 1 THEN                                     3            0003:00384:1
+                                       BEGIN                                                             0003:00385:4
+                                       MX[7]:= ROW[43]*ROW[45];                             3            0003:00386:2
+                                       GO TO X40                                                         0003:0038A:2
+                                       END;                                                              0003:0038B:0
+                                     MX[7]:= ROW[43]*T4445;                                 3            0003:0038B:0
+                                     GO TO X40                                                           0003:0038E:3
+                                     END;                                                                0003:0038F:1
+                                                                                            2            0003:0038F:1
+                                   IF TP[44] = 1 THEN                                                    0003:0038F:1
+                                     BEGIN                                                               0003:00390:4
+                                     MX[7]:= ROW[44]*T4243;                                 2            0003:00391:2
+                                     GO TO X40                                                           0003:00394:5
+                                     END;                                                                0003:00395:3
+                                   MX[7]:= ROW[45]*T4243;                                   2            0003:00395:3
+                                                                                                         0003:00399:0
+                  X40:             IF TE[40] = 1 THEN                                                    0003:00399:0
+                                     BEGIN                                                               0003:0039A:3
+                                     MX[8]:= 100;                                           2            0003:0039B:1
+                                     GO TO X2369                                                         0003:0039C:5
+                                     END;                                                                0003:0039D:3
+                                                                                            2            0003:0039D:3
+                                   IF TP[40] = TP[41] THEN                                               0003:0039D:3
+                                     BEGIN                                                               0003:003A0:0
+                                     MX[8]:= 1000 - ROW[40] - ROW[41];                      2            0003:003A0:4
+                                     GO TO X2369                                                         0003:003A5:2
+                                     END;                                                                0003:003A6:0
+                                                                                            2            0003:003A6:0
+                                   IF TP[40] = 1 THEN                                                    0003:003A6:0
+                                     BEGIN                                                               0003:003A7:3
+                                     MX[8]:= ROW[40];                                       2            0003:003A8:1
+                                     GO TO X2369                                                         0003:003AA:4
+                                     END;                                                                0003:003AB:2
+                                   MX[8]:= ROW[41];                                         2            0003:003AB:2
+                                                                                                         0003:003AD:5
+                  X2369:           IF (TE[22] = TE[46]) AND  (TE[46] = 1) THEN                           0003:003AD:5
+                                     BEGIN                                                               0003:003B2:0
+                                     MX[9]:= 100;                                           2            0003:003B2:4
+                                     GO TO FLTMX                                                         0003:003B4:2
+                                     END;                                                                0003:003B5:0
+                                                                                            2            0003:003B5:0
+                                   T22:= 1000 - ROW[22];                                                 0003:003B5:0
+                                   T6789:= 1000 - ROW[46] - ROW[47] - ROW[48] - ROW[49];                 0003:003B7:4                                                                                                         0003:003BE:2
+                                   IF (TP[22] = TP[23]) AND (TP[23] = TP[46])                            0003:003BE:2
+                                       AND (TP[46] = TP[47]) AND (TP[47] = TP[48])                       0003:003C3:0
+                                       AND (TP[48] = TP[49]) THEN                                        0003:003C8:2
+                                     BEGIN                                                               0003:003CB:3
+                                     MX[9]:= T22*(1000 - ROW[23])*T6789;                    2            0003:003CC:1
+                                     GO TO FLTMX                                                         0003:003D1:1
+                                     END;                                                                0003:003D1:5
+                                                                                            2            0003:003D1:5
+                                   IF TP[22] = 1 THEN                                                    0003:003D1:5
+                                     BEGIN                                                               0003:003D3:2
+                                     FOR  J:= 46 STEP 1 UNTIL 49 DO                         2            0003:003D4:0
+                                       BEGIN                                                             0003:003D5:0
+                                       IF TP[J] = 1 THEN                                    3            0003:003D5:0
+                                         BEGIN                                                           0003:003D7:1
+                                         MX[9]:= ROW[J]*ROW[22];                            4            0003:003D7:5
+                                         GO TO FLTMX                                                     0003:003DC:3
+                                         END;                                                            0003:003DD:1
+                                       END;                                                 4            0003:003DD:1
+                                     MX[9]:= ROW[22]*T6789;                                 3            0003:003E0:0
+                                     GO TO FLTMX                                                         0003:003E3:3
+                                     END;                                                                0003:003E4:1
+                                                                                            2            0003:003E4:1
+                                   FOR  J:= 46 STEP 1 UNTIL 49 DO                                        0003:003E4:1
+                                     BEGIN                                                               0003:003E5:1
+                                     IF TP[J] = 1 THEN                                      2            0003:003E5:1
+                                       BEGIN                                                             0003:003E7:2
+                                       MX[9]:= ROW[J]*T22;                                  3            0003:003E8:0
+                                       GO TO FLTMX                                                       0003:003EC:1
+                                       END;                                                              0003:003EC:5
+                                     END;                                                   3            0003:003EC:5
+                                                                                            2            0003:003EF:4
+                                   MX[9]:= ROW[23];                                                      0003:003EF:4
+                                   GO TO FLTMX;                                                          0003:003F2:1
+                                                                                                         0003:003F2:5
+                  FLTMX:           FOR  X:= 1 STEP 1 UNTIL TOTX DO                                       0003:003F2:5
+                                     BEGIN                                                               0003:003F3:4
+                                     FTMX[X]:= MX[X];                                       2            0003:003F3:4
+                                     FTMX[X]:= FTMX[X]/100.00                                            0003:003F7:3
+                                     END;                                                                0003:003FB:1
+                                                                                            2            0003:003FF:0
+                                   FOR  X:= 1 STEP 1 UNTIL TOTX DO                                       0003:003FF:0
+                                     PYKX[K]:= PYKX[K]*FTMX[X];                                          0003:003FF:5
+                                                                                                         0003:00408:5
+                  COMMENT          AT THIS POINT, THE ROW-PRODUCT HAS BEEN COMPUTED                      0003:00408:5
+                                   AND A TEST IS MADE TO DETERMINE WHETHER THERE                         0003:00408:5
+                                   ARE MORE ROWS YET TO BE PROCESSED, OR TO PRINT-OUT.;                  0003:00408:5
+                                                                                                         0003:00408:5
+                  TAL10:           K:= K+1;                                                              0003:00408:5
+                                   IF K <= 33 THEN                                                       0003:0040A:4
+                                     GO TO XP10;                                                         0003:0040B:1
+                                   GO TO NORM;                                                           0003:0040B:5
+                                                                                                         0003:0040C:3
+                  COMMENT          THE ROW-PROBABILITIES ARE FIRST NORMALIZED TO GIVE A                  0003:0040C:3
+                                   TRUE PERCENTAGE FIGURE AND LINES 4 - 6 ARE PRINTED.;                  0003:0040C:3
+                                                                                                         0003:0040C:3
+                  NORM:            SUM:= 0.0;                                                            0003:0040C:3
+                                   WRITE(LINE, SHFORM, SHOUT);                                           0003:0040D:2
+                                   FOR  K:= 1 STEP 1 UNTIL 33 DO                                         0003:00414:1                                     SUM:= SUM + PYKX[K];                                                0003:00415:0
+                                   WRITE(LINE, EQFORM, EQOUT);                                           0003:0041B:1
+                                   FOR  K:= 1 STEP 1 UNTIL 33 DO                                         0003:00422:0
+                                     PYX[K]:= PYKX[K] / SUM;                                             0003:00422:5
+                                                                                                         0003:0042A:2
+                                   WRITE(LINE, HEAD);                                                    0003:0042A:2
+                                                                                                         0003:00430:0
+                  COMMENT          THE PROBABILITIES ARE NOW PRINTED WHICH ARE ONE                       0003:00430:0
+                                   PERCENT OR GREATER TOGETHER WITH DISEASE I. D. .;                     0003:00430:0
+                                                                                                         0003:00430:0
+                                   K:= 1;                                                                0003:00430:0
+                  PRINT:           IF PYX[K] < 0.01 THEN                                                 0003:00430:5
+                                     GO TO TALPT;                                                        0003:00434:0
+                                                                                                         0003:00434:4
+                                   GO TO SWOUT[K];                                                       0003:00434:4
+                  Y01:             WRITE(LINE, FORM1, ANS);                                              0003:0044D:1
+                                   GO TO TALPT;                                                          0003:00454:0
+                  Y02:             WRITE(LINE, FORM2, ANS);                                              0003:00454:4
+                                   GO TO TALPT;                                                          0003:0045B:3
+                  Y03:             WRITE(LINE, FORM3, ANS);                                              0003:0045C:1
+                                   GO TO TALPT;                                                          0003:00463:0
+                  Y04:             WRITE(LINE, FORM4, ANS);                                              0003:00463:4
+                                   GO TO TALPT;                                                          0003:0046A:3
+                  Y05:             WRITE(LINE, FORM5, ANS);                                              0003:0046B:1
+                                   GO TO TALPT;                                                          0003:00472:0
+                  Y06:             WRITE(LINE, FORM6, ANS);                                              0003:00472:4
+                                   GO TO TALPT;                                                          0003:00479:3
+                  Y07:             WRITE(LINE, FORM7, ANS);                                              0003:0047A:1
+                                   GO TO TALPT;                                                          0003:00481:0
+                  Y08:             WRITE(LINE, FORM8, ANS);                                              0003:00481:4
+                                   GO TO TALPT;                                                          0003:00488:3
+                  Y09:             WRITE(LINE, FORM9, ANS);                                              0003:00489:1
+                                   GO TO TALPT;                                                          0003:00490:0
+                  Y10:             WRITE(LINE, FORM10, ANS);                                             0003:00490:4
+                                   GO TO TALPT;                                                          0003:00497:3
+                  Y11:             WRITE(LINE, FORM11, ANS);                                             0003:00498:1
+                                   GO TO TALPT;                                                          0003:0049F:0
+                  Y12:             WRITE(LINE, FORM12, ANS);                                             0003:0049F:4
+                                   GO TO TALPT;                                                          0003:004A6:3
+                  Y13:             WRITE(LINE, FORM13, ANS);                                             0003:004A7:1
+                                   GO TO TALPT;                                                          0003:004AE:0
+                  Y14:             WRITE(LINE, FORM14, ANS);                                             0003:004AE:4
+                                   GO TO TALPT;                                                          0003:004B5:3
+                  Y15:             WRITE(LINE, FORM15, ANS);                                             0003:004B6:1
+                                   GO TO TALPT;                                                          0003:004BD:0
+                  Y16:             WRITE(LINE, FORM16, ANS);                                             0003:004BD:4
+                                   GO TO TALPT;                                                          0003:004C4:3
+                  Y17:             WRITE(LINE, FORM17, ANS);                                             0003:004C5:1
+                                   GO TO TALPT;                                                          0003:004CC:0
+                  Y18:             WRITE(LINE, FORM18, ANS);                                             0003:004CC:4
+                                   GO TO TALPT;                                                          0003:004D3:2
+                  Y19:             WRITE(LINE, FORM19, ANS);                                             0003:004D4:0
+                                   GO TO TALPT;                                                          0003:004DA:5
+                  Y20:             WRITE(LINE, FORM20, ANS);                                             0003:004DB:3
+                                   GO TO TALPT;                                                          0003:004E2:2
+                  Y21:             WRITE(LINE, FORM21, ANS);                                             0003:004E3:0
+                                   GO TO TALPT;                                                          0003:004E9:5
+                  Y22:             WRITE(LINE, FORM22, ANS);                                             0003:004EA:3
+                                   GO TO TALPT;                                                          0003:004F1:2                  Y23:             WRITE(LINE, FORM23, ANS);                                             0003:004F2:0
+                                   GO TO TALPT;                                                          0003:004F8:5
+                  Y24:             WRITE(LINE, FORM24, ANS);                                             0003:004F9:3
+                                   GO TO TALPT;                                                          0003:00500:2
+                  Y25:             WRITE(LINE, FORM25, ANS);                                             0003:00501:0
+                                   GO TO TALPT;                                                          0003:00507:5
+                  Y26:             WRITE(LINE, FORM26, ANS);                                             0003:00508:3
+                                   GO TO TALPT;                                                          0003:0050F:2
+                  Y27:             WRITE(LINE, FORM27, ANS);                                             0003:00510:0
+                                   GO TO TALPT;                                                          0003:00516:5
+                  Y28:             WRITE(LINE, FORM28, ANS);                                             0003:00517:3
+                                   GO TO TALPT;                                                          0003:0051E:2
+                  Y29:             WRITE(LINE, FORM29, ANS);                                             0003:0051F:0
+                                   GO TO TALPT;                                                          0003:00525:5
+                  Y30:             WRITE(LINE, FORM30, ANS);                                             0003:00526:3
+                                   GO TO TALPT;                                                          0003:0052D:2
+                  Y31:             WRITE(LINE, FORM31, ANS);                                             0003:0052E:0
+                                   GO TO TALPT;                                                          0003:00534:5
+                  Y32:             WRITE(LINE, FORM32, ANS);                                             0003:00535:3
+                                   GO TO TALPT;                                                          0003:0053C:2
+                  Y33:             WRITE(LINE, FORM33, ANS);                                             0003:0053D:0
+                                   GO TO TALPT;                                                          0003:00543:5
+                                                                                                         0003:00544:3
+                  TALPT:           K:= K+1;                                                              0003:00544:3
+                                   IF K <= 33 THEN                                                       0003:00546:2
+                                     GO TO PRINT;                                                        0003:00546:5
+                                                                                                         0003:00547:3
+                  COMMENT          PROGRAM REPEATS TO BEGINNING IF THERE ARE MORE                        0003:00547:3
+                                   CASES TO BE RUN, AND HALTS IF NOT.  THE INITIALS                      0003:00547:3
+                                   H W  APPEAR IN THE A-REG. UPON COMPLETION.;                           0003:00547:3
+                                                                                                         0003:00547:3
+                                   IF LAST = 0 THEN                                                      0003:00547:3
+                                     GO TO NEWCASE;                                                      0003:00548:3
+                                   COMMENT STOP 7270061216;                                              0003:00549:1
+                                   COMMENT GO TO NEWCASE;                                                0003:00549:1
+                  EOF:                                                                                   0003:00549:1
+                  END.                                                                                   0003:00549:1
+                                                                                           DATA LENGTH IN WORDS IS 009D
+                                                                                           DATA LENGTH IN WORDS IS 004F
+                                                                                  BLOCK#1(0003) LENGTH IN WORDS IS 05A1
+====================================================================================================================================
+NUMBER OF ERRORS DETECTED = 0.
+NUMBER OF SEGMENTS = 11.  TOTAL SEGMENT SIZE = 2007 WORDS.  CORE ESTIMATE = 4068 WORDS.  STACK ESTIMATE = 101
+PROGRAM SIZE = 672 CARDS, 4847 SYNTACTIC ITEMS, 102 DISK SECTORS.
+PROGRAM FILE NAME:  (PAUL)MRS081/NEW ON OPS.
+COMPILATION TIME = 0.526 SECONDS ELAPSED;  0.238 SECONDS PROCESSING;  0.039 SECONDS I/O.
+====================================================================================================================================     CASE NUMBER    967     PATIENT  LDR     DATE   5 11 61
+
+     SYMPTOMS PRESENT       3  10  29  34  36  43  48  50
+
+     SYMPTOMS OMITTED       0
+
+     SYMPTOMS USED   W
+     EQUATION USED   10
+               DISEASE     PROBABILITY
+        Y10 V S D - V P S    0.0286
+        Y11 V S D - I P S    0.0201
+        Y12     V P S        0.7295
+        Y13     I P S        0.2151
+
+
+     CASE NUMBER    967     PATIENT  LDR     DATE   5 11 61
+
+     SYMPTOMS PRESENT       3  10  29  34  36  43  48  50
+
+     SYMPTOMS OMITTED      11   0
+
+     SYMPTOMS USED   W
+     EQUATION USED   10
+               DISEASE     PROBABILITY
+        Y10 V S D - V P S    0.0297
+        Y11 V S D - I P S    0.0209
+        Y12     V P S        0.7278
+        Y13     I P S        0.2146
+
+
+     CASE NUMBER    967     PATIENT  LDR     DATE   5 11 61
+
+     SYMPTOMS PRESENT       3  10  29  34  36  43  48  50
+
+     SYMPTOMS USED   W
+     EQUATION USED    9
+               DISEASE     PROBABILITY
+        Y02     A S D        0.0172
+        Y10 V S D - V P S    0.1981
+        Y11 V S D - I P S    0.2311
+        Y12     V P S        0.4239
+        Y13     I P S        0.1224
+
+
+     CASE NUMBER    967     PATIENT  LDR     DATE   5 11 61
+
+     SYMPTOMS PRESENT       3  10  17  21  29  34  36
+
+     SYMPTOMS OMITTED       0
+
+     SYMPTOMS USED   B
+     EQUATION USED   10
+               DISEASE     PROBABILITY
+        Y02     A S D        0.0158
+        Y10 V S D - V P S    0.0595
+        Y11 V S D - I P S    0.0418
+        Y12     V P S        0.6692
+        Y13     I P S        0.1933
+
+
+     CASE NUMBER    967     PATIENT  LDR     DATE   5 11 61
+
+     SYMPTOMS PRESENT       3  10  17  21  29  34  36
+
+     SYMPTOMS OMITTED      11   0
+
+     SYMPTOMS USED   B
+     EQUATION USED   10
+               DISEASE     PROBABILITY
+        Y02     A S D        0.0164
+        Y10 V S D - V P S    0.0616
+        Y11 V S D - I P S    0.0433
+        Y12     V P S        0.6651
+        Y13     I P S        0.1921
+
+
+     CASE NUMBER    967     PATIENT  LDR     DATE   5 11 61
+
+     SYMPTOMS PRESENT       3  10  17  21  29  34  36
+
+     SYMPTOMS USED   B
+     EQUATION USED    9
+               DISEASE     PROBABILITY
+        Y02     A S D        0.0113
+        Y10 V S D - V P S    0.3478
+        Y11 V S D - I P S    0.4058
+        Y12     V P S        0.1675
+        Y13     I P S        0.0484
+
+
+     CASE NUMBER    967     PATIENT  LDR     DATE   5 11 61
+
+     SYMPTOMS PRESENT       3  10  17  21  29  34  36
+
+     SYMPTOMS USED   B
+     EQUATION USED    9
+               DISEASE     PROBABILITY
+        Y02     A S D        0.0113
+        Y10 V S D - V P S    0.3478
+        Y11 V S D - I P S    0.4058
+        Y12     V P S        0.1675
+        Y13     I P S        0.0484
