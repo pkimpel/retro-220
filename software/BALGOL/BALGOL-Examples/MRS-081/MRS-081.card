@@ -199,7 +199,7 @@
 2 X20..            IF  TE (20)  EQL 1   $                               CHDD0167
 2                  ( MX (8) = 100  $  GO TO FLTMX )   $                 CHDD0168
 2                  T2021 = ( 1000 - ROW (20) - ROW (21) )   $           CHDD0169
-2                   T22  = ( 1000 0 ROW (22) )   $                      CHDD0170
+2                   T22  = ( 1000 - ROW (22) )   $                      CHDD0170
 2
 2                  IF ( TP(20) EQL TP(21) ) AND ( TP(21) EQL TP(22) )   CHDD0171
 2                       AND ( TP(22) EQL TP(23) )   $                   CHDD0172

@@ -402,7 +402,7 @@
 
 1143                       T2021 = ( 1000 - ROW (20) - ROW (21) )   $           CHDD0169
 
-1147                        T22  = ( 1000 0 ROW (22) )   $                      CHDD0170
+1147                        T22  = ( 1000 - ROW (22) )   $                      CHDD0170
 
 1147
 
@@ -835,9 +835,8 @@ PROGRAM VARIABLES BEGIN AT 3562
 
         Y10 V S D - V P S     .0286
         Y11 V S D - I P S     .0201
-        Y12     V P S         .7307
-        Y13     I P S         .2154
-
+        Y12     V P S         .7295
+        Y13     I P S         .2151
 
 
 
@@ -856,9 +855,8 @@ PROGRAM VARIABLES BEGIN AT 3562
 
         Y10 V S D - V P S     .0297
         Y11 V S D - I P S     .0209
-        Y12     V P S         .7290
-        Y13     I P S         .2150
-
+        Y12     V P S         .7278
+        Y13     I P S         .2146
 
 
 
@@ -874,12 +872,10 @@ PROGRAM VARIABLES BEGIN AT 3562
                DISEASE     PROBABILITY
 
         Y02     A S D         .0171
-        Y10 V S D - V P S     .1983
-        Y11 V S D - I P S     .2314
-        Y12     V P S         .4245
-        Y13     I P S         .1226
-
-
+        Y10 V S D - V P S     .1980
+        Y11 V S D - I P S     .2310
+        Y12     V P S         .4238
+        Y13     I P S         .1224
 
 
 
@@ -896,15 +892,11 @@ PROGRAM VARIABLES BEGIN AT 3562
 
                DISEASE     PROBABILITY
 
-        Y02     A S D         .0162
-        Y10 V S D - V P S     .0610
-        Y11 V S D - I P S     .0429
-        Y12     V P S         .6861
-        Y13     I P S         .1982
-        Y31  V S D - P H      .0640
-
-
-
+        Y02     A S D         .0158
+        Y10 V S D - V P S     .0594
+        Y11 V S D - I P S     .0418
+        Y12     V P S         .6689
+        Y13     I P S         .1932
 
 
 
@@ -921,35 +913,11 @@ PROGRAM VARIABLES BEGIN AT 3562
 
                DISEASE     PROBABILITY
 
-        Y02     A S D         .0166
-        Y10 V S D - V P S     .0626
-        Y11 V S D - I P S     .0440
-        Y12     V P S         .6761
-        Y13     I P S         .1953
-        Y31  V S D - P H      .0780
-
-
-
-
-
-     CASE NUMBER    967     PATIENT  LDR     DATE   5 11 61
-
-     SYMPTOMS PRESENT       3  10  17  21  29  34  36
-
-     SYMPTOMS USED   B
-
-     EQUATION USED    9
-
-
-               DISEASE     PROBABILITY
-
-        Y02     A S D         .0113
-        Y10 V S D - V P S     .3490
-        Y11 V S D - I P S     .4072
-        Y12     V P S         .1680
-        Y13     I P S         .0485
-        Y31  V S D - P H      .0163
-
+        Y02     A S D         .0163
+        Y10 V S D - V P S     .0616
+        Y11 V S D - I P S     .0433
+        Y12     V P S         .6647
+        Y13     I P S         .1920
 
 
 
@@ -965,8 +933,27 @@ PROGRAM VARIABLES BEGIN AT 3562
                DISEASE     PROBABILITY
 
         Y02     A S D         .0113
-        Y10 V S D - V P S     .3490
-        Y11 V S D - I P S     .4072
-        Y12     V P S         .1680
-        Y13     I P S         .0485
-        Y31  V S D - P H      .0163
+        Y10 V S D - V P S     .3477
+        Y11 V S D - I P S     .4057
+        Y12     V P S         .1674
+        Y13     I P S         .0483
+
+
+
+     CASE NUMBER    967     PATIENT  LDR     DATE   5 11 61
+
+     SYMPTOMS PRESENT       3  10  17  21  29  34  36
+
+     SYMPTOMS USED   B
+
+     EQUATION USED    9
+
+
+               DISEASE     PROBABILITY
+
+        Y02     A S D         .0113
+        Y10 V S D - V P S     .3477
+        Y11 V S D - I P S     .4057
+        Y12     V P S         .1674
+        Y13     I P S         .0483
+
