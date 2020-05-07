@@ -706,6 +706,18 @@ B220CardatronOutput.prototype.COSetZSBtn_onClick = function COSetZSBtn_onClick(e
 };
 
 /**************************************/
+B220CardatronOutput.prototype.CODiv_dblClick = function CODiv_dblClick(ev) {
+    /* Handle the double-click event for the background panel. If the printer/
+    punch is ready, toggles the speed by 1000 operations per minute. This is
+    not intended for regular use, but as a way to speed up the 220 during long
+    listings and debugging runs */
+
+    if (this.ready) {
+        this.linesPerMinute += (this.linesPerMinute > 1000 ? -1000 : +1000);
+    }
+};
+
+/**************************************/
 B220CardatronOutput.prototype.beforeUnload = function beforeUnload(ev) {
     var msg = "Closing this window will make the device unusable.\n" +
               "Suggest you stay on the page and minimize this window instead";
@@ -790,6 +802,8 @@ B220CardatronOutput.prototype.deviceOnLoad = function deviceOnLoad(ev) {
             B220CardatronOutput.prototype.COSetZSBtn_onClick.bind(this), false);
     this.$$("ClearBtn").addEventListener("click",
             B220CardatronOutput.prototype.ClearBtn_onClick.bind(this), false);
+    this.$$("CODiv").addEventListener("dblclick",
+            B220CardatronOutput.prototype.CODiv_dblClick.bind(this), false);
 
     if (!this.isPrinter) {
         this.$$("COEndOfSupplyBtn").innerHTML = "OUT OF<br>CARDS";

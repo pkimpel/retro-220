@@ -564,6 +564,18 @@ B220CardatronInput.prototype.finishCardRead = function finishCardRead() {
 };
 
 /**************************************/
+B220CardatronInput.prototype.CIDiv_dblClick = function CIDiv_dblClick(ev) {
+    /* Handle the double-click event for the background panel. If the card
+    reader is ready, toggles the speed by 1000 operations per minute. This is
+    not intended for regular use, but as a way to speed up the 220 during long
+    emulator runs */
+
+    if (this.ready) {
+        this.linesPerMinute += (this.linesPerMinute > 1000 ? -1000 : +1000);
+    }
+};
+
+/**************************************/
 B220CardatronInput.prototype.initiateCardRead = function initiateCardRead() {
     /* Initiates the read of the next card into the buffer drum */
 
@@ -645,6 +657,8 @@ B220CardatronInput.prototype.readerOnLoad = function readerOnLoad(ev) {
             B220CardatronInput.prototype.ClearBtn_onClick.bind(this), false);
     this.hopperBar.addEventListener("click",
             B220CardatronInput.prototype.CIHopperBar_onClick.bind(this), false);
+    this.$$("CIDiv").addEventListener("dblclick",
+            B220CardatronInput.prototype.CIDiv_dblClick.bind(this), false);
 
     this.window.resizeBy(de.scrollWidth - this.window.innerWidth + 4, // kludge for right-padding/margin
                          de.scrollHeight - this.window.innerHeight);

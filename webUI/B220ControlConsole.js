@@ -1016,6 +1016,16 @@ B220ControlConsole.prototype.consoleOnLoad = function consoleOnLoad(ev) {
     this.$$("IntervalTimerResetBtn").addEventListener("click", this.boundResetTimer, false);
     this.$$("PowerOffBtn").addEventListener("dblclick", this.boundPowerBtn_Click, false);
 
+    /******** DEBUG ***** Toggle neon lamp glow averaging **********************/
+    this.$$("BurroughsLogo").addEventListener("dblclick", function toggleGlow(ev) {
+        if (B220Processor.maxGlowTime >= B220Processor.neonPersistence) {
+            B220Processor.maxGlowTime = 1.0e-8;
+        } else {
+            B220Processor.maxGlowTime = B220Processor.neonPersistence;
+        }
+    }, false);
+    /******** END DEBUG ********************************************************/
+
     this.window.addEventListener("beforeunload", B220ControlConsole.prototype.beforeUnload);
 
     this.$$("EmulatorVersion").textContent = B220Processor.version;

@@ -557,8 +557,8 @@ B220ConsolePrinter.prototype.receiveSign = function receiveSign(char, successor)
         this.nextCharTime = stamp;
     }
 
-    setCallback(this.mnemonic, this, this.nextCharTime-stamp+delay, successor, this.boundReceiveChar);
     this.nextCharTime += delay;
+    setCallback(this.mnemonic, this, this.nextCharTime-stamp, successor, this.boundReceiveChar);
 };
 
 /**************************************/
@@ -620,8 +620,8 @@ B220ConsolePrinter.prototype.receiveChar = function receiveChar(char, successor)
         break;
     } // switch char
 
-    setCallback(this.mnemonic, this, this.nextCharTime-stamp+delay, successor, nextReceiver);
     this.nextCharTime += delay;
+    setCallback(this.mnemonic, this, this.nextCharTime-stamp, successor, nextReceiver);
 };
 
 /**************************************/

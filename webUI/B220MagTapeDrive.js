@@ -56,11 +56,14 @@
 * return/line-feed pair.
 *
 * The first field on the line contains one or two integers, formatted as "L" or
-* "R*L". L represents the lane number. Only its low-order bit (0/1) is used.
+* "R*L". L represents the lane number. Only its low-order bit (0/1) is significant.
 * R is a repeat factor used to compress the size of tape image files. It
 * indicates the number of copies of this block that exist consecutively at this
 * point in the tape image. If R and its delimiting "*" are not present, R is
-* assumed to be one. If R is not present, the "*" must also be not present.
+* assumed to be one. If R is not present, the "*" must also not be present.
+* If R is less than one or greter than 45570 (the maximum number of blocks on
+* one lane of a 3500-foot reel of tape), it is considered invalid and aborts
+* the load.
 *
 * The second field on a line is the preface word indicating the length of the
 * data. A block length of 100 may be represented as either 0 or 100. Values
@@ -73,6 +76,11 @@
 * be preceded by a hyphen ("-"), which will cause a 1 to be OR-ed into the sign
 * digit of the word. Spaces may precede or follow the digits of a field, but may
 * not appear within the digits or between any leading "-" and the first digit.
+*
+* If any of the repeat factor, lane number, preface word, or block data words
+* is not a valid integer, it is considered invalid and aborts the block. If the
+* tape image fills more than 729165 words on a lane (the maximum amount for a
+* 3500-foot reel), the load is aborted at that point.
 *
 * Note that with this representation, it is possible that the word count in
 * the preface may not match the actual number of words on the rest of the line.
@@ -167,8 +175,6 @@ B220MagTapeDrive.prototype.inchesPerWord = 12/B220MagTapeDrive.prototype.density
 B220MagTapeDrive.prototype.millisPerWord = B220MagTapeDrive.prototype.inchesPerWord/B220MagTapeDrive.prototype.tapeSpeed;
 B220MagTapeDrive.prototype.maxTapeInches = 3500*12;
                                         // length of a standard reel of tape [inches]
-B220MagTapeDrive.prototype.maxTapeWords = Math.floor(B220MagTapeDrive.prototype.maxTapeInches*B220MagTapeDrive.prototype.density/12);
-                                        // max words on a tape (12 digits/word)
 B220MagTapeDrive.prototype.minBlockWords = 10;
                                         // min words in a physical block
 B220MagTapeDrive.prototype.maxBlockWords = 100;
@@ -181,6 +187,11 @@ B220MagTapeDrive.prototype.startOfBlockWords = 4;
                                         // inter-block tape gap + preface [words]
 B220MagTapeDrive.prototype.endOfBlockWords = 2;
                                         // end-of-block + erase gap [words]
+B220MagTapeDrive.prototype.maxTapeWords = Math.floor(B220MagTapeDrive.prototype.maxTapeInches*B220MagTapeDrive.prototype.density/12);
+                                        // max words on a tape (12 digits/word)
+B220MagTapeDrive.prototype.maxTapeBlocks = Math.floor(B220MagTapeDrive.prototype.maxTapeWords/
+                                                (B220MagTapeDrive.prototype.minBlockWords+B220MagTapeDrive.prototype.startOfBlockWords+B220MagTapeDrive.prototype.endOfBlockWords));
+                                        // max possible blocks on a tape lane
 B220MagTapeDrive.prototype.repositionWords = 5;
                                         // number of words to reposition back into the block after a turnaround
 B220MagTapeDrive.prototype.startTime = 3;
@@ -684,37 +695,46 @@ B220MagTapeDrive.prototype.loadTape = function loadTape() {
         /* Event handler for tape image file onLoad. Loads a text image as
         comma-delimited decimal word values. No end-of-tape block is written
         unless it is present in the text image */
-        var blockWords;                 // words in current tape block
-        var chunk;                      // ANSI text of current chunk
-        var chunkLength;                // length of current ASCII chunk
+        var blockNr = 0;                // current tape block number
+        var blockWords = 0;             // words in current tape block
+        var chunk = "";                 // ANSI text of current chunk
+        var chunkLength = 0;            // length of current ASCII chunk
         var buf = ev.target.result;     // ANSI tape image buffer
         var bufLength = buf.length;     // length of ANSI tape image buffer
-        var dups;                       // repeat factor for consecutive blocks
+        var dups = 0;                   // repeat factor for consecutive blocks
         var eolRex = /([^\n\r\f]*)((:?\r[\n\f]?)|\n|\f)?/g;
         var index = 0;                  // char index into tape image buffer for next chunk
-        var lane;                       // current tape lane image
+        var lane = 0;                   // current tape lane image
         var lx = [0,0];                 // word indexes for each lane
-        var match;                      // result of eolRex.exec()
-        var preface;                    // preface word: block length in words
-        var repeatRex = /\s*(\d+)\s*\*\s*/; // regex to detect and parse repeat factor
-        var tx;                         // char index into ANSI chunk text
-        var wx;                         // word index within current block
+        var match = null;               // result of eolRex.exec()
+        var numericRex = /^-?\d+\s*$/;  // regex to detect valid integer number
+        var preface = 0;                // preface word: block length in words
+        var repeatRex = /^\s*(\d+)\s*\*\s*/; // regex to detect and parse repeat factor
+        var tx = 0;                     // char index into ANSI chunk text
+        var w = 0;                      // current word value
+        var wx = 0;                     // word index within current block
+
+        function abortLoad(msg, blockNr, chunk) {
+            /* Displays an alert for a fatal load error */
+
+            mt.window.alert("Abort load: " + msg + " @ block " + blockNr +
+                    "\n\"" + chunk + "\"");
+        }
 
         function parseRepeatFactor() {
             /* Parses the repeat factor, if any, from the first field on the
             line and returns its value. If there is no repeat factor, returns 1.
+            If the repeat factor is not a valid integer, returns NaN.
             Leaves "tx" (the index into the line) pointing to the lane number */
-            var match;                  // result of regex match
-            var v;                      // parsed numeric value
+            var v = 1;                  // parsed numeric value, default to 1
 
-            match = repeatRex.exec(chunk);
-            if (!match) {
-                v = 1;                  // default if no repeat present
-            } else {
+            match = chunk.match(repeatRex);
+            if (match) {
                 tx += match[0].length;
-                v = parseInt(match[1], 10);
-                if (isNaN(v)) {
-                    v = 1;              // default if repeat is non-numeric
+                if (match[1].search(numericRex) == 0) {
+                    v = parseInt(match[1], 10);
+                } else {
+                    v = NaN;
                 }
             }
 
@@ -723,10 +743,10 @@ B220MagTapeDrive.prototype.loadTape = function loadTape() {
 
         function parseWord(radix) {
             /* Parses the next word from the chunk text and returns its value as
-            determined by "radix" */
-            var cx;                     // offset to next comma
-            var text;                   // text of parsed word
-            var v;                      // parsed numeric value
+            determined by "radix". If the comma-delimited word is not a valid
+            integer, returns NaN */
+            var cx = 0;                 // offset to next comma
+            var text = "";              // text of parsed word
             var w = 0;                  // result BCD word
 
             if (tx < chunkLength) {
@@ -736,16 +756,20 @@ B220MagTapeDrive.prototype.loadTape = function loadTape() {
                 }
                 text = chunk.substring(tx, cx).trim();
                 if (text.length > 0) {
-                    v = parseInt(text, radix);
-                    if (!isNaN(v)) {
-                        if (v > 0) {
-                            w = v % 0x100000000000;
-                        } else if (v < 0) {
-                            // The number was specified as negative: if the
-                            // sign bit is not already set, then set it.
-                            w = (-v) % 0x100000000000;
-                            if (w % 0x20000000000 < 0x10000000000) {
-                                w += 0x10000000000;
+                    if (text.search(numericRex) != 0) {
+                        w = NaN;
+                    } else {
+                        w = parseInt(text, radix);
+                        if (!isNaN(w)) {
+                            if (w > 0) {
+                                w %= 0x100000000000;
+                            } else if (w < 0) {
+                                // The number was specified as negative: if the
+                                // sign bit is not already set, then set it.
+                                w = (-w) % 0x100000000000;
+                                if (w % 0x20000000000 < 0x10000000000) {
+                                    w += 0x10000000000;
+                                }
                             }
                         }
                     }
@@ -769,10 +793,25 @@ B220MagTapeDrive.prototype.loadTape = function loadTape() {
                 chunkLength = chunk.length;
                 if (chunkLength > 0) {  // ignore empty lines
                     tx = 0;
+                    ++blockNr;
                     dups = parseRepeatFactor();         // get the repeat factor, if any
-                    mt.laneNr = parseWord(10)%2;        // get the lane number
-                    preface = parseWord(10);            // get the preface word as decimal
-                    if (preface > 100) {                // limit blocks to 100 words
+                    if (isNaN(dups) || dups < 1 || dups > mt.maxTapeBlocks) {
+                        abortLoad("invalid repeat factor", blockNr, chunk);
+                        break;
+                    }
+
+                    w = parseWord(10);                  // get the lane number
+                    if (isNaN(w) || w < 0) {
+                        abortLoad("invalid lane number", blockNr, chunk);
+                        break;
+                    }
+
+                    mt.laneNr = w%2;
+                    preface = parseWord(10);            // get the preface word as binary
+                    if (isNaN(preface)) {
+                        abortLoad("invalid preface/length word", blockNr, chunk);
+                        break;
+                    } else if (preface > 100) {         // limit blocks to 100 words
                         preface = 100;
                     } else if (preface < 1) {           // if block length <= 0, make it 100
                         preface = 100;
@@ -785,7 +824,13 @@ B220MagTapeDrive.prototype.loadTape = function loadTape() {
                     writeBlockStart(preface);
                     wx = 0;                             // load data words from tape image
                     while (tx < chunkLength && wx < preface) {
-                        lane[mt.imgIndex+wx] = parseWord(16);
+                        w = parseWord(16);
+                        if (isNaN(w)) {
+                            abortLoad("invalid tape block word[" + wx + "]", blockNr, chunk);
+                            break;
+                        }
+
+                        lane[mt.imgIndex+wx] = w;
                         ++wx;
                     } // while tx:wx
 
@@ -799,13 +844,18 @@ B220MagTapeDrive.prototype.loadTape = function loadTape() {
 
                     wx = lx[mt.laneNr];                 // starting offset of block
                     blockWords = mt.imgIndex - wx;      // total words in block, including overhead
-                    while (dups > 1) {                  // repeat the block as necessary
-                        --dups;
+                    while (dups > 1 && mt.imgIndex < mt.maxTapeWords) {
+                        --dups;                         // repeat the block as necessary
+                        ++blockNr;
                         lane.copyWithin(mt.imgIndex, wx, wx+blockWords);
                         mt.imgIndex += blockWords;
                     } // while dups
 
                     lx[mt.laneNr] = mt.imgIndex;        // save current offset for this lane
+                    if (mt.imgIndex > mt.maxTapeWords) {
+                        abortLoad("maximum tape capacity exceeded", blockNr, chunk);
+                        break;
+                    }
                 }
             }
         } while (index < bufLength);

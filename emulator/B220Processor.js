@@ -260,7 +260,7 @@ function B220Processor(config, devices) {
 *   Global Constants                                                   *
 ***********************************************************************/
 
-B220Processor.version = "1.01";
+B220Processor.version = "1.02";
 
 B220Processor.tick = 1000/200000;       // milliseconds per clock cycle (200KHz)
 B220Processor.cyclesPerMilli = 1/B220Processor.tick;
@@ -1577,10 +1577,11 @@ B220Processor.prototype.floatingAdd = function floatingAdd(absolute) {
     var dx;                             // addend exponent (binary)
     var dm;                             // addend mantissa (BCD)
     var dSign;                          // addend sign
-    var limiter = (this.CCONTROL - this.CCONTROL%0x1000)/0x1000; // normalizing limiter
+    var limiter = 0;                    // normalizing limiter
     var shifts = 0;                     // number of scaling/normalization shifts done
     var sign;                           // local copy of sign toggle
     var timing = 0.125;                 // minimum instruction timing
+    var zeroed = false;                 // true if either operand normalizes to zero
 
     this.E.set(this.CADDR);
     this.readMemory();
@@ -1605,35 +1606,34 @@ B220Processor.prototype.floatingAdd = function floatingAdd(absolute) {
 
     // Scale D until its exponent matches or the mantissa goes to zero.
     while (ax > dx) {
-        if (++shifts < 8) {
-            timing += 0.010;
-            dx = this.bcdAdd(1, dx, 2, 0, 0);  // ++dx
-            d = dm % 0x10;
-            dm = (dm - d)/0x10;         // shift right
-        } else {
+        timing += 0.010;
+        dx = this.bcdAdd(1, dx, 2, 0, 0);  // ++dx
+        d = dm % 0x10;
+        dm = (dm - d)/0x10;             // shift D right
+        if (dm == 0) {
+            zeroed = true;
             sign = aSign;               // result is value in A
-            limiter = 0;
             break;
         }
     }
 
     // Scale A until its exponent matches or the mantissa goes to zero.
     while (ax < dx) {
-        if (++shifts < 8) {
-            timing += 0.010;
-            ax = this.bcdAdd(1, ax, 3, 0, 0);  // ++ax
-            d = am % 0x10;
-            am = (am - d)/0x10;         // shift right
-        } else {
+        timing += 0.010;
+        ax = this.bcdAdd(1, ax, 3, 0, 0);  // ++ax
+        d = am % 0x10;
+        am = (am - d)/0x10;             // shift A right
+        if (am == 0) {
+            zeroed = true;
             am = dm;                    // result is value in D with adjusted sign
             ax = dx;
-            limiter = 0;
+            dSign = 0;
             break;
         }
     }
 
     // Add the mantissas
-    if (shifts < 8) {
+    if (!zeroed) {
         compl = (aSign^sign);
         am = this.bcdAdd(am, dm, 11, compl, compl);
 
@@ -1645,58 +1645,57 @@ B220Processor.prototype.floatingAdd = function floatingAdd(absolute) {
             am = this.bcdAdd(am, 0, 11, 1, 1);
             timing += 0.060;
         }
-    }
 
-    dm = dSign = 0;                     // Set D to its strange result value
-    dx = 0x10;
+        dm = dSign = 0;                 // Set D to its strange result value
+        dx = 0x10;
 
-    // Normalize or scale the result as necessary
-    if (am >= 0x100000000) {
-        // Mantissa overflow: add/subtract can produce at most one digit of
-        // overflow, so scale by shifting right and incrementing the exponent,
-        // checking for overflow in the exponent.
-        limiter = 0;
-        if (ax < 0x99) {
-            timing += 0.005;
-            ax = this.bcdAdd(1, ax, 3, 0, 0);  // ++ax
-            d = am % 0x10;
-            am = (am - d)/0x10;         // shift right
-        } else {
-            // A scaling shift would overflow the exponent, so set the overflow
-            // toggle and leave the mantissa as it was from the add, without the
-            // exponent inserted back into it. Since the A register gets reassembled
-            // below, we need to set up the mantissa and exponent so the reconstruct
-            // will effectively do nothing.
-            this.OFT.set(1);
-            sign = ax = dx = limiter = 0;
-        }
-    } else if (am == 0) {               // mantissa is zero
-        ax = sign = limiter = 0;
-        timing += 0.065;
-    } else {                            // normalize the result as necessary
-        shifts = 0;
-        while (am < 0x10000000) {
-            if (ax > 0) {
-                ++shifts;
-                timing += 0.010;
-                ax = this.bcdAdd(1, ax, 3, 1, 1);  // --ax
-                am *= 0x10;             // shift left
+        // Normalize or scale the result as necessary
+        if (am >= 0x100000000) {
+            // Mantissa overflow: add/subtract can produce at most one digit of
+            // overflow, so scale by shifting right and incrementing the exponent,
+            // checking for overflow in the exponent.
+            if (ax < 0x99) {
+                timing += 0.005;
+                ax = this.bcdAdd(1, ax, 3, 0, 0);  // ++ax
+                d = am % 0x10;
+                am = (am - d)/0x10;     // shift A right
             } else {
-                // Exponent underflow: set the reconstructed A to zero.
-                am = ax = sign = 0;
-                break;
+                // A scaling shift would overflow the exponent, so set the overflow
+                // toggle and leave the mantissa as it was from the add, without the
+                // exponent inserted back into it. Since the A register gets reassembled
+                // below, we need to set up the mantissa and exponent so the reconstruct
+                // will effectively do nothing.
+                this.OFT.set(1);
+                sign = ax = dx = 0;
             }
-        }
+        } else if (am == 0) {           // mantissa is zero => result is zero
+            ax = sign = 0;
+            timing += 0.065;
+        } else {                        // normalize the result as necessary
+            while (am < 0x10000000) {
+                if (ax > 0 && shifts < 8) {
+                    ++shifts;
+                    timing += 0.010;
+                    ax = this.bcdAdd(1, ax, 3, 1, 1);  // --ax
+                    am *= 0x10;         // shift left
+                } else {
+                    // Exponent underflow: set the reconstructed A to zero.
+                    am = ax = sign = 0;
+                    break;
+                }
+            }
 
-        // Determine whether normalizing shifts exceed the limiter value
-        if (limiter > 0) {
-            if (limiter >= 8) {
-                limiter = 0;
-            } else if (shifts > limiter) {
-                limiter = 10 - (shifts-limiter);
-                this.SST.set(1);        // limiter exceeded: set Single-Step
-            } else {
-                limiter = 0;
+            // Determine whether normalizing shifts exceed the limiter value
+            limiter = (this.CCONTROL - this.CCONTROL%0x1000)/0x1000;
+            if (limiter > 0) {
+                if (limiter >= 8) {
+                    limiter = 0;
+                } else if (shifts > limiter) {
+                    limiter = 10 - (shifts-limiter);
+                    this.SST.set(1);    // limiter exceeded: set Single-Step
+                } else {
+                    limiter = 0;
+                }
             }
         }
     }
@@ -1944,7 +1943,7 @@ B220Processor.prototype.floatingMultiply = function floatingMultiply() {
         timing += 0.080;
         if (x >= 0x150) {               // exponent overflow
             this.OFT.set(1);
-            this.A.set(0);
+            this.A.set(am);
             this.R.set(rm);
         } else if (x < 0x50) {          // exponent underflow
             this.A.set(0);
@@ -2017,19 +2016,20 @@ B220Processor.prototype.floatingDivide = function floatingDivide() {
     All values are BCD with the sign in the 11th digit position. The floating
     exponent is in the first two digit positions, biased by 50. Sets the
     Digit Check alarm as necessary */
-    var ax;                             // dividend/quotient exponent
+    var ad = 0;                         // current remainder (A) digit
+    var ax = 0;                         // dividend/quotient exponent
     var am = this.A.value % 0x10000000000;    // current remainder (A) mantissa
     var aSign = ((this.A.value - am)/0x10000000000)%2;
     var count = 0;                      // count of word-times consumed
-    var dx;                             // divisor exponent
-    var dm;                             // divisor mantissa
-    var dSign;                          // divisor sign
-    var rd;                             // current quotient (R) digit;
+    var dx = 0;                         // divisor exponent
+    var dm = 0;                         // divisor mantissa
+    var dSign = 0;                      // divisor sign
+    var rd = 0;                         // current quotient (R) digit;
     var rm = this.R.value%0x10000000000;// current quotient (R) mantissa (ignore sign)
-    var sign;                           // local copy of sign toggle (sign of quotient)
+    var sign = 0;                       // local copy of sign toggle (sign of quotient)
     var timing = 0.085;                 // minimum instruction timing
     var tSign = 1;                      // sign for timing count accumulation
-    var x;                              // digit counter
+    var x = 0;                          // digit counter
 
     this.E.set(this.CADDR);
     this.readMemory();
@@ -2052,7 +2052,7 @@ B220Processor.prototype.floatingDivide = function floatingDivide() {
         this.R.set(0);
     } else if (dm < 0x10000000) {
         this.OFT.set(1);                // D is not normalized, overflow (div 0)
-        this.A.set(am);
+        this.A.set(ax*0x100000000 + am);
     } else {
         // Add the exponent bias to the dividend exponent and check for underflow
         ax = this.bcdAdd(ax, 0x50, 3);
@@ -2060,61 +2060,118 @@ B220Processor.prototype.floatingDivide = function floatingDivide() {
         if (ax < dx) {
             // Exponents differ by more than 50 -- underflow
             sign = 0;
+            ax = this.bcdAdd(dx, ax, 3, 1, 1);
             this.A.set(0);
             this.R.set(0);
         } else {
-            // If dividend >= divisor, scale the exponent by 1
-            if (am >= dm) {
-                ax = this.bcdAdd(ax, 1, 3);
-            }
             // Subtract the exponents and check for overflow
             ax = this.bcdAdd(dx, ax, 3, 1, 1);
             if (ax > 0x99) {
                 this.OFT.set(1);
                 sign = 0;
                 this.A.set(am);
-                this.R.set(rm);
             } else {
+                // Shift A+R, D left 2 into high-order digits
+                dm *= 0x100;
+                rd = (rm - rm%0x100000000)/0x100000000;
+                rm = (rm%0x100000000)*0x100;
+                am = am*0x100 + rd;
+
                 // We now have the divisor in D (dm) and the dividend in A (am) & R (rm).
                 // The value in am will become the remainder; the value in rm will become
                 // the quotient. Go through a classic long-division cycle, repeatedly
                 // subtracting the divisor from the dividend, counting subtractions until
                 // underflow occurs, and shifting the divisor left one digit.
                 // The 220 probably did not work quite the way that it has been mechanized
-                // below, which is close to the way the 205 emulator works.
+                // below, but we don't have sufficient technical details to know for sure. 
+                // The following is adapted from the 205 implementation.
 
                 for (x=0; x<10; ++x) {
                     // Repeatedly subtract D from A until we would get underflow.
-                    rd = 0;
+                    ad = 0;					
+
+                    /********** DEBUG **********
+                    console.log("FDV %2d Ax=%3s A=%11s R=%11s Dx=%2s D=%11s", x,
+                        (ax+0x1000).toString(16).substring(1),
+                        (am+0x100000000000).toString(16).substring(1),
+                        (rm+0x100000000000).toString(16).substring(1),
+                        (dx+0x1000).toString(16).substring(1),
+                        (dm+0x100000000000).toString(16).substring(1));
+                    ***************************/
+
                     while (am >= dm) {
                         am = this.bcdAdd(dm, am, 11, 1, 1);
-                        ++rd;
+                        ++ad;
                         count += tSign;
                     }
 
                     // Shift A & R to the left one digit, accumulating the quotient digit in R
-                    rm = rm*0x10 + rd;
-                    rd = (rm - rm%0x10000000000)/0x10000000000;
-                    rm %= 0x10000000000;
+                    rd = (rm - rm%0x1000000000)/0x1000000000;
+                    rm = (rm%0x1000000000)*0x10 + ad;
+                    // Shift into remainder except on last digit.
                     if (x < 9) {
-                        am = am*0x10 + rd;      // shift into remainder except on last digit
+                        am = am*0x10 + rd;
                     }
 
                     tSign = -tSign;
                 } // for x
+																 
+                /********** DEBUG ********** 
+                console.log("FDV %2d Ax=%3s A=%11s R=%11s Dx=%2s D=%11s", x,
+                    (ax+0x1000).toString(16).substring(1),
+                    (am+0x100000000000).toString(16).substring(1),
+                    (rm+0x100000000000).toString(16).substring(1),
+                    (dx+0x1000).toString(16).substring(1),
+                    (dm+0x100000000000).toString(16).substring(1));
+                ***************************/ 
 
-                // Rotate the quotient from R into A for 8 digits or until it's normalized
-                for (x=0; x<8 || am < 0x10000000; ++x) {
-                    rd = (am - am%0x1000000000)/0x1000000000;
-                    rm = rm*0x10 + rd;
-                    rd = (rm - rm%0x10000000000)/0x10000000000;
-                    rm %= 0x10000000000;
-                    am = (am%0x10000000)*0x10 + rd;
+                // Rotate the quotient and remainder for 10 digits to exchange registers
+                for (x=0; x<10; ++x) {
+                    ad = am%0x10;
+                    rd = rm%0x10;
+                    rm = (rm - rd)/0x10 + ad*0x1000000000;
+                    am = (am - ad)/0x10 + rd*0x1000000000;
+                }
+					
+                /********** DEBUG **********
+                console.log("FDV %2d Ax=%3s A=%11s R=%11s Dx=%2s D=%11s", 98,
+                    (ax+0x1000).toString(16).substring(1),
+                    (am+0x100000000000).toString(16).substring(1),
+                    (rm+0x100000000000).toString(16).substring(1),
+                    (dx+0x1000).toString(16).substring(1),
+                    (dm+0x100000000000).toString(16).substring(1));
+                ***************************/
+
+                if (am >=0x1000000000 && ax == 0x99) {
+                    this.OFT.set(1);
+                } else {
+                    if (am < 0x1000000000) {
+                        // Normalize one digit to the right
+                        ad = am%0x10;
+                        am = (am - ad)/0x10;
+                        rm = (rm - rm%0x10)/0x10 + ad*0x1000000000;
+                    } else {
+                        // Normalize two digits to the right and adjust exponent
+                        ad = am%0x100;
+                        am = (am - ad)/0x100;
+                        rm = (rm - rm%0x100)/0x100 + ad*0x100000000;
+                        ax = this.bcdAdd(ax, 1, 3);
+                    }
+
+                    /********** DEBUG ********** 
+                    console.log("FDV %2d Ax=%3s A=%11s R=%11s Dx=%2s D=%11s", 99,
+                        (ax+0x1000).toString(16).substring(1),
+                        (am+0x100000000000).toString(16).substring(1),
+                        (rm+0x100000000000).toString(16).substring(1),
+                        (dx+0x1000).toString(16).substring(1),
+                        (dm+0x100000000000).toString(16).substring(1));
+                    ***************************/
+
+                    // Reconstruct the final product in the registers
+                    this.A.set((sign*0x100 + ax)*0x100000000 + am);
+                    this.R.set(sign*0x10000000000 + rm);
                 }
 
-                // Reconstruct the final product in the registers
-                this.A.set((sign*0x100 + ax)*0x100000000 + am);
-                this.R.set(sign*0x10000000000 + rm);
                 timing += 4.075 + 0.060*count;
             }
         }

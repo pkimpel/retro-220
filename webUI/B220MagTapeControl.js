@@ -16,7 +16,7 @@
 function B220MagTapeControl(p) {
     /* Constructor for the MagTapeControl object */
     var left = 0;                       // control window left position
-    var top = 432;                      // control window top-from-bottom position
+    var top = 452;                      // control window top-from-bottom position
     var u;                              // unit configuration object
     var x;                              // unit index
 

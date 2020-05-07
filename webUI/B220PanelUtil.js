@@ -364,7 +364,7 @@ function ThreeWaySwitch(parent, x, y, id, offImage, onImage1, onImage2) {
     x & y are the coordinates of the switch within its containing element;
     id is the DOM id */
 
-    this.state = 0;                     // current switch state, 0=off, 1=down, 2=up)
+    this.state = 0;                     // current switch state, 0=off, 1=down, 2=up
     this.topCaptionDiv = null;          // optional top caption element
     this.bottomCaptionDiv = null;       // optional bottom caption element
     this.offImage = offImage;           // image used for the off state
