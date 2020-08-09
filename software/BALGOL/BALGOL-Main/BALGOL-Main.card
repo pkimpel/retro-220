@@ -35,7 +35,7 @@
 1         STB   B-,04                                                       42 0
 1         BRP   A-                                                          43 0
 1         BUN   46                                                          44 0
-1   *E    CNST  $$CHECK SUM ERROR$$                                         45 0
+1   *E    CNST  $|CHECK SUM ERROR|$                                         45 0
 1         LOCN  46                                                          46 0
 1   *D    LDB   Z+         READ LAST BLOCK INTO THE                         47 0
 1         MNC 5 0,T,2         END OF MEMORY                                 48 0

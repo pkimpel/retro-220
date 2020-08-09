@@ -188,6 +188,7 @@ LABEL {
             <select id=OutputModeSelect>
                  <option value=""        >No Object
                  <option value=L SELECTED>Loadable Deck
+                 <option value=R         >Paper Tape
                  <option value=M         >BALGOL ML Deck
                  <option value=P         >Gen MEDIA Deck
                  <option value=T         >Object Tape
@@ -245,6 +246,7 @@ window.addEventListener("load", function() {
 
     var panel = $$("TextPanel");
     var cardReaderUnit = 1;             // Cardatron input unit number for object card decks
+    var paperTapeUnit = 1;              // Paper tape reader unit number for object tapes
 
     // Token.type values
     var tokEmpty = 0;                   // empty primary
@@ -306,15 +308,15 @@ window.addEventListener("load", function() {
            0,  0,  0, 33, 13, 24, 10, 34, 24,  4, 14, 10, 23, 20,  3, 21,  // 20-2F
           80, 81, 82, 83, 84, 85, 86, 87, 88, 89,  0, 13,  4, 33,  0,  0,  // 30-3F
           34, 41, 42, 43, 44, 45, 46, 47, 48, 49, 51, 52, 53, 54, 55, 56,  // 40-4F
-          57, 58, 59, 62, 63, 64, 65, 66, 67, 68, 69,  0,  0,  0,  0,  0,  // 50-5F
+          57, 58, 59, 62, 63, 64, 65, 66, 67, 68, 69,  0,  0,  0, 15,  2,  // 50-5F
            0, 41, 42, 43, 44, 45, 46, 47, 48, 49, 51, 52, 53, 54, 55, 56,  // 60-6F
-          57, 58, 59, 62, 63, 64, 65, 66, 67, 68, 69,  0,  0,  0,  0,  0]; // 70-7F
+          57, 58, 59, 62, 63, 64, 65, 66, 67, 68, 69,  0, 16,  0, 26,  0]; // 70-7F
 
     var xlate220ANSI = [ // translate internal B220 code to ANSI (Algol glyphs)
         // 00   01   02   03   04        05    06    07   08   09
-          " ", "?", "9", ".", ")",      "?",  "?",  "?", "?", "?",  // 00-09
-          "+", "?", "?", "$", "*",      "*",  "$",  "?", "?", "?",  // 10-19
-          "-", "/", "?", ",", "(",      "?",  ",",  "?", "?", "?",  // 20-29
+          " ", "?", "_", ".", ")",      "?",  "?",  "?", "?", "?",  // 00-09
+          "+", "?", "?", "$", "*",      "^",  "|",  "?", "?", "?",  // 10-19
+          "-", "/", "?", ",", "(",      "?",  "~",  "?", "?", "?",  // 20-29
           "?", "?", "?", "=", "@",      "\\", "?",  "?", "?", "?",  // 30-39
           "?", "A", "B", "C", "D",      "E",  "F",  "G", "H", "I",  // 40-49
           "?", "J", "K", "L", "M",      "N",  "O",  "P", "Q", "R",  // 50-59
@@ -883,7 +885,6 @@ window.addEventListener("load", function() {
         var c;                          // current parse character
         var code;                       // current 220 char code
         var count = 0;                  // chars in current word
-        var doubleDollar = false;       // $$-delimited string
         var length = text.length;       // length of operand text
         var raw = "";                   // raw (ASCII) parsed string text
         var values = [];                // words of 220 char codes
@@ -908,14 +909,7 @@ window.addEventListener("load", function() {
             count = raw.length;
             word = token.word;
         } else {
-            if (++x < length) {         // bypass the initial "$"
-                c = text.charAt(x);
-                if (c == "$") {
-                    ++x;                // bypass the second "$"
-                    doubleDollar = true;
-                    appendCode(16);     // carriage return prints as $ on Cardatron
-                }
-            }
+            ++x;                        // bypass the initial "$"
         }
 
         while (x < length) {
@@ -927,7 +921,7 @@ window.addEventListener("load", function() {
                 raw += c;
                 code = c.charCodeAt(0);
                 appendCode((code < xlateANSI220.length ? xlateANSI220[code]
-                                                      : (code == 0xA4 ? 4 : 0))); // the lozenge
+                                                       : (code == 0xA4 ? 4 : 0))); // the lozenge
             }
         }
 
@@ -940,17 +934,6 @@ window.addEventListener("load", function() {
         } else {
             token.type = tokString;     // string is complete, so...
             ++x;                        // bypass the terminating "$"
-            if (doubleDollar) {
-                if (x >= length) {
-                    printError("$$-STRING NOT TERMINATED");
-                } else if (text.charAt(x) == "$") {
-                    ++x;                // bypass the second terminating "$"
-                    appendCode(16);     // and append another carriage return
-                } else {
-                    printError("$$-STRING NOT TERMINATED");
-                }
-            }
-
             while (count < 5) {         // pad out final word with spaces
                 appendCode(0);
             }
@@ -2429,6 +2412,7 @@ window.addEventListener("load", function() {
         } else {
             // dump the auto-defined symbols
             for (label in autoSymTab) {
+                emitWord(autoSymTab[label], 0);
                 printPass2("", null, autoSymTab[label], 0, label, "", "", "");
             }
 
@@ -2587,6 +2571,107 @@ window.addEventListener("load", function() {
 
         crdSkeleton = "6" + padLeft(cardReaderUnit, 1, "0") + "00060";
         win.addEventListener("load", generateDeck, false);
+        win.moveTo((screen.availWidth-win.outerWidth)/2, (screen.availHeight-win.outerHeight)/2);
+    }
+
+    /**************************************/
+    function generatePaperTape(asmCode, outputChecksum, startAddress) {
+        /* Formats the assembled object code as a standard self-loading paper
+        tape image in a temporary window. From there it can be save, copied,
+        etc. */
+        var doc = null;                 // temp window document object
+        var tape = null;                // temp window text area
+        var pval = p10[10];             // modulus for a word's absolute value
+        var psign = pval*2;             // modulus for a word's sign bit
+        var title = "220 BAC-Assembler Loadable Paper Tape";
+        var win = window.open("../../webUI/B220FramePaper.html", "BAC-Asm-Object",
+                "scrollbars,resizable,width=600,height=500");
+
+        function checksum(cksum, word) {
+            var sw = word%psign;        // will be the signed algebraic value of word
+
+            if (sw >= pval) {           // check if word has sign bit=1
+                sw = pval - sw;         // if so, make it algebraically negative
+            }
+
+            return (cksum+sw)%pval;     // compute the algebraic checksum
+        }
+
+        function writeTape(word) {
+            var char = 0;
+            var text = "";
+
+            if (word < 20000000000 || word >= 30000000000) {
+                text = padLeft(word, 11, "0");
+            } else {
+                while (word >= 200) {
+                    char = word%100;
+                    text = xlate220ANSI[char] + text;
+                    word = (word-char)/100;
+                }
+
+                text = "2" + text;
+            }
+
+            tape.appendChild(doc.createTextNode(text + "\n"));
+        }
+
+        function generateTape(ev) {
+            var addr = 0;               // assembled code address
+            var cksum = 0;              // algebraic value of the checksum word
+            var gapCount = 1;           // number of consecutive undefined words
+            var priorAddr = 0;          // CRD address for prior card image
+            var word = undefined;       // object code word
+            var x = 0;                  // scratch index
+
+            win.removeEventListener("load", generateTape, false);
+            doc = win.document;
+            doc.title = title;
+            tape = doc.getElementById("Paper");
+
+            while (addr < asmCode.length && asmCode[addr] === undefined) {
+                ++addr;
+            }
+
+            while (addr < asmCode.length) {
+                word = asmCode[addr];
+                if (word === undefined) {
+                    ++gapCount;
+                } else {
+                    if (gapCount > 0) {
+                        writeTape(60000040000 + paperTapeUnit*1000000000 + addr);
+                        gapCount = 0;
+                    }
+
+                    priorAddr = addr;
+                    writeTape(word);
+                    if (outputChecksum) {
+                        cksum = checksum(cksum, word);
+                    }
+                }
+
+                ++addr;
+            } // while addr
+
+            if (outputChecksum) {
+                // Compute and output a word with the 220 negative checksum at the next address
+                if (cksum < 0) {
+                    cksum = -cksum;
+                } else {
+                    cksum += pval;
+                }
+
+                writeTape(cksum);
+            }
+
+            if (startAddress >= 0) {
+                writeTape(60000300000 + startAddress);  // BUN to start
+            } else {
+                writeTape(69999009999);                 // HLT 9999
+            }
+        }
+
+        win.addEventListener("load", generateTape, false);
         win.moveTo((screen.availWidth-win.outerWidth)/2, (screen.availHeight-win.outerHeight)/2);
     }
 
@@ -2808,6 +2893,9 @@ window.addEventListener("load", function() {
             switch(oms.options[x].value) {
             case "L":
                 generateFormat6LoadableDeck(asmCode, outputChecksum, startAddress);
+                break;
+            case "R":
+                generatePaperTape(asmCode, outputChecksum, startAddress);
                 break;
             case "M":
                 generateMachineLanguageDeck(asmCode, outputChecksum, startAddress);

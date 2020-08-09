@@ -187,6 +187,7 @@ LABEL {
             <select id=OutputModeSelect>
                  <option value=""        >No Object
                  <option value=L SELECTED>Loadable Deck
+                 <option value=R         >Paper Tape
                  <option value=M         >BALGOL ML Deck
                  <option value=P         >Gen MEDIA Deck
                  <option value=T         >Object Tape
@@ -260,6 +261,7 @@ window.addEventListener("load", function() {
 
     var panel = $$("TextPanel");
     var cardReaderUnit = 1;             // Cardatron input unit number for object card decks
+    var paperTapeUnit = 1;              // Paper tape reader unit number for object tapes
 
     // Token.type values
     var tokEmpty = 0;                   // empty primary
@@ -3054,6 +3056,107 @@ window.addEventListener("load", function() {
     }
 
     /**************************************/
+    function generatePaperTape(asmCode, outputChecksum, startAddress) {
+        /* Formats the assembled object code as a standard self-loading paper
+        tape image in a temporary window. From there it can be save, copied,
+        etc. */
+        var doc = null;                 // temp window document object
+        var tape = null;                // temp window text area
+        var pval = p10[10];             // modulus for a word's absolute value
+        var psign = pval*2;             // modulus for a word's sign bit
+        var title = "220 BAC-Assembler Loadable Paper Tape";
+        var win = window.open("../../webUI/B220FramePaper.html", "BAC-Asm-Object",
+                "scrollbars,resizable,width=600,height=500");
+
+        function checksum(cksum, word) {
+            var sw = word%psign;        // will be the signed algebraic value of word
+
+            if (sw >= pval) {           // check if word has sign bit=1
+                sw = pval - sw;         // if so, make it algebraically negative
+            }
+
+            return (cksum+sw)%pval;     // compute the algebraic checksum
+        }
+
+        function writeTape(word) {
+            var char = 0;
+            var text = "";
+
+            if (word < 20000000000 || word >= 30000000000) {
+                text = padLeft(word, 11, "0");
+            } else {
+                while (word >= 200) {
+                    char = word%100;
+                    text = xlate220ANSI[char] + text;
+                    word = (word-char)/100;
+                }
+
+                text = "2" + text;
+            }
+
+            tape.appendChild(doc.createTextNode(text + "\n"));
+        }
+
+        function generateTape(ev) {
+            var addr = 0;               // assembled code address
+            var cksum = 0;              // algebraic value of the checksum word
+            var gapCount = 1;           // number of consecutive undefined words
+            var priorAddr = 0;          // CRD address for prior card image
+            var word = undefined;       // object code word
+            var x = 0;                  // scratch index
+
+            win.removeEventListener("load", generateTape, false);
+            doc = win.document;
+            doc.title = title;
+            tape = doc.getElementById("Paper");
+
+            while (addr < asmCode.length && asmCode[addr] === undefined) {
+                ++addr;
+            }
+
+            while (addr < asmCode.length) {
+                word = asmCode[addr];
+                if (word === undefined) {
+                    ++gapCount;
+                } else {
+                    if (gapCount > 0) {
+                        writeTape(60000040000 + paperTapeUnit*1000000000 + addr);
+                        gapCount = 0;
+                    }
+
+                    priorAddr = addr;
+                    writeTape(word);
+                    if (outputChecksum) {
+                        cksum = checksum(cksum, word);
+                    }
+                }
+
+                ++addr;
+            } // while addr
+
+            if (outputChecksum) {
+                // Compute and output a word with the 220 negative checksum at the next address
+                if (cksum < 0) {
+                    cksum = -cksum;
+                } else {
+                    cksum += pval;
+                }
+
+                writeTape(cksum);
+            }
+
+            if (startAddress >= 0) {
+                writeTape(60000300000 + startAddress);  // BUN to start
+            } else {
+                writeTape(69999009999);                 // HLT 9999
+            }
+        }
+
+        win.addEventListener("load", generateTape, false);
+        win.moveTo((screen.availWidth-win.outerWidth)/2, (screen.availHeight-win.outerHeight)/2);
+    }
+
+    /**************************************/
     function generateMachineLanguageDeck(asmCode, outputChecksum, startAddress) {
         /* Formats the assembled object code as a BALGOL Machine-Language deck
         in a temporary window. From there it can be save, copied, etc. */
@@ -3344,6 +3447,9 @@ window.addEventListener("load", function() {
                 switch(oms.options[x].value) {
                 case "L":
                     generateFormat6LoadableDeck(asmCode, outputChecksum, startAddress);
+                    break;
+               case "R":
+                    generatePaperTape(asmCode, outputChecksum, startAddress);
                     break;
                 case "M":
                     generateMachineLanguageDeck(asmCode, outputChecksum, startAddress);
