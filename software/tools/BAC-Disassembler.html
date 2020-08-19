@@ -1,0 +1,1579 @@
+<!DOCTYPE html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<title>BAC-220 Disassembler</title>
+<!--
+/***********************************************************************
+* 220/software/tools BAC-Disassembler.html
+************************************************************************
+* Copyright (c) 2016, Paul Kimpel.
+* Licensed under the MIT License, see
+*       http://www.opensource.org/licenses/mit-license.php
+************************************************************************
+* Cross-Disassembler for the Burroughs 220. Generates assembler source
+* compatible with the BAC-Assembler used with the BALGOL compiler and
+* library.
+*
+* Input is a text file in retro-220 paper-tape image format with one
+* decimal word per line.
+*
+************************************************************************
+* 2020-08-19  P.Kimpel
+*   Original version, cloned from BAC-Assembler.html.
+***********************************************************************/
+-->
+<meta name="Author" content="Paul Kimpel">
+<meta http-equiv="Content-Script-Type" content="text/javascript">
+<meta http-equiv="Content-Style-Type" content="text/css">
+
+<style>
+HTML {
+    height:             100%}
+
+BODY {
+    position:           relative;
+    background-color:   #FFC;
+    font-family:        Arial, Helvetica, sans-serif;
+    height:             calc(100% - 3ex);
+    margin:             1ex}
+
+DIV.heading {
+    margin-top:         12px;
+    margin-bottom:      6px;
+    width:              640px;
+    font-weight:        bold}
+
+LABEL {
+    font-size:          smaller}
+
+#TapeReaderPanel {
+    color:              white;
+    background-color:   #666;
+    width:              640px;
+    border:             1px solid black;
+    border-radius:      8px;
+    font-size:          smaller;
+    padding:            8px}
+
+#TapeReaderTable {
+    border-spacing:     0;
+    border-collapse:    collapse;
+    table-layout:       fixed;
+    width:              100%}
+#TapeReaderCol1 {
+    width:              18ex}
+#TapeReaderTable TD {
+    text-align:         left;
+    vertical-align:     top;
+    padding-top:        1px;
+    padding-bottom:     1px;
+    padding-left:       2px;
+    padding-right:      2px}
+
+#CRPoolSelector {
+    width:              100%;
+    border:             1px solid white}
+
+#OptionsTable {
+    margin-top:         4px;
+    margin-bottom:      4px;
+    width:              640px}
+
+#TextPanel {
+    position:           absolute;
+    left:               0;
+    top:                160px; /* initially */
+    bottom:             0px;
+    width:              640px;
+    white-space:        pre;
+    overflow:           scroll;
+    padding:            4px;
+    border:             1px solid black;
+    color:              black;
+    background-color:   white;
+    font-family:        DejaVu Sans Mono, Consolas, Courier, monospace;
+    font-size:          8pt;
+    font-weight:        normal}
+
+#Spinner {
+    position:           absolute;
+    top:                200px;
+    left:               200px;
+    z-index:            10}
+
+.center {
+    text-align:         center}
+.floatRight {
+    float:              right}
+.rj {
+    text-align:         right}
+</style>
+</head>
+
+<body>
+<div class=heading>
+    <!--
+    <div class=floatRight>
+        <a href="https://github.com/pkimpel/retro-220/wiki/UsingBACAssembler"
+        target="_new" title="Wiki page for the BAC-Disassembler">Help</a>
+    </div>
+    -->
+
+    Disassembler for the Burroughs 220
+</div>
+
+<div id=OptionsDiv>
+    <table id=OptionsTable>
+    <thead>
+    <tr>
+        <th><label for=Pass1ListCheck>List Pass 1</label>
+        <th><label for=Pass2ListCheck>List Pass 2</label>
+        <th><label for=OutputModeSelect>Output Mode</label>
+        <th>&nbsp;
+    <tbody>
+    <tr>
+        <td class=center>
+            <input id=Pass1ListCheck type=checkbox value=1>
+        <td class=center>
+            <input id=Pass2ListCheck type=checkbox value=1 CHECKED>
+        <td class=center>
+            <select id=OutputModeSelect DISABLED>
+                 <option value=""        >No Object
+                 <option value=L SELECTED>Loadable Deck
+                 <option value=M         >BALGOL ML Deck
+                 <option value=P         >Gen MEDIA Deck
+                 <option value=T         >Object Tape
+             </select>
+        <td class=rj>
+            <button id=ExtractListing type=button>Extract Listing</button>
+    </table>
+
+    <div id=TapeReaderPanel>
+        <table id=TapeReaderTable>
+        <colgroup><col id=TapeReaderCol1><col id=TapeReaderCol2></colgroup>
+        <tr><td>Load Source &amp; Go
+            <td><input id=CRFileSelector type=file size=90>
+        </table>
+    </div>
+</div>
+
+<div id=TextPanel></div>  <!-- Don't add any whitespace inside the div! -->
+
+
+<script>
+"use strict";
+
+window.addEventListener("load", function() {
+
+    // Tape reader properties
+    var buffer = "";
+    var bufferLength = 0;
+    var bufferOffset = 0;
+    var sourceName = "?";
+
+    var eolRex = /([^\n\r\f]*)((:?\r[\n\f]?)|\n|\f)?/g;
+    var rTrimRex = /\s*$/;
+    var sprintLimit = 100;              // cards processed before yielding control
+
+    // Card 0-relative column offsets
+    var labelIndex = 4;
+    var opCodeIndex = labelIndex + 6;
+    var operandIndex = labelIndex + 12;
+    var operandLength = 55;
+
+    // Code word data structure
+    var wordData = {
+        atEOF:          false,
+        offset:         0,
+        length:         0,
+        serial:         0,
+        text:           "",
+        word:           0}
+
+    var pass1List = false;
+    var pass2List = true;
+
+    var panel = $$("TextPanel");
+    var cardReaderUnit = 1;             // Cardatron input unit number for object card decks
+
+    // Assembly storage
+    var asmCode = [];                   // buffer for assembled words of code
+    var errorCount = 0;                 // assembler error count
+    var errorTank = [];                 // holding area for errors on current line
+    var lineNr = 1;                     // assembly output line number
+    var location = 0;                   // current instruction address
+    var startAddress = 0;               // starting execution address, from FINI card
+    var symTab = {};                    // Symbol table: holds the address value for each label
+
+    var p10 = [     1,                  // powers of 10 table
+                   10,
+                  100,
+                 1000,
+                10000,
+               100000,
+              1000000,
+             10000000,
+            100000000,
+           1000000000,
+          10000000000,
+         100000000000,
+        1000000000000,
+       10000000000000,
+      100000000000000,
+     1000000000000000,
+    10000000000000000];
+
+    var xlateANSI220 = [ // translate ANSI to 220 internal character codes
+       // 00  01  02  03  04  05  06  07  08  09  0A  0B  0C  0D  0E  0F
+           0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  //  0-0F
+           0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  // 10-1F
+           0,  0,  0, 33, 13, 24, 10, 34, 24,  4, 14, 10, 23, 20,  3, 21,  // 20-2F
+          80, 81, 82, 83, 84, 85, 86, 87, 88, 89,  0, 13,  4, 33,  0,  0,  // 30-3F
+          34, 41, 42, 43, 44, 45, 46, 47, 48, 49, 51, 52, 53, 54, 55, 56,  // 40-4F
+          57, 58, 59, 62, 63, 64, 65, 66, 67, 68, 69,  0,  0,  0, 15,  2,  // 50-5F
+           0, 41, 42, 43, 44, 45, 46, 47, 48, 49, 51, 52, 53, 54, 55, 56,  // 60-6F
+          57, 58, 59, 62, 63, 64, 65, 66, 67, 68, 69,  0, 16,  0, 26,  0]; // 70-7F
+
+    var xlate220ANSI = [ // translate internal B220 code to ANSI (Algol glyphs)
+        // 00   01   02   03   04        05    06    07   08   09
+          " ", "?", "_", ".", ")",      "?",  "?",  "?", "?", "?",  // 00-09
+          "+", "?", "?", "$", "*",      "^",  "|",  "?", "?", "?",  // 10-19
+          "-", "/", "?", ",", "(",      "?",  "~",  "?", "?", "?",  // 20-29
+          "?", "?", "?", "=", "@",      "\\", "?",  "?", "?", "?",  // 30-39
+          "?", "A", "B", "C", "D",      "E",  "F",  "G", "H", "I",  // 40-49
+          "?", "J", "K", "L", "M",      "N",  "O",  "P", "Q", "R",  // 50-59
+          "?", "?", "S", "T", "U",      "V",  "W",  "X", "Y", "Z",  // 60-69
+          "?", "?", "?", "?", "?",      "?",  "?",  "?", "?", "?",  // 70-79
+          "0", "1", "2", "3", "4",      "5",  "6",  "7", "8", "9",  // 80-89
+          "?", "?", "?", "?", "?",      "?",  "?",  "?", "?", "?"]; // 90-99
+
+    /***************************************
+    * Opcode table:
+    *    Each 220 assembler op code is defined by an array with a variable number
+    *    of elements. The first element is the operation code, including any variant
+    *    digit in (41) and is always required. The variant digit may be overlaid by
+    *    other fields in the instruction. If the code is negative, it indicates a
+    *    pseudo-operator or other special handling.
+    *
+    *    The remainder of the array consists of number pairs, one for each comma-
+    *    delimited operand field that may be present. The first number is a code
+    *    indicating the type of field, the second is the default value for that
+    *    field if it is not specified (or is empty) in the operand area of the
+    *    instruction. If the default value is negative, that operand is not optional
+    *    and must be specified.
+    *
+    *    Type codes:
+    *        1 = address field, inserted in (04)
+    *        2 = secondary value inserted in (33)
+    *        3 = secondary value inserted in (44)
+    *        4 = unit or count digit inserted in (11)
+    *        5 = variant digit inserted in (41)
+    *        6 = sL field designator inserted in (22); if specified, insert 1 in (31)
+    *        7 = sL field designator inserted in (22); (31) is undisturbed
+    *        8 = value inserted in (32)
+    *        9 = value inserted in (42)
+    *       10 = value inserted in (21)
+    *       11 = value inserted in (62)
+    *       12 = value inserted in (64)
+    *       13 = BU pair for CRF/CWF: (B-1)*2 added to (41), U in (11)
+    *       14 = reload-lockout value added to (41)
+    *       15 = digit inserted in (11); if specified, insert 1 in (41)
+    *       16 = Cardatron c-digit inserted in (31) for T-relays (carriage control)
+    *       17 = variant value added to (41)
+    *       18 = mag tape unit/lane as LLU, inserted as ULL in (33)
+    *       19 = resolved address only
+    ***************************************/
+
+    // Pseudo-instruction codes
+    var pseudoDEFN = -1;
+    var pseudoLOCN = -2;
+    var pseudoCNST = -3;
+    var pseudoF244 = -4;
+    var pseudoF424 = -5;
+    var pseudoFBGR = -6;
+    var pseudoFINI = -9;
+
+    var fieldTab = [-1,
+         4, 33, 44, 11, 41, 22, 22, 32, 42, 21, 62, 64, 11, 41, 41, 31, 41, 33,  4];
+
+    var opTab = {
+        "HLT":  [      0,  1,  0,  3,  0],
+        "NOP":  [      1,  1,  0,  3,  0],
+        "PRD":  [      3,  1, -1,  4, -1,  8, -1,  5,  0],
+        "PRB":  [      4,  1, -1,  4, -1,  5,  0,  8,  0],
+        "PRI":  [      5,  1, -1,  4, -1,  8, -1,  5,  0],
+        "PWR":  [      6,  1, -1,  4, -1,  8, -1],
+        "PWI":  [      7,  1, -1,  4, -1],
+        "KAD":  [      8,  1,  0,  3,  0],
+        "SPO":  [      9,  1, -1,  8, -1, 15,  0],
+        "CAD":  [     10,  1, -1],
+        "CAA":  [    110,  1, -1],
+        "CSU":  [     11,  1, -1],
+        "CSA":  [    111,  1, -1],
+        "ADD":  [     12,  1, -1],
+        "ADA":  [    112,  1, -1],
+        "SUB":  [     13,  1, -1],
+        "SUA":  [    113,  1, -1],
+        "MUL":  [     14,  1, -1,  3,  0],
+        "DIV":  [     15,  1, -1,  3,  0],
+        "RND":  [     16,  1,  0,  3,  0],
+        "EXT":  [     17,  1, -1,  3,  0],
+        "CFA":  [     18,  1, -1,  6,  0],
+        "CFR":  [    118,  1, -1,  6,  0],
+        "ADL":  [     19,  1, -1,  3,  0],
+        "IBB":  [     20,  1, -1,  3, -1],
+        "DBB":  [     21,  1, -1,  3, -1],
+        "FAD":  [     22,  1, -1,  4,  0],
+        "FAA":  [    122,  1, -1,  4,  0],
+        "FSU":  [     23,  1, -1,  4,  0],
+        "FSA":  [    123,  1, -1,  4,  0],
+        "FMU":  [     24,  1, -1,  3,  0],
+        "FDV":  [     25,  1, -1,  3,  0],
+        "IFL":  [     26,  1, -1,  7, -1,  9, -1],
+        "DFL":  [     27,  1, -1,  7, -1,  9, -1],
+        "DLB":  [     28,  1, -1,  7, -1,  9, -1],
+        "RTF":  [     29,  1, -1,  8, -1],
+        "BUN":  [     30,  1, -1,  3,  0],
+        "BOF":  [     31,  1, -1,  3,  0],
+        "BRP":  [     32,  1, -1,  3,  0],
+        "BSA":  [     33,  1, -1,  5, -1,  2,  0],
+        "BPA":  [     33,  1, -1,  5,  0,  2,  0],
+        "BMA":  [     33,  1, -1,  5,  1,  2,  0],
+        "BCH":  [     34,  1, -1,  2,  0],
+        "BCL":  [    134,  1, -1,  2,  0],
+        "BCE":  [     35,  1, -1,  2,  0],
+        "BCU":  [    135,  1, -1,  2,  0],
+        "BFA":  [     36,  1, -1,  7, -1,  9, -1],
+        "BZA":  [     36,  1, -1,  7,  0,  9,  0],
+        "BFR":  [     37,  1, -1,  7, -1,  9, -1],
+        "BZR":  [     37,  1, -1,  7,  0,  9,  0],
+        "BCS":  [     38,  1, -1,  4,  0],
+        "SOR":  [     39,  1,  0,  2,  0],
+        "SOH":  [    139,  1,  0,  2,  0],
+        "IOM":  [    239,  1, -1,  2,  0],
+        "STA":  [     40,  1, -1,  6,  0],
+        "STR":  [    140,  1, -1,  6,  0],
+        "STB":  [    240,  1, -1,  6,  0],
+        "LDR":  [     41,  1, -1,  3,  0],
+        "LDB":  [     42,  1, -1,  2,  0],
+        "LBC":  [    142,  1, -1,  2,  0],
+        "LSA":  [     43,  5, -1,  1,  0,  2,  0],
+        "STP":  [     44,  1, -1,  3,  0],
+        "CLA":  [    145,  1,  0,  2,  0],
+        "CLR":  [    245,  1,  0,  2,  0],
+        "CAR":  [    345,  1,  0,  2,  0],
+        "CLB":  [    445,  1,  0,  2,  0],
+        "CAB":  [    545,  1,  0,  2,  0],
+        "CRB":  [    645,  1,  0,  2,  0],
+        "CLT":  [    745,  1,  0,  2,  0],
+        "CLL":  [     46,  1, -1,  3,  0],
+        "SRA":  [     48,  1, -1,  2,  0],
+        "SRT":  [    148,  1, -1,  2,  0],
+        "SRS":  [    248,  1, -1,  2,  0],
+        "SLA":  [     49,  1, -1,  2,  0],
+        "SLT":  [    149,  1, -1,  2,  0],
+        "SLS":  [    249,  1, -1,  2,  0],
+        "MTS":  [     50,  1, -1, 18, -1],
+        "MFS":  [4000050,  1, -1, 18, -1],
+        "MLS":  [    450, 18, -1,  1,  0],
+        "MRW":  [    850, 18, -1,  1,  0],
+        "MDA":  [    950, 18, -1,  1,  0],
+        "MTC":  [     51,  1, -1, 18, -1,  5, -1],
+        "MFC":  [4000051,  1, -1, 18, -1,  5, -1],
+        "MRD":  [     52,  1, -1,  4, -1, 10, -1, 17,  0],
+        "MNC":  [    152,  1, -1,  4, -1, 10, -1, 17,  0],
+        "MRR":  [     53,  1, -1,  4, -1, 10, -1, 17,  0],
+        "MIW":  [     54,  1, -1,  4, -1, 10, -1,  9,  0],
+        "MIR":  [     55,  1, -1,  4, -1, 10, -1,  9,  0],
+        "MOW":  [     56,  1, -1,  4, -1, 10, -1,  9,  0],
+        "MOR":  [     57,  1, -1,  4, -1, 10, -1,  9,  0],
+        "MPF":  [     58,  4, -1, 10, -1,  1,  0],
+        "MPB":  [    158,  4, -1, 10, -1,  1,  0],
+        "MPE":  [    258,  4, -1,  1,  0],
+        "MIB":  [     59,  1, -1,  4, -1,  8,  0],
+        "MIE":  [    159,  1, -1,  4, -1,  8,  0],
+        "CRD":  [     60,  1, -1,  4, -1,  5,  0,  8,  0],
+        "CNC":  [   1060,  1, -1,  4, -1,  5,  0],
+        "CWR":  [     61,  1, -1, 13, -1, 16,  0],
+        "CRF":  [     62,  1, -1, 13, -1, 14,  0],
+        "CWF":  [     63,  1, -1, 13, -1, 14,  0],
+        "CRI":  [     64,  1, -1,  4, -1],
+        "CWI":  [     65,  1, -1,  4, -1],
+        "HPW":  [     66,  1, -1,  8, -1],
+        "HPI":  [     67,  1,  0,  3,  0],
+
+        // Pseudo-ops
+        "DEFN": [pseudoDEFN,                    // define symbol
+                        19, -1],
+        "LOCN": [pseudoLOCN,                    // set location counter
+                        19, -1],
+        "CNST": [pseudoCNST],                   // assemble list of literal values
+        "F244": [pseudoF244,                    // assemble word from 22-64-04 fields
+                         7,  0, 12,  0,  1,  0],
+        "F424": [pseudoF424,                    // assemble word from 44-62-04 fields
+                         3,  0, 11,  0,  1,  0],
+        "FBGR": [pseudoFBGR],                   // assemble Cardatron format band
+        "FINI": [pseudoFINI,                    // finish assembly, output literal pool
+                         1,  0]
+    };
+
+
+    /*******************************************************************
+    * Miscellaneous Utility Functions                                  *
+    *******************************************************************/
+
+    /**************************************/
+    function $$(id) {
+        return document.getElementById(id);
+    }
+
+    /**************************************/
+    function padLeft(s, len, fill) {
+        /* Pads the string "s" on the left to length "len" with the filler character
+        "fill". If fill is empty or missing, space is used. If the initial string is
+        longer than "len", it is truncated on the left to that length */
+        var pad = (fill || " ").charAt(0);
+        var result = s.toString();
+        var rLen = result.length;
+
+        if (rLen > len) {
+            result = result.substring(rLen-len);
+        } else {
+            while (rLen < len) {
+                result = pad + result;
+                ++rLen;
+            }
+        }
+
+        return result;
+    }
+
+    /**************************************/
+    function padRight(s, len, fill) {
+        /* Pads the string "s" on the right to length "len" with the filler character
+        "fill". If fill is empty or missing, space is used. If the initial string is
+        longer than "len", it is truncated on the right to that length */
+        var pad = (fill || " ").charAt(0);
+        var result = s.toString();
+        var rLen = s.length;
+
+        if (rLen > len) {
+            result = result.substring(0, len);
+        } else {
+            while (rLen < len) {
+                result = result + pad;
+                ++rLen;
+            }
+        }
+
+        return result;
+    }
+
+    /**************************************/
+    function rTrim(s) {
+        /* Returns the string "s" stripped of any trailing whitespace */
+        var x = s.search(rTrimRex);
+
+        if (x < 0 ) {
+            return s;
+        } else if (x < 1) {
+            return "";
+        } else {
+            return s.substring(0, x);
+        }
+    }
+
+    /**************************************/
+    function tensComp(value) {
+        /* If "value" is algebraically negative, returns its 11-digit tens
+        complement. Otherwise returns the 11-digit value */
+
+        if (value < 0) {
+            return p10[11] + value%p10[11];
+        } else {
+            return value%p10[11];
+        }
+    }
+
+    /**************************************/
+    function applySign(word, sign) {
+        /* Applies an unsigned "sign" digit to a 220 "word" value. If the word
+        value is algebraically negative, it is first converted to a 10-digit
+        number with a 220 sign in the 11-th high-order digit. The low-order bit
+        of "sign" and the low-order bit of the word's sign digit are XOR-ed so
+        that each of those bits designates negation. Returns the new value as an
+        11-digit unsigned 220 word in binary */
+        var s = 0;
+        var value = 0;
+
+        if (word < 0) {
+            value = (-word)%p10[10];
+            s = 1;
+        } else {
+            value = word%p10[10];
+            s = (word%p10[11] - value)/p10[10];
+        }
+
+        return (sign%10 ^ s)*p10[10] + value;
+    }
+
+    /**************************************/
+    function getField(word, sL) {
+        /* Extracts an n-digit value from an 11-digit "word" and returns it.
+        "sL" is the same as for putField(). The word is a Javascript Number
+        object, but is treated as if it represents an 11-digit decimal integer */
+        var L = sL%10;
+        var s = (sL%100 - L)/10;
+        var result = applySign(word, 0);
+
+        s = (s == 0 ? 0 : 10-s);
+        L = (L == 0 ? 10 : L);
+
+        if (sL < 0 || sL > 99 || s+L > 11) {
+            result = -1;
+        } else {
+            result = (result%p10[s+L] - result%p10[s])/p10[s];
+        }
+
+        return result;
+    }
+
+    /**************************************/
+    function putField(word, value, sL) {
+        /* Inserts an n-digit "value" into designated digits of an 11-digit
+        "word". "sL" is the partial-word field in standard 220 start-Length
+        notation. Note that Javascript flags literal integers of the form "0n"
+        as the old C-style octal literal notation is deprecated. This routine
+        uses only the two low-order digits of "sL", however, so you can pass sL
+        literal values like 104 (or even 57321604) for /04 without ill effect.
+        The "value" and "word" are Javascript Number objects, but are treated as
+        if they represent 11-digit decimal integers. If value is negative, it is
+        converted to its 10s-complement value before insertion into word.
+        Returns a new word with the inserted field */
+        var L = sL%10;
+        var s = (sL%100 - L)/10;
+        var upperPart = 0;
+        var lowerPart = 0;
+        var result = applySign(word, 0);
+
+        s = (s == 0 ? 0 : 10-s);
+        L = (L == 0 ? 10 : L);
+
+        if (sL < 0 || s+L > 11) {
+            printError("INVALID /SL VALUE: ", sL);
+        } else {
+            upperPart = result%p10[11] - result%p10[s+L];
+            if (s > 0) {
+                lowerPart = result%p10[s];
+            }
+
+            result = (tensComp(value)%p10[L])*p10[s] + upperPart + lowerPart;
+        }
+
+        return result;
+    }
+
+
+    /*******************************************************************
+    * Listing Utilities                                                *
+    *******************************************************************/
+
+    /**************************************/
+    function clearPanel() {
+        /* Clears the text panel */
+        var kid;
+
+        while (kid = panel.firstChild) {
+            panel.removeChild(kid);
+        }
+    }
+
+    /**************************************/
+    function readAWord() {
+        /* Reads one word from the buffer, converts ite to decimal, and
+        fills in the global "wordData" structure with the word and its
+        location in the buffer */
+        var bx = bufferOffset;          // current buffer offset
+        var line = "";                  // line image
+        var lineLength = 0;             // original delimited line image length
+        var match = null;               // regular expression match result
+        var w = 0;                      // decimal word
+
+        wordData.offset = bx;
+        if (bx >= bufferLength) {
+            wordData.atEOF = true;
+            wordData.length = 0;
+            wordData.word = -99999999999;
+        } else {
+            eolRex.lastIndex = bx;
+            match = eolRex.exec(buffer);
+            if (!match) {
+                line = "";
+            } else {
+                bx += match[0].length;
+                line = match[1].trim();
+            }
+
+            lineLength = line.length;
+            if (lineLength > 0) {
+                if (line.charAt(0) == "2") {
+                    if (lineLength > 6) {
+                        line = line.substring(0, 6);
+                    } else if (lineLength < 6) {
+                        line = padRight(line, 6, " ");
+                    }
+
+                    w = ((((200 +
+                        xlateANSI220[line.charAt(1)])*100 +
+                        xlateANSI220[line.charAt(2)])*100 +
+                        xlateANSI220[line.charAt(3)])*100 +
+                        xlateANSI220[line.charAt(4)])*100 +
+                        xlateANSI220[line.charAt(5)];
+                } else {
+                    if (lineLength > 11) {
+                        printError("Input line too long: " + line);
+                        line = line.substring(lineLength-11, 11);
+                    } else if (lineLength == 0) {
+                        line = "0";
+                    }
+
+                    w = parseInt(line, 10);
+                    if (isNaN(w)) {
+                        w = 0;
+                        printError("Non-decimal word in input: \"" + line + "\"");
+                    }
+                }
+            }
+
+            wordData.text = line;
+            wordData.word = w;
+            wordData.length = bx - bufferOffset;
+            ++wordData.serial;
+            bufferOffset = bx;
+        }
+    }
+
+    /**************************************/
+    function printLine(text) {
+        /* Appends "text"+NL as a new text node to the panel DOM element */
+        var e = document.createTextNode(text + "\n");
+
+        panel.appendChild(e);
+        panel.scrollTop += 30;
+    }
+
+    /**************************************/
+    function dumpErrorTank() {
+        /* Dumps the tank of error messages to the text panel */
+        var x;
+
+        for (x=0; x<errorTank.length; ++x) {
+            printLine(errorTank[x]);
+        }
+
+        printLine("");
+        errorTank = [];
+    }
+
+    /**************************************/
+    function printError(msg) {
+        /* Prints an error message to the text panel and bumps the error count */
+
+        ++errorCount;
+        errorTank.push("******** " + msg);
+    }
+
+    /**************************************/
+    function dumpSymbolTable() {
+        /* Dumps the contents of the symbol table to the text panel */
+        var keys;                       // sorted symbol table keys
+        var offset = 0;                 // print line offset
+        var text = "";                  // print line
+        var x;                          // scratch index
+
+        printLine("");
+        printLine("SYMBOL TABLE");
+        printLine("");
+
+        keys = Object.keys(symTab).sort();
+        for (x=0; x<keys.length; ++x) {
+            if (offset > 80) {
+                printLine(text);
+                text = "";
+                offset = 0;
+            }
+
+            text += padLeft(symTab[keys[x]], offset-text.length+5) + " " + keys[x];
+            offset += 20;
+        }
+
+        printLine(text);
+    }
+
+
+    /*******************************************************************
+    * Assembler Output                                                 *
+    *******************************************************************/
+
+    /**************************************/
+    function extractListing(ev) {
+        /* Copies the text contents of the "paper" area of the assembler listing,
+        opens a new temporary window, and pastes that text into the window so it
+        can be copied or saved by the user */
+        var doc = null;                 // temp window document object
+        var text = panel.textContent;
+        var title = "BAC-Disassembler Listing";
+        var win = window.open("../../webUI/B220FramePaper.html", "BAC-Asm-Listing",
+                "scrollbars,resizable,width=600,height=500");
+
+        function copyText(ev) {
+            var doc = ev.target;
+            var win = doc.defaultView;
+
+            win.removeEventListener("load", copyText, false);
+            doc = win.document;
+            doc.title = title;
+            doc.getElementById("Paper").textContent = text;
+        }
+
+        //clearPanel();
+        win.addEventListener("load", copyText, false);
+        win.moveTo((screen.availWidth-win.outerWidth)/2, (screen.availHeight-win.outerHeight)/2);
+        ev.preventDefault();
+        ev.stopPropagation();
+    }
+
+    /**************************************/
+    function generateFormat6LoadableDeck(asmCode, outputChecksum, startAddress) {
+        /* Formats the assembled object code as a standard Cardatron format-6
+        loadable deck in a temporary window. From there it can be save, copied,
+        etc. */
+        var crdSkeleton = "";           // skeleton card-read instruction
+        var doc = null;                 // temp window document object
+        var deck = null;                // temp window text area
+        var pval = p10[10];             // modulus for a word's absolute value
+        var psign = pval*2;             // modulus for a word's sign bit
+        var title = "220 BAC-Assembler Band-6 Loadable Deck";
+        var win = window.open("../../webUI/B220FramePaper.html", "BAC-Asm-Object",
+                "scrollbars,resizable,width=600,height=500");
+
+        function checksum(cksum, word) {
+            var sw = word%psign;        // will be the signed algebraic value of word
+
+            if (sw >= pval) {           // check if word has sign bit=1
+                sw = pval - sw;         // if so, make it algebraically negative
+            }
+
+            return (cksum+sw)%pval;     // compute the algebraic checksum
+        }
+
+        function writeCard(card, addr) {
+
+            deck.appendChild(doc.createTextNode("666" +
+                    padLeft(crdSkeleton + padLeft(addr, 4, "0") + card, 77, " ") + "\n"));
+        }
+
+        function generateDeck(ev) {
+            var addr = 0;               // assembled code address
+            var card = "";              // text line for an 80-column card image
+            var cksum = 0;              // algebraic value of the checksum word
+            var count = 0;              // number of words on card
+            var gapCount = 0;           // number of consecutive undefined words
+            var priorAddr = 0;          // CRD address for prior card image
+            var priorCard = "";         // prior image, awaiting terminating CRD instruction
+            var word = undefined;       // object code word
+            var x = 0;                  // scratch index
+
+            win.removeEventListener("load", generateDeck, false);
+            doc = win.document;
+            doc.title = title;
+            deck = doc.getElementById("Paper");
+
+            while (addr < asmCode.length && asmCode[addr] === undefined) {
+                ++addr;
+            }
+
+            while (addr < asmCode.length) {
+                word = asmCode[addr];
+                if (word === undefined) {
+                    ++gapCount;
+                } else {
+                    if (count > 5 || gapCount > 0) {
+                        writeCard(priorCard, priorAddr);
+                        priorCard = card;
+                        card = "";
+                        gapCount = 0;
+                        count = 0;
+                    }
+
+                    priorAddr = addr;
+                    card += padLeft(word, 11, "0");
+                    ++count;
+                    if (outputChecksum) {
+                        cksum = checksum(cksum, word);
+                    }
+                }
+
+                ++addr;
+            } // while addr
+
+            writeCard(priorCard, priorAddr);
+            if (outputChecksum) {
+                // Compute and output a card with the 220 negative checksum at the next address
+                writeCard(card, priorAddr+1);
+                card = crdSkeleton + "9999";
+                if (cksum < 0) {
+                    card += padLeft(-cksum, 11, "0");
+                } else {
+                    card += padLeft(cksum+pval, 11, "0");
+                }
+
+                card = "***CHECKSUM FOR " + sourceName + " " + card;
+            }
+
+            writeCard(card, 9999);
+            if (startAddress >= 0) {
+                writeCard("6000030" + padLeft(startAddress, 4, "0"), 9999); // BUN to start
+            } else {
+                writeCard("69999009999", 9999);                             // HLT 9999
+            }
+        }
+
+        crdSkeleton = "6" + padLeft(cardReaderUnit, 1, "0") + "00060";
+        win.addEventListener("load", generateDeck, false);
+        win.moveTo((screen.availWidth-win.outerWidth)/2, (screen.availHeight-win.outerHeight)/2);
+    }
+
+
+    /*******************************************************************
+    * Initialization and Termination                                   *
+    *******************************************************************/
+
+    /**************************************/
+    function finishAssembly() {
+        /* Finishes the assembly of a program unit, and if appropriate, starts
+        assembly of the next one */
+        var oms = $$("OutputModeSelect");
+        var x = oms.selectedIndex;
+
+        if (errorCount == 0 && x >= 0) {
+            switch(oms.options[x].value) {
+            case "L":
+                generateFormat6LoadableDeck(asmCode, outputChecksum, startAddress);
+                break;
+            case "M":
+                generateMachineLanguageDeck(asmCode, outputChecksum, startAddress);
+                break;
+            case "P":
+                generateGeneratorMediaDeck(asmCode, outputChecksum, startAddress);
+                break;
+            case "T":
+                generateObjectTape(asmCode, outputChecksum, startAddress);
+                break;
+            }// switch oms.options
+        }
+
+        $$("CRFileSelector").value = null;  // reset the <input> elements
+        //document.body.removeChild($$("Spinner"));   // remove the spinner image
+        // And... we're done -- just fall out of the script.
+    }
+
+    /**************************************/
+    function emitLine(location, word, lab, op, sign, operand, comment) {
+        /* Formats one line of disassembler output */
+        var line = "          " + padLeft(lineNr, 4, " ") +
+                   "      " + padLeft(location, 4, "0") + "  ";
+        var text = "";
+
+        ++lineNr;
+        if (word === null) {
+            line += "                 ";
+        } else {
+            text = padLeft(word, 11, "0");
+            line += text.substring(0, 1) + " " + text.substring(1, 5) + " " +
+                    text.substring(5, 7) + " " + text.substring(7, 11) + "   ";
+        }
+
+        line += padRight(lab, 6, " ") + padRight(op, 4, " ");
+        if (sign == 0) {
+            line += "  ";
+        } else if (sign == 1) {
+            line += "- ";
+        } else {
+            line += padLeft(sign, 1, "") + " ";
+        }
+
+        if ((comment || "").length == 0) {
+            line += operand;
+        } else {
+            if (operand.length < 14) {
+                line += padLeft(operand, 14);
+            } else {
+                line += operand + "  ";
+            }
+
+            line += comment;
+        }
+
+        printLine(line);
+    }
+
+    /**************************************/
+    function emitPseudo(location, word, lab, op, sign, operand, comment) {
+        /* Emits one line of disassambler for a pseudo-op */
+
+        emitLine(location, word, lab, op, sign, operand, comment);
+    }
+
+    /**************************************/
+    function emitConstant(location, word, lab, sign, comment) {
+        /* Emits one word as a CNST pseudo */
+        var char = 0;
+        var text = "";
+
+        if (sign != 2) {
+            emitPseudo(location, word, lab, "CNST", 0, word.toString());
+        } else {
+            while (word >= 200) {
+                char = word%100;
+                text = xlate220ANSI[char] + text;
+                word = (word-char)/100;
+            }
+
+            emitPseudo(location, word, lab, "CNST", 0, "$" + text + "$");
+        }
+    }
+
+    /**************************************/
+    function emitAsm(location, word, lab, op, sign, comment) {
+        /* Emits one line of disassembler for a machine operator,
+        decoding the operand fields of the word according to op */
+        var noField = false;            // flag to indicate an empty field
+        var operand = "";               // generated operand string
+        var opDesc = opTab[op];         // operand descriptor array
+        var opTop = opDesc.length;      // length of op code description array
+        var ox = 0;                     // opDesc[] index
+        var w1;                         // word field 1
+        var w2;                         // word field 2
+
+        function optional(field) {
+            for (w1=opTop-1; w1>ox; w1-=2) {
+                if (opDesc[w1] < 0) {
+                    break;              // a required field
+                } else {
+                    w2 = fieldTab[opDesc[w1-1]];
+                    if (opDesc[w1] != getField(word, w2)) {
+                        break;          // non-required field not default value
+                    }
+                }
+            }
+
+            if (w1 > ox) {              // some remaining field is not default
+                operand += getField(word, field);
+            } else {
+                noField = true;
+            }
+        }
+
+        if (!opDesc) {
+            printError("Invalid op code: " + op);
+            return;
+        }
+
+        for (ox=1; ox<opTop; ox+=2) {
+            noField = false;
+            switch (opDesc[ox]) {
+            case  1:                    // address field, inserted in (04)
+            case 19:                    // resolved address only in (04)
+                w1 = getField(word, 4);
+                w2 = w1 - location;
+                if (Math.abs(w2) < 4) {
+                    if (w2 > 0) {
+                        operand += "*+" + w2;
+                    } else {
+                        operand += "*" + w2;
+                    }
+                } else {
+                    operand += w1;
+                }
+                break;
+            case  2:                    // secondary value inserted in (33)
+                optional(33);
+                break;
+            case  3:                    // secondary value inserted in (44)
+                optional(44);
+                break;
+            case  4:                    // unit or count digit inserted in (11)
+                optional(11);
+                break;
+            case  5:                    // variant digit inserted in (41)
+                optional(41);
+                break;
+            case  6:                    // sL field designator inserted in (22); if specified, insert 1 in (31)
+                if (getField(word, 31)) {
+                    operand += getField(word, 22);
+                } else {
+                    noField = true;
+                }
+                break;
+            case  7:                    // sL field designator inserted in (22); (31) is undisturbed
+                optional(22);
+                break;
+            case  8:                    // value inserted in (32)
+                optional(32);
+                break;
+            case  9:                    // value inserted in (42)
+                optional(42);
+                break;
+            case 10:                    // value inserted in (21)
+                optional(21);
+                break;
+            case 11:                    // value inserted in (62)
+                optional(62);
+                break;
+            case 12:                    // value inserted in (64)
+                optional(64);
+                break;
+            case 13:                    // BU pair for CRF/CWF: (B-1)*2 added to (41), U in (11)
+                w1 = getField(word, 11);        // unit number
+                w2 = getField(word, 41);        // (B-1)*2
+                w2 = (w2 >> 1) + 1;             // band number
+                operand += padLeft(w2*10 + w1, 2, "0");
+                break;
+            case 14:                    // reload-lockout value added to (41)
+                w1 = getField(word, 41) & 0x01;
+                if (w1 == 1) {
+                    operand += "RLO";
+                } else {
+                    noField = true;
+                }
+                break;
+            case 15:                    // digit inserted in (11); if specified, insert 1 in (41)
+                if (getField(word, 41)) {
+                    optional(11);
+                } else {
+                    noField = true;
+                }
+                break;
+            case 16:                    // Cardatron c-digit inserted in (31) for T-relays (carriage control)
+                w1 = getField(word, 31);
+                if (w1) {
+                    operand += w1;
+                } else {
+                    noField = true;
+                }
+                break;
+            case 17:                    // BMOD value added to (41)
+                w1 = getField(word, 41) & 0x08;
+                if (w1 == 8) {
+                    operand += "BMOD";
+                } else {
+                    noField = true;
+                }
+                break;
+            case 18: // mag tape unit/lane as LLU, inserted as ULL in (33)
+                w1 = getField(word, 32);                // LL=lane number
+                w2 = getField(word, 11);                // U=unit number
+                operand += (w1*10 + w2);
+                break;
+            default:
+                printError("INVALID OPDESC INDEX: " + opDesc[ox]);
+                break;
+            } // switch opDesc[ox]
+
+            if (!noField) {
+                operand += ",";
+            }
+        } // for ox
+
+        ox = operand.length;
+        while (ox > 0) {
+            --ox;
+            if (operand.charAt(ox) != ",") {
+                break;
+            }
+        }
+
+        emitLine(location, word, lab, op, sign, operand.substring(0, ox+1), comment);
+    }
+
+    /**************************************/
+    function disassembleWord() {
+        /* Disassembles one word of code */
+        var addr = 0;
+        var op = 0;
+        var sign = 0;
+        var control = 0;
+        var w = 0;
+
+        readAWord();
+        if (wordData.atEOF) {
+            return;
+        }
+
+        w = wordData.word;
+        addr = getField(w, 4);
+        op = getField(w, 62);
+        control = getField(w, 44);
+        sign = ((w - w%10000000000)/10000000000)%10;
+
+        if (sign > 1) {
+            if ((sign & 0x06) == 6) {
+                switch (op) {
+                case 4:
+                    location = addr;
+                    emitPseudo(location, null, "", "LOCN", 0, addr);
+                    return;
+                    break;
+                case 30:
+                    startAddress = addr;
+                    break;
+                }
+            } else if ((sign & 0x04) == 4 && (op == 50 || op == 51)) {
+                    // fall through for MFS and MFC
+            } else {
+                emitConstant(location, w, "", sign);
+                return;
+            }
+        }
+
+        switch (op) {
+        case  0:
+            emitAsm(location, w, "", "HLT", sign);
+            break;
+        case  1:
+            emitAsm(location, w, "", "NOP", sign);
+            break;
+        case  3:
+            emitAsm(location, w, "", "PRD", sign);
+            break;
+        case  4:
+            emitAsm(location, w, "", "PRB", sign);
+            break;
+        case  5:
+            emitAsm(location, w, "", "PRI", sign);
+            break;
+        case  6:
+            emitAsm(location, w, "", "PWR", sign);
+            break;
+        case  7:
+            emitAsm(location, w, "", "PWI", sign);
+            break;
+        case  8:
+            emitAsm(location, w, "", "KAD", sign);
+            break;
+        case  9:
+            emitAsm(location, w, "", "SPO", sign);
+            break;
+        case 10:
+            emitAsm(location, w, "", (control%10==1 ? "CAA" : "CAD"), sign);
+            break;
+        case 11:
+            emitAsm(location, w, "", (control%10==1 ? "CSA" : "CSU"), sign);
+            break;
+        case 12:
+            emitAsm(location, w, "", (control%10==1 ? "ADA" : "ADD"), sign);
+            break;
+        case 13:
+            emitAsm(location, w, "", (control%10==1 ? "SUA" : "SUB"), sign);
+            break;
+        case 14:
+            emitAsm(location, w, "", "MUL", sign);
+            break;
+        case 15:
+            emitAsm(location, w, "", "DIV", sign);
+            break;
+        case 16:
+            emitAsm(location, w, "", "RND", sign);
+            break;
+        case 17:
+            emitAsm(location, w, "", "EXT", sign);
+            break;
+        case 18:
+            emitAsm(location, w, "", (control%10==1 ? "CFR" : "CFA"), sign);
+            break;
+        case 19:
+            emitAsm(location, w, "", "ADL", sign);
+            break;
+        case 20:
+            emitAsm(location, w, "", "IBB", sign);
+            break;
+        case 21:
+            emitAsm(location, w, "", "DBB", sign);
+            break;
+        case 22:
+            emitAsm(location, w, "", (control%10==1 ? "FAA" : "FAD"), sign);
+            break;
+        case 23:
+            emitAsm(location, w, "", (control%10==1 ? "FSA" : "FSU"), sign);
+            break;
+        case 24:
+            emitAsm(location, w, "", "FMU", sign);
+            break;
+        case 25:
+            emitAsm(location, w, "", "FDV", sign);
+            break;
+        case 26:
+            emitAsm(location, w, "", "IFL", sign);
+            break;
+        case 27:
+            emitAsm(location, w, "", "DFL", sign);
+            break;
+        case 28:
+            emitAsm(location, w, "", "DLB", sign);
+            break;
+        case 29:
+            emitAsm(location, w, "", "RTF", sign);
+            break;
+        case 30:
+            emitAsm(location, w, "", "BUN", sign);
+            break;
+        case 31:
+            emitAsm(location, w, "", "BOF", sign);
+            break;
+        case 32:
+            emitAsm(location, w, "", "BRP", sign);
+            break;
+        case 33:
+            emitAsm(location, w, "", "BSA", sign);
+            break;
+        case 34:
+            emitAsm(location, w, "", (control%10==1 ? "BCL" : "BCH"), sign);
+            break;
+        case 35:
+            emitAsm(location, w, "", (control%10==1 ? "BCU" : "BCE"), sign);
+            break;
+        case 36:
+            emitAsm(location, w, "", "BFA", sign);
+            break;
+        case 37:
+            emitAsm(location, w, "", "BFR", sign);
+            break;
+        case 38:
+            emitAsm(location, w, "", "BCS", sign);
+            break;
+        case 39:
+            if ((control & 0x02) == 0x02) {
+                emitAsm(location, w, "", "IOM", sign);
+            } else if ((control & 0x01) == 0x01) {
+                emitAsm(location, w, "", "SOH", sign);
+            } else {
+                emitAsm(location, w, "", "SOR", sign);
+            }
+            break;
+        case 40:
+            switch (control%10) {
+            case 2:
+                emitAsm(location, w, "", "STB", sign);
+                break;
+            case 1:
+                emitAsm(location, w, "", "STR", sign);
+                break;
+            default:
+                emitAsm(location, w, "", "STA", sign);
+                break;
+            }
+            break;
+        case 41:
+            emitAsm(location, w, "", "LDR", sign);
+            break;
+        case 42:
+            emitAsm(location, w, "", (control%10==1 ? "LBC" : "LDB"), sign);
+            break;
+        case 43:
+            emitAsm(location, w, "", "LSA", sign);
+            break;
+        case 44:
+            emitAsm(location, w, "", "STP", sign);
+            break;
+        case 45:
+            switch (control%10) {
+            case 1:
+            case 9:
+                emitAsm(location, w, "", "CLA", sign);
+                break;
+            case 2:
+                emitAsm(location, w, "", "CLR", sign);
+                break;
+            case 3:
+                emitAsm(location, w, "", "CAR", sign);
+                break;
+            case 4:
+                emitAsm(location, w, "", "CLB", sign);
+                break;
+            case 5:
+                emitAsm(location, w, "", "CAB", sign);
+                break;
+            case 6:
+                emitAsm(location, w, "", "CRB", sign);
+                break;
+            case 7:
+                emitAsm(location, w, "", "CLT", sign);
+                break;
+            default:
+                emitConstant(location, w, "", sign, "**INVALID CLEAR REG**");
+                break;
+            }
+            break;
+        case 46:
+            emitAsm(location, w, "", "CLL", sign);
+            break;
+        case 48:
+            switch (control%10) {
+            case 1:
+                emitAsm(location, w, "", "SRT", sign);
+                break;
+            case 2:
+                emitAsm(location, w, "", "SRS", sign);
+                break;
+            default:
+                emitAsm(location, w, "", "SRA", sign);
+                break;
+            }
+            break;
+        case 49:
+            switch (control%10) {
+            case 1:
+                emitAsm(location, w, "", "SLT", sign);
+                break;
+            case 2:
+                emitAsm(location, w, "", "SLS", sign);
+                break;
+            default:
+                emitAsm(location, w, "", "SLA", sign);
+                break;
+            }
+            break;
+        case 50:
+            switch (control%10) {
+            case 0:
+            case 1:
+            case 2:
+            case 3:
+                if ((sign & 0x04) == 0x04) {
+                    emitAsm(location, w, "", "MFS", sign);
+                } else {
+                    emitAsm(location, w, "", "MTS", sign);
+                }
+                break;
+            case 4:
+            case 5:
+            case 6:
+            case 7:
+                emitAsm(location, w, "", "MLS", sign);
+                break;
+            case 8:
+                emitAsm(location, w, "", "MRW", sign);
+                break;
+            case 9:
+                emitAsm(location, w, "", "MDA", sign);
+                break;
+            default:
+                emitConstant(location, w, "", sign, "**INVALID MAG TAPE**");
+                break;
+            }
+            break;
+        case 51:
+            if ((sign & 0x04) == 0x04) {
+                emitAsm(location, w, "", "MFC", sign);
+            } else {
+                emitAsm(location, w, "", "MTC", sign);
+            }
+            break;
+        case 52:
+            emitAsm(location, w, "", "MRD", sign);
+            break;
+        case 53:
+            emitAsm(location, w, "", "MRR", sign);
+            break;
+        case 54:
+            emitAsm(location, w, "", "MIW", sign);
+            break;
+        case 55:
+            emitAsm(location, w, "", "MIR", sign);
+            break;
+        case 56:
+            emitAsm(location, w, "", "MOW", sign);
+            break;
+        case 57:
+            emitAsm(location, w, "", "MOR", sign);
+            break;
+        case 58:
+            switch (control%10) {
+            case 1:
+                emitAsm(location, w, "", "MPB", sign);
+                break;
+            case 2:
+                emitAsm(location, w, "", "MPE", sign);
+                break;
+            default:
+                emitAsm(location, w, "", "MPF", sign);
+                break;
+            }
+            break;
+        case 59:
+            switch (control%10) {
+            case 1:
+                emitAsm(location, w, "", "MIE", sign);
+                break;
+            default:
+                emitAsm(location, w, "", "MIB", sign);
+                break;
+            }
+            break;
+        case 60:
+            emitAsm(location, w, "", "CRD", sign);
+            break;
+        case 61:
+            emitAsm(location, w, "", "CWR", sign);
+            break;
+        case 62:
+            emitAsm(location, w, "", "CRF", sign);
+            break;
+        case 63:
+            emitAsm(location, w, "", "CWF", sign);
+            break;
+        case 64:
+            emitAsm(location, w, "", "CRI", sign);
+            break;
+        case 65:
+            emitAsm(location, w, "", "CWI", sign);
+            break;
+        case 66:
+            emitAsm(location, w, "", "HPW", sign);
+            break;
+        case 67:
+            emitAsm(location, w, "", "HPI", sign);
+            break;
+        default:
+            emitConstant(location, w, "", sign);
+            break;
+        }
+
+        ++location;
+    }
+
+    /**************************************/
+    function disassembleFile() {
+        /* Initializes or reinitializes the assembler for a new file */
+        var stamp = new Date();
+
+        clearPanel();
+        printLine("Disassembler for the Burroughs 220 BALGOL Compiler & Library -- " +
+                stamp.getFullYear().toString() + "-" +
+                padLeft(stamp.getMonth()+1, 2, "0") + "-" +
+                padLeft(stamp.getDate(), 2, "0") + " " +
+                padLeft(stamp.getHours(), 2, "0") + ":" +
+                padLeft(stamp.getMinutes(), 2, "0"));
+        printLine("");
+        printLine("Source File: " + sourceName);
+        printLine("");
+
+        errorCount = 0;
+        errorTank = [];
+        location = 0;
+        wordData.atEOF = false;
+        wordData.serial = 0;
+        asmCode = [];
+        startAddress = 0;
+        symTab = {};
+
+        emitPseudo(0, null, "", "REM", 0, "", sourceName.toUpperCase());
+        do {
+            disassembleWord();
+        } while (!wordData.atEOF);
+
+        emitPseudo(location, null, "", "FINI", 0, startAddress)
+        document.body.removeChild($$("Spinner"));   // remove the spinner image
+}
+
+    /**************************************/
+    function loadCodeFile(ev) {
+        /* Handle the <input type=file> onchange event when a file is selected */
+        var e;                          // spinner image DOM element
+        var f = ev.target.files[0];
+        var reader = new FileReader();
+
+        function fileLoader_onLoad(ev) {
+            /* Handles the onload event for a readAsText FileReader */
+
+            buffer = ev.target.result;
+            bufferOffset = 0;
+            bufferLength = buffer.length;
+            setTimeout(disassembleFile, 100);
+        }
+
+        sourceName = f.name;
+        /********************
+        alert("File selected: " + f.name +
+                "\nModified " + f.lastModifiedDate +
+                "\nType=" + f.type + ", Size=" + f.size + " octets");
+        ********************/
+
+        // initiate the spinner to run while disassembling
+        e = document.createElement("img");
+        e.src = "../../webUI/resources/ajax-spinner.gif";
+        e.id = "Spinner";
+        document.body.appendChild(e);
+
+        reader.onload = fileLoader_onLoad;
+        reader.readAsText(f);
+    }
+
+    /**************************************/
+    function checkBrowser() {
+        /* Checks whether this browser can support the necessary stuff */
+        var missing = "";
+
+        if (!window.File        ) {missing += ", File"}
+        if (!window.FileReader  ) {missing += ", FileReader"}
+        if (!window.FileList    ) {missing += ", FileList"}
+        if (!window.DOMTokenList) {missing += ", DOMTokenList"}
+        if (!window.ArrayBuffer ) {missing += ", ArrayBuffer"}
+        if (!window.DataView    ) {missing += ", DataView"}
+        if (!window.Promise     ) {missing += ", Promise"}
+
+        if (missing.length == 0) {
+            return false;
+        } else {
+            alert("No can do... your browser does not\n" +
+                  "support the following features:\n" + missing.substring(2));
+            return true;
+        }
+    }
+
+    /**************************************/
+    function repositionTextPanel() {
+        /* Repositions and resizes the #TextPanel element so that it fills the
+        bottom portion of the window */
+        var opts = $$("OptionsDiv");
+        var panel = $$("TextPanel");
+
+        panel.style.top = (opts.offsetTop + opts.offsetHeight + 8).toFixed() + "px";
+    }
+
+    /******************** Start of window.onload() ********************/
+    repositionTextPanel();
+    if (checkBrowser()) {
+        return;
+    }
+
+    $$("CRFileSelector").value = null;  // clear any prior file selection
+    $$("CRFileSelector").addEventListener("change", loadCodeFile, false);
+
+    pass1List = $$("Pass1ListCheck").checked;
+    $$("Pass1ListCheck").addEventListener("click", function(ev) {
+        pass1List = ev.target.checked;
+    });
+
+    pass2List = $$("Pass2ListCheck").checked;
+    $$("Pass2ListCheck").addEventListener("click", function(ev) {
+        pass2List = ev.target.checked;
+    });
+
+    $$("ExtractListing").addEventListener("click", extractListing);
+}, false);
+</script>
+
+</body>
+</html>
