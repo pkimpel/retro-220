@@ -1008,7 +1008,8 @@ B220MagTapeControl.prototype.positionBackward = function positionBackward(dReg) 
             .then(spaceBlock)
             .catch(this.boundReleaseControl);
         } else {                        // block count exhausted
-            this.currentUnit.boundReleaseDelay(this.driveState)
+            this.currentUnit.reposition(this.driveState)
+            .then(this.currentUnit.boundReleaseDelay)
             .then(this.currentUnit.boundReleaseUnit)
             .then(this.boundReleaseControl)
             .catch(this.boundReleaseControl);

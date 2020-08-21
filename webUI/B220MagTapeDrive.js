@@ -192,11 +192,11 @@ B220MagTapeDrive.prototype.maxTapeWords = Math.floor(B220MagTapeDrive.prototype.
 B220MagTapeDrive.prototype.maxTapeBlocks = Math.floor(B220MagTapeDrive.prototype.maxTapeWords/
                                                 (B220MagTapeDrive.prototype.minBlockWords+B220MagTapeDrive.prototype.startOfBlockWords+B220MagTapeDrive.prototype.endOfBlockWords));
                                         // max possible blocks on a tape lane
-B220MagTapeDrive.prototype.repositionWords = 5;
+B220MagTapeDrive.prototype.repositionWords = 4;
                                         // number of words to reposition back into the block after a turnaround
 B220MagTapeDrive.prototype.startTime = 3;
                                         // tape start time [ms]
-B220MagTapeDrive.prototype.startWords = 6;
+B220MagTapeDrive.prototype.startWords = 4;
                                         // number of words traversed during tape start time
 B220MagTapeDrive.prototype.stopTime = 3;
                                         // tape stop time [ms]
@@ -1356,7 +1356,7 @@ B220MagTapeDrive.prototype.reverseDirection = function reverseDirection(driveSta
 /**************************************/
 B220MagTapeDrive.prototype.reposition = function reposition(driveState) {
     /* Reverses tape direction after a forward tape operation and repositions
-    the head five words from the end of the prior block, giving room for
+    the head four words from the end of the prior block, giving room for
     startup acceleration of the next forward operation. The "prior block" is
     located by the first EOB (erase gap) or flaw marker word encountered when
     moving in a backward direction. Returns a Promise that resolves when tape
@@ -2283,9 +2283,9 @@ B220MagTapeDrive.prototype.initialWriteBlock = function initialWriteBlock(driveS
 /**************************************/
 B220MagTapeDrive.prototype.spaceForwardBlock = function spaceForwardBlock(driveState) {
     /* Positions tape one block in a forward direction. Leaves the block
-    positioned at the preface word, ready to space the next block or reposition
-    into the prior block at the end of the operation. Returns a Promise that
-    resolves after the block is spaced */
+    positioned at the next preface word, ready to space the next block or
+    reposition into the prior block at the end of the operation. Returns a
+    Promise that resolves after the block is spaced */
 
     var spaceBlock = (resolve, reject) => {
         /* Spaces forward over the next block. Blocks are counted as their
@@ -2318,11 +2318,11 @@ B220MagTapeDrive.prototype.spaceForwardBlock = function spaceForwardBlock(driveS
                     if (w == this.markerGap) {
                         ++x;
                     } else {
-                        state = 3;
+                        state = 3;      // found preface word
                     }
                     break;
 
-                case 3: // found preface: search for end of block (next erase-gap word)
+                case 3: // search for end of block (next erase-gap word)
                     if (w == this.markerEOB) {
                         ++x;
                         state = 4;
@@ -2356,9 +2356,8 @@ B220MagTapeDrive.prototype.spaceForwardBlock = function spaceForwardBlock(driveS
 /**************************************/
 B220MagTapeDrive.prototype.spaceBackwardBlock = function spaceBackwardBlock(driveState) {
     /* Positions tape one block in a backward direction. Leaves the block
-    positioned five words into the end of the prior block, as for a normal
-    reposition after a forward operation. Returns a Promise that resolves
-    after the block is spaced */
+    positioned before the preface word. Returns a Promise that resolves after
+    the block is spaced */
 
     var spaceBlock = (resolve, reject) => {
         /* Spaces backward over the current or prior block. Blocks are counted
@@ -2377,10 +2376,9 @@ B220MagTapeDrive.prototype.spaceBackwardBlock = function spaceBackwardBlock(driv
             } else {
                 w = lane[x];
                 switch (state) {
-                case 1: // initial state: skip over flaw and magnetic EOT words
+                case 1: // initial state: skip over inter-block gap, flaw, and magnetic EOT words
                     if (w == this.markerGap) {
                         --x;
-                        state = 2;
                     } else if (w == this.markerFlaw) {
                         --x;
                     } else if (w == this.markerMagEOT) {
@@ -2390,17 +2388,9 @@ B220MagTapeDrive.prototype.spaceBackwardBlock = function spaceBackwardBlock(driv
                     }
                     break;
 
-                case 2: // skip initial inter-block gap words
-                    if (w == this.markerGap) {
-                        --x;
-                    } else {
-                        state = 3;
-                    }
-                    break;
-
                 case 3: // search for start of block (first prior inter-block gap word)
                     if (w == this.markerGap) {
-                        state = 4;
+                        state = 4;      // just passed the preface word
                     } else {
                         --x;
                     }
@@ -2410,16 +2400,8 @@ B220MagTapeDrive.prototype.spaceBackwardBlock = function spaceBackwardBlock(driv
                     if (w == this.markerGap) {
                         --x;
                     } else {
-                        state = 5;
-                    }
-                    break;
-
-                case 5: // skip the prior block's erase-gap words
-                    if (w == this.markerEOB) {
-                        --x;
-                    } else {            // position into end of prior block, as usual
                         state = 0;
-                        resolve(this.moveTapeTo(x-this.repositionWords, driveState));
+                        resolve(this.moveTapeTo(x, driveState));
                     }
                     break;
                 } // switch state
@@ -2438,7 +2420,7 @@ B220MagTapeDrive.prototype.spaceBackwardBlock = function spaceBackwardBlock(driv
 /**************************************/
 B220MagTapeDrive.prototype.spaceEOIBlock = function spaceEOIBlock(driveState) {
     /* Spaces forward one block on tape, detecting end-of-information if encountered
-    (i.e., gap longer and inter-block gap. Returns a Promise that resolves
+    (i.e., gap longer than inter-block gap. Returns a Promise that resolves
     after the block is spaced or EOI is encountered */
 
     var spaceBlock = (resolve, reject) => {

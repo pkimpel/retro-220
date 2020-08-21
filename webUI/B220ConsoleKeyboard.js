@@ -145,6 +145,7 @@ B220ConsoleKeyboard.prototype.keypress = function keypress(ev) {
             break;
         case 0x2B:                      // "+" = ADD
             this.animateClick(this.$$("AddBtn"));
+            this.keyboardEnable(0);
             this.p.keyboardAction(-1);
             break;
         case 0x43: case 0x63:           // "C", "c"

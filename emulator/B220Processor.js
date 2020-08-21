@@ -260,7 +260,7 @@ function B220Processor(config, devices) {
 *   Global Constants                                                   *
 ***********************************************************************/
 
-B220Processor.version = "1.02";
+B220Processor.version = "1.02a";
 
 B220Processor.tick = 1000/200000;       // milliseconds per clock cycle (200KHz)
 B220Processor.cyclesPerMilli = 1/B220Processor.tick;
@@ -1497,6 +1497,8 @@ B220Processor.prototype.integerDivide = function integerDivide() {
     var dSign;                          // sign of divisior
     var rd;                             // current quotient (R) digit;
     var rm = this.R.value%0x10000000000;// current quotient (R) mantissa (ignore sign)
+    var rSign = (this.R.value - rm)/0x10000000000;
+                                        // R register sign (restored later)
     var sign;                           // local copy of sign toggle (sign of quotient)
     var tSign = 1;                      // sign for timing count accumulation
     var x;                              // digit counter
@@ -1531,7 +1533,7 @@ B220Processor.prototype.integerDivide = function integerDivide() {
     if (this.bcdAdd(dm, am, 11, 1, 1) < 0x10000000000) {
         this.OFT.set(1);
         this.A.set(aSign*0x10000000000 + am);
-        this.R.set(aSign*0x10000000000 + rm);
+        this.R.set(rSign*0x10000000000 + rm);
         this.D.set(this.IB.value);
         this.opTime = 0.090;
     } else {
@@ -1554,7 +1556,7 @@ B220Processor.prototype.integerDivide = function integerDivide() {
         } // for x
 
         this.A.set(sign*0x10000000000 + rm);    // rotate final values in A & R
-        this.R.set(sign*0x10000000000 + am);
+        this.R.set(aSign*0x10000000000 + am);
         this.D.set(dSign*0x10000000000 + dm);
         this.opTime = 3.805 + 0.060*count;
     }
@@ -2012,7 +2014,6 @@ B220Processor.prototype.floatingDivide = function floatingDivide() {
     point dividend in the A & R registers by the floating-point divisor in the
     D register, producing a 9- or 10-digit quotient in the A & R registers
     and a 6- or 7-digit remainder in the low-order digits of the R register.
-    See the Floating Point Handbook for the gory details of the result format.
     All values are BCD with the sign in the 11th digit position. The floating
     exponent is in the first two digit positions, biased by 50. Sets the
     Digit Check alarm as necessary */
@@ -2025,7 +2026,9 @@ B220Processor.prototype.floatingDivide = function floatingDivide() {
     var dm = 0;                         // divisor mantissa
     var dSign = 0;                      // divisor sign
     var rd = 0;                         // current quotient (R) digit;
-    var rm = this.R.value%0x10000000000;// current quotient (R) mantissa (ignore sign)
+    var rm = this.R.value%0x10000000000;// current quotient (R) mantissa (drop sign)
+    var rSign = (this.R.value-rm)/0x10000000000;
+                                        // R register sign (restore later)
     var sign = 0;                       // local copy of sign toggle (sign of quotient)
     var timing = 0.085;                 // minimum instruction timing
     var tSign = 1;                      // sign for timing count accumulation
@@ -2048,7 +2051,7 @@ B220Processor.prototype.floatingDivide = function floatingDivide() {
     dm %= 0x100000000;
 
     if (am < 0x10000000 && dm >= 0x10000000) {
-        this.A.set(0);                  // A is not normalized but D is, =quotient=0
+        this.A.set(0);                  // A is not normalized but D is, quotient=0
         this.R.set(0);
     } else if (dm < 0x10000000) {
         this.OFT.set(1);                // D is not normalized, overflow (div 0)
@@ -2071,11 +2074,11 @@ B220Processor.prototype.floatingDivide = function floatingDivide() {
                 sign = 0;
                 this.A.set(am);
             } else {
-                // Shift A+R, D left 2 into high-order digits
-                dm *= 0x100;
-                rd = (rm - rm%0x100000000)/0x100000000;
-                rm = (rm%0x100000000)*0x100;
-                am = am*0x100 + rd;
+                // Shift A+R 1 digit right (exponent adjustment occurs later
+                ad = am%0x10;
+                am = (am-ad)/0x10;
+                rd = rm%0x10;
+                rm = (rm-rd)/0x10 + ad*0x1000000000;
 
                 // We now have the divisor in D (dm) and the dividend in A (am) & R (rm).
                 // The value in am will become the remainder; the value in rm will become
@@ -2083,12 +2086,12 @@ B220Processor.prototype.floatingDivide = function floatingDivide() {
                 // subtracting the divisor from the dividend, counting subtractions until
                 // underflow occurs, and shifting the divisor left one digit.
                 // The 220 probably did not work quite the way that it has been mechanized
-                // below, but we don't have sufficient technical details to know for sure. 
+                // below, but we don't have sufficient technical details to know for sure.
                 // The following is adapted from the 205 implementation.
 
-                for (x=0; x<10; ++x) {
+                for (x=0; x<11; ++x) {
                     // Repeatedly subtract D from A until we would get underflow.
-                    ad = 0;					
+                    ad = 0;
 
                     /********** DEBUG **********
                     console.log("FDV %2d Ax=%3s A=%11s R=%11s Dx=%2s D=%11s", x,
@@ -2109,21 +2112,21 @@ B220Processor.prototype.floatingDivide = function floatingDivide() {
                     rd = (rm - rm%0x1000000000)/0x1000000000;
                     rm = (rm%0x1000000000)*0x10 + ad;
                     // Shift into remainder except on last digit.
-                    if (x < 9) {
+                    if (x < 10) {
                         am = am*0x10 + rd;
                     }
 
                     tSign = -tSign;
                 } // for x
-																 
-                /********** DEBUG ********** 
+
+                /********** DEBUG **********
                 console.log("FDV %2d Ax=%3s A=%11s R=%11s Dx=%2s D=%11s", x,
                     (ax+0x1000).toString(16).substring(1),
                     (am+0x100000000000).toString(16).substring(1),
                     (rm+0x100000000000).toString(16).substring(1),
                     (dx+0x1000).toString(16).substring(1),
                     (dm+0x100000000000).toString(16).substring(1));
-                ***************************/ 
+                ***************************/
 
                 // Rotate the quotient and remainder for 10 digits to exchange registers
                 for (x=0; x<10; ++x) {
@@ -2132,7 +2135,7 @@ B220Processor.prototype.floatingDivide = function floatingDivide() {
                     rm = (rm - rd)/0x10 + ad*0x1000000000;
                     am = (am - ad)/0x10 + rd*0x1000000000;
                 }
-					
+
                 /********** DEBUG **********
                 console.log("FDV %2d Ax=%3s A=%11s R=%11s Dx=%2s D=%11s", 98,
                     (ax+0x1000).toString(16).substring(1),
@@ -2144,6 +2147,8 @@ B220Processor.prototype.floatingDivide = function floatingDivide() {
 
                 if (am >=0x1000000000 && ax == 0x99) {
                     this.OFT.set(1);
+                    this.A.set(am);
+                    this.R.set(rSign*0x10000000000 + rm);
                 } else {
                     if (am < 0x1000000000) {
                         // Normalize one digit to the right
@@ -2158,7 +2163,7 @@ B220Processor.prototype.floatingDivide = function floatingDivide() {
                         ax = this.bcdAdd(ax, 1, 3);
                     }
 
-                    /********** DEBUG ********** 
+                    /********** DEBUG **********
                     console.log("FDV %2d Ax=%3s A=%11s R=%11s Dx=%2s D=%11s", 99,
                         (ax+0x1000).toString(16).substring(1),
                         (am+0x100000000000).toString(16).substring(1),
@@ -2169,7 +2174,7 @@ B220Processor.prototype.floatingDivide = function floatingDivide() {
 
                     // Reconstruct the final product in the registers
                     this.A.set((sign*0x100 + ax)*0x100000000 + am);
-                    this.R.set(sign*0x10000000000 + rm);
+                    this.R.set(rSign*0x10000000000 + rm);
                 }
 
                 timing += 4.075 + 0.060*count;
