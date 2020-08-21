@@ -6,6 +6,11 @@ Unless otherwise specified, all files are in standard Windows text
 format, with carriage-return/line-feed delimiters.
 
 
+220-Paper-Tape-Decoder.html
+    HTML/Javascript utility to translate Al Kossow's binary paper-
+    tape image files to the paper-tape image format used by the
+    retro-220 emulator.
+
 BAC-Assembler.html
     HTML/Javascript assembler for the assembly language dialect used
     with the BALGOL Main, Overlay, and library functions.
@@ -13,6 +18,11 @@ BAC-Assembler.html
 BAC-DeckGen.cmd
     Windows command-line script to generate card decks for BAC-Assembler
     from the transcribed *.baca files for the BALGOL compiler.
+
+BAC-Disassembler.html
+    HTML/Javascript utility to disassemble 220 object code from paper-
+    tape image files (in the format used by the retro-220 emulator) to
+    the assembly notation used by BAC-Assembler.html.
 
 BAC-XScript-Reformatter.wsf
     Windows VBScript utility to extract source code from the BALGOL
@@ -53,5 +63,6 @@ January 2018
 2018-06-10
     Add BALGOL-Dumpanalyzer.
 2018-10-22
-    Added Xlate-Card-PT.wsf
-
+    Added Xlate-Card-PT.wsf.
+2020-08-20
+    Added 220-Paper-Tape-Decoder.html and BAC-Disassembler.html.

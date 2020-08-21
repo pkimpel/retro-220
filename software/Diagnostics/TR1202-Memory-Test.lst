@@ -1,9 +1,9 @@
-Disassembler for the Burroughs 220 BALGOL Compiler & Library -- 2020-08-20 09:52
+Disassembler for the Burroughs 220 BALGOL Compiler & Library -- 2020-08-20 16:11
 
 Source File: TR1202-Memory-Test.pt
 
              1      0000                         REM                 TR1202-MEMORY-TEST.PT
-             2      0020                         LOCN  20
+             2      0000                         LOCN  20
              3      0020  0 0000 42 0378         LDB   378
              4      0021  1 0000 10 0363         CAD - 363
              5      0022  0 0008 43 0000         LSA   8
@@ -377,7 +377,7 @@ Source File: TR1202-Memory-Test.pt
            373      0390  0 0000 00 0000         HLT
            374      0391  0 0000 00 0000         HLT
            375      0392  6 0000 30 0020         BUN 6 20
-           376      0020                         LOCN  20
+           376      0393                         LOCN  20
            377      0020  0 0000 42 0179         LDB   179
            378      0021  1 0000 10 0174         CAD - 174
            379      0022  0 0008 43 0000         LSA   8

@@ -44,6 +44,8 @@
 *
 *   - Punched cards in a self-loading band-6 format (default).
 *
+*   - Punched paper tape in self-loading format.
+*
 *   - Punched cards in BALGOL Machine Language format. This is also a
 *     band-6 format, but requires a separate loader program. See Appendix
 *     F in the BAC-220 reference manual under the heading "PREPARATION OF
@@ -396,14 +398,14 @@ window.addEventListener("load", function() {
         "PWI":  [      7,  1, -1,  4, -1],
         "KAD":  [      8,  1,  0,  3,  0],
         "SPO":  [      9,  1, -1,  8, -1, 15,  0],
-        "CAD":  [     10,  1, -1],
-        "CAA":  [    110,  1, -1],
-        "CSU":  [     11,  1, -1],
-        "CSA":  [    111,  1, -1],
-        "ADD":  [     12,  1, -1],
-        "ADA":  [    112,  1, -1],
-        "SUB":  [     13,  1, -1],
-        "SUA":  [    113,  1, -1],
+        "CAD":  [     10,  1, -1,  3,  0],
+        "CAA":  [    110,  1, -1,  3,  0],
+        "CSU":  [     11,  1, -1,  3,  0],
+        "CSA":  [    111,  1, -1,  3,  0],
+        "ADD":  [     12,  1, -1,  3,  0],
+        "ADA":  [    112,  1, -1,  3,  0],
+        "SUB":  [     13,  1, -1,  3,  0],
+        "SUA":  [    113,  1, -1,  3,  0],
         "MUL":  [     14,  1, -1,  3,  0],
         "DIV":  [     15,  1, -1,  3,  0],
         "RND":  [     16,  1,  0,  3,  0],
@@ -728,7 +730,7 @@ window.addEventListener("load", function() {
         var e = document.createTextNode(text + "\n");
 
         panel.appendChild(e);
-        panel.scrollTop += 30
+        panel.scrollTop += 30;
     }
 
     /**************************************/
@@ -1296,7 +1298,7 @@ window.addEventListener("load", function() {
             word = opDesc[0]*p10[4];
         }
 
-        for (ox=1; ox<opDesc.length; ox+=2) {
+        for (ox=1; ox<opTop; ox+=2) {
             if (vx < vTop) {
                 f = values[vx];
             } else if (opDesc[ox+1] < 0) {
@@ -1374,7 +1376,7 @@ window.addEventListener("load", function() {
                 word = putField(word, f, 33);
                 break;
             case 19:                    // resolved address only in (04)
-               word = putField(word, f, 4);
+                word = putField(word, f, 4);
                 break;
             default:
                 printError("INVALID OPDESC INDEX: " + opDesc[ox]);

@@ -43,6 +43,8 @@
 *
 *   - Punched cards in a self-loading band-6 format (default).
 *
+*   - Punched paper tape in self-loading format.
+*
 *   - Punched cards in BALGOL Machine Language format. This is also a
 *     band-6 format, but requires a separate loader program. See Appendix
 *     F in the BAC-220 reference manual under the heading "PREPARATION OF
@@ -832,7 +834,7 @@ window.addEventListener("load", function() {
         var e = document.createTextNode(rTrim(text) + "\n");
 
         panel.appendChild(e);
-        panel.scrollTop += 30
+        panel.scrollTop += 30;
     }
 
     /**************************************/

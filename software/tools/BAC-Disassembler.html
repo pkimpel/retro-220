@@ -15,7 +15,15 @@
 * library.
 *
 * Input is a text file in retro-220 paper-tape image format with one
-* decimal word per line.
+* decimal word per line. For details on that format, see:
+* https://github.com/pkimpel/retro-220/wiki/UsingTheSPOAndPaperTape.
+*
+* The disasssembler is written in Javascript embedded within an HTML
+* web page. To use, load the assembler into a browser, e.g., from
+* https://github.com/pkimpel/retro-220/wiki/UsingTheSPOAndPaperTape.
+* Select the desired output mode (listing only or listing plus assembly
+* deck), then use the file picker to select the paper-tape image file.
+* Selecting the file initiates the disassembly process.
 *
 ************************************************************************
 * 2020-08-19  P.Kimpel
@@ -970,9 +978,10 @@ window.addEventListener("load", function() {
                     break;
                 }
             } else if ((sign & 0x04) == 4 && (op == 50 || op == 51)) {
-                    // fall through for MFS and MFC
+                // fall through for MFS and MFC
             } else {
                 emitConstant(location, w, "", sign);
+                ++location;
                 return;
             }
         }
