@@ -260,7 +260,7 @@ function B220Processor(config, devices) {
 *   Global Constants                                                   *
 ***********************************************************************/
 
-B220Processor.version = "1.02a";
+B220Processor.version = "1.03";
 
 B220Processor.tick = 1000/200000;       // milliseconds per clock cycle (200KHz)
 B220Processor.cyclesPerMilli = 1/B220Processor.tick;
@@ -3958,15 +3958,10 @@ B220Processor.prototype.execute = function execute() {
         switch (this.CCONTROL%0x10) {
         case 1:         // SLT: Shift Left A and R
             x = this.CADDR % 0x20;
-            if (x < 0x10) {
-                this.opTime = 0.210 - x*0.005;
-            } else {
-                this.opTime = 0.160 - (x-0x10)*0.005;
-            }
-
+            this.opTime = 0.210 - x*0.005;
             this.DC.set(x);
-            w = this.R.value % 0x10000000000;           // R sign is not affected
-            this.A.value %= 0x10000000000;              // discard the A sign
+            w = this.R.value % 0x10000000000;           // the R sign is not affected
+            this.A.value %= 0x10000000000;              // discard the A sign for now
             while (this.DC.value < 0x20) {
                 d = w % 0x10;
                 w = (w-d)/0x10 + (this.A.value%0x10)*0x1000000000;
@@ -3977,12 +3972,18 @@ B220Processor.prototype.execute = function execute() {
             this.R.set(this.R.value - this.R.value%0x10000000000 + w); // restore the R sign
             break;
         case 2:         // SLS: Shift Left A with Sign
-            x = this.CADDR % 0x10;
+            w = this.A.value % 0x100000000000;          // the A sign is included in the rotate
+            d = w % 0x10;                               // always do one more rotate right
+            w = (w-d)/0x10 + d*0x10000000000;           //    than the count calls for
+            x = this.CADDR % 0x20;
+            if (x >= 0x10) {
+                x -= 0x10;                              // if the count is at least 10
+                d = w % 0x10;                           //    do one additional rotate right
+                w = (w-d)/0x10 + d*0x10000000000;
+            }
+
             this.opTime = 0.160 - x*0.005;
             this.DC.set(0x10+x);
-            w = this.A.value % 0x100000000000;          // A sign is included
-            d = w % 0x10;                               // do one more rotate right
-            w = (w-d)/0x10 + d*0x10000000000;           //    than the count calls for
             while (this.DC.value < 0x20) {
                 d = w % 0x10;
                 w = (w-d)/0x10 + d*0x10000000000;
@@ -3994,7 +3995,7 @@ B220Processor.prototype.execute = function execute() {
             x = this.CADDR % 0x10;
             this.opTime = 0.160 - x*0.005;
             this.DC.set(0x10+x);
-            w = this.A.value % 0x10000000000;           // A sign is not affected
+            w = this.A.value % 0x10000000000;           // discard the A sign for now
             while (this.DC.value < 0x20) {
                 d = w % 0x10;
                 w = (w-d)/0x10 + d*0x1000000000;
