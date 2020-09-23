@@ -233,27 +233,27 @@ window.addEventListener("load", function() {
 
     var xlateANSI220 = [ // translate ANSI to 220 internal character codes
        // 00  01  02  03  04  05  06  07  08  09  0A  0B  0C  0D  0E  0F
-           0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  //  0-0F
-           0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  // 10-1F
-           0,  0,  0, 33, 13, 24, 10, 34, 24,  4, 14, 10, 23, 20,  3, 21,  // 20-2F
-          80, 81, 82, 83, 84, 85, 86, 87, 88, 89,  0, 13,  4, 33,  0,  0,  // 30-3F
+          17, 17, 17, 17, 17, 17, 17, 17, 17, 26, 35, 17, 15, 16, 17, 17,  // 00-0F
+          17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17,  // 10-1F
+           0, 17, 36, 33, 13, 24, 10, 34, 24,  4, 14, 10, 23, 20,  3, 21,  // 20-2F
+          80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 27, 13,  4, 33,  5, 17,  // 30-3F
           34, 41, 42, 43, 44, 45, 46, 47, 48, 49, 51, 52, 53, 54, 55, 56,  // 40-4F
-          57, 58, 59, 62, 63, 64, 65, 66, 67, 68, 69,  0,  0,  0, 15,  2,  // 50-5F
-           0, 41, 42, 43, 44, 45, 46, 47, 48, 49, 51, 52, 53, 54, 55, 56,  // 60-6F
-          57, 58, 59, 62, 63, 64, 65, 66, 67, 68, 69,  0, 16,  0, 26,  0]; // 70-7F
+          57, 58, 59, 62, 63, 64, 65, 66, 67, 68, 69, 32,  6, 12, 15,  2,  // 50-5F
+          37, 41, 42, 43, 44, 45, 46, 47, 48, 49, 51, 52, 53, 54, 55, 56,  // 60-6F
+          57, 58, 59, 62, 63, 64, 65, 66, 67, 68, 69, 22, 16, 25, 26, 17]; // 70-7F
 
     var xlate220ANSI = [ // translate internal B220 code to ANSI (Algol glyphs)
-        // 00   01   02   03   04        05    06    07   08   09
-          " ", "?", "_", ".", ")",      "?",  "?",  "?", "?", "?",  // 00-09
-          "+", "?", "?", "$", "*",      "^",  "|",  "?", "?", "?",  // 10-19
-          "-", "/", "?", ",", "(",      "?",  "~",  "?", "?", "?",  // 20-29
-          "?", "?", "?", "=", "@",      "\\", "?",  "?", "?", "?",  // 30-39
-          "?", "A", "B", "C", "D",      "E",  "F",  "G", "H", "I",  // 40-49
-          "?", "J", "K", "L", "M",      "N",  "O",  "P", "Q", "R",  // 50-59
-          "?", "?", "S", "T", "U",      "V",  "W",  "X", "Y", "Z",  // 60-69
-          "?", "?", "?", "?", "?",      "?",  "?",  "?", "?", "?",  // 70-79
-          "0", "1", "2", "3", "4",      "5",  "6",  "7", "8", "9",  // 80-89
-          "?", "?", "?", "?", "?",      "?",  "?",  "?", "?", "?"]; // 90-99
+        // 00   01   02   03   04   05   06   07   08   09
+          " ", "?", "_", ".", "<", ">", "\\","?", "?", "?",  // 00-09
+          "&", "?", "]", "$", "*", "^", "|", "?", "?", "?",  // 10-19
+          "-", "/", "{", ",", "%", "}", "~", ":", "?", "?",  // 20-29
+          "?", "?", "[", "#", "@", "\n","\"","`", "?", "?",  // 30-39
+          "?", "A", "B", "C", "D", "E", "F", "G", "H", "I",  // 40-49
+          "?", "J", "K", "L", "M", "N", "O", "P", "Q", "R",  // 50-59
+          "?", "?", "S", "T", "U", "V", "W", "X", "Y", "Z",  // 60-69
+          "?", "?", "?", "?", "?", "?", "?", "?", "?", "?",  // 70-79
+          "0", "1", "2", "3", "4", "5", "6", "7", "8", "9",  // 80-89
+          "?", "?", "?", "?", "?", "?", "?", "?", "?", "?"]; // 90-99
 
     /***************************************
     * Opcode table:
@@ -302,6 +302,7 @@ window.addEventListener("load", function() {
     var pseudoFBGR = -6;
     var pseudoFINI = -9;
 
+    // Table of the primary field (sL code) for each opTab table field type code.
     var fieldTab = [-1,
          4, 33, 44, 11, 41, 22, 22, 32, 42, 21, 62, 64, 11, 41, 41, 31, 41, 33,  4,  4];
 
@@ -633,11 +634,11 @@ window.addEventListener("load", function() {
                     }
 
                     w = ((((200 +
-                        xlateANSI220[line.charAt(1)])*100 +
-                        xlateANSI220[line.charAt(2)])*100 +
-                        xlateANSI220[line.charAt(3)])*100 +
-                        xlateANSI220[line.charAt(4)])*100 +
-                        xlateANSI220[line.charAt(5)];
+                        xlateANSI220[line.charCodeAt(1)])*100 +
+                        xlateANSI220[line.charCodeAt(2)])*100 +
+                        xlateANSI220[line.charCodeAt(3)])*100 +
+                        xlateANSI220[line.charCodeAt(4)])*100 +
+                        xlateANSI220[line.charCodeAt(5)];
                 } else {
                     if (lineLength > 11) {
                         printError("Input line too long: " + line);
@@ -774,15 +775,16 @@ window.addEventListener("load", function() {
     function emitConstant(location, word, lab, sign, comment) {
         /* Emits one word as a CNST pseudo */
         var char = 0;
+        var temp = word;
         var text = "";
 
         if (sign != 2) {
             emitPseudo(location, word, lab, "CNST", 0, word.toString());
         } else {
-            while (word >= 200) {
-                char = word%100;
+            while (temp > 2) {
+                char = temp%100;
                 text = xlate220ANSI[char] + text;
-                word = (word-char)/100;
+                temp = (temp-char)/100;
             }
 
             emitPseudo(location, word, lab, "CNST", 0, "$" + text + "$");
@@ -1319,6 +1321,7 @@ window.addEventListener("load", function() {
         printLine("");
 
         errorCount = 0;
+        lineNr = 0;
         location = 0;
         wordData.atEOF = false;
         wordData.serial = 0;
@@ -1344,7 +1347,7 @@ window.addEventListener("load", function() {
         /* Determines the output mode. Opens the source deck window if
         needed and sets it up. Finally, calls disassembleFile() */
         var index = 0;
-        var select = document.getElementById("OutputModeSelect");
+        var select = $$("OutputModeSelect");
         var title = "220 BAC-Disassembler Source Deck";
 
         function configureDeck(ev) {

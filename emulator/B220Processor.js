@@ -260,7 +260,7 @@ function B220Processor(config, devices) {
 *   Global Constants                                                   *
 ***********************************************************************/
 
-B220Processor.version = "1.03";
+B220Processor.version = "1.03a";
 
 B220Processor.tick = 1000/200000;       // milliseconds per clock cycle (200KHz)
 B220Processor.cyclesPerMilli = 1/B220Processor.tick;
@@ -2991,37 +2991,38 @@ B220Processor.prototype.consoleInputInitiateNormal = function consoleInputInitia
         this.C.inc();
         this.CADDR = this.C.value%0x10000;
 
-        switch (code) {
-        case 0x17:                      // invalid character/parity error
+        if (result.error) {
             this.setPaperTapeCheck(1);
             this.ioComplete(true);
-            break;
-        case 0x35:                      // end-of-word
-            this.consoleInputFinishWord(result);
-            break;
-        case 0x82:                      // sign=2, set alpha translation
-            this.PZT.set(!this.HOLDPZTZEROSW);
-            this.D.set(2);
-            this.asyncOn();
-            result.readChar(this.boundConsoleInputReceiveChar);
-            break;
-        default:                        // anything else, set numeric translation
-            this.PZT.set(0);
-            if ((code & 0xF0) == 0x80) {// it's a numeric sign -- okay
-                this.D.set(code%0x10);
+        } else {
+            switch (code) {
+            case 0x35:                      // end-of-word
+                this.consoleInputFinishWord(result);
+                break;
+            case 0x82:                      // sign=2, set alpha translation
+                this.PZT.set(!this.HOLDPZTZEROSW);
+                this.D.set(2);
                 this.asyncOn();
                 result.readChar(this.boundConsoleInputReceiveChar);
-            } else if (code == 0) {     // we'll take a space as a zero
-                this.D.set(0);
-                this.asyncOn();
-                result.readChar(this.boundConsoleInputReceiveChar);
-            } else {                    // sign is non-numeric -- invalid
-                this.D.set(0);
-                this.setPaperTapeCheck(1);
-                this.ioComplete(true);
-            }
-            break;
-        } // switch code
+                break;
+            default:                        // anything else, set numeric translation
+                this.PZT.set(0);
+                if ((code & 0xF0) == 0x80) {// it's a numeric sign -- okay
+                    this.D.set(code%0x10);
+                    this.asyncOn();
+                    result.readChar(this.boundConsoleInputReceiveChar);
+                } else if (code == 0) {     // we'll take a space as a zero
+                    this.D.set(0);
+                    this.asyncOn();
+                    result.readChar(this.boundConsoleInputReceiveChar);
+                } else {                    // sign is non-numeric -- invalid
+                    this.D.set(0);
+                    this.setPaperTapeCheck(1);
+                    this.ioComplete(true);
+                }
+                break;
+            } // switch code
+        }
     }
 };
 
@@ -3038,31 +3039,32 @@ B220Processor.prototype.consoleInputInitiateInverse = function consoleInputIniti
         this.C.inc();
         this.CADDR = this.C.value%0x10000;
 
-        switch (code) {
-        case 0x17:                      // invalid character/parity error
+        if (result.error) {
             this.setPaperTapeCheck(1);
             this.ioComplete(true);
-            break;
-        case 0x35:                      // end-of-word
-            this.consoleInputFinishWord(result);
-            break;
-        default:                        // anything else, set numeric translation
-            this.PZT.set(0);
-            if ((code & 0xF0) == 0x80) {// it's a numeric code -- okay
-                this.D.set(code%0x10);
-                this.asyncOn();
-                result.readChar(this.boundConsoleInputReceiveChar);
-            } else if (code == 0) {     // we'll take a space as a zero
-                this.D.set(0);
-                this.asyncOn();
-                result.readChar(this.boundConsoleInputReceiveChar);
-            } else {                    // digit is non-numeric -- invalid
-                this.D.set(0);
-                this.setPaperTapeCheck(1);
-                this.ioComplete(true);
-            }
-            break;
-        } // switch code
+        } else {
+            switch (code) {
+            case 0x35:                      // end-of-word
+                this.consoleInputFinishWord(result);
+                break;
+            default:                        // anything else, set numeric translation
+                this.PZT.set(0);
+                if ((code & 0xF0) == 0x80) {// it's a numeric code -- okay
+                    this.D.set(code%0x10);
+                    this.asyncOn();
+                    result.readChar(this.boundConsoleInputReceiveChar);
+                } else if (code == 0) {     // we'll take a space as a zero
+                    this.D.set(0);
+                    this.asyncOn();
+                    result.readChar(this.boundConsoleInputReceiveChar);
+                } else {                    // digit is non-numeric -- invalid
+                    this.D.set(0);
+                    this.setPaperTapeCheck(1);
+                    this.ioComplete(true);
+                }
+                break;
+            } // switch code
+        }
     }
 };
 
@@ -3079,35 +3081,36 @@ B220Processor.prototype.consoleInputReceiveChar = function consoleInputReceiveCh
 
     this.asyncOff();
     if (this.AST.value) {               // if false, we've probably been cleared
-        switch (code) {
-        case 0x17:                      // invalid character/parity error
+        if (result.error) {
             this.setPaperTapeCheck(1);
             this.ioComplete(true);
-            break;
-        case 0x35:                      // end-of-word
-            this.consoleInputFinishWord(result);
-            break;
-        default:                        // anything else, accumulate digits in word
-            if (this.PZT.value) {       // alphanumeric translation
-                this.D.set((this.D.value % 0x1000000000)*0x100 + code);
-                this.asyncOn();
-                result.readChar(this.boundConsoleInputReceiveChar);
-            } else {                    // numeric translation
-                if ((code & 0xF0) == 0x80) {// it's a numeric code -- okay
-                    this.D.set((this.D.value % 0x10000000000)*0x10 + code%0x10);
+        } else {
+            switch (code) {
+            case 0x35:                      // end-of-word
+                this.consoleInputFinishWord(result);
+                break;
+            default:                        // anything else, accumulate digits in word
+                if (this.PZT.value) {       // alphanumeric translation
+                    this.D.set((this.D.value % 0x1000000000)*0x100 + code);
                     this.asyncOn();
                     result.readChar(this.boundConsoleInputReceiveChar);
-                } else if (code == 0) {     // we'll take a space as a zero
-                    this.D.set((this.D.value % 0x10000000000)*0x10);
-                    this.asyncOn();
-                    result.readChar(this.boundConsoleInputReceiveChar);
-                } else {                    // code is non-numeric -- invalid
-                    this.setPaperTapeCheck(1);
-                    this.ioComplete(true);
+                } else {                    // numeric translation
+                    if ((code & 0xF0) == 0x80) {// it's a numeric code -- okay
+                        this.D.set((this.D.value % 0x10000000000)*0x10 + code%0x10);
+                        this.asyncOn();
+                        result.readChar(this.boundConsoleInputReceiveChar);
+                    } else if (code == 0) {     // we'll take a space as a zero
+                        this.D.set((this.D.value % 0x10000000000)*0x10);
+                        this.asyncOn();
+                        result.readChar(this.boundConsoleInputReceiveChar);
+                    } else {                    // code is non-numeric -- invalid
+                        this.setPaperTapeCheck(1);
+                        this.ioComplete(true);
+                    }
                 }
-            }
-            break;
-        } // switch code
+                break;
+            } // switch code
+        }
     }
 };
 

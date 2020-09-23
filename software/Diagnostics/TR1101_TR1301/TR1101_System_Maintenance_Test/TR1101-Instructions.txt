@@ -1,0 +1,29 @@
+TR1101 Instructions [written on inside of box lid]
+
+Enter Unit Z[?] by keyboard         Restart 0030
+
+Execute 10000 04 0000 with A Sgn = 1
+
+Before read in:
+
+    Cell 0001   5000
+            2   Card units
+            3   TSU's
+            4   1 in A-1
+            5   0
+            6   0
+
+Prg Switches - 6 [7 crossed out]
+
+               5 6 7 & 9 (locks up on Sect 3)
+
+_____________
+
+Program switch use (deduced from behavior):
+
+1   Lock up execution on current test
+
+4   Skips initial positioning of mag tape drives
+
+5   Skips printing test name on SPO
+
