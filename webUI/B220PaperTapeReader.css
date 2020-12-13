@@ -83,6 +83,14 @@
     right:              8px;
     top:                6px}
 
+#PRWordCountDiv {
+    position:           absolute;
+    text-align:         right;
+    right:              8px;
+    top:                46px;
+    font-size:          8pt;
+    line-height:        100%}
+
 #PRFileSelector {
     position:           absolute;
     left:               8px;

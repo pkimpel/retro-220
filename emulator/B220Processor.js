@@ -260,7 +260,7 @@ function B220Processor(config, devices) {
 *   Global Constants                                                   *
 ***********************************************************************/
 
-B220Processor.version = "1.03a";
+B220Processor.version = "1.03b";
 
 B220Processor.tick = 1000/200000;       // milliseconds per clock cycle (200KHz)
 B220Processor.cyclesPerMilli = 1/B220Processor.tick;
@@ -2823,7 +2823,7 @@ B220Processor.prototype.consoleOutputSign = function consoleOutputSign(printSign
             this.DPT.set(this.CCONTROL%0x10 == 1 && this.COP == 0x09);
             this.LT1.set(this.LEADINGZEROESSW); // use LT1 for leading-zero suppression (probably not accurate)
             this.EWT.set(0);
-            this.PZT.set(d == 2 && !this.HOLDPZTZEROSW);
+            this.PZT.set(d == 2 && !this.HOLDPZTZEROSW ? 1 : 0);
             this.PA.set(0x80 + d);      // translate numerically
             this.asyncOn();
             printSign(this.PA.value, this.boundConsoleOutputChar);
@@ -2917,10 +2917,11 @@ B220Processor.prototype.consoleInputFinishWord = function consoleInputFinishWord
     /* Finishes the receipt of a word from the Console paper tape reader and
     either stores it in memory or shunts it to the C register for execution.
     Updates the C register as necessary and decides whether to initiate receipt
-    of another word. Note that this routine does not do asyncOff -- that is handled
-    by the caller */
-    var d;
-    var w;
+    of another word. Note that this routine does not do asyncOff -- that is
+    handled by the caller. this.sDigit controls whether the word count in C
+    controls the number of words read. this.rDigit holds C:41 */
+    var d = 0;
+    var w = 0;
 
     if (this.sDigit) {                  // decrement word count
         d = this.bcdAdd(this.CCONTROL, 0x990, 3);
@@ -2946,33 +2947,35 @@ B220Processor.prototype.consoleInputFinishWord = function consoleInputFinishWord
         this.D.set(w + (d&0x07)*0x10000000000);
         this.IB.set(this.D.value - w%0x10000 + this.bcdAdd(w, this.B.value, 4));
         this.C10.set(0);
-    } else {                            // store word as-is
+    } else {                            // use word as-is
         this.IB.set(this.D.value);
+        if ((d & 0x0E) == 0x06 && (this.COP != 0x03 || this.rDigit == 1)) {
+            // Control word to C register
+            this.ioComplete(false);         // terminate I/O but do not restart Processor yet
+            this.fetch(true);               // set up to execute control word
+            // Schedule the Processor to give the reader a chance to finish its operation.
+            setCallback(this.mnemonic, this, 0, this.schedule);
+            return;
+        }
     }
 
-    if (this.rDigit == 1 && (d & 0x0E) == 0x06) { // control word to C register
-        this.ioComplete(false);         // terminate I/O but do not restart Processor yet
-        this.fetch(true);               // set up to execute control word
-        // Schedule the Processor to give the reader a chance to finish its operation.
-        setCallback(this.mnemonic, this, 0, this.schedule);
-    } else {                            // just store the word
-        this.writeMemory();
-        if (this.MET.value) {           // memory address error
+    // Store the word
+    this.writeMemory();
+    if (this.MET.value) {           // memory address error
+        this.ioComplete(true);
+    } else if (this.sDigit && this.CCONTROL%0x1000 < 0x10) { // word count exhausted
+        this.ioComplete(true);
+    } else {                        // initiate input of another word
+        this.D.set(0);
+        this.asyncOn();
+        if (this.COP == 0x05) {
+            d = this.console.inputUnitSelect(this.selectedUnit, this.boundConsoleInputInitiateInverse);
+        } else {
+            d = this.console.inputUnitSelect(this.selectedUnit, this.boundConsoleInputInitiateNormal);
+        }
+        if (d < 0) {                // no unit available -- set alarm and quit
+            this.setPaperTapeCheck(1);
             this.ioComplete(true);
-        } else if (this.sDigit && this.CCONTROL%0x1000 < 0x10) { // word count exhausted
-            this.ioComplete(true);
-        } else {                        // initiate input of another word
-            this.D.set(0);
-            this.asyncOn();
-            if (this.COP == 0x05) {
-                d = this.console.inputUnitSelect(this.selectedUnit, this.boundConsoleInputInitiateInverse);
-            } else {
-                d = this.console.inputUnitSelect(this.selectedUnit, this.boundConsoleInputInitiateNormal);
-            }
-            if (d < 0) {                // no unit available -- set alarm and quit
-                this.setPaperTapeCheck(1);
-                this.ioComplete(true);
-            }
         }
     }
 };
@@ -3388,8 +3391,8 @@ B220Processor.prototype.fetch = function fetch(entryP) {
     Operation Complete if the processor is in continuous mode. The "entryP"
     parameter indicates whether the instruction word is already in IB (true)
     or must be fetched from the address in P first (false) */
-    var dSign;                          // sign bit of IB register
-    var word;                           // instruction word
+    var dSign = 0;                      // sign bit of IB register
+    var word = 0;                       // instruction word
 
     if (entryP) {                       // if instruction already loaded
         word = this.IB.value;
@@ -3426,11 +3429,10 @@ B220Processor.prototype.execute = function execute() {
     /* Implements the Execute cycle of the 220 processor. This is initiated
     either by pressing START on the console with the EXT=1 (Execute), or by
     the prior Operation Complete if the processor is in automatic mode */
-    var d;                              // scratch digit
-    var w;                              // scratch word
-    var x;                              // scratch variable or counter
+    var d = 0;                          // scratch digit
+    var w = this.C.value;               // scratch word
+    var x = 0;                          // scratch variable or counter
 
-    w = this.C.value;
     this.CCONTROL = (w - w%0x1000000)/0x1000000;        // C register control digits
     this.COP = (w%0x1000000 - w%0x10000)/0x10000;       // C register operation code
     this.CADDR = w%0x10000;                             // C register operand address
@@ -3458,6 +3460,7 @@ B220Processor.prototype.execute = function execute() {
         break;
 
     case 0x03:      //--------------------- PRD     Paper tape read
+        this.traceState();              /*************************** DEBUG ***********************/
         this.opTime = 0.185;                            // just a guess...
         d = this.CCONTROL >>> 12;                       // get unit number
         if (d == 0) {
@@ -3477,6 +3480,7 @@ B220Processor.prototype.execute = function execute() {
         break;
 
     case 0x04:      //--------------------- PRB     Paper tape read, branch
+        this.traceState();              /*************************** DEBUG ***********************/
         this.opTime = 0.185;                            // just a guess...
         d = this.CCONTROL >>> 12;                       // get unit number
         if (d == 0) {
@@ -3484,7 +3488,7 @@ B220Processor.prototype.execute = function execute() {
         }
 
         this.selectedUnit = d;
-        this.rDigit = (this.CCONTROL & 0x0E) | 1;       // force recognition of control words
+        this.rDigit = this.CCONTROL%0x10;
         this.sDigit = 0;                                // do not use word count in C (32)
         this.D.set(0);
         this.ioInitiate();
@@ -3496,6 +3500,7 @@ B220Processor.prototype.execute = function execute() {
         break;
 
     case 0x05:      //--------------------- PRI     Paper tape read, inverse format
+        this.traceState();              /*************************** DEBUG ***********************/
         this.opTime = 0.185;                            // just a guess...
         d = this.CCONTROL >>> 12;                       // get unit number
         if (d == 0) {
@@ -3503,7 +3508,7 @@ B220Processor.prototype.execute = function execute() {
         }
 
         this.selectedUnit = d;
-        this.rDigit = (this.CCONTROL & 0x0E) | 1;       // force recognition of control words
+        this.rDigit = this.CCONTROL%0x10;
         this.sDigit = 1;                                // use word count in C (32)
         this.D.set(0);
         this.ioInitiate();
@@ -4380,7 +4385,8 @@ B220Processor.prototype.traceState = function traceState() {
              " | UET=" + this.UET.value +
              " | HIT=" + this.HIT.value +
              " | OFT=" + this.OFT.value +
-             " | RPT=" + this.RPT.value);
+             " | RPT=" + this.RPT.value +
+             " || PTRA @ " + this.console.inputUnit[1].wordCount); // ***** DEBUG *****
 };
 
 /**************************************/
@@ -4424,7 +4430,6 @@ B220Processor.prototype.run = function run() {
             if (this.SST.value) {
                 this.stop();                    // single-stepping
             }
-            break;
         }
     } while (this.execClock < this.execLimit);
 };

@@ -49,6 +49,7 @@ function B220PaperTapeReader(mnemonic, unitIndex, config) {
     this.window = null;
     this.tapeSupplyBar = null;
     this.tapeView = null;
+    this.wordCountDiv = null;
     B220Util.openPopup(window, "../webUI/B220PaperTapeReader.html", mnemonic,
             "location=no,scrollbars=no,resizable,width=420,height=160,left=" + left + ",top=" + top,
             this, B220PaperTapeReader.prototype.readerOnload);
@@ -100,6 +101,7 @@ B220PaperTapeReader.prototype.clear = function clear() {
     this.buffer = "";                   // reader input buffer (paper-tape reel)
     this.bufLength = 0;                 // current input buffer length (characters)
     this.bufIndex = 0;                  // 0-relative offset to next character to be read
+    this.wordCount = 0;                 // count of full words read from tape
 };
 
 /**************************************/
@@ -115,6 +117,7 @@ B220PaperTapeReader.prototype.PRTapeSupplyBar_onclick = function PRTapeSupplyBar
         if (this.window.confirm((this.bufLength-this.bufIndex).toString() + " of " + this.bufLength.toString() +
                      " characters remaining to read.\nDo you want to clear the reader input?")) {
             this.tapeView.value = "";
+            this.setWordCount(0);
             this.setReaderEmpty();
         }
     }
@@ -134,6 +137,7 @@ B220PaperTapeReader.prototype.fileSelector_onChange = function fileSelector_onCh
 
         if (that.bufIndex >= that.bufLength) {
             that.buffer = ev.target.result;
+            that.setWordCount(0);
         } else {
             switch (that.buffer.charAt(that.buffer.length-1)) {
             case "\r":
@@ -143,7 +147,12 @@ B220PaperTapeReader.prototype.fileSelector_onChange = function fileSelector_onCh
                 that.buffer += "\n";    // so the next tape starts on a new line
                 break;
             }
-            that.buffer = that.buffer.substring(that.bufIndex) + ev.target.result;
+
+            if (that.bufIndex > 0) {
+                that.buffer = that.buffer.substring(that.bufIndex) + ev.target.result;
+            } else {
+                that.buffer += ev.target.result;
+            }
         }
 
         that.bufIndex = 0;
@@ -182,7 +191,15 @@ B220PaperTapeReader.prototype.setReaderEmpty = function setReaderEmpty() {
     this.buffer = "";                   // discard the input buffer
     this.bufLength = 0;
     this.bufIndex = 0;
-    this.fileSelector.value = null; // reset the control so the same file can be reloaded
+    this.fileSelector.value = null;     // reset the control so the same file can be reloaded
+};
+
+/**************************************/
+B220PaperTapeReader.prototype.setWordCount = function setWordCount(c) {
+    /* Sets the value of word counter on the reader panel */
+
+    this.wordCount = c;
+    this.wordCountDiv.textContent = c.toString();
 };
 
 /**************************************/
@@ -248,6 +265,8 @@ B220PaperTapeReader.prototype.readerOnload = function readerOnload(ev) {
     this.fileSelector = this.$$("PRFileSelector");
     this.tapeSupplyBar = this.$$("PRTapeSupplyBar");
     this.tapeView = this.$$("PRTapeView");
+    this.wordCountDiv = this.$$("PRWordCountDiv");
+    this.setWordCount(0);
 
     body = this.$$("PaperTapeReader")
     this.remoteSwitch = new ToggleSwitch(body, null, null, "RemoteSwitch",
@@ -405,12 +424,14 @@ B220PaperTapeReader.prototype.readTapeChar = function readTapeChar(receiver) {
         this.busy = false;
         if (x >= bufLength) {       // end of buffer -- send finish
             if (this.conditionalSendEOW(receiver)) {
+                this.setWordCount(this.wordCount+1);
                 this.setReaderEmpty();
             }
         } else {
             c = this.buffer.charCodeAt(x) % 0x100;
             if (c == 0x0D) { // carriage return -- send EOW and check for LF
                 if (this.conditionalSendEOW(receiver)) {
+                    this.setWordCount(this.wordCount+1);
                     if (++x < bufLength && this.buffer.charCodeAt(x) == 0x0A) {
                         ++x;
                     }
@@ -420,8 +441,8 @@ B220PaperTapeReader.prototype.readTapeChar = function readTapeChar(receiver) {
                 }
             } else if (c == 0x0A) { // line feed -- send EOW
                 if (this.conditionalSendEOW(receiver)) {
-                    ++x;
-                    if (x >= bufLength) {
+                    this.setWordCount(this.wordCount+1);
+                    if (++x >= bufLength) {
                         this.setReaderEmpty();
                     }
                 }
