@@ -5,6 +5,15 @@ Source and object files to implement a version of the BALGOL compiler
 that supports paper-tape input and TTY/paper-tape output for both
 compilation and run-time.
 
+As configured for this release, the compiler tape must be loaded on
+magnetic tape unit 0 (or 10). The generated program will be written to
+magnetic tape unit 1, which must be loaded using a tape initialized with
+100-word blocks. The compiler callout and source program paper tapes
+must be on reader 1. Printer output from the compiler and generated
+programs will be done using PWR to console output unit 1, which may be a
+teletype or a paper-tape punch. Output to the SPO can be accomplished if
+the SPO is also configured as unit 1.
+
 Unless otherwise specified, all files are in standard Windows text
 format, with carriage-return/line-feed delimiters.
 
@@ -24,8 +33,8 @@ Hello-World-Code-List.lst
 
 PT-Compiler.tape
     Loadable tape image of the compiler generated with paper-tape
-    support. This tape should be loaded to a taped drive designated as
-    unit 2.
+    support. This tape should be loaded to a tape drive designated as
+    unit 0 (or 10).
 
 PT-Compiler-Callout.pt
     Paper-tape callout program to boot the compiler from the tape image
@@ -110,6 +119,5 @@ Additional paper-tape source file examples can be found in:
 
 
 Paul Kimpel
-October 2018
-
+February 2021
 
