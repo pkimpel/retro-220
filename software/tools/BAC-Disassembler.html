@@ -357,7 +357,7 @@ window.addEventListener("load", function() {
         "BZA":  [     36,  1, -1,  7,  0,  9,  0],
         "BFR":  [     37,  1, -1,  7, -1,  9, -1],
         "BZR":  [     37,  1, -1,  7,  0,  9,  0],
-        "BCS":  [     38,  1, -1,  4,  0],
+        "BCS":  [     38,  1, -1,  4, -1],
         "SOR":  [     39, 20,  0,  2,  0],
         "SOH":  [    139, 20,  0,  2,  0],
         "IOM":  [    239,  1, -1,  2,  0],
@@ -600,7 +600,7 @@ window.addEventListener("load", function() {
 
     /**************************************/
     function readAWord() {
-        /* Reads one word from the buffer, converts ite to decimal, and
+        /* Reads one word from the buffer, converts it to decimal, and
         fills in the global "wordData" structure with the word and its
         location in the buffer */
         var bx = bufferOffset;          // current buffer offset
@@ -643,8 +643,6 @@ window.addEventListener("load", function() {
                     if (lineLength > 11) {
                         printError("Input line too long: " + line);
                         line = line.substring(lineLength-11, 11);
-                    } else if (lineLength == 0) {
-                        line = "0";
                     }
 
                     w = parseInt(line, 10);
@@ -834,14 +832,14 @@ window.addEventListener("load", function() {
             case 19:                    // resolved address only in (04)
                 w1 = getField(word, 4);
                 w2 = w1 - location;
-                if (Math.abs(w2) < 4) {
-                    if (w2 > 0) {
-                        operand += "*+" + w2;
-                    } else {
-                        operand += "*" + w2;
-                    }
-                } else {
+                if (Math.abs(w2) > 3) {
                     operand += w1;
+                } else if (w2 > 0) {
+                    operand += "*+" + w2;
+                } else if (w2 < 0) {
+                    operand += "*" + w2;
+                } else {
+                    operand += "*";
                 }
                 break;
             case  2:                    // secondary value inserted in (33)

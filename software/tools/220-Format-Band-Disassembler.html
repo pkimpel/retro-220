@@ -1,0 +1,588 @@
+<!DOCTYPE html>
+<head>
+<title>Burroughs 220 Format Band Disassembler</title>
+<meta name="Author" content="Paul Kimpel">
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<meta http-equiv="Content-Script-Type" content="text/javascript">
+<meta http-equiv="Content-Style-Type" content="text/css">
+
+<script>
+/***********************************************************************
+* retro-220/tools 220-Format-Band-Disassembler.html
+************************************************************************
+* Copyright (c) 2021, Paul Kimpel.
+* Licensed under the MIT License,
+*       see http://www.opensource.org/licenses/mit-license.php
+************************************************************************
+* Burroughs 220 Cardatron format band disassembler.
+*
+* This script accepts a 220 Cardatron format band in paper-tape image
+* format, one word per line, with the words in reverse order, as they
+* would be on a loadable paper tape and stored in 220 memory.
+*
+* The digit patterns are analyzed and converted to the notation used
+* by the FBGR pseudo-instruction for the BAC-Assembler, also known as
+* the "Burroughs 220 Assembler-Compiler," as described in Burroughs
+* Bulletin 5024, April 1960, available at the Charles Babbage Institute
+* in Minnenapolis, MN: CBI 90, Series 74 Box 5 Folder 17, 69pp.
+*
+* To use, run this script in a web browser. Copy the sequence of
+* format-band words from a 220 paper tape image and paste them into the
+* "Raw Band" text area on the browser page. Select the band type as
+* either input or ouput, and click the Convert button. The disassembled
+* band will appear in the FBGR text area.
+************************************************************************
+* 2021-02-10  P.Kimpel
+*   Original version, from retro-220 tools/220-Paper-Tape-Decoder.html.
+***********************************************************************/
+"use strict";
+
+window.onload = function() {
+    let band = "";
+    let bandType = "";
+    let eolRex = /([^\n\r\f]*)((:?\r[\n\f]?)|\n|\f)?/g;
+    let formatText ="";
+
+    /**************************************/
+    function loadBand() {
+        /* Loads the band string from the contents of RawBandText.
+        If less than 319 digits are present, 3s are pre-pended
+        to the array (since the band words are loaded in reverse order) */
+        let bandText = document.getElementById("RawBandText").value;
+        let line = "";                  // one text line (word) from RawBandText
+        let lineLength = 0;             // length of current text line
+        let match = null;               // regex match object
+        let x = 0;                      // bandText index
+
+        band = "";
+
+        while (x < bandText.length) {
+            eolRex.lastIndex = x;
+            match = eolRex.exec(bandText);
+            if (!match) {
+                line = "";
+            } else {
+                x += match[0].length;
+                line = match[1].trim().replace(/\s/g, "");
+            }
+
+            lineLength = line.length;
+            if (lineLength > 0) {
+                if (lineLength > 11) {
+                    alert("Input line too long: " + line);
+                    line = line.substring(lineLength-11, 11);
+                }
+
+                if (lineLength < 11) {
+                    let signDigit = line.substring(0, 1);
+                    let wordValue = line.substring(1);
+                    while (wordValue.length < 10) {
+                        wordValue = "0" + wordValue;
+                    }
+
+                    line = signDigit + wordValue;
+                }
+
+                band += line;
+            }
+        }
+
+        while (band.length < 319) {
+            band = "3" + band;
+        }
+    }
+
+    /**************************************/
+    function optimizePhrase(phrase) {
+        let code ="";
+        let count = 0;
+        let lastCode = "";
+        let newPhrase = "";
+
+        for (let x=phrase.length-1; x>=0; --x) {
+            code = phrase[x];
+            if (code == lastCode) {
+                ++count;
+            } else {
+                if (lastCode != "") {
+                    newPhrase = lastCode + newPhrase;
+                    if (count > 1) {
+                        newPhrase = count.toString() + newPhrase;
+                    }
+                }
+
+                lastCode = code;
+                count = 1;
+            }
+        }
+
+        newPhrase = lastCode + newPhrase;
+        if (count > 1) {
+            newPhrase = count.toString() + newPhrase;
+        }
+
+        return newPhrase;
+    }
+
+    /**************************************/
+    function formatFBGR(phrases) {
+        let phrase ="";
+        let count = 0;
+        let lastPhrase = "";
+        let text = "";
+
+        for (let x=phrases.length-1; x>=0; --x) {
+            phrase = phrases[x];
+            if (phrase == lastPhrase) {
+                ++count;
+            } else {
+                if (lastPhrase != "") {
+                    if (count > 1) {
+                        text = count.toString() + "(" + lastPhrase + ")," + text;
+                    } else {
+                        text = lastPhrase + "," + text;
+                    }
+                }
+
+                lastPhrase = phrase;
+                count = 1;
+            }
+        }
+
+        if (count > 1) {
+            text = count.toString() + "(" + lastPhrase + ")," + text;
+        } else {
+            text = lastPhrase + "," + text;
+        }
+
+        return text.substring(0, text.length-1);
+    }
+
+    /**************************************/
+    function disassembleInputBand() {
+        /* Disassembles the input band data in "band" to FBGR format */
+        let ax = 0;                     // start of active segment
+        let bx = band.length-1;         // band string index
+        let col = 0;                    // card column counter, right-to-left
+        let d = "";                     // current band digit
+        let lastDigit = "";             // last band digit
+        let overPunch = false;          // overpunch sequence in progress
+        let phrase = "";                // current word phrase
+        let phrases = [];               // disassembled FBGR phrases
+        let wx = 0;                     // digit-in-word counter
+        let zoneDigit = false;          // true if zone digit; false if numeric digit
+
+        function getDigit() {
+            if (bx < ax) {
+                return "3";
+            } else {
+                return band[bx--];
+            }
+        }
+
+        function setOverPunch() {
+            if (!overPunch) {
+                overPunch = true;
+                switch (lastDigit) {
+                case "":
+                    break;
+                case "1":
+                    phrase = "N" + phrase;
+                    ++wx;
+                    break;
+                case "3":
+                    phrase = "B" + phrase;
+                    break;
+                default:
+                    phrase = "?" + lastDigit + phrase;
+                    break;
+                }
+
+                lastDigit = "";
+            }
+        }
+
+        // Process the inactive segment of the band
+        do {
+            switch (band[ax]) {
+            case "3":
+                ++ax;
+                break;
+            case "0":
+                ++wx;
+                if (wx <= 11) {
+                    ++ax;
+                }
+                break;
+            default:
+                wx = 12;
+                break;
+            }
+        } while (ax <= bx && wx <= 11);
+
+        // Process the active segment of the band
+        while (bx >= ax) {
+            // Build a word phrase
+            phrase = "";
+            zoneDigit = overPunch = false;
+            wx = 0;
+            while (wx < 10) {
+                d = getDigit();
+                switch (zoneDigit) {
+                case false:
+                    switch (d) {
+                    case "0":
+                        phrase = "Z" + phrase;
+                        ++wx;
+                        break;
+                    case "1":
+                        lastDigit = d;
+                        zoneDigit = true;
+                        ++wx;
+                        break;
+                    case "2":
+                        phrase = "?2" + phrase;
+                        ++wx;
+                        break;
+                    case "3":
+                        lastDigit = d;
+                        zoneDigit = true;
+                        break;
+                    }
+                    break;
+
+                case true:
+                    switch (d) {
+                    case "0":
+                        setOverPunch();
+                        phrase = "Z" + phrase;
+                        ++wx;
+                        break;
+                    case "1":
+                        if (overPunch) {
+                            phrase = "?1" + phrase;
+                            overPunch = false;
+                            ++wx;
+                        } else if (lastDigit == "1") {
+                            phrase = "A" + phrase;
+                            ++wx;
+                        } else {
+                            phrase = "?1" + lastDigit + phrase;
+                            ++wx;
+                        }
+                        zoneDigit = false;
+                        break;
+                    case "2":
+                        setOverPunch();
+                        phrase = "?2" + phrase;
+                        ++wx;
+                        break;
+                    case "3":
+                        if (overPunch) {
+                            phrase = "?3" + phrase;
+                            overPunch = false;
+                        } else if (lastDigit == "1") {
+                            phrase = "N" + phrase;
+                        } else if (lastDigit == "3") {
+                            phrase = "B" + phrase;
+                        } else {
+                            phrase = "?3" + lastDigit + phrase;
+                        }
+                        lastDigit = "";
+                        zoneDigit = false;
+                        break;
+                    }
+                    break;
+                } // switch zoneDigit
+            } // while wx
+
+            // Process the sign
+            if (wx != 10) {
+                phrase = "!" + phrase;
+            }
+
+            d = getDigit();
+            if (zoneDigit) {
+                if (!overPunch) {
+                    if (d == "3" && lastDigit == "1") {
+                        phrase = "N" + phrase;
+                        lastDigit = "";
+                        d = getDigit();
+                    } else {
+                        setOverPunch();
+                    }
+                }
+            }
+
+            switch (d) {
+            case "0":
+                if (overPunch) {
+                    phrase = "?OP0" + phrase;
+                } else {
+                    phrase = "P" + phrase;
+                }
+                break;
+            case "1":
+                if (overPunch) {
+                    phrase = "X" + phrase;
+                    overPunch = false;
+                } else {
+                    d = getDigit();
+                    if (d == "3") {
+                        phrase = "S" + phrase;
+                    } else {
+                        phrase + "?" + d + "1" + phrase;
+                    }
+                }
+                break;
+            case "2":
+                if (overPunch) {
+                    phrase = "?OP2" + phrase;
+                } else {
+                    phrase = "T" + phrase;
+                }
+                break;
+            case "3":
+                if (overPunch) {
+                    phrase = "?OP3" + phrase;
+                } else {
+                    d = getDigit();
+                    if (d == "1") {
+                        phrase = "X" + phrase;
+                    } else {
+                        phrase = "?" + d + "3" + phrase;
+                    }
+                }
+                break;
+            } // switch d
+
+            phrase = optimizePhrase(phrase);
+            phrases.unshift(phrase);
+        } // for dx
+
+        document.getElementById("FBGRText").value = formatFBGR(phrases);
+    }
+
+    /**************************************/
+    function disassembleOutputBand() {
+        /* Disassembles the output band data in "band" to FBGR format */
+        let ax = 0;                     // start of active segment
+        let bx = band.length-1;         // band string index
+        let col = 0;                    // card column counter, right-to-left
+        let d = "";                     // current band digit
+        let lastDigit = "";             // last band digit
+        let overPunch = false;          // overpunch sequence in progress
+        let phrase = "";                // current word phrase
+        let phrases = [];               // disassembled FBGR phrases
+        let wx = 0;                     // digit-in-word counter
+        let zoneDigit = false;          // true if zone digit; false if numeric digit
+
+        function getDigit() {
+            if (bx < ax) {
+                return "3";
+            } else {
+                return band[bx--];
+            }
+        }
+
+        function setOverPunch() {
+            if (!overPunch) {
+                overPunch = true;
+                switch (lastDigit) {
+                case "":
+                    break;
+                case "0":
+                    phrase = "B" + phrase;
+                    break;
+                case "1":
+                    phrase = "N" + phrase;
+                    ++wx;
+                    break;
+                default:
+                    phrase = "?" + lastDigit + phrase;
+                    break;
+                }
+
+                lastDigit = "";
+            }
+        }
+
+        // Process the inactive segment of the band
+        while (band[ax] == "3") {
+            ++ax;
+        }
+
+        // Process the active segment of the band
+        while (bx >= ax) {
+            // Build a word phrase
+            phrase = "";
+            zoneDigit = overPunch = false;
+            wx = 0;
+            while (wx < 10) {
+                d = getDigit();
+                switch (zoneDigit) {
+                case false:
+                    switch (d) {
+                    case "0":
+                        lastDigit = d;
+                        zoneDigit = true;
+                        break;
+                    case "1":
+                        lastDigit = d;
+                        zoneDigit = true;
+                        ++wx;
+                        break;
+                    case "2":
+                        phrase = "N" + phrase;
+                        ++wx;
+                        break;
+                    case "3":
+                        phrase = "Z" + phrase;
+                        ++wx;
+                        break;
+                    }
+                    break;
+
+                case true:
+                    switch (d) {
+                    case "0":
+                        if (lastDigit == "0") {
+                            phrase = "B" + phrase;
+                        } else {
+                            phrase = "?0" + lastDigit + phrase;
+                        }
+                        break;
+                    case "1":
+                        if (lastDigit == "1") {
+                            phrase = "A" + phrase;
+                            ++wx;
+                        } else {
+                            phrase = "?1" + lastDigit + phrase;
+                            ++wx;
+                        }
+                        break;
+                    case "2":
+                        phrase = "?2" + lastDigit + phrase;
+                        lastDigit = "";
+                        ++wx;
+                        break;
+                    case "3":
+                        phrase = "?3" + lastDigit + phrase;
+                        lastDigit = "";
+                        ++wx;
+                        break;
+                    }
+                    zoneDigit = false;
+                    break;
+                } // switch zoneDigit
+            } // while wx
+
+            // Process the sign
+            if (wx != 10) {
+                phrase = "!" + phrase;
+            }
+
+            d = getDigit();
+            if (zoneDigit) {
+                setOverPunch();
+            }
+
+            switch (d) {
+            case "0":
+                if (overPunch) {
+                    phrase = "?S0" + phrase;
+                } else {
+                    d = getDigit();
+                    if (d == "1") {
+                        phrase = "XB" + phrase;
+                    } else {
+                        phrase = "?S" + d + "0" + phrase;
+                    }
+                }
+                break;
+            case "1":
+                if (overPunch) {
+                    phrase = "X" + phrase;
+                } else {
+                    phrase + "?S1" + phrase;
+                }
+                break;
+            case "2":
+                if (overPunch) {
+                    phrase = "?S2" + phrase;
+                } else {
+                    phrase = "S" + phrase;
+                }
+                break;
+            case "3":
+                if (overPunch) {
+                    phrase = "?S3" + phrase;
+                } else {
+                    phrase = "P" + phrase;
+                }
+                break;
+            } // switch d
+
+            phrase = optimizePhrase(phrase);
+            phrases.unshift(phrase);
+        } // for dx
+
+        document.getElementById("FBGRText").value = formatFBGR(phrases);
+    }
+
+    /**************************************/
+    function ConvertBtn_onclick(ev) {
+        /* Click handler for the Convert button, which starts the disassembly
+        process */
+
+        bandType = document.getElementById("BandTypeSelect").value;
+        document.getElementById("FBGRText").textContent = "";
+
+        loadBand();
+        switch (bandType) {
+        case "I":
+            disassembleInputBand();
+            break;
+        case "O":
+            disassembleOutputBand();
+            break;
+        }
+    }
+
+    /**************************************/
+    /* Start of window.onload() */
+    document.getElementById("RawBandText").textContent = "";
+    document.getElementById("ConvertBtn").addEventListener("click", ConvertBtn_onclick, false);
+}
+</script>
+
+<style>
+BODY {
+    font-family: Calibri, Arial, Helvetica, sans-serif}
+TR {
+    vertical-align: top}
+</style>
+</head>
+
+<body>
+
+<h3>retro-220 Cardatron Format Band Disassembler Utility</h3>
+
+<table border=0 cellpadding=2 cellspacing=0>
+<tr>
+    <td>Raw Band:
+    <td><textarea id=RawBandText cols=20 rows=12></textarea>
+<tr>
+    <td>Band Type:
+    <td><select id=BandTypeSelect>
+             <option value="I" selected>Input
+             <option value="O"         >Output
+         </select>
+         <button id=ConvertBtn type=button value=1>Convert</button>
+<tr>
+    <td>FBGR:
+    <td><textarea id=FBGRText cols=80 rows=3></textarea>
+</table>
+
+</body>
+</html>

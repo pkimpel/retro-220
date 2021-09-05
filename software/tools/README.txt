@@ -6,6 +6,12 @@ Unless otherwise specified, all files are in standard Windows text
 format, with carriage-return/line-feed delimiters.
 
 
+220-Format-Band-Disassembler.html
+    HTML/Javascript utility to disassemble words of a 220 Cardatron
+    format band into the notation used by the BAC-Assembler FBGR pseudo-
+    instruction. See instructions for use at the beginning of the
+    source.
+
 220-Paper-Tape-Decoder.html
     HTML/Javascript utility to translate Al Kossow's binary paper-
     tape image files to the paper-tape image format used by the
@@ -66,3 +72,6 @@ January 2018
     Added Xlate-Card-PT.wsf.
 2020-08-20
     Added 220-Paper-Tape-Decoder.html and BAC-Disassembler.html.
+2021-09-03
+    Added 220-Format-Band-Disassembler.html.
+
