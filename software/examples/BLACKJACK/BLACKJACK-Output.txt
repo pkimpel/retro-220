@@ -1,0 +1,27 @@
+
+CUT
+FIRST CARD       3 D
+
+          STAKE           1.00
+
+          J S
+          K H     3 C CARD        A D CARD        6 S
+         BUST     2 D
+
+
+SCORE    00000001.00  STAKE         200.00
+
+          A S
+          5 S     Q H CARD               16       4 S
+                  A C
+                  K D
+                 BUST
+
+SCORE    00000001.00  STAKE         150.00
+
+         10 S
+          K C     9 C CARD        K S
+         BUST     8 C
+
+
+SCORE    00000151.00  STAKE

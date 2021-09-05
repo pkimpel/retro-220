@@ -1,0 +1,341 @@
+                                BLACKJACK -- SAMPLE PROGRAM 2
+                                FROM BURROUGHS 220 ASSEMBLER-COMPILER MANUAL
+                                BULLETIN 5024, APRIL 1960, APPENDIX D
+
+001.00.0     0000   SHUFL BUN   *             EXIT
+001.01.0     0001         CLL   EYE           SET I TO 0
+001.02.0     0002   C1    LDB   +ODD          DIVIDE DECK INTO ODD AND EVEN STACK
+001.03.0     0003         CLL   OCTR
+001.04.0     0004         RTF   DECK,26
+001.05.0     0005         CLL   DCTR
+001.06.0     0006         LDB   +EVEN
+001.07.0     0007         CLL   ECTR
+001.08.0     0008         RTF   DECK+26,26
+001.08.5     0009         MPF   1,1
+001.09.0     0010   A1    CLA                 GENERATE A RANDOM NUMBER
+001.10.0     0011   *C    MPF   1,10
+001.11.0     0012   *B    MIB   A+,1
+001.12.0     0013         ADD   +1
+001.13.0     0014         BUN   B-
+001.13.2     0015   *A    IFL   C-,41,1
+001.13.4     0016         IFL   B-,4,3
+001.13.5     0017         BUN   A+
+001.13.7     0018         DFL   C-,41,1
+001.13.9     0019         DFL   B-,4,3
+001.14.0     0020   *A    STA   RANDM
+001.15.0     0021         CAD   +1            IS IT ODD
+001.16.0     0022         EXT   RANDM
+001.17.0     0023         BZA   A+            NO
+001.18.0     0024         LDB   OCTR          YES
+002.19.0     0025         CAD - ODD           GET NEXT CARD FROM ODD STACK
+002.00.0     0026         LDB   DCTR
+002.01.0     0027         STA - DECK
+002.02.0     0028         IBB   *+1,1
+002.03.0     0029         STB   DCTR
+002.04.0     0030         CAD   OCTR          IS THIS THE LAST CARD
+002.05.0     0031         BFA   B+,2,25       YES
+002.06.0     0032         ADD   +1            NO
+002.07.0     0033         STA   OCTR
+002.08.0     0034         BUN   A1
+002.09.0     0035   *B    CAD   +26           GET REMAINDER OF CARDS FROM EVEN STACK
+002.10.0     0036         SUB   ECTR
+002.11.0     0037         SLA   7
+002.12.0     0038         STA   B+,32
+002.13.0     0039         CAD   +EVEN
+002.14.0     0040         ADD   ECTR
+002.15.0     0041         STA   B+,4
+002.16.0     0042         LDB   DCTR
+002.17.0     0043         IBB   *+1,DECK
+002.18.0     0044   *B    RTF   *,0
+002.19.0     0045         BUN   B+
+003.00.0     0046   *A    LDB   ECTR          RANDOM NUMBER IS EVEN
+003.01.0     0047         CAD - EVEN          GET NEXT CARD FROM EVEN STACK
+003.02.0     0048         LDB   DCTR
+003.03.0     0049         STA - DECK
+003.04.0     0050         IBB   *+1,1
+003.05.0     0051         STB   DCTR
+003.06.0     0052         CAD   ECTR          IS THIS THE LAST CARD
+003.07.0     0053         BFA   A+,2,25       YES
+003.08.0     0054         ADD   +1            NO
+003.09.0     0055         STA   ECTR
+003.10.0     0056         BUN   A1
+003.11.0     0057   *A    CAD   +26           GET REMAINDER OF CARDS FROM ODD STACK
+003.12.0     0058         SUB   OCTR
+003.13.0     0059         SLA   7
+003.14.0     0060         STA   A+,32
+003.15.0     0061         CAD   +ODD
+003.16.0     0062         ADD   OCTR
+003.17.0     0063         STA   A+,4
+003.18.0     0064         LDB   DCTR
+003.19.0     0065         IBB   *+1,DECK
+004.00.0     0066   *A    RTF   *,0
+004.01.0     0067   *B    CAD   EYE           INCREASE I BY 1
+004.02.0     0068         ADD   +1
+004.03.0     0069         STA   EYE
+004.04.0     0070         BFA   B1,1,3        IS I 3
+004.05.0     0071         BUN   C1            NO
+004.06.0     0072   B1    SPO   $|CUT|$,1     YES, ALLOW CUT OF CARDS
+004.07.0     0073         CLA
+004.08.0     0074         KAD
+004.09.0     0075         CFA   +52
+004.10.0     0076         BCL   A+
+004.11.0     0077         CLA
+004.12.0     0078   *A    STA   STPT
+004.13.0     0079         ADD   +1
+004.14.0     0080         BFA   A+,2,52
+004.15.0     0081   *B    STA   DCTR          BURN FIRST CARD
+004.16.0     0082         LDB   STPT
+004.17.0     0083         SPO   MSG1,3
+004.18.0     0084         SPO - DECK,1
+004.19.0     0085         SPO   $||~__$,1
+005.00.0     0086         BUN   SHUFL         EXIT
+005.01.0     0087   *A    CLA
+005.02.0     0088         BUN   B-
+005.03.0     0089   MSG1  CNST  $FIRST CARD $
+005.04.0     0092   DEAL  BUN   *             EXIT
+005.05.0     0093         LDB   DCTR          GET NEXT CARD
+005.06.0     0094         CAD - DECK
+005.07.0     0095         STA   CARD
+005.08.0     0096         CAD   DCTR
+005.09.0     0097         ADD   +1
+005.10.0     0098         BFA   A+,2,52
+005.11.0     0099   *B    STA   DCTR
+005.12.0     0100         CFA   STPT          IS IT THE LAST CARD
+005.13.0     0101         BCU   DEAL          NO
+005.14.0     0102         SPO   MSG2,3        YES.  SHOW PLAYER LAST CARD
+005.15.0     0103         SPO   CARD,1
+005.16.0     0104         STP   SHUFL         SHUFFLE
+005.17.0     0105         BUN   SHUFL+1
+005.18.0     0106         BUN   DEAL+1        GET NEXT CARD
+005.19.0     0107   *A    CLA
+006.00.0     0108         BUN   B-
+006.01.0     0109   MSG2  CNST  $||LAST CARD $
+006.02.0     0112   BLKJK CLL   SCORE         SET SCORE TO 0
+006.03.0     0113         STP   SHUFL         SHUFFLE
+006.04.0     0114         BUN   SHUFL+1
+006.05.0     0115   M     CLL   PLACE         SET PLAYERS AND DEALERS ACES TO 0
+006.06.0     0116         CLL   DLACE
+006.07.0     0117         CLL   PLTOT         SET PLAYERS AND DEALERS TOTALS TO 0
+006.08.0     0118         CLL   DLTOT
+006.09.0     0119         CAD   ALPH1         SET ALPHA TO 1
+006.10.0     0120         STA   ALPHA
+006.11.0     0121         CAD   BETA1         SET BETA TO 1
+006.12.0     0122         STA   BETA
+006.13.0     0123         CAD   GAM1          SET GAMMA TO 1
+006.14.0     0124         STA   GAMMA
+006.15.0     0125         SPO   MSG3,2        ALLOW PLAYER TO NAME STAKE
+006.16.0     0126         CLA
+006.17.0     0127         KAD
+006.17.5     0128         BZA   A+
+006.18.0     0129         STA   STAKE
+006.19.0     0130   *A    SPO   STAKE,1,2
+007.00.0     0131         SPO   $||~__$,1
+007.01.0     0132         BUN   B
+007.02.0     0133   MSG3  CNST  $||STAKE  $
+007.03.0     0135   B     STP   DEAL          DEAL
+007.04.0     0136         BUN   DEAL+1
+007.05.0     0137         SPO   CARD,1        WRITE PLAYERS CARD
+007.06.0     0138         CAD   CARD          IS IT AN ACE
+007.07.0     0139         BFA   A+,62,41      YES
+007.08.0     0140         BUN   A             NO
+007.09.0     0141   *A    IFL   PLACE,0,1     ADD 1 TO PLAYERS ACES
+007.10.0     0142   A     BFA   A+,51,8       ADD CARD VALUE TO PLAYERS TOTAL
+007.11.0     0143         BFA   B+,62,41
+007.12.0     0144   *C    CAD   +10
+007.13.0     0145         BUN   C+
+007.14.0     0146   *A    SRA   4
+007.15.0     0147         EXT   +1
+007.16.0     0148         BZA   C-
+007.17.0     0149         BUN   C+
+007.18.0     0150   *B    CAD   +11
+007.19.0     0151   *C    ADL   PLTOT
+008.00.0     0152   ALPHA HLT
+008.01.0     0153   ALPH1 BUN   A+
+008.02.0     0154   ALPH2 BUN   B+
+008.03.0     0155   *A    CAD   ALPH2         SET ALPHA TO 2
+008.04.0     0156         STA   ALPHA
+008.05.0     0157         SPO   $|~___$,1
+008.06.0     0158         BUN   B
+008.07.0     0159   *B    STP   DEAL          DEAL
+008.08.0     0160         BUN   DEAL+1
+008.09.0     0161         SPO   $~____$,1
+008.10.0     0162         REM   DITTO 7.5,7.7 IS IT AN ACE
+007.05.0     0162         SPO   CARD,1        WRITE PLAYERS CARD
+007.06.0     0163         CAD   CARD          IS IT AN ACE
+007.07.0     0164         BFA   A+,62,41      YES
+008.11.0     0165         BUN   B+            NO
+008.12.0     0166   *A    IFL   DLACE,0,1     YES.  ADD 1 TO DEALERS ACES
+008.13.0     0167   *B    BFA   A+,51,8       ADD CARD VALUE TO DEALERS TOTAL
+008.14.0     0168         REM   DITTO 7.11,7.18
+007.11.0     0168         BFA   B+,62,41
+007.12.0     0169   *C    CAD   +10
+007.13.0     0170         BUN   C+
+007.14.0     0171   *A    SRA   4
+007.15.0     0172         EXT   +1
+007.16.0     0173         BZA   C-
+007.17.0     0174         BUN   C+
+007.18.0     0175   *B    CAD   +11
+008.15.0     0176   *C    ADL   DLTOT
+008.16.0     0177   C     SPO   $|CARD$,1     DOES PLAYER WANT ANOTHER CARD
+008.17.0     0178         SPO   $~____$,1
+008.18.0     0179         CLA
+008.19.0     0180         KAD
+009.00.0     0181         BZA   A+            YES
+009.01.0     0182   BETA  HLT
+009.02.0     0183   BETA1 BUN   B+
+009.03.0     0184   BETA2 BUN   C+
+009.04.0     0185   *B    CAD   BETA2         SET BETA TO 2
+009.05.0     0186         STA   BETA
+009.06.0     0187         CAD   PLTOT         DOES PLAYER HAVE BLACKJACK
+009.07.0     0188         BFA   B+,2,21       YES
+009.08.0     0189   *C    SPO   PLTOT,1       NO.  WRITE PLAYERS TOTAL
+009.09.0     0190         BUN   F
+009.10.0     0191   *B    SPO   MSG4,2        WRITE BLACKJACK
+009.11.0     0192         STP   DEAL          DEAL
+009.12.0     0193         BUN   DEAL+1
+009.13.0     0194         SPO   $~____$,1
+009.14.0     0195         SPO   CARD,1
+009.15.0     0196         SPO   $|~___$,1
+009.16.0     0197         CAD   CARD          ADD CARD VALUE TO DEALERS TOTAL
+009.17.0     0198         BFA   B+,51,8
+009.18.0     0199         BFA   C+,62,41
+009.19.0     0200   *D    CAD   +10
+010.00.0     0201         BUN   D+
+010.01.0     0202   *B    BFA   D-,61,0
+010.02.0     0203         SRA   4
+010.02.3     0204         EXT   +1
+010.02.6     0205         BUN   D+
+010.03.0     0206   *C    CAD   +11
+010.04.0     0207   *D    ADD   DLTOT
+010.04.5     0208         STA   DLTOT
+010.05.0     0209         BFA   C+,2,21
+010.05.3     0210   *B    SPO   $~____$,1
+010.05.6     0211         SPO   DLTOT,1
+010.06.0     0212         CAD   STAKE
+010.07.0     0213         MUL   +15
+010.08.0     0214         SLT   9
+010.09.0     0215         ADL   SCORE
+010.10.0     0216         BUN   H
+010.11.0     0217   MSG4  CNST  $BLACKJACK$
+010.11.1     0219   *C    SPO   $~____$,1
+010.11.2     0220         SPO   MSG4,2
+010.11.3     0221         BUN   H
+010.11.4     0222   *A    CAD   BETA2
+010.11.6     0223         STA   BETA
+010.12.0     0224         STP   DEAL
+010.13.0     0225         REM   DITTO 7.4,7.7 WRITE PLAYERS CARD
+007.04.0     0225         BUN   DEAL+1
+007.05.0     0226         SPO   CARD,1        WRITE PLAYERS CARD
+007.06.0     0227         CAD   CARD          IS IT AN ACE
+007.07.0     0228         BFA   A+,62,41      YES
+010.14.0     0229         BUN   B+            IT IS NOT AN ACE
+010.15.0     0230   *A    IFL   PLACE,0,1     ADD 1 TO PLAYERS ACES
+010.16.0     0231         REM   DITTO 8.13,8.14  ADD CARD VALUE TO PLAYERS TOTAL
+008.13.0     0231   *B    BFA   A+,51,8       ADD CARD VALUE TO DEALERS TOTAL
+008.14.0     0232         REM   DITTO 7.11,7.18
+007.11.0     0232         BFA   B+,62,41
+007.12.0     0233   *C    CAD   +10
+007.13.0     0234         BUN   C+
+007.14.0     0235   *A    SRA   4
+007.15.0     0236         EXT   +1
+007.16.0     0237         BZA   C-
+007.17.0     0238         BUN   C+
+007.18.0     0239   *B    CAD   +11
+010.17.0     0240   *C    ADL   PLTOT
+010.18.0     0241   G     CAD   PLTOT         IS PLAYERS TOTAL GREATER THAN 21
+010.19.0     0242         CFA   +21
+011.00.0     0243         BCH   E             YES
+011.01.0     0244         BUN   C             NO
+011.02.0     0245   E     CAD   PLACE         ARE PLAYERS ACES 0
+011.03.0     0246         BZA   A+            YES
+011.04.0     0247         DFL   PLACE,0,1     NO.  DECREASE PLAYERS ACES BY 1
+011.05.0     0248         DFL   PLTOT,0,10    DECREASE LAYERS TOTAL BY 10
+011.06.0     0249         BUN   G
+011.07.0     0250   *A    SPO   $|~___$,1
+011.08.0     0251         SPO   $ BUST$,1
+011.09.0     0252         CAD   SCORE         SUBTRACT STAKE FROM SCORE
+011.10.0     0253         SUB   STAKE
+011.12.0     0254         STA   SCORE
+011.11.0     0255         REM   DITTO 9.11,9.15  DEAL.  WRITE DEALERS CARD
+009.11.0     0255         STP   DEAL          DEAL
+009.12.0     0256         BUN   DEAL+1
+009.13.0     0257         SPO   $~____$,1
+009.14.0     0258         SPO   CARD,1
+009.15.0     0259         SPO   $|~___$,1
+011.12.0     0260         BUN   H
+011.13.0     0261   F     STP   DEAL          DEAL
+011.14.0     0262         REM   DITTO 9.12,9.16  WRITE DEALERS CARD
+009.12.0     0262         BUN   DEAL+1
+009.13.0     0263         SPO   $~____$,1
+009.14.0     0264         SPO   CARD,1
+009.15.0     0265         SPO   $|~___$,1
+009.16.0     0266         CAD   CARD          ADD CARD VALUE TO DEALERS TOTAL
+011.15.0     0267         BFA   A+,62,41      IS IT AN ACE
+011.16.0     0268         BUN   B+            NO
+011.17.0     0269   *A    IFL   DLACE,0,1     ADD 1 TO DEALERS ACES
+011.18.0     0270         REM   DITTO 8.13,8.15  ADD CARD VALUE TO DEALERS TOTAL
+008.13.0     0270   *B    BFA   A+,51,8       ADD CARD VALUE TO DEALERS TOTAL
+008.14.0     0271         REM   DITTO 7.11,7.18
+007.11.0     0271         BFA   B+,62,41
+007.12.0     0272   *C    CAD   +10
+007.13.0     0273         BUN   C+
+007.14.0     0274   *A    SRA   4
+007.15.0     0275         EXT   +1
+007.16.0     0276         BZA   C-
+007.17.0     0277         BUN   C+
+007.18.0     0278   *B    CAD   +11
+008.15.0     0279   *C    ADL   DLTOT
+011.19.0     0280   L     CAD   DLTOT         IS DEALERS TOTAL GREATER THAN 16
+012.00.0     0281         CFA   +16
+012.01.0     0282         BCH   A+            YES
+012.01.3     0283         CAD   GAM2
+012.01.6     0284         STA   GAMMA
+012.02.0     0285         BUN   F
+012.03.0     0286   *A    CFA   +21           IS DEALERS TOTAL GREATER THAN 21
+012.04.0     0287         BCH   A+            YES
+012.05.0     0288   GAMMA HLT
+012.06.0     0289   GAM1  BUN   B+
+012.07.0     0290   GAM2  BUN   C+
+012.08.0     0291   *B    LDR   GAM2          SET GAMMA TO 2
+012.09.0     0292         STR   GAMMA
+012.10.0     0293         BCE   B+
+012.10.3     0294   *C    SPO   $~____$,1
+012.10.6     0295         SPO   DLTOT,1
+012.11.0     0296         BUN   I             NO
+012.11.2     0297   *B    SPO   $~____$,1
+012.11.5     0298         SPO   MSG4,2
+012.11.7     0299         BUN   D
+012.12.0     0300   *A    CAD   DLACE         ARE DEALERS ACES 0
+012.13.0     0301         BZA   K             YES
+012.14.0     0302         BUN   J             NO
+012.15.0     0303   K     SPO   $~____$,1
+012.15.5     0304         SPO   $ BUST$,1
+012.16.0     0305         CAD   STAKE         ADD STAKE TO SCORE
+012.17.0     0306         ADL   STORE
+012.18.0     0307         BUN   H
+012.19.0     0308   J     DFL   DLACE,0,1     DECREASE DEALERS ACES BY 1
+013.00.0     0309         DFL   DLTOT,0,10    DECREASE DEALERS TOTAL BY 10
+013.01.0     0310         BUN   L
+013.02.0     0311   I     CAD   PLTOT         COMPARE PLAYERS TOTAL TO DEALERS TOTAL
+013.03.0     0312         CFA   DLTOT
+013.04.0     0313         BCH   A+            GREATER
+013.05.0     0314         BCE   H             EQUAL
+013.06.0     0315   D     CAD   SCORE         LESS
+013.07.0     0316         SUB   STAKE         SUBTRACT STAKE FROM SCORE
+013.08.0     0317         STA   SCORE
+013.09.0     0318         BUN   H
+013.10.0     0319   *A    CAD   STAKE         ADD STAKE TO SCORE
+013.11.0     0320         ADL   SCORE
+013.12.0     0321   H     SPO   $||___$,1
+013.13.0     0322         SPO   $SCORE$,1
+013.14.0     0323         SPO   $__$,1
+013.15.0     0324         SPO   SCORE,1,2
+014.01.0     0325         BUN   M
+014.02.0     0326   DECK  CNST  $  A S  K S  Q S  J S 10 S  9 S  8 S  7 S  6 S  5 S  4
+014.03.0     0336               S  3 S  2 S  A H  K H  Q H  J H 10 H  9 H  8 H  7 H  6
+014.04.0     0347               H  5 H  4 H  3 H  2 H  A D  K D  Q D  J D 10 D  9 D  8
+014.05.0     0358               D  7 D  6 D  5 D  4 D  3 D  2 D  A C  K C  Q C  J C 10
+014.06.0     0369               C  9 C  8 C  7 C  6 C  5 C  4 C  3 C  2 C$
+014.07.0     0378   EVEN  LOCN  *+26
+014.08.0     0404   ODD   LOCN  *+26
+999.99.0                  FINI
