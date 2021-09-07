@@ -667,17 +667,18 @@ B220CardatronInput.prototype.readerOnLoad = function readerOnLoad(ev) {
 };
 
 /**************************************/
-B220CardatronInput.prototype.inputWord = function inputWord(wordReceiver) {
+B220CardatronInput.prototype.inputWord = function inputWord() {
     /* Reads the next word of digits from the info band of the buffer drum,
-    translating the digits to Datatron Processor code and sending the word to the
-    Processor via the wordReceiver callback function. If at end of band, returns any
-    partially-accumulated word minus 0x900000000000 to signal end of I/O. Note that
-    sign digits must be translated from zone digits specially. Also note that a
-    completed word is not returned until the next digit is obtained from the info band */
+    translating the digits to Datatron Processor code and returning the word.
+    When end-of-band is reached, the returned word will be negative.
+    Note that sign digits must be translated from zone digits specially.
+    Also note that a completed word is not returned until the next digit is
+    obtained from the info band, unless at end-of-band */
     var band;                           // local copy of format band
     var d;                              // result digit
-    var eod;                            // finished with current digit
-    var eow = false;                    // finished with word
+    var eob = false;                    // finished with data in the band
+    var eod = false;                    // finished with current digit
+    var eow = false;                    // finished with current word
     var info = this.info;               // local reference to info band
     var ix = this.infoIndex;            // current info/format band index
     var lastNumeric = this.lastNumericDigit;
@@ -693,8 +694,7 @@ B220CardatronInput.prototype.inputWord = function inputWord(wordReceiver) {
             if (ix >= info.length) {
                 // At end of info band -- finish the I/O
                 d = 0;
-                word = word + this.eodBias; // flag this as the final word of the I/O
-                eow = eod = true;
+                eob = eow = eod = true;
             } else {
                 // Translate or delete the current digit
                 switch (band[ix]) {
@@ -757,13 +757,13 @@ B220CardatronInput.prototype.inputWord = function inputWord(wordReceiver) {
 
     this.lastNumericDigit = lastNumeric;
     this.togNumeric = nu;
+    this.infoIndex = ix;
 
-    // Send the word to the Processor
-    if (wordReceiver(word) < 0) {
-        this.infoIndex = info.length;   // stop the I/O
-    } else {
-        this.infoIndex = ix;
+    if (eob) {
+        word += this.eodBias;           // flag this as the last word
     }
+
+    return word;
 };
 
 /**************************************/
@@ -788,13 +788,25 @@ B220CardatronInput.prototype.inputStop = function inputStop() {
 
 /**************************************/
 B220CardatronInput.prototype.inputTransfer = function inputTransfer(wordReceiver) {
-    /* Driver for sending words assembled from the info band to the Processor */
+    /* Driver for sending words assembled from the info band to the Processor
+    via the wordReceiver callback function. If at end of band, returns the
+    final word AFTER completing reload-lockout processing and possibily
+    initiating the next card read */
+    var word = 0;
 
-    while (this.infoIndex < this.info.length) {
-        this.inputWord(wordReceiver);
-    }
+    do {
+        word = this.inputWord();
+        if (word >= 0) {                // if not the last word, send to processor
+            if (wordReceiver(word) < 0) {
+                break;                  // I/O aborted by the processor, stop transfer
+            }
+        }
+    } while (word >= 0);
 
     this.inputStop();
+    if (word < 0) {                     // if the I/O wasn't aborted,
+        wordReceiver(word);             // send the final word to terminate the I/O
+    }
 };
 
 /**************************************/
@@ -814,8 +826,11 @@ B220CardatronInput.prototype.inputInitiate = function inputInitiate(rDigit, word
             this.window.focus();
         }
     } else {
+        if (rDigit%2 == 1) {
+            this.noReload = true;
+        }
+
         this.rDigit = rDigit;
-        this.noReload |= (rDigit%2 == 1);
         this.infoIndex = 0;             // start at the beginning of the info band
         this.digitCount = 0;
         this.pendingInputWord = 0;
@@ -888,8 +903,11 @@ B220CardatronInput.prototype.inputFormatInitiate = function inputFormatInitiate(
     if (rDigit > 9) {
         signalFinished();
     } else {
+        if (rDigit%2 == 1) {
+            this.noReload = true;
+        }
+
         this.rDigit = rDigit;
-        this.noReload |= (rDigit%2 == 1);
         this.selectedFormat = ((rDigit >>> 1) & 0x07) + 1;
         this.pendingFinish = signalFinished;      // stash the call-back function
         this.setFormatSelectLamps(this.selectedFormat);

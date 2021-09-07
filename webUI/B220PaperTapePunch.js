@@ -122,14 +122,12 @@ B220PaperTapePunch.prototype.punchChar = function punchChar(code) {
     var line;
     var len;
 
-    if (c != "?") {                     // some 220 codes just don't print
-        line = this.punchTape.lastChild.nodeValue;
-        len = line.length;
-        if (len < 1) {
-            this.punchTape.lastChild.nodeValue = c;
-        } else {
-            this.punchTape.lastChild.nodeValue = line + c;
-        }
+    line = this.punchTape.lastChild.nodeValue;
+    len = line.length;
+    if (len < 1) {
+        this.punchTape.lastChild.nodeValue = c;
+    } else {
+        this.punchTape.lastChild.nodeValue = line + c;
     }
 };
 

@@ -307,7 +307,7 @@ DIV.blackControlKnobBottomCaption {
 
 DIV.panelSurface {
     position:           absolute;
-    background-color:   #EADAD1;        /* was #D8C5BC; #E4DDCD; putty #EDEAE8; */
+    background-color:   #C5B1A0;        /* Sundland Beige: was #E8D8C8; #EADAD1; #D8C5BC; #E4DDCD; putty #EDEAE8; */
     color:              black}
 
 DIV.panelRegister {
@@ -521,6 +521,11 @@ BUTTON.panelLabel {
     line-height:        5px;
     font-size:          5px;
     font-weight:        normal}
+
+BUTTON.panelLabelHidden {
+    color:              #333}
+BUTTON.panelLabelHidden:hover {
+    color:              #FF0}
 
 BUTTON.large {
     font-family:        DejaVuSansWeb, sans-serif;

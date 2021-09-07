@@ -929,7 +929,7 @@ B220CardatronOutput.prototype.outputTransfer = function outputTransfer(requestNe
     }
 
     this.pendingFinish();               // call signalFinished()
-    this.pendingFinish = null;
+    // this.pendingFinish = null;       // disabled due to timing race with processor
     this.initiateWrite();
 };
 
@@ -1015,7 +1015,7 @@ B220CardatronOutput.prototype.outputFormatTransfer = function outputFormatTransf
     }
 
     this.pendingFinish();               // call signalFinished();
-    this.pendingFinish = null;
+    // this.pendingFinish = null;       // disabled due to timing race with processor
 };
 
 /**************************************/

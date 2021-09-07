@@ -61,7 +61,7 @@
 * indicates the number of copies of this block that exist consecutively at this
 * point in the tape image. If R and its delimiting "*" are not present, R is
 * assumed to be one. If R is not present, the "*" must also not be present.
-* If R is less than one or greter than 45570 (the maximum number of blocks on
+* If R is less than one or greater than 45570 (the maximum number of blocks on
 * one lane of a 3500-foot reel of tape), it is considered invalid and aborts
 * the load.
 *
@@ -279,6 +279,13 @@ B220MagTapeDrive.prototype.setUnitDesignate = function setUnitDesignate(index) {
 };
 
 /**************************************/
+B220MagTapeDrive.prototype.setImageIndex = function setImageIndex(index) {
+    /* Updates the image index annunciator with the specified position */
+
+    this.$$("MTImageIndexLight").textContent = index.toFixed();
+};
+
+/**************************************/
 B220MagTapeDrive.prototype.setAtBOT = function setAtBOT(atBOT) {
     /* Controls the at-Beginning-of-Tape state of the tape drive */
 
@@ -290,6 +297,7 @@ B220MagTapeDrive.prototype.setAtBOT = function setAtBOT(atBOT) {
             this.imgIndex = 0;
             this.tapeInches = 0;
             this.reelAngle = 0;
+            this.setImageIndex(this.imgIndex);
             this.$$("MTAtBOTLight").classList.add("annunciatorLit");
             this.reelBar.value = this.maxTapeInches;
             this.reelIcon.style.transform = "none";
@@ -400,6 +408,7 @@ B220MagTapeDrive.prototype.setTapeUnloaded = function setTapeUnloaded() {
         this.reelIcon.style.visibility = "hidden";
         this.$$("MTFileName").value = "";
         this.$$("MTLaneNrLight").style.visibility = "hidden";
+        this.$$("MTImageIndexLight").style.visibility = "hidden";
         this.$$("MTUnloadedLight").classList.add("annunciatorLit");
         if (this.timer) {
             clearCallback(this.timer);
@@ -422,6 +431,8 @@ B220MagTapeDrive.prototype.tapeRewind = function tapeRewind(laneNr, lockout) {
             this.timer = 0;
             this.tapeState = this.tapeLocal;
             this.$$("MTRewindingLight").classList.remove("annunciatorLit");
+            this.setAtBOT(true);
+            this.setImageIndex(this.imgIndex);
             this.rewindLock = (lockout ? true : false);
             this.rwlLamp.set(this.rewindLock ? 1 : 0);
             this.setTapeReady(!this.rewindLock);
@@ -436,15 +447,19 @@ B220MagTapeDrive.prototype.tapeRewind = function tapeRewind(laneNr, lockout) {
             if (interval <= 0) {
                 interval = this.spinUpdateInterval/2;
             }
+
             if (this.tapeInches <= 0) {
-                this.setAtBOT(true);
+                this.imgIndex = 0;
                 this.timer = setCallback(this.mnemonic, this, 1000, rewindFinish);
             } else {
                 inches = interval*this.rewindSpeed;
+                this.imgIndex -= Math.floor(inches/this.inchesPerWord);
                 lastStamp = stamp;
                 this.timer = setCallback(this.mnemonic, this, this.spinUpdateInterval, rewindDelay);
                 this.spinReel(-inches);
             }
+
+            this.setImageIndex(this.imgIndex);
         }
 
         function rewindStart() {
@@ -500,6 +515,7 @@ B220MagTapeDrive.prototype.moveTape = function moveTape(inches, delay, successor
     called with "param" as a parameter */
     var delayLeft = Math.abs(delay);    // milliseconds left to delay
     var direction = (inches < 0 ? -1 : 1);
+    var index = this.imgIndex - inches/this.inchesPerWord;
     var inchesLeft = inches;            // inches left to move tape
     var initiallyReady = this.ready;    // remember initial ready state to detect change
     var lastStamp = performance.now();  // last timestamp for spinDelay
@@ -509,6 +525,8 @@ B220MagTapeDrive.prototype.moveTape = function moveTape(inches, delay, successor
         if (inchesLeft != 0) {
             this.spinReel(inchesLeft);
         }
+
+        this.setImageIndex(this.imgIndex);
         successor.call(this, param);
     }
 
@@ -525,7 +543,7 @@ B220MagTapeDrive.prototype.moveTape = function moveTape(inches, delay, successor
         }
 
         if (initiallyReady && !this.ready) { // drive went not ready
-            inchesLeft = 0;
+            inchesLeft = index = 0;
             this.timer = setCallback(this.mnemonic, this, this.spinUpdateInterval, spinFinish);
         } else {
             delayLeft -= interval;
@@ -546,6 +564,8 @@ B220MagTapeDrive.prototype.moveTape = function moveTape(inches, delay, successor
                 inchesLeft = 0;
             }
 
+            index += motion/this.inchesPerWord;
+            this.setImageIndex(index);
             this.spinReel(motion);
         }
     }
@@ -597,13 +617,14 @@ B220MagTapeDrive.prototype.loadTape = function loadTape() {
         mt.reelBar.value = mt.maxTapeInches;
         mt.setAtBOT(true);
         mt.setAtEOT(false);
-        mt.tapeState = mt.tapeLocal;    // setTapeReady() requires it not be unloaded
         mt.setLane(0, null);
         mt.$$("MTLaneNrLight").style.visibility = "visible";
+        mt.$$("MTImageIndexLight").style.visibility = "visible";
         mt.reelIcon.style.visibility = "visible";
         mt.$$("MTUnloadedLight").classList.remove("annunciatorLit");
 
         // Automatically turn on transport power and make drive ready
+        mt.tapeState = mt.tapeLocal;    // setTapeReady() requires it not be unloaded
         mt.setTransportPower($$$("MTLoadTransportPowerOn").checked);
     }
 
@@ -695,6 +716,7 @@ B220MagTapeDrive.prototype.loadTape = function loadTape() {
         /* Event handler for tape image file onLoad. Loads a text image as
         comma-delimited decimal word values. No end-of-tape block is written
         unless it is present in the text image */
+        var aborted = false;            // tape load aborted
         var blockNr = 0;                // current tape block number
         var blockWords = 0;             // words in current tape block
         var chunk = "";                 // ANSI text of current chunk
@@ -717,6 +739,7 @@ B220MagTapeDrive.prototype.loadTape = function loadTape() {
         function abortLoad(msg, blockNr, chunk) {
             /* Displays an alert for a fatal load error */
 
+            aborted = true;
             mt.window.alert("Abort load: " + msg + " @ block " + blockNr +
                     "\n\"" + chunk + "\"");
         }
@@ -860,20 +883,22 @@ B220MagTapeDrive.prototype.loadTape = function loadTape() {
             }
         } while (index < bufLength);
 
-        // Write a gap at the end of both lanes so that MPE can sense end-of-info.
-        for (mt.laneNr=0; mt.laneNr<2; ++mt.laneNr) {
-            lane = mt.image[mt.laneNr];
-            mt.imgIndex = lx[mt.laneNr];
-            for (wx=0; wx<mt.startOfBlockWords*2; ++wx) {
-                lane[mt.imgIndex+wx] = mt.markerGap;
-            } // for wx
+        if (!aborted) {
+            // Write a gap at the end of both lanes so that MPE can sense end-of-info.
+            for (mt.laneNr=0; mt.laneNr<2; ++mt.laneNr) {
+                lane = mt.image[mt.laneNr];
+                mt.imgIndex = lx[mt.laneNr];
+                for (wx=0; wx<mt.startOfBlockWords*2; ++wx) {
+                    lane[mt.imgIndex+wx] = mt.markerGap;
+                } // for wx
 
-            lx[mt.laneNr] = mt.imgIndex + mt.startOfBlockWords*2;
-        } // for mt.laneNr
+                lx[mt.laneNr] = mt.imgIndex + mt.startOfBlockWords*2;
+            } // for mt.laneNr
 
-        mt.imgTopWordNr = Math.max(lx[0], lx[1]);
-        mt.imgWritten = false;
-        finishLoad();
+            mt.imgTopWordNr = Math.max(lx[0], lx[1]);
+            mt.imgWritten = false;
+            finishLoad();
+        }
     }
 
     function tapeLoadRemoveEvents() {
@@ -1681,10 +1706,9 @@ B220MagTapeDrive.prototype.searchBackwardBlock = function searchBackwardBlock(dr
             } else {
                 w = lane[x];
                 switch (state) {
-                case 1: // initial state: skip over flaw and magnetic EOT words
+                case 1: // initial state: skip over inter-block gap, flaw, and magnetic EOT words
                     if (w == this.markerGap) {
                         --x;
-                        state = 2;
                     } else if (w == this.markerFlaw) {
                         --x;
                     } else if (w == this.markerMagEOT) {
@@ -1694,20 +1718,13 @@ B220MagTapeDrive.prototype.searchBackwardBlock = function searchBackwardBlock(dr
                     }
                     break;
 
-                case 2: // skip initial inter-block gap words
-                    if (w == this.markerGap) {
-                        --x;
-                    } else {
-                        state = 3;
-                    }
-                    break;
+                // case 2 deleted //
 
                 case 3: // search for start of block (first prior inter-block gap word)
                     if (w == this.markerGap) {
-                        --x;
-                        state = 4;
+                        state = 4;              // just passed the preface word
                     } else if (w < 0) {
-                        count = 0;
+                        count = 0;              // if it's not a data word, reset the count
                         --x;
                     } else {
                         keyword = preface;      // remember the last two words we've seen
@@ -1719,14 +1736,6 @@ B220MagTapeDrive.prototype.searchBackwardBlock = function searchBackwardBlock(dr
 
                 case 4: // skip this block's inter-block gap words
                     if (w == this.markerGap) {
-                        --x;
-                    } else {
-                        state = 5;
-                    }
-                    break;
-
-                case 5: // skip the prior block's erase-gap words, store the keyword, and then quit
-                    if (w == this.markerEOB) {
                         --x;
                     } else if (count < 2) {
                         state = 1;      // saw less than 2 block data words, start over
@@ -2388,6 +2397,8 @@ B220MagTapeDrive.prototype.spaceBackwardBlock = function spaceBackwardBlock(driv
                     }
                     break;
 
+                // case 2 deleted //
+
                 case 3: // search for start of block (first prior inter-block gap word)
                     if (w == this.markerGap) {
                         state = 4;      // just passed the preface word
@@ -2399,7 +2410,7 @@ B220MagTapeDrive.prototype.spaceBackwardBlock = function spaceBackwardBlock(driv
                 case 4: // skip this block's inter-block gap words
                     if (w == this.markerGap) {
                         --x;
-                    } else {
+                    } else {            // position into end of prior block, as usual
                         state = 0;
                         resolve(this.moveTapeTo(x, driveState));
                     }

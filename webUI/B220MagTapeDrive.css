@@ -208,19 +208,27 @@ SELECT {
     right:              8px;
     width:              64px}
 
+#MTImageIndexLight {
+    color:              black;
+    font-weight:        bold;
+    top:                74px;
+    right:              8px;
+    width:              64px}
+
 #MTAtBOTLight {
-    top:                78px;
+    top:                92px;
     right:              8px;
     width:              64px}
 
 #MTAtEOTLight {
-    top:                96px;
+    top:                110px;
     right:              8px;
     width:              64px}
 
 #MTRewindingLight {
-    top:                114px;
+    top:                128px;
     right:              8px;
+    z-index:            1;
     width:              64px}
 
 #MTStatusDiv {

@@ -69,6 +69,24 @@
     left:               120px;
     top:                24px}
 
+#RewindBtn {
+    top:                6px;
+    right:              152px;
+    box-shadow:         3px 3px 2px #999}
+#RewindBtnCaption {
+    top:                46px;
+    right:              152px;
+    width:              32px}
+
+#UnloadBtn {
+    top:                6px;
+    right:              96px;
+    box-shadow:         3px 3px 2px #999}
+#UnloadBtnCaption {
+    top:                46px;
+    right:              96px;
+    width:              32px}
+
 #UnitDesignateKnob {
     position:           absolute;
     text-align:         center;

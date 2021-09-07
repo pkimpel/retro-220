@@ -785,12 +785,16 @@ B220ControlConsole.prototype.switch_Click = function switch_Click(ev) {
             }
             break;
 
-        case "Blank2LampLabel":                 // initialize to boot from cards (undocumented)
+        case "Blank2LampLabel":                 // initialize to boot from cards
             if (!p.RUT.value) {
                 p.clear();
-                p.C.set(0x1000600000);          // CRD unit 1
+                p.C.set(0x1000600000);          // CR unit 1
                 p.setCycle(1);
             }
+            break;
+
+        case "Blank7LampLabel":
+            p.clearMemory();
             break;
         } // switch ev.target.id
     }
@@ -1014,6 +1018,7 @@ B220ControlConsole.prototype.consoleOnLoad = function consoleOnLoad(ev) {
     this.$$("BurroughsMeatball").addEventListener("click", this.boundMeatballMemdump, false);
     this.$$("B220Logo").addEventListener("dblclick", this.boundSwitch_Click);
     this.$$("Blank2LampLabel").addEventListener("click", this.boundSwitch_Click);
+    this.$$("Blank7LampLabel").addEventListener("click", this.boundSwitch_Click);
     this.$$("IntervalTimerResetBtn").addEventListener("click", this.boundResetTimer, false);
     this.$$("PowerOffBtn").addEventListener("dblclick", this.boundPowerBtn_Click, false);
 

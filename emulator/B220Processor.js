@@ -260,7 +260,7 @@ function B220Processor(config, devices) {
 *   Global Constants                                                   *
 ***********************************************************************/
 
-B220Processor.version = "1.03b";
+B220Processor.version = "1.04";
 
 B220Processor.tick = 1000/200000;       // milliseconds per clock cycle (200KHz)
 B220Processor.cyclesPerMilli = 1/B220Processor.tick;
@@ -2951,10 +2951,12 @@ B220Processor.prototype.consoleInputFinishWord = function consoleInputFinishWord
         this.IB.set(this.D.value);
         if ((d & 0x0E) == 0x06 && (this.COP != 0x03 || this.rDigit == 1)) {
             // Control word to C register
-            this.ioComplete(false);         // terminate I/O but do not restart Processor yet
-            this.fetch(true);               // set up to execute control word
+            this.ioComplete(false);     // terminate I/O but do not restart Processor yet
+            this.fetch(true);           // set up to execute control word
             // Schedule the Processor to give the reader a chance to finish its operation.
-            setCallback(this.mnemonic, this, 0, this.schedule);
+            if (this.RUT.value) {       // not halted
+                setCallback(this.mnemonic, this, 0, this.schedule);
+            }
             return;
         }
     }
@@ -3172,7 +3174,7 @@ B220Processor.prototype.cardatronReceiveWord = function cardatronReceiveWord(wor
         returnCode = -1;
     } else if (word < 0) {
         // Last word received -- finished with the I/O
-        this.D.set(word-0x900000000000);// remove the finished signal; for display only, not stored
+        this.D.set((-word)%0x100000000000); // remove the finished signal; for display only, not stored
         this.ioComplete(true);
         returnCode = -1;
     } else if (this.MET.value) {
@@ -3216,7 +3218,9 @@ B220Processor.prototype.cardatronReceiveWord = function cardatronReceiveWord(wor
                 this.fetch(true);               // set up to execute control word
                 returnCode = -1;                // stop further input from Cardatron
                 // Schedule the Processor to give Cardatron a chance to finish its operation.
-                setCallback(this.mnemonic, this, 0, this.schedule);
+                if (this.RUT.value) {           // not halted
+                    setCallback(this.mnemonic, this, 0, this.schedule);
+                }
             }
             break;
 
@@ -3460,7 +3464,7 @@ B220Processor.prototype.execute = function execute() {
         break;
 
     case 0x03:      //--------------------- PRD     Paper tape read
-        this.traceState();              /*************************** DEBUG ***********************/
+        ////this.traceState();              /*************************** DEBUG ***********************/
         this.opTime = 0.185;                            // just a guess...
         d = this.CCONTROL >>> 12;                       // get unit number
         if (d == 0) {
@@ -3480,7 +3484,7 @@ B220Processor.prototype.execute = function execute() {
         break;
 
     case 0x04:      //--------------------- PRB     Paper tape read, branch
-        this.traceState();              /*************************** DEBUG ***********************/
+        ////this.traceState();              /*************************** DEBUG ***********************/
         this.opTime = 0.185;                            // just a guess...
         d = this.CCONTROL >>> 12;                       // get unit number
         if (d == 0) {
@@ -3500,7 +3504,7 @@ B220Processor.prototype.execute = function execute() {
         break;
 
     case 0x05:      //--------------------- PRI     Paper tape read, inverse format
-        this.traceState();              /*************************** DEBUG ***********************/
+        ////this.traceState();              /*************************** DEBUG ***********************/
         this.opTime = 0.185;                            // just a guess...
         d = this.CCONTROL >>> 12;                       // get unit number
         if (d == 0) {
@@ -3645,7 +3649,7 @@ B220Processor.prototype.execute = function execute() {
     case 0x20:      //--------------------- IBB     Increase B, branch
         w = this.B.value;
         this.B.add(this.CCONTROL);
-        if (this.B.value < w) {
+        if (this.B.value < w) {                         // underflow, no branch
             this.opTime = 0.040;
         } else {
             this.P.set(this.CADDR);
@@ -3657,7 +3661,7 @@ B220Processor.prototype.execute = function execute() {
     case 0x21:      //--------------------- DBB     Decrease B, branch
         w = this.B.value;
         this.B.sub(this.CCONTROL);
-        if (this.B.value > w) {
+        if (this.B.value > w) {                         // overflow, no branch
             this.opTime = 0.040;
         } else {
             this.P.set(this.CADDR);
@@ -4016,6 +4020,7 @@ B220Processor.prototype.execute = function execute() {
         break;
 
     case 0x50:      //--------------------- MTS/MFS/MLS/MRW/MDA  Magnetic tape search/field search/lane select/rewind
+        ////this.traceState();              /*************************** DEBUG ***********************/
         this.opTime = 0.160;
         if (!this.magTape) {
             this.setMagneticTapeCheck(true);                // no tape control
@@ -4039,6 +4044,7 @@ B220Processor.prototype.execute = function execute() {
         break;
 
     case 0x51:      //--------------------- MTC/MFC Magnetic tape scan/field scan
+        ////this.traceState();              /*************************** DEBUG ***********************/
         this.opTime = 0.160;
         if (!this.magTape) {
             this.setMagneticTapeCheck(true);                // no tape control
@@ -4055,6 +4061,7 @@ B220Processor.prototype.execute = function execute() {
         break;
 
     case 0x52:      //--------------------- MRD     Magnetic tape read
+        ////this.traceState();              /*************************** DEBUG ***********************/
         this.opTime = 0.160;
         if (!this.magTape) {
             this.setMagneticTapeCheck(true);                // no tape control
@@ -4068,6 +4075,7 @@ B220Processor.prototype.execute = function execute() {
         break;
 
     case 0x53:      //--------------------- MRR     Magnetic tape read, record
+        ////this.traceState();              /*************************** DEBUG ***********************/
         this.opTime = 0.160;
         if (!this.magTape) {
             this.setMagneticTapeCheck(true);                // no tape control
@@ -4081,6 +4089,7 @@ B220Processor.prototype.execute = function execute() {
         break;
 
     case 0x54:      //--------------------- MIW     Magnetic tape initial write
+        ////this.traceState();              /*************************** DEBUG ***********************/
         this.opTime = 0.160;
         if (!this.magTape) {
             this.setMagneticTapeCheck(true);                // no tape control
@@ -4093,6 +4102,7 @@ B220Processor.prototype.execute = function execute() {
         break;
 
     case 0x55:      //--------------------- MIR     Magnetic tape initial write, record
+        ////this.traceState();              /*************************** DEBUG ***********************/
         this.opTime = 0.160;
         if (!this.magTape) {
             this.setMagneticTapeCheck(true);                // no tape control
@@ -4105,6 +4115,7 @@ B220Processor.prototype.execute = function execute() {
         break;
 
     case 0x56:      //--------------------- MOW     Magnetic tape overwrite
+        ////this.traceState();              /*************************** DEBUG ***********************/
         this.opTime = 0.160;
         if (!this.magTape) {
             this.setMagneticTapeCheck(true);                // no tape control
@@ -4117,6 +4128,7 @@ B220Processor.prototype.execute = function execute() {
         break;
 
     case 0x57:      //--------------------- MOR     Magnetic tape overwrite, record
+        ////this.traceState();              /*************************** DEBUG ***********************/
         this.opTime = 0.160;
         if (!this.magTape) {
             this.setMagneticTapeCheck(true);                // no tape control
@@ -4129,6 +4141,7 @@ B220Processor.prototype.execute = function execute() {
         break;
 
     case 0x58:      //--------------------- MPF/MPB/MIE Magnetic tape position forward/backward/at end
+        ////this.traceState();              /*************************** DEBUG ***********************/
         this.opTime = 0.130;
         if (!this.magTape) {
             this.setMagneticTapeCheck(true);                // no tape control
@@ -4151,6 +4164,7 @@ B220Processor.prototype.execute = function execute() {
         break;
 
     case 0x59:      //--------------------- MIB/MIE Magnetic tape interrogate, branch/end of tape, branch
+        ////this.traceState();              /*************************** DEBUG ***********************/
         if (!this.magTape) {
             this.opTime = 0.01;
         } else if (this.magTape.controlBusy) {
@@ -4374,6 +4388,19 @@ B220Processor.prototype.ioInitiate = function ioInitiate() {
 B220Processor.prototype.traceState = function traceState() {
     /* Logs a subset of the Processor state to the Javascript console for
     debugging purposes */
+    var wc = -1;
+    var ta = -1;
+    var tb = -1;
+
+    if (this.console.inputUnit[1]) {    /***** DEBUG *****/
+        wc = this.console.inputUnit[1].wordCount;
+    }
+    if (this.magTape.tapeUnit[1]) {
+        ta = this.magTape.tapeUnit[1].imgIndex;
+    }
+    if (this.magTape.tapeUnit[2]) {
+        tb = this.magTape.tapeUnit[2].imgIndex;
+    }
 
     console.log("P=" + B220Processor.padLeft(this.P.value.toString(16), 4) +
              " | B=" + B220Processor.padLeft(this.B.value.toString(16), 4) +
@@ -4386,7 +4413,9 @@ B220Processor.prototype.traceState = function traceState() {
              " | HIT=" + this.HIT.value +
              " | OFT=" + this.OFT.value +
              " | RPT=" + this.RPT.value +
-             " || PTRA @ " + this.console.inputUnit[1].wordCount); // ***** DEBUG *****
+             " || PRA: " + wc +        // ***** DEBUG *****
+             " | MTA:" + ta +
+             " | MTB:" + tb);
 };
 
 /**************************************/
@@ -4684,6 +4713,15 @@ B220Processor.prototype.tcuClear = function tcuClear() {
         if (this.magTape) {
             this.magTape.clearUnit();
         }
+    }
+};
+
+/**************************************/
+B220Processor.prototype.clearMemory = function clearMemory() {
+    /* Clears all of main memory if powered on and not running */
+
+    if (this.poweredOn && !this.RUT.value) {
+        this.MM.fill(0);
     }
 };
 
