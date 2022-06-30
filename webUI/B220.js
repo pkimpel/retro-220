@@ -137,7 +137,7 @@ window.addEventListener("load", function() {
     /***** window.onload() outer block *****/
 
     document.getElementById("StartUpBtn").disabled = true;
-    document.getElementById("EmulatorVersion").textContent = B220Processor.version;
+    document.getElementById("EmulatorVersion").textContent = B220Version.version;
     if (checkBrowser()) {
         document.getElementById("Retro220Logo").addEventListener("dblclick", openDiagPanel, false);
         document.getElementById("StartUpBtn").disabled = false;

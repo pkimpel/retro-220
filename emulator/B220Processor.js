@@ -260,8 +260,6 @@ function B220Processor(config, devices) {
 *   Global Constants                                                   *
 ***********************************************************************/
 
-B220Processor.version = "1.04";
-
 B220Processor.tick = 1000/200000;       // milliseconds per clock cycle (200KHz)
 B220Processor.cyclesPerMilli = 1/B220Processor.tick;
                                         // clock cycles per millisecond (200 => 200KHz)
@@ -308,7 +306,7 @@ B220Processor.mask2 = [ // (2**n)-1 for n from 0 to 52
            0x0FFFFFFFFFF,    0x1FFFFFFFFFF,    0x3FFFFFFFFFF,    0x7FFFFFFFFFF,
           0x0FFFFFFFFFFF,   0x1FFFFFFFFFFF,   0x3FFFFFFFFFFF  , 0x7FFFFFFFFFFF,
          0x0FFFFFFFFFFFF,  0x1FFFFFFFFFFFF,  0x3FFFFFFFFFFFF,  0x7FFFFFFFFFFFF,
-        0x0FFFFFFFFFFFFF] ;
+        0x0FFFFFFFFFFFFF];
 
 B220Processor.multiplyDigitCounts = [1, 14, 27, 40, 53, 66, 65, 52, 39, 26];
 
@@ -808,7 +806,6 @@ B220Processor.Register.prototype.checkFC = function checkFC() {
         this.p.setDigitCheck(1);
         return 1;
     }
-
 };
 
 /**************************************/
@@ -1007,7 +1004,7 @@ B220Processor.Register.prototype.dec = function dec() {
 ***********************************************************************/
 
 B220Processor.FlipFlop = function FlopFlop(p, invisible) {
-    /* Constructor for the generaic FlipFlop class. "p" is a reference to the
+    /* Constructor for the generic FlipFlop class. "p" is a reference to the
     Processor object, used to access the timing members. "invisible" should be
     true if the FF does not have a visible presence in the UI -- this will
     inhibit computing the average lamp glow value for it.
@@ -1017,9 +1014,9 @@ B220Processor.FlipFlop = function FlopFlop(p, invisible) {
     that state */
 
     this.visible = (invisible ? false : true);
-    this.lastExecClock = 0;             // time register was last set
+    this.lastExecClock = 0;             // time flip-flop was last set
     this.p = p;                         // processor instance
-    this.value = 0;                     // binary value of register: read-only externally
+    this.value = 0;                     // binary value of flip-flop: read-only externally
     this.glow = 0;                      // average lamp glow value
 };
 
@@ -2074,7 +2071,7 @@ B220Processor.prototype.floatingDivide = function floatingDivide() {
                 sign = 0;
                 this.A.set(am);
             } else {
-                // Shift A+R 1 digit right (exponent adjustment occurs later
+                // Shift A+R 1 digit right (exponent adjustment occurs later)
                 ad = am%0x10;
                 am = (am-ad)/0x10;
                 rd = rm%0x10;

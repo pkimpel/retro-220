@@ -112,9 +112,9 @@ B220ControlConsole.onOrganSwitchImage = "./resources/Organ-Switch-Down.png"
 B220ControlConsole.codeXlate = [        // translate internal 220 code to ANSI
      // 00   01   02   03   04        05    06    07   08   09   0A   0B   0C   0D   0E   0F
         " ", "?", "_", ".", "\u00A4", "?",  "?",  "?", "?", "?", "!", "!", "!", "!", "!", "!",  // 00-0F
-        "&", "?", "?", "$", "*",      "^",  "|",  "?", "?", "?", "!", "!", "!", "!", "!", "!",  // 10-1F
-        "-", "/", "?", ",", "%",      "?",  "~",  "?", "?", "?", "!", "!", "!", "!", "!", "!",  // 20-2F
-        "?", "?", "?", "#", "@",      "\\", "?",  "?", "?", "?", "!", "!", "!", "!", "!", "!",  // 30-3F
+        "&", "?", "]", "$", "*",      "^",  "|",  "?", "?", "?", "!", "!", "!", "!", "!", "!",  // 10-1F
+        "-", "/", "{", ",", "%",      "}",  "~",  ":", "?", "?", "!", "!", "!", "!", "!", "!",  // 20-2F
+        "?", "?", "[", "#", "@",      "\\", "\"", "`", "?", "?", "!", "!", "!", "!", "!", "!",  // 30-3F
         "?", "A", "B", "C", "D",      "E",  "F",  "G", "H", "I", "!", "!", "!", "!", "!", "!",  // 40-4F
         "?", "J", "K", "L", "M",      "N",  "O",  "P", "Q", "R", "!", "!", "!", "!", "!", "!",  // 50-5F
         "?", "?", "S", "T", "U",      "V",  "W",  "X", "Y", "Z", "!", "!", "!", "!", "!", "!",  // 60-6F
@@ -1034,7 +1034,7 @@ B220ControlConsole.prototype.consoleOnLoad = function consoleOnLoad(ev) {
 
     this.window.addEventListener("beforeunload", B220ControlConsole.prototype.beforeUnload);
 
-    this.$$("EmulatorVersion").textContent = B220Processor.version;
+    this.$$("EmulatorVersion").textContent = B220Version.version;
 
     this.window.moveTo(screen.availWidth - this.window.outerWidth, 0);
 

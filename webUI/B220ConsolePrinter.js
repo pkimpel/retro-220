@@ -66,6 +66,7 @@ B220ConsolePrinter.whippetSpeed = 1000; // Whippet printer speed, char/sec
 B220ConsolePrinter.whippetNewLine = 75; // Whippet carriage-return delay, ms
 B220ConsolePrinter.formFeedPeriod = 500;// full-page form-feed delay, ms
 
+B220ConsolePrinter.cursorChar = "_";    // end-of-line cursor
 B220ConsolePrinter.pageSize = 66;       // lines/page for form-feed
 B220ConsolePrinter.maxScrollLines = 15000;
                                         // Maximum amount of paper scrollback
@@ -134,15 +135,16 @@ B220ConsolePrinter.prototype.printNewLine = function printNewLine(text) {
     /* Removes excess lines already output, then appends a newline to the
     current text node, and then a new text node to the end of the <pre> element
     within the paper element. Note that "text" is an ANSI string */
-    var paper = this.paper;
+    var paper = this.paper;  
+    var lastLine = paper.lastChild.nodeValue;
     var line = text || "";
 
     while (paper.childNodes.length > B220ConsolePrinter.maxScrollLines) {
         paper.removeChild(paper.firstChild);
     }
 
-    paper.lastChild.nodeValue += "\n";     // newline
-    paper.appendChild(this.doc.createTextNode(line));
+    paper.lastChild.nodeValue = lastLine.substring(0, lastLine.length-1) + "\n";     
+    paper.appendChild(this.doc.createTextNode(line + B220ConsolePrinter.cursorChar));
     ++this.printerLine;
     this.printerCol = line.length;
     this.printerEOP.scrollIntoView();
@@ -159,10 +161,11 @@ B220ConsolePrinter.prototype.printChar = function printChar(code) {
         line = this.paper.lastChild.nodeValue;
         len = line.length;
         if (len < 1) {                  // first char on line
-            this.paper.lastChild.nodeValue = c;
+            this.paper.lastChild.nodeValue = c + B220ConsolePrinter.cursorChar;
             this.printerCol = 1;
         } else if (len < this.columns) {// normal char
-            this.paper.lastChild.nodeValue = line + c;
+            this.paper.lastChild.nodeValue =
+                    line.substring(0, len-1) + c + B220ConsolePrinter.cursorChar;
             ++this.printerCol;
         } else {                        // right margin overflow
              this.printNewLine(c);
